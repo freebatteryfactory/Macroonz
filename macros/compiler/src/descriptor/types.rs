@@ -5,7 +5,7 @@
 //!
 //! The three kinds themselves are declared beside their own grammars, in `trial/`, `bench/`, and `mutation/`.
 
-use crate::bounded::{Capped, NonEmpty};
+use crate::bounded::NonEmpty;
 use crate::identity::{OwnerFact, OwnerIdentity};
 use crate::token::SpanHandle;
 
@@ -24,9 +24,6 @@ pub const PATH_SEGMENT_LIMIT: usize = 8;
 ///
 /// The root is a list a reader audits in one sitting, which is the whole reason it is a declaration rather than a scan.
 pub const PROVIDER_LIMIT: usize = 64;
-
-/// Issues one composition refusal carries before it counts the rest.
-pub const COMPOSITION_ISSUE_LIMIT: usize = 64;
 
 /// The fact a grammar refusal cites as its repair.
 pub const DESCRIPTOR_MEANING_FACT: OwnerFact = OwnerFact {
@@ -295,20 +292,19 @@ pub enum CompositionIssue {
         /// The doubled provider.
         provider: OwnerIdentity,
     },
-    /// The provider seat outran its declared magnitude.
-    ProvidersUnbounded {
-        /// The declared magnitude.
-        bound: u64,
-        /// How many were declared.
-        observed: u64,
+    /// The shared declaration vocabulary refused the provider seat.
+    Declaration {
+        /// The vocabulary's own refusal.
+        refusal: DeclarationError,
     },
 }
 
-/// How one composition refused, with every issue the scan established.
-#[must_use = "a composition refusal carries every issue the duplicate scan established"]
+/// How one composition refused, with one required primary issue and every further issue the declaration pass established.
+#[must_use = "a composition refusal carries the issues its declaration pass established"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CompositionError {
-    body: Capped<CompositionIssue, COMPOSITION_ISSUE_LIMIT>,
+    first: CompositionIssue,
+    further: Vec<CompositionIssue>,
 }
 
 /// The one composition of descriptor-material providers: every provider that participates, named once.

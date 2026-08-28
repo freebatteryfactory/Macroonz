@@ -1,25 +1,28 @@
-//! The road one `bench` attribute walks: a captured body in, the carrier expansion out.
+//! The road one `bench` attribute walks: a captured body and the item it exercises in, the carrier expansion out.
 
 use super::types::BENCH_FORM_FACT;
 use super::walk::{helper_refused, proved_off, support_address, unit_tree, whole};
-use crate::descriptor::bench::{self, BenchAnswer, BenchRole, BenchTable};
+use crate::descriptor::bench::{self, BENCH_HELPER_POSITION, BenchAnswer, BenchRole, BenchTable};
 use crate::descriptor::{Emitter, Grammar};
-use crate::diagnostic::{Diagnostic, Door};
+use crate::diagnostic::Diagnostic;
 use crate::expansion::Expansion;
 use crate::kind::{Destination, Disposition};
+use crate::request::Door;
 use crate::request::Request;
 use crate::support::{self, AxisCargo, CargoAxis, DeclaredCargo, SupportAxes, SupportCarrier};
 use crate::token::{CapturedInput, CapturedTokenTree, GeneratedTree, SpanHandle};
 
 /// Walk one benchmark declaration to the sealed carrier expansion its table and report reader ride out inside.
 ///
-/// The body is read through the bench grammar, the bench terminal proves the table into its declaration-site delivery and the report reader into the bench-carrier delivery, and the carrier composes the two as the bench form: stamped table, opaque reporter.
+/// The body is read through the bench grammar beside the item it exercises, the bench terminal proves the table into its declaration-site delivery and the report reader into the bench-carrier delivery, and the carrier composes the two as the bench form: stamped table, opaque reporter.
+/// The item is the semantic declaration both requests stand over, while the body is committed separately at [`BENCH_HELPER_POSITION`].
 ///
 /// # Errors
 ///
 /// Returns one [`Diagnostic`], composed under the door: the grammar's refusal at the token it was established at, and every downstream road's refusal about the declaration as a whole.
 pub fn bench(
-    body: CapturedInput,
+    body: &CapturedInput,
+    item: &CapturedInput,
     grammar: Grammar,
     emitter: Emitter,
     door: &Door,
@@ -38,7 +41,7 @@ pub fn bench(
         rows,
     };
 
-    let delivery = Request::<BenchTable>::over(body.clone(), read, door)
+    let delivery = Request::<BenchTable>::over(item.clone(), read, door)
         .answering(vec![answer])
         .render(|plan, out| {
             let table = unit_tree(bench::bench_table(plan.content(), emitter))?;
@@ -59,8 +62,13 @@ pub fn bench(
         },
         bench: AxisCargo::Carried(proved),
     };
-    let root = delivery.plan().account().commitment();
-    let assembly = support::SupportAssembly::assembled(root, Some(address), axes)
-        .map_err(|refusal| whole(&refusal, door))?;
-    support::delivered(body, Vec::new(), assembly, door)
+    let assembly = support::SupportAssembly::assembled_for_helper(
+        item,
+        body,
+        BENCH_HELPER_POSITION,
+        Some(address),
+        axes,
+    )
+    .map_err(|refusal| whole(&refusal, door))?;
+    support::delivered(item.clone(), Vec::new(), assembly, door)
 }

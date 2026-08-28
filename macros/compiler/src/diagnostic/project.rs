@@ -6,8 +6,9 @@
 //! The line is a SUMMARY and says so: the first established issue in full, then how many others there were, then whether the set that names them kept all of them, then where the refusal sits if it sits anywhere narrower than the declaration.
 //! The remainder is not lost — every issue has its own identity in the related set, and the typed body is the value the caller of the refusing step holds.
 
-use super::{Door, Line, LineBody, LineSite, SiteCoordinate};
+use super::{Line, LineBody, LineSite, SiteCoordinate};
 use crate::bounded::Capping;
+use crate::request::Door;
 use crate::token::CoordinateRole;
 
 /// The word one coordinate role counts its positions in.

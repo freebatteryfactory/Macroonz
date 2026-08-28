@@ -6,7 +6,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-include = ["src/**", "tests/**", "assets/**", "AGENTS.md", "Cargo.toml", "README.md", "LICENSE-*"]
+include = ["src/**", "tests/**", "examples/**", "assets/**", "AGENTS.md", "CONTRIBUTING.md", "SECURITY.md", "Cargo.toml", "README.md", "LICENSE-*"]
 
 [workspace]
 resolver = "3"
@@ -15,6 +15,9 @@ members = [
     "harness",
     "macros/compiler",
     "macros/proc",
+]
+exclude = [
+    "macros/proc/tests/support/capture-observer",
 ]
 
 [workspace.package]
@@ -29,6 +32,7 @@ arbitrary = { version = "=1.4.2", default-features = false }
 syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }
 blake3 = { version = "=1.8.6", default-features = false }
 loom = { version = "=0.7.2", default-features = false, features = ["futures"] }
+ra-ap-rustc_lexer = { version = "=0.174.0", default-features = false }
 trybuild = "=1.0.120"
 macroonz-compiler = { path = "macros/compiler", version = "=0.1.0" }
 macroonz-harness = { path = "harness", version = "=0.1.0", default-features = false }
@@ -44,6 +48,16 @@ full = ["harness", "preemption"]
 macroonz-compiler = { workspace = true, features = ["host"] }
 macroonz-harness = { workspace = true, optional = true }
 macroonz-macros = { workspace = true }
+
+[[test]]
+name = "facade_harness_surface"
+path = "tests/facade_harness_surface.rs"
+required-features = ["harness"]
+
+[[example]]
+name = "rustc_coverage"
+path = "examples/rustc_coverage.rs"
+required-features = ["harness"]
 
 [lints]
 workspace = true

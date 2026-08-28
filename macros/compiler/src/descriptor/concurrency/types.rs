@@ -7,9 +7,6 @@ use crate::descriptor::{DirectBinding, HelperRefusal};
 #[path = "type_guard.rs"]
 mod guard;
 
-/// Where this helper's family sits among the declaration helpers.
-pub const CONCURRENCY_HELPER_POSITION: u32 = 5;
-
 /// One declared exploration: its spelling, and the four facts that make its findings replayable.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExplorationRow {

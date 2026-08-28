@@ -1,0 +1,5 @@
+error: macroonz: the declaration was not read: in `network`: a clause is not one the grammar declares (at semantic-origin position 26)
+ --> tests/compile_refusals/compile-fail/a-network-clause-outside-the-grammar-points-at-the-clause.rs:9:5
+  |
+9 |     latency = 3,
+  |     ^^^^^^^

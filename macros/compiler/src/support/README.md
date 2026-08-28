@@ -1,83 +1,57 @@
-# support — the exported carrier a consumption target invokes
+# support — inert cargo across a consumption boundary
 
-A declaration expands where it stands.
-What a test target or a bench target needs cannot expand there: an ordinary build of the crate holding the declaration would compile every byte of it.
+A declaration expands where it stands, while some of its generated material belongs only in a test or benchmark target.
+Compiling that material in the declaring crate as well as in the target would erase the boundary the declaration asked for.
+This home owns the exported carrier that preserves that boundary.
 
-This home is the one vehicle that carries it across.
+## Private owners
 
-## One carrier
+The parent retains only declaration and schema-pin vocabulary shared across the crossing.
+The private dependency graph is `carrier -> assembly -> cargo`.
+Cargo owns material, promotion, and axes; assembly owns the checked join; carrier owns rendering and delivery.
 
-The carrier is an exported `macro_rules!` definition, hidden, named by the plan's own identity at full width, whose body is one invocation of the harness's gate.
+## The boundary
 
-A macro definition nobody invokes is a definition nobody compiles, so the cargo rides inert until a consumption target names it.
-The name is derived rather than chosen, because the definition lands at the root of whatever crate the declaration sits in and shares one namespace with every other exported macro there.
-Nobody can know that spelling before the expansion runs, so a delivery a person is meant to invoke renders the address its author chose as well: an ordinary exported definition whose one rule forwards every token to the hidden one.
+Authority enters as one captured declaration, terminal deliveries already proved by the compiler, the producer's published schema expectation, and an optional address chosen by the declaration.
+The home admits only cargo read from the delivery that proved it and assembles every carried part under one declaration and one delivery form.
+What leaves is an exported macro definition whose body remains inert until a consumption target invokes it.
 
-## Two seats behind one pin
+The carrier is machinery, not a second declaration language.
+It owns the vehicle, the coupling of its seats, and the proof that the cargo came from the deliveries it names.
+The descriptor adapter owns the material placed in those seats, and the harness owns the gate and the destination vocabulary released on a matching schema.
 
-The gate's grammar writes a coupled pair, and one pin governs both.
+## One coupled crossing
 
-One seat carries material in the harness's own declaration grammar, which the gate forwards to its stamp.
-The other carries token trees the gate never parses and emits verbatim.
-On a matched pin the gate releases both; on a mismatch it emits its own refusal and neither, which is what makes the pin a door rather than a comment.
+The schema gate governs the declaration-shaped material and the opaque target cargo together.
+A matching publication releases both seats of the selected form, while a mismatch releases neither.
+This coupling prevents a target from receiving half of a delivery under a schema that did not admit the other half.
 
-The pin crosses as a roster of decimal byte values because the gate matches TOKENS.
-A byte string has many spellings of one value and an unsuffixed integer has exactly one, so the two sides are one token by construction rather than by an escaping convention nobody controls.
+The schema expectation is fixed by the producer rather than supplied by each declaration.
+Its independent currency observation compares both published copies with the identity derived from the harness declaration, because agreement between two copies establishes coherence and not freshness.
 
-## Nothing unproved crosses
+## Proved cargo only
 
-Every token in an opaque seat was rendered and PROVED somewhere else.
+Opaque cargo is promoted from a closed terminal's own delivery.
+The promotion records the terminal, its declaration, its destination, and the digest of the delivered bytes as one informed value.
+Assembly then verifies the relationships across every carried axis before any shell can be rendered.
 
-There is no road to a carrier that takes a token tree on its own: cargo is read off a terminal's own proved delivery and compared against what that delivery carries, and the reading records which terminal and which delivery it came from.
-The stamped seat's material is the other half, refused seat by seat at this home's own door before a token of it exists.
+The rendered carrier is named from its plan identity so declarations sharing one crate do not choose competing machinery names.
+An author-facing alias may forward to that hidden carrier, but it adds no grammar and changes no cargo.
 
-## What an assembly establishes
+## Composition
 
-Holding one means five things were settled while it was built.
+The descriptor doors read first-party declarations, close their generated outputs, and hand this home only proved deliveries and declaration-owned material.
+This home composes the carrier and walks it through the same request, rendering, closure, explanation, and binding road as every other generated unit.
+The proc host only emits the resulting declaration-site unit beside the item it was given.
 
-- **One declaration.** Every carried axis's terminal stands over the declaration the assembly does. A carrier composing two declarations' cargo is one exported name delivering material from two places, whichever one the caller meant.
-- **One published pin.** The expectation the gate is pinned against is the one these services publish, at full width. An expectation minted beside it would put a pin in the carrier that no publication act wrote.
-- **Each terminal's delivery consumed once.** Two axes reading one terminal's one delivery would deliver those tokens twice into one target.
-- **No cargo reaching a second destination.** An axis reads the delivery its own row names and no other. Cargo read from the declaration-site delivery into a carrier seat is material the ordinary build already compiles, carried again into a target that compiles it too.
-- **One delivery form.** One carrier is one gate invocation, and one gate invocation is one coupled pair of seats.
+At the consumption boundary, the harness gate proves that the supplied harness path reaches the publishing crate and that the producer's schema expectation matches the published one before either seat reaches type checking.
+The gate transports opaque cargo without interpreting it.
 
-The sixth is settled later, at the one road to a rendered carrier: the carrier's own plan and the assembly must stand over one declaration.
-Nothing before that road holds both values, and a plan for another declaration agrees with every reading downstream — the carrier would be born wearing that plan's key and origin over cargo that is not its.
+## Evidence ceiling
 
-## Three axes, three materials
+An assembled carrier establishes producer-side parentage, singular delivery, one declaration, one form, and the published expectation used to render the shell.
+It does not establish that a target invokes the carrier, that the published schema is current, that opaque cargo is semantically correct, or that the consuming target succeeds.
+Those claims belong to external carrier-road, schema-currency, compile-refusal, proc, package, and consumption observations.
 
-They are composed rather than collapsed into one payload with a discriminant, because the materials are genuinely different and a seat that could hold either is a seat nobody answers for.
-
-The DECLARED axis carries stamp-grammar tokens and the matcher clauses those tokens consume, rendered by whoever owns that grammar.
-The DEFERRED axis carries one terminal's proved test-carrier cargo.
-The BENCH axis carries one terminal's proved bench-carrier cargo.
-
-Which form the gate is invoked under follows from the axes rather than being stated beside them: a carried bench axis is the bench form, anything else is the trial form.
-The bench form's stamped seat is required, because the gate's own transcription of that seat has no empty row.
-
-An axis nothing filled carries the DISPOSITION of what would have filled it.
-"This seat is empty" is a shape a reader cannot act on, and "nobody asked for it" and "it does not apply here" are answers to different questions the deciding road already gave.
-
-## How it says no
-
-Three refusals, each an ordinary error that prints, is a `core::error::Error`, and projects into a diagnostic through the one contract every refusing step implements.
-
-The DECLARATION refusal is about this home's own vocabulary — a name that names nothing, a spelling that is not an identifier, a path that names no item.
-The ASSEMBLY refusal carries every way a set of closed outputs did not compose, together, because an assembly failing on two declarations and a doubled consumption at once is repaired in one attempt rather than two.
-The SHELL refusal is the one road's own answer: the plan and the assembly are not one declaration's, or the composed carrier outgrew the token magnitude.
-
-## One kind of its own
-
-The carrier is itself a generated unit, so this home declares the kind that plans it: content the verified assembly, one seat at the declaration site, no questions beyond the universal ones.
-
-A carrier expansion therefore walks the same eight steps every expansion walks, and the exported definition a consumption target invokes is a proved unit like any other — the mangled name is the carrier plan's own identity, which is why the shell can only be rendered inside that plan's render step.
-
-## The seats
-
-`types.rs` declares, and its own child `type_guard.rs` holds every road that reaches a private field — the name parsers, the promotion of proved cargo, the assembly, and the one road to a rendered carrier.
-
-`establish.rs` is the verification pass, pure, reading each axis through the same answers any caller gets.
-`render.rs` is the token half: the pin roster, the gate invocation, the exported definition, and the forwarding address.
-`deliver.rs` walks one carrier request whole: a capture and a verified assembly in, the sealed expansion whose declaration-site unit is the exported carrier out.
-`encode.rs` writes the bytes one refusal is named by.
-`type_contract.rs` states the rosters' constant tables and the contracts the three refusals stand under.
+This home also makes no performance claim.
+Generated-token growth, compile cost, packaged outside consumption, renamed paths, and target behavior remain adopter-facing evidence planes rather than constants or prose claims here.

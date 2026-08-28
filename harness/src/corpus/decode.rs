@@ -1,5 +1,3 @@
-//! Reading an untrusted envelope, under the population the caller expects to find inside it.
-
 use super::{
     SEED_PACK_FORMAT_VERSION, SEED_PACK_TAG, SeedInput, SeedPack, SeedPackAddress, SeedPackRefusal,
 };
@@ -8,6 +6,7 @@ use crate::identity::ContentAddress;
 
 /// Read one content-addressed seed-pack envelope for the population the caller expects.
 ///
+/// This reads exactly the canonical envelope [`pack`](super::pack) writes.
 /// The leading claim is settled before a single member of the body is interpreted, and the caller hands in a population already parsed, so foreign bytes never mint a name.
 ///
 /// # Errors
@@ -35,7 +34,6 @@ fn addressed_body(encoded: &[u8]) -> Result<(SeedPackAddress, &[u8]), SeedPackRe
     Ok((address, body))
 }
 
-/// Read every member the body declares, in the order the format declares them.
 fn read_body(
     expected_population: PopulationRef,
     body: &[u8],
@@ -72,29 +70,24 @@ fn read_body(
     Ok(seeds)
 }
 
-/// A cursor over one body, which never indexes and never trusts a declared width.
 struct BodyReader<'body> {
     body: &'body [u8],
     at: usize,
 }
 
 impl<'body> BodyReader<'body> {
-    /// Open at the first body byte.
     const fn over(body: &'body [u8]) -> Self {
         Self { body, at: 0 }
     }
 
-    /// Read one fixed-width 32-bit integer.
     fn u32(&mut self) -> Result<u32, SeedPackRefusal> {
         self.fixed::<4>().map(u32::from_be_bytes)
     }
 
-    /// Read one fixed-width 64-bit integer.
     fn u64(&mut self) -> Result<u64, SeedPackRefusal> {
         self.fixed::<8>().map(u64::from_be_bytes)
     }
 
-    /// Read one length-prefixed byte string.
     fn bytes(&mut self) -> Result<&'body [u8], SeedPackRefusal> {
         let declared = self.u64()?;
         let Ok(length) = usize::try_from(declared) else {
@@ -103,13 +96,11 @@ impl<'body> BodyReader<'body> {
         self.take(length)
     }
 
-    /// Read one fixed-width byte array.
     fn fixed<const WIDTH: usize>(&mut self) -> Result<[u8; WIDTH], SeedPackRefusal> {
         let bytes = self.take(WIDTH)?;
         <[u8; WIDTH]>::try_from(bytes).map_err(|_unexpected_width| SeedPackRefusal::Truncated)
     }
 
-    /// Advance over exactly this many bytes, or refuse the envelope as truncated.
     fn take(&mut self, width: usize) -> Result<&'body [u8], SeedPackRefusal> {
         let Some(end) = self.at.checked_add(width) else {
             return Err(SeedPackRefusal::Truncated);
@@ -121,7 +112,6 @@ impl<'body> BodyReader<'body> {
         Ok(bytes)
     }
 
-    /// How many bytes are still unread.
     const fn remaining(&self) -> usize {
         self.body.len().saturating_sub(self.at)
     }

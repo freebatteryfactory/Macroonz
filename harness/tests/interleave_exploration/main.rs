@@ -11,10 +11,10 @@ use macroonz_harness::fault::{
 };
 use macroonz_harness::generate::{GenerationDisposition, GenerationHalt, RootSeed};
 use macroonz_harness::interleave::{
-    Counterexample, EncodingRefusal, ExplorationBound, ExplorationBoundRefusal, ExplorationMode,
-    ExplorationReading, ExplorationRefusal, ExplorationSite, ExplorationStanding, Interleaving,
-    InterleavingSpace, Strand, StrandRefusal, StrandSet, StrandSetRefusal, concluded, encoded,
-    explored, interpreted,
+    ADDRESSABLE_STRANDS, Counterexample, EncodingRefusal, ExplorationBound,
+    ExplorationBoundRefusal, ExplorationMode, ExplorationReading, ExplorationRefusal,
+    ExplorationSite, ExplorationStanding, Interleaving, InterleavingSpace, Strand, StrandRefusal,
+    StrandSet, StrandSetRefusal, concluded, encoded, explored, interpreted,
 };
 use macroonz_harness::properties::{
     ContractRefusal, Holding, TemporalClaim, TemporalDemand, TransitionContract, holds_over_history,
@@ -62,21 +62,16 @@ fn opening() -> Account {
 
 /// One move against the account; an overdraft latches.
 fn applied(state: &Account, command: &Move) -> Account {
-    match *command {
-        Move::Deposit(amount) => Account {
-            balance: state.balance.saturating_add(i128::from(amount)),
-            solvency: state.solvency,
-        },
-        Move::Withdraw(amount) => {
-            let balance = state.balance.saturating_sub(i128::from(amount));
-            let solvency = if balance < 0i128 {
-                Solvency::Overdrawn
-            } else {
-                state.solvency
-            };
-            Account { balance, solvency }
-        }
-    }
+    let balance = match *command {
+        Move::Deposit(amount) => state.balance.saturating_add(i128::from(amount)),
+        Move::Withdraw(amount) => state.balance.saturating_sub(i128::from(amount)),
+    };
+    let solvency = if balance < 0i128 {
+        Solvency::Overdrawn
+    } else {
+        state.solvency
+    };
+    Account { balance, solvency }
 }
 
 /// Whether the account stands overdrawn.
@@ -333,6 +328,93 @@ fn beyond_the_bound_the_space_is_sampled_and_the_census_says_so() -> Result<(), 
         RootSeed::declared(3u64),
     )?;
     assert_eq!(reading, again);
+    for seed in [0u64, u64::MAX, 0xA5A5_5A5A_F0F0_0F0Fu64] {
+        let first = explored(
+            &set,
+            &contract,
+            bound,
+            population()?,
+            RootSeed::declared(seed),
+        )?;
+        let repeated = explored(
+            &set,
+            &contract,
+            bound,
+            population()?,
+            RootSeed::declared(seed),
+        )?;
+        assert_eq!(first, repeated);
+    }
+    Ok(())
+}
+
+/// A larger four-party space is still walked literally when its exact multinomial count fits the declared exhaustive ceiling.
+#[test]
+#[ignore = "long deterministic local exhaustive-schedule campaign; run explicitly"]
+fn a_long_exhaustive_campaign_walks_every_counted_schedule() -> Result<(), LaneFailure> {
+    let north = Strand::declared(name("north")?, vec![Move::Deposit(1u64); 3])?;
+    let east = Strand::declared(name("east")?, vec![Move::Deposit(2u64); 3])?;
+    let south = Strand::declared(name("south")?, vec![Move::Deposit(3u64); 3])?;
+    let west = Strand::declared(name("west")?, vec![Move::Deposit(4u64); 3])?;
+    let set = StrandSet::declared(vec![north, east, south, west])?;
+    let contract = TransitionContract::declared(
+        opening,
+        applied,
+        vec![TemporalClaim::declared(
+            BALANCE_GREW,
+            TemporalDemand::NeverDecreases(by_balance),
+        )],
+    )?;
+    let reading = explored(
+        &set,
+        &contract,
+        ExplorationBound::declared(369_600u32, 1u32)?,
+        population()?,
+        RootSeed::declared(0u64),
+    )?;
+    assert_eq!(reading.space(), InterleavingSpace::Counted(369_600u128));
+    assert_eq!(reading.mode(), ExplorationMode::Exhaustive);
+    assert_eq!(reading.explored(), 369_600u64);
+    assert_eq!(
+        reading.standing(),
+        &ExplorationStanding::SpaceExhaustedAllHold
+    );
+    assert_eq!(concluded(&reading), TrialConclusion::Passed);
+    Ok(())
+}
+
+/// A larger space remains explicitly sampled, and one declared seed reproduces the same bounded reading without gaining exhaustive standing.
+#[test]
+#[ignore = "long deterministic local sampled-schedule campaign; run explicitly"]
+fn a_long_sampled_campaign_repeats_without_claiming_the_space() -> Result<(), LaneFailure> {
+    let steady = Strand::declared(name("steady-long")?, vec![Move::Deposit(1u64); 32])?;
+    let eager = Strand::declared(name("eager-long")?, vec![Move::Deposit(2u64); 32])?;
+    let set = StrandSet::declared(vec![steady, eager])?;
+    let contract = TransitionContract::declared(
+        opening,
+        applied,
+        vec![TemporalClaim::declared(
+            BALANCE_GREW,
+            TemporalDemand::NeverDecreases(by_balance),
+        )],
+    )?;
+    let bound = ExplorationBound::declared(1_000_000u32, 4_096u32)?;
+    let seed = RootSeed::declared(0xA5A5_5A5A_F0F0_0F0Fu64);
+    let first = explored(&set, &contract, bound, population()?, seed)?;
+    let repeated = explored(&set, &contract, bound, population()?, seed)?;
+    assert_eq!(first, repeated);
+    assert_eq!(
+        first.space(),
+        InterleavingSpace::Counted(1_832_624_140_942_590_534u128)
+    );
+    assert_eq!(first.explored(), 4_096u64);
+    assert_eq!(first.standing(), &ExplorationStanding::SampledAllHold);
+    let ExplorationMode::Sampled { census, halt } = first.mode() else {
+        return Err(LaneFailure::Standing);
+    };
+    assert_eq!(census.count_of(GenerationDisposition::Generated), 4_096u32);
+    assert_eq!(halt, GenerationHalt::CaseBudgetMet);
+    assert_eq!(concluded(&first), TrialConclusion::Passed);
     Ok(())
 }
 
@@ -458,6 +540,81 @@ fn a_directed_interleaving_is_authored_encoded_and_realized() -> Result<(), Lane
     Ok(())
 }
 
+/// Every schedule in a two-by-two space roundtrips through material, and the roster count agrees with the multinomial reading.
+#[test]
+fn every_small_space_schedule_roundtrips_and_matches_its_count() -> Result<(), LaneFailure> {
+    let steady = Strand::declared(
+        name("steady")?,
+        vec![Move::Deposit(1u64), Move::Deposit(2u64)],
+    )?;
+    let eager = Strand::declared(
+        name("eager")?,
+        vec![Move::Deposit(3u64), Move::Deposit(4u64)],
+    )?;
+    let set = StrandSet::declared(vec![steady, eager])?;
+    let choices = [
+        [0u8, 0u8, 1u8, 1u8],
+        [0u8, 1u8, 0u8, 1u8],
+        [0u8, 1u8, 1u8, 0u8],
+        [1u8, 0u8, 0u8, 1u8],
+        [1u8, 0u8, 1u8, 0u8],
+        [1u8, 1u8, 0u8, 0u8],
+    ];
+    let mut materials = Vec::new();
+    for spelling in choices {
+        let authored = Interleaving::declared(spelling.to_vec());
+        let material = encoded(&set, &authored)?;
+        assert!(!materials.contains(&material));
+        let realized = interpreted(&set, &material);
+        assert_eq!(realized.interleaving(), &authored);
+        materials.push(material);
+    }
+    assert_eq!(materials.len(), 6usize);
+    let reading = explored(
+        &set,
+        &TransitionContract::declared(
+            opening,
+            applied,
+            vec![TemporalClaim::declared(
+                BALANCE_GREW,
+                TemporalDemand::NeverDecreases(by_balance),
+            )],
+        )?,
+        ExplorationBound::declared(6u32, 1u32)?,
+        population()?,
+        RootSeed::declared(1u64),
+    )?;
+    assert_eq!(reading.space(), InterleavingSpace::Counted(6u128));
+    assert_eq!(
+        reading.explored(),
+        u64::try_from(materials.len()).unwrap_or(u64::MAX)
+    );
+    Ok(())
+}
+
+/// Empty, hostile, and surplus material all realize a complete deterministic schedule, and canonical encoding replays it.
+#[test]
+fn arbitrary_material_is_total_deterministic_and_replayable() -> Result<(), LaneFailure> {
+    let set = transfer_set()?;
+    let materials = [Vec::new(), vec![u8::MAX], vec![u8::MAX, 0u8, 91u8]];
+    for material in materials {
+        let first = interpreted(&set, &material);
+        let repeated = interpreted(&set, &material);
+        assert_eq!(first, repeated);
+        assert_eq!(first.commands().len(), set.steps());
+        let canonical = encoded(&set, first.interleaving())?;
+        assert_eq!(interpreted(&set, &canonical), first);
+    }
+    assert_eq!(interpreted(&set, &[]).interleaving().choices(), [0u8, 1u8]);
+    assert_eq!(
+        interpreted(&set, &[u8::MAX, 0u8, 91u8])
+            .interleaving()
+            .choices(),
+        [1u8, 0u8]
+    );
+    Ok(())
+}
+
 /// A strand with no commands names a party that never acts, and is refused where it is written.
 #[test]
 fn an_empty_strand_refuses() -> Result<(), LaneFailure> {
@@ -490,6 +647,59 @@ fn a_repeated_strand_name_refuses() -> Result<(), LaneFailure> {
         StrandSet::declared(vec![first, second]),
         Err(StrandSetRefusal::DuplicateStrand(twin))
     );
+    Ok(())
+}
+
+/// One choice byte cannot address a set with more than 256 parties, and the set refuses that bound before exploration.
+#[test]
+fn more_strands_than_one_choice_byte_addresses_refuses() -> Result<(), LaneFailure> {
+    let words = [
+        "s00", "s01", "s02", "s03", "s04", "s05", "s06", "s07", "s08", "s09", "s10", "s11", "s12",
+        "s13", "s14", "s15", "s16",
+    ];
+    let mut strands = Vec::new();
+    'names: for &namespace in &words {
+        for &stem in &words {
+            strands.push(Strand::declared(
+                NamespacedName::named(namespace, stem)?,
+                vec![Move::Deposit(1u64)],
+            )?);
+            if strands.len() > ADDRESSABLE_STRANDS {
+                break 'names;
+            }
+        }
+    }
+    assert_eq!(
+        StrandSet::declared(strands),
+        Err(StrandSetRefusal::MoreStrandsThanAddressable {
+            strands: ADDRESSABLE_STRANDS.saturating_add(1usize)
+        })
+    );
+    Ok(())
+}
+
+/// Exactly [`ADDRESSABLE_STRANDS`] parties remain lawful; the refusal boundary is strict greater-than.
+#[test]
+fn the_addressable_strand_ceiling_itself_is_admitted() -> Result<(), LaneFailure> {
+    let words = [
+        "s00", "s01", "s02", "s03", "s04", "s05", "s06", "s07", "s08", "s09", "s10", "s11", "s12",
+        "s13", "s14", "s15", "s16",
+    ];
+    let mut strands = Vec::new();
+    'names: for &namespace in &words {
+        for &stem in &words {
+            strands.push(Strand::declared(
+                NamespacedName::named(namespace, stem)?,
+                vec![Move::Deposit(1u64)],
+            )?);
+            if strands.len() == ADDRESSABLE_STRANDS {
+                break 'names;
+            }
+        }
+    }
+    assert_eq!(strands.len(), ADDRESSABLE_STRANDS);
+    let set = StrandSet::declared(strands)?;
+    assert_eq!(set.strands().len(), ADDRESSABLE_STRANDS);
     Ok(())
 }
 

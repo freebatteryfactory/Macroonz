@@ -5,7 +5,7 @@ error[E0061]: this method takes 1 argument but 2 arguments were supplied
    |                     ^^^^^^^^     --------- unexpected argument #2 of type `EvaluationDirective<'_>`
    |
 note: method defined here
-  --> src/muterprater/type_guard.rs
+  --> src/muterprater/interpretation/type_guard.rs
    |
    |     pub fn evaluate(&self, input: &Input) -> Meaning {
    |            ^^^^^^^^

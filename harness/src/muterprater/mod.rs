@@ -4,7 +4,7 @@
 //! [`discover`] lowers a producer's discovery roster through owner policy into the one executable surface.
 //! [`wrap`] reads an external backend's console output into the axis-composed record, and plans the witness runs over it.
 //! [`specimen`] presses one separately rendered compiled projection across a caller-owned compiler host.
-//! [`interpret`] owns the compile-once receiver: pairing, no-mutation parity, the trust boundary, and the one authorized active execution.
+//! [`interpret`] is the public compile-once operation road over pairing, no-mutation parity, the trust boundary, and the one authorized active execution.
 //! [`rewrite`] plans structural-rewrite descriptors as audit candidates.
 //! [`propose`] is the proposal road end to end, ending where a human admits.
 //!
@@ -13,16 +13,21 @@
 //! This home invokes the caller's production, evaluation, materializer, and host callables at their typed operations, and nothing else.
 //! Trial judgment and execution evidence stay with [`crate::runner::TrialBinding`] and [`crate::report`], so mutation-specific control never becomes a second general runner.
 
-pub mod interpret;
+pub use interpretation::interpret;
+#[path = "discovery/discover.rs"]
 pub mod discover;
-pub mod propose;
+pub use proposal::propose;
 pub mod rewrite;
 pub mod specimen;
-pub mod wrap;
+pub use backend::wrap;
 
-mod encode;
-mod type_contract;
+mod backend;
+mod discovery;
+mod interpretation;
+mod pressure;
+mod proposal;
 mod types;
+mod verdict;
 
 pub use types::{
     ARTIFACT_CONTENT_TAG, ARTIFACT_MUTATIONS, ActivationAxis, ActivationDisposition,

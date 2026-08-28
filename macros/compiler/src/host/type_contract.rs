@@ -1,11 +1,7 @@
 //! The constant answer this home's one roster settles, the contracts a capture refusal stands under, and what an expansion delivers to be emitted.
 
 use super::types::{CaptureError, Emittable};
-use crate::bounded::Bounded;
 use crate::closure::PartitionCargo;
-use crate::diagnostic::{
-    CAPTURE_FAMILY, Family, LineBody, Observed, Phase, REPAIR_LIMIT, RefusalClass, Refused, Repair,
-};
 use crate::expansion::Expansion;
 use crate::kind::Kind;
 use crate::token::CaptureBound;
@@ -16,7 +12,7 @@ impl CaptureError {
     ///
     /// Appended and never renumbered: the byte stands inside every related identity derived over a refused capture.
     #[must_use]
-    pub const fn slot(self) -> u8 {
+    pub const fn slot(&self) -> u8 {
         match self {
             Self::Unbounded { .. } => 0,
             Self::Unread { .. } => 1,
@@ -45,41 +41,6 @@ impl core::error::Error for CaptureError {
             Self::Unbounded { bound } => Some(bound),
             Self::Unread { cause, .. } => Some(cause),
         }
-    }
-}
-
-impl Refused for CaptureError {
-    const PHASE: Phase = Phase::Capture;
-    const FAMILY: Family = CAPTURE_FAMILY;
-
-    fn class(&self) -> RefusalClass {
-        RefusalClass::DeclarationNotRead
-    }
-
-    fn first(&self) -> String {
-        self.to_string()
-    }
-
-    fn observed(&self) -> Observed {
-        match self {
-            Self::Unbounded { .. } => Observed::BoundExceeded,
-            Self::Unread { .. } => Observed::ContractDisagreement,
-        }
-    }
-
-    /// One cause, always: a capture stops at the first thing it cannot read, so nothing co-establishes behind it.
-    fn body(&self) -> LineBody {
-        LineBody::SingleCause
-    }
-
-    /// A single cause enumerates nothing: the primary cause is the summary's own subject, never a member of its related set.
-    fn related(&self) -> Vec<Vec<u8>> {
-        Vec::new()
-    }
-
-    /// No repair is cited: both rows are about what the declared input carries, so the repair is that declaration, and a sentence composed here would be this compiler citing a fact nobody declared.
-    fn repairs(&self) -> Bounded<Repair, REPAIR_LIMIT> {
-        Bounded::empty()
     }
 }
 

@@ -7,7 +7,7 @@
 //!
 //! An owner fact is a name the consumer declares, an operator family is a slug the consumer declares, and an alternative is DATA: its semantic operation bytes and the value it means, both stated rather than derived.
 //! Nothing in this vocabulary computes an alternative: a shape that could invent one would be deciding what pressure a consumer's declaration is under.
-//! The one computation this home does offer — the declared-order door in `capture.rs` — transposes the declaration's OWN order and invents nothing beside it.
+//! The one computation this home does offer — the declared-order door in `complete.rs` — transposes the declaration's OWN order and invents nothing beside it.
 
 use crate::bounded::{Bounded, NonEmpty};
 use crate::descriptor::{HelperRefusal, ModuleName, Name, SupportName, TypeName};
@@ -32,7 +32,7 @@ pub const ALTERNATIVE_LIMIT: usize = 64;
 
 /// The transcript position a captured reading of this grammar is separated by.
 ///
-/// Two helper readings of one declaration share the captured-helper role and are told apart by position alone: this one is the second.
+/// The three attribute-helper readings of one declaration share the captured-helper role and are told apart by position alone: this one is the second.
 pub const MUTATION_HELPER_POSITION: u32 = 1;
 
 /// The operator family the declared-order door produces alternatives under, by the harness bank's own slug.

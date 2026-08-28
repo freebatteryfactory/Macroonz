@@ -7,7 +7,10 @@ It owns no grammar, no roster, no identity rule, no planning decision, and no ju
 
 ---
 
-## Six entries
+## Procedural declaration families
+
+The item-preserving attributes emit an inert carrier beside the decorated item.
+The direct declarations emit ordinary Rust items at the declaration site.
 
 | Entry | On | Renders |
 | --- | --- | --- |
@@ -18,8 +21,8 @@ It owns no grammar, no roster, no identity rule, no planning decision, and no ju
 | `network! { ... }` | item position | The builder module for a declared topology and its fault schedules, rooted at the harness path the declaration supplies. |
 | `concurrency! { ... }` | item position | One generic function per declared exploration row, rooted at the harness path the declaration supplies. |
 
-Each attribute expands to exactly two things: one exported carrier, and the item you wrote, untouched.
-The three declarations are direct emissions — their items are ordinary Rust where they stand, inert inside nothing, because a face and a builder are not cargo.
+Each attribute expands to one exported carrier, then re-emits the item token stream it received.
+The direct declarations are ordinary Rust where they stand, inert inside nothing, because a face and a builder are not cargo.
 Their `loom` or `harness` clause supplies the physical path that declaration scope resolves, so a renamed dependency and a facade re-export use the same grammar and the renderer hardcodes neither.
 
 The carrier is a hidden `macro_rules!` definition — plus the alias you chose in the `support` clause — holding its cargo inert.
@@ -28,7 +31,7 @@ Your test or bench target invokes the alias, supplies its own host facts and cal
 
 Each attribute walks the road any derive built on `macroonz-compiler` walks — capture, request, render, close, explain, bind, emit.
 The grammar each one reads is the compiler's `descriptor` home's; the road from a reading to a sealed carrier expansion is the same home's `door`; the carrier itself is the compiler's `support` home's.
-What lives here is one function per attribute, and every sentence a refusal shows you was composed inside the compiler at the token it is about.
+What lives here is one thin function per procedural entry, and every sentence a refusal shows you was composed inside the compiler at the token it is about.
 
 ---
 

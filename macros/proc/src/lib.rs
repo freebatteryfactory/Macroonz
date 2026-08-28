@@ -1,10 +1,10 @@
-//! The proc-macro seat of `macroonz`: three generic attributes riding one carrier road, and three direct declarations beside them.
+//! The proc-macro seat of `macroonz`: item-preserving attributes riding the carrier road, and direct declarations emitted where they stand.
 //!
 //! Every grammar an entry here reads is the compiler's `descriptor` home's, every road from a reading to the tokens a declaration site receives is the compiler's, and the walk between them is the descriptor home's own `door` road.
 //! What this crate adds is exactly what a proc host owns: token conversion, span custody, one compiler call, diagnostic placement, and emission — plus the facts of its own act, declared once beside each entry.
 //!
-//! Each attribute expands to one exported carrier and then the item it decorates, byte for byte as the author wrote it; the carrier is inert until a consumption target invokes it, so an ordinary build compiles the item and one macro definition and nothing more.
-//! The three declarations — [`shadow!`](macro@shadow), [`network!`](macro@network), and [`concurrency!`](macro@concurrency) — are direct emissions: ordinary items where the declaration stands, inert inside nothing, because a face and a builder are not cargo.
+//! Each attribute expands to one exported carrier and then re-emits the item token stream it received; the carrier is inert until a consumption target invokes it, so an ordinary build compiles the item and one macro definition and nothing more.
+//! Direct declarations such as [`shadow!`](macro@shadow), [`network!`](macro@network), and [`concurrency!`](macro@concurrency) emit ordinary items where the declaration stands, inert inside nothing, because a face and a builder are not cargo.
 
 use macroonz_compiler::descriptor::door;
 use macroonz_compiler::descriptor::{Emitter, Grammar};
@@ -133,8 +133,14 @@ const SHADOW_DOOR: Door = Door::declared(
 /// A malformed declaration expands to `compile_error!` at the offending token, carrying the compiler's own rendering of the established cause.
 #[proc_macro_attribute]
 pub fn trials(body: TokenStream, item: TokenStream) -> TokenStream {
-    let mut expanded = host::expand(body, |capture| {
-        door::trials(capture, TRIALS_GRAMMAR, TRIALS_EMITTER, &TRIALS_DOOR)
+    let mut expanded = host::expand_on(body, item.clone(), |captured_body, captured_item| {
+        door::trials(
+            &captured_body,
+            &captured_item,
+            TRIALS_GRAMMAR,
+            TRIALS_EMITTER,
+            &TRIALS_DOOR,
+        )
     });
     expanded.extend(item);
     expanded
@@ -151,7 +157,7 @@ pub fn trials(body: TokenStream, item: TokenStream) -> TokenStream {
 pub fn mutations(body: TokenStream, item: TokenStream) -> TokenStream {
     let mut expanded = host::expand_on(body, item.clone(), |captured_body, captured_item| {
         door::mutations(
-            captured_body,
+            &captured_body,
             &captured_item,
             MUTATIONS_GRAMMAR,
             &MUTATIONS_DOOR,
@@ -169,8 +175,14 @@ pub fn mutations(body: TokenStream, item: TokenStream) -> TokenStream {
 /// A malformed declaration expands to `compile_error!` at the offending token, carrying the compiler's own rendering of the established cause.
 #[proc_macro_attribute]
 pub fn bench(body: TokenStream, item: TokenStream) -> TokenStream {
-    let mut expanded = host::expand(body, |capture| {
-        door::bench(capture, BENCH_GRAMMAR, BENCH_EMITTER, &BENCH_DOOR)
+    let mut expanded = host::expand_on(body, item.clone(), |captured_body, captured_item| {
+        door::bench(
+            &captured_body,
+            &captured_item,
+            BENCH_GRAMMAR,
+            BENCH_EMITTER,
+            &BENCH_DOOR,
+        )
     });
     expanded.extend(item);
     expanded

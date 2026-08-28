@@ -1,10 +1,7 @@
-//! The two tables the harness's vocabulary is stated in: the names a rendered path or constructor call spells, and the words a stamped payload's grammar is written in.
+//! The semantic spellings used by generated harness paths, calls, clauses, and target-supplied seats.
 //!
-//! Declarations only.
-//! Neither table has a private field, so this home has no invariant nucleus.
-//!
-//! Two tables rather than one because they answer two questions: a NAME is a segment of a path or the item at the end of one, and a WORD is a key of the grammar a stamp reads.
-//! Neither carries a complete roster, because nothing walks a vocabulary — a rendering asks it for one spelling at a time.
+//! [`HarnessName`] answers where an expression lands, while [`HarnessWord`] answers how stamped material names one grammar seat.
+//! The enums carry no private state because each admitted variant is already one closed destination spelling.
 
 /// One name macroonz-harness publishes that a descriptor emission spells.
 ///

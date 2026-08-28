@@ -6,6 +6,10 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+exclude = [
+    "tests/generated_support_crossing.rs",
+    "tests/support/capture-observer/**",
+]
 
 [lib]
 proc-macro = true
@@ -18,3 +22,4 @@ macroonz-compiler = { workspace = true, features = ["host"] }
 
 [dev-dependencies]
 mh = { package = "macroonz-harness", path = "../../harness", version = "=0.1.0" }
+trybuild.workspace = true

@@ -2,13 +2,13 @@
 //!
 //! Declared inside `types.rs` as its own child, which is what makes the home's central claim structural rather than reviewed.
 //! An expansion is bound here, after the three values agreed about their parentage, and it is the only value in the crate that hands a closure's proved deliveries out.
-//! An account is built here too, so a record of dispositions cannot be seated beside an expansion it was not decided over.
+//! An account is built here too, and it accepts only the kind home's complete-set witness so a consumer-owned record cannot smuggle silence past the accounting boundary.
 
 use super::{Accounted, BindError, Expansion};
 use crate::closure::{Closure, PartitionCargo, PartitionedEmission};
 use crate::explanation::View;
 use crate::identity::{self, ClosedExpansionId, Provenance, Transcript, encode_bytes};
-use crate::kind::{Destination, Kind, KindSet};
+use crate::kind::{Destination, DispositionSet, Kind, KindSet};
 use crate::plan::Plan;
 use crate::render::RenderedUnit;
 
@@ -130,11 +130,11 @@ impl<K: Kind> Expansion<K> {
 }
 
 impl<K: Kind, Set: KindSet> Accounted<K, Set> {
-    /// Seat one door's disposition record beside the expansion that door produced.
+    /// Seat one door's complete disposition witness beside the expansion that door produced.
     ///
     /// Public, because a door is the consumer's: a crate-internal road here would mean only this crate could ever answer for a set of kinds, and this compiler declares none.
-    /// What it costs is that the pairing is the caller's claim rather than a proof — which is exactly what a door is, and the expansion inside carries its own.
-    pub const fn seated(expansion: Expansion<K>, dispositions: Set::Dispositions) -> Self {
+    /// Which row says generated remains the caller's claim — which is exactly what a door decides — while [`DispositionSet`] makes omission structurally unavailable here.
+    pub const fn seated(expansion: Expansion<K>, dispositions: DispositionSet<Set>) -> Self {
         Self {
             expansion,
             dispositions,
@@ -148,11 +148,10 @@ impl<K: Kind, Set: KindSet> Accounted<K, Set> {
         &self.expansion
     }
 
-    /// What happened to every kind of the set, whole.
+    /// What happened to every kind of the set, whole and declaration-ordered.
     ///
-    /// The record answers per kind through its own reading, which the declaration that wrote the set also wrote; a second reading here would need this home to know the set's rows, and it does not.
-    #[must_use]
-    pub const fn dispositions(&self) -> &Set::Dispositions {
+    /// The witness pairs each declared name with the disposition surrendered at that position only after every surrendered name and the whole row count matched the complete set.
+    pub const fn dispositions(&self) -> &DispositionSet<Set> {
         &self.dispositions
     }
 }

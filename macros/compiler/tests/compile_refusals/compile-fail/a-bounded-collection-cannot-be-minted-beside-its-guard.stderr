@@ -1,0 +1,19 @@
+error[E0423]: cannot initialize a tuple struct which contains private fields
+ --> tests/compile_refusals/compile-fail/a-bounded-collection-cannot-be-minted-beside-its-guard.rs:6:20
+  |
+6 |     let _bounded = Bounded::<u8, 1>(vec![1]);
+  |                    ^^^^^^^^^^^^^^^^
+  |
+note: constructor is not visible here due to private fields
+ --> src/bounded/types.rs
+  |
+  | pub struct Bounded<T, const N: usize>(Vec<T>);
+  |                                       ^^^^^^ private field
+help: you might have meant to use an associated function to build this type
+  |
+6 -     let _bounded = Bounded::<u8, 1>(vec![1]);
+6 +     let _bounded = Bounded::<u8, 1>::empty();
+  |
+6 -     let _bounded = Bounded::<u8, 1>(vec![1]);
+6 +     let _bounded = Bounded::<u8, 1>::from_array(_);
+  |

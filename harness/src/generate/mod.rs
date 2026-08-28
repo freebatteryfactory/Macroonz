@@ -1,9 +1,9 @@
 #![doc = include_str!("README.md")]
 //!
-//! [`driver`] is the shared sequence driver, and [`reduce`][mod@reduce] is the reducers and the one law a shrink is admitted under.
+//! [`driver`] preserves the shared sequence-driver road, and [`reduce`][mod@reduce] preserves the reduction-operation road.
 
-mod draw;
-mod encode;
+mod generation;
+mod reduction;
 
 pub mod driver;
 pub mod reduce;

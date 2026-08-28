@@ -1,52 +1,46 @@
 # render — what a renderer actually materialized
 
-A plan says what will exist.
-A rendering is what does.
+A plan names what should exist before any target syntax does.
+A rendering records what a renderer actually produced.
 
-This home is one step of the road and nothing more: the sink a renderer writes into, the units it writes, the whole rendering, and the one way rendering says no.
-It proves nothing, which is the reason nothing here is shaped like a proof.
+This boundary keeps intention and material separate.
+The renderer receives planned authority, offers typed token trees under declared seats, and receives materialized units whose identities and digests are taken from those exact trees rather than supplied beside them.
 
-## A unit is a planned member, materialized
+## Authority in
 
-One rendered unit is built from one planned member and one token tree, and from nothing else.
+The plan is the only source of a unit's semantic key, profile, origin, publication address, and digest contract.
+The renderer names a seat and offers the token tree produced for it.
+The sink joins those two authorities, so a call site cannot pair one seat's tree with another seat's planned facts.
 
-The key it answers to, where it came from, the profile expected to render it, and the address a publication writes it to are facts the plan already states, so they are read off the member rather than restated at the call.
-Nothing at a renderer's call site can pair one seat's key with another seat's origin, because there is no seat to write either into.
+A seat the plan did not declare cannot become a rendered unit because it offers no planned member to materialize against.
 
-Its own identity and the digest of its bytes are both taken here, over the tree's own canonical bytes, under that key at that seat's roster position.
-No caller supplies either.
-A renderer that could hand in a digest could name bytes it never emitted, and every reading downstream would agree with it.
+## Material out
 
-## Where a unit lands is not stored
+A rendered unit carries the planned facts it answers to, the tree actually produced, its identity, and the digest of its canonical bytes.
+The tree remains the sole holder of those bytes; inspection text is a human projection and never material read back into a decision.
 
-A unit's delivery is its seat's own answer, read through the role.
+A rendered projection is the non-empty, bounded sequence of units one renderer wrote.
+It preserves rendering order as observation material while also offering roster-ordered readings to the proof and delivery owners downstream.
 
-There is no seat on a rendered unit for a destination, so no unit can disagree with its own role about which build compiles it, and no seam decides a delivery a second time.
+## Composition
 
-## The sink
+The request road gives the renderer a sink over one plan and then hands the finished rendering to closure.
+Closure reconstructs the plan membership from the units, settles missing or doubled seats, proves every digest, and owns delivery joins.
+Explanation reads the proved rendered roster only after that agreement exists.
 
-`Output` is what a renderer writes into: one seat and its tokens, once per unit, and nothing else.
+Keeping those acts in later homes is load-bearing.
+A sink that rejected a missing or doubled seat would be attempting to prove the rendering while it was still being written.
 
-It holds the plan, so naming the seat is enough.
-A seat the plan declares no member for refuses right there, because there is no honest key to materialize against.
+## Trust ceiling
 
-## What it does not do
+This home establishes that every unit was materialized from a member the plan declared and that its identity and digest name the exact tree it carries.
 
-It does not prove, join, partition, or emit.
+It does not establish that the complete planned roster was filled, that a seat was filled only once, that a publication address is unique, or that any delivery is ready to emit.
+Those are closure questions over the complete rendering and plan.
 
-It never asks what the tokens mean, and it reads nothing out of them but their canonical bytes.
-A seat left unfilled and a seat filled twice are both representable here on purpose: those are disagreements between a rendering and a plan, and a sink that refused them would be a proof written in the wrong place.
+It also does not interpret generated syntax, prove semantic correctness of the caller's renderer, join units into deliveries, emit tokens, or decide repairs.
 
-## How it says no
+## Refusal boundary
 
-One refusal, at the first thing that goes wrong.
-
-A unit that cannot be materialized is not a unit and the units after it were never written, so no pass here co-establishes anything and there is nothing to enumerate.
-The refusal is an ordinary error: it prints, it is a `core::error::Error`, and it projects into a diagnostic through the one contract every refusing step implements.
-
-## The seats
-
-`types.rs` declares, and its own child `type_guard.rs` holds every road that reaches a private field — the digest, the rendering's non-emptiness, and the sink.
-
-`encode.rs` writes the canonical bytes a proof commits to.
-`type_contract.rs` states the refusal roster's positions and the contracts a refusal stands under.
+Rendering stops at the first local impossibility: no material was written, a seat has no planned member, or a declared rendering magnitude would be exceeded.
+Each refusal remains an ordinary typed error and projects through the shared diagnostic road without inventing related issues or ownerless repair advice.

@@ -1,0 +1,5 @@
+error: macroonz: the declaration was not read: in `concurrency`: the declaration chooses no name at all (at semantic-origin position 0)
+ --> tests/compile_refusals/compile-fail/a-concurrency-declaration-without-rows-refuses.rs:4:5
+  |
+4 |     harness = mh,
+  |     ^^^^^^^

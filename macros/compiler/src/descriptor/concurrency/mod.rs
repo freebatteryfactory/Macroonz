@@ -8,6 +8,5 @@ mod types;
 pub use capture::declared;
 pub use render::rendered;
 pub use types::{
-    CONCURRENCY_HELPER_POSITION, ConcurrencyCaptureError, ConcurrencyDeclaration,
-    ConcurrencyModule, ExplorationRow,
+    ConcurrencyCaptureError, ConcurrencyDeclaration, ConcurrencyModule, ExplorationRow,
 };

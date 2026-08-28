@@ -2,7 +2,7 @@
 
 use super::{
     CaptureCause, CaptureIssue, CompositionError, CompositionIssue, DESCRIPTOR_MEANING_FACT,
-    DeclarationError, HelperRefusal, RENDERED_SPELLING_FACT,
+    DeclarationError, HelperRefusal, RENDERED_SPELLING_FACT, Seat,
 };
 use crate::bounded::{Bounded, Capping};
 use crate::diagnostic::{
@@ -282,6 +282,50 @@ impl core::fmt::Display for HelperRefusal {
 
 impl core::error::Error for HelperRefusal {}
 
+impl CompositionIssue {
+    /// This issue's position in its own roster, appended and never renumbered.
+    #[must_use]
+    pub const fn slot(&self) -> u8 {
+        match self {
+            Self::ProviderDoubled { .. } => 0,
+            Self::Declaration { .. } => 1,
+        }
+    }
+
+    /// Which class of refusal this issue belongs to.
+    #[must_use]
+    pub fn class(&self) -> RefusalClass {
+        match self {
+            Self::ProviderDoubled { .. } => RefusalClass::CarrierNotDeclared,
+            Self::Declaration { refusal } => <DeclarationError as Refused>::class(refusal),
+        }
+    }
+
+    /// How what was observed differs from the declared composition contract.
+    #[must_use]
+    pub const fn observed(&self) -> Observed {
+        match self {
+            Self::ProviderDoubled { .. } => Observed::IdentityDisagreement,
+            Self::Declaration { refusal } => refusal.classified(),
+        }
+    }
+
+    /// This issue's canonical bytes: its own position, then the complete identity or declaration refusal it carries.
+    #[must_use]
+    pub fn canonical_bytes(&self) -> Vec<u8> {
+        let mut bytes = vec![self.slot()];
+        match self {
+            Self::ProviderDoubled { provider } => {
+                encode_bytes(&provider.citation_bytes(), &mut bytes);
+            }
+            Self::Declaration { refusal } => {
+                encode_bytes(&refusal.canonical_bytes(), &mut bytes);
+            }
+        }
+        bytes
+    }
+}
+
 impl core::fmt::Display for CompositionIssue {
     fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match *self {
@@ -289,10 +333,7 @@ impl core::fmt::Display for CompositionIssue {
                 let subject = provider.subject;
                 write!(into, "the provider under `{subject}` is declared twice")
             }
-            Self::ProvidersUnbounded { bound, observed } => write!(
-                into,
-                "{observed} providers were declared where at most {bound} fit"
-            ),
+            Self::Declaration { refusal } => write!(into, "{refusal}"),
         }
     }
 }
@@ -301,18 +342,85 @@ impl core::fmt::Display for CompositionError {
     fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let first = self.first_issue();
         write!(into, "{first}")?;
-        let further = self.issues().count().saturating_sub(1);
+        let further = self.issue_count().saturating_sub(1);
         if further > 0 {
             write!(into, ", and {further} further issues")?;
         }
-        match self.capping() {
-            Capping::Complete => Ok(()),
-            Capping::Truncated { omitted } => write!(
-                into,
-                "; {omitted} of them do not fit the declared issue bound"
-            ),
-        }
+        Ok(())
     }
 }
 
 impl core::error::Error for CompositionError {}
+
+impl Refused for CompositionError {
+    const PHASE: Phase = Phase::Capture;
+    const FAMILY: Family = DECLARATION_FAMILY;
+
+    fn class(&self) -> RefusalClass {
+        self.first_issue().class()
+    }
+
+    fn first(&self) -> String {
+        self.first_issue().to_string()
+    }
+
+    fn observed(&self) -> Observed {
+        self.first_issue().observed()
+    }
+
+    fn body(&self) -> LineBody {
+        let further = self.issue_count().saturating_sub(1);
+        if further == 0 {
+            LineBody::SingleCause
+        } else {
+            LineBody::Body {
+                further,
+                capping: Capping::Complete,
+            }
+        }
+    }
+
+    /// The issues established beyond the primary cause; the primary is the summary's own subject, never a member of its related set.
+    fn related(&self) -> Vec<Vec<u8>> {
+        self.issues()
+            .skip(1)
+            .map(CompositionIssue::canonical_bytes)
+            .collect()
+    }
+
+    /// The exact descriptor meaning that repairs the first established composition issue.
+    fn repairs(&self) -> Bounded<Repair, REPAIR_LIMIT> {
+        match self.first_issue() {
+            CompositionIssue::ProviderDoubled { .. } => Bounded::from_array([Repair {
+                declared_by: DESCRIPTOR_MEANING_FACT,
+                description: human_projection!("state each provider identity once"),
+            }]),
+            CompositionIssue::Declaration {
+                refusal:
+                    DeclarationError::Absent {
+                        seat: Seat::Provider,
+                    },
+            } => Bounded::from_array([Repair {
+                declared_by: DESCRIPTOR_MEANING_FACT,
+                description: human_projection!(
+                    "state at least one provider of descriptor material"
+                ),
+            }]),
+            CompositionIssue::Declaration {
+                refusal:
+                    DeclarationError::Unbounded {
+                        seat: Seat::Provider,
+                        ..
+                    },
+            } => Bounded::from_array([Repair {
+                declared_by: DESCRIPTOR_MEANING_FACT,
+                description: human_projection!(
+                    "state no more than the declared provider magnitude"
+                ),
+            }]),
+            CompositionIssue::Declaration { refusal } => {
+                <DeclarationError as Refused>::repairs(refusal)
+            }
+        }
+    }
+}

@@ -11,7 +11,7 @@ mod guard;
 
 /// The transcript position a captured reading of this grammar is separated by.
 ///
-/// The helper readings of one declaration share the captured-helper role and are told apart by position alone, in one closed space across the grammars the descriptor home declares: this one is the third.
+/// The three attribute-helper readings of one declaration share the captured-helper role and are told apart by position alone: this one is the third.
 pub const BENCH_HELPER_POSITION: u32 = 2;
 
 /// Sizes one row's input-size axis may state.

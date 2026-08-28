@@ -21,8 +21,20 @@ impl DomainTag {
     /// The tag its owning home declared, at that family's own position.
     ///
     /// The position travels with the tag, so moving one family's order cannot rename addresses under a family whose grammar never changed.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the spelling contains a byte other than a lowercase ASCII letter, an ASCII digit, or `-`.
     #[must_use]
     pub const fn declared(spelling: &'static str, version: IdentityProfileVersion) -> Self {
+        let mut remaining = spelling.as_bytes();
+        while let [byte, tail @ ..] = remaining {
+            assert!(
+                matches!(*byte, b'a'..=b'z' | b'0'..=b'9' | b'-'),
+                "a domain tag contains a byte outside its declared character grammar"
+            );
+            remaining = tail;
+        }
         Self { spelling, version }
     }
 

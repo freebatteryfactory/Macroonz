@@ -1,0 +1,9 @@
+error[E0451]: fields `schedule` and `commands` of struct `InjectedSequence` are private
+  --> tests/compile_refusals/compile-fail/an-injected-sequence-cannot-be-minted-outside-injection.rs:15:9
+   |
+14 |     InjectedSequence {
+   |     ---------------- in this type
+15 |         schedule,
+   |         ^^^^^^^^ private field
+16 |         commands: Vec::new(),
+   |         ^^^^^^^^ private field

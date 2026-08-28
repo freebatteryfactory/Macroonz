@@ -1,80 +1,23 @@
 # network
 
-The network is an input.
+The network home composes deterministic simulation with addressed transcript custody behind one public road.
 
-A distributed bug is an ordering bug wearing a transport: a duplicate that double-applies, a drop that never retries, a partition that heals into two truths.
-Chasing those against a real wire means chasing an adversary that never deals the same hand twice.
-This home deals the same hand every time: a deterministic message-passing simulator, declared as a value, whose every delivery, drop, and delay follows from the declared topology, the declared discipline, and nothing else.
+The private [simulation](simulation/README.md) child owns topology, logical time, link faults, schedule and campaign selection, sends, deliveries, and census accounting.
+The private [transcript](transcript/README.md) child owns source-specific packs, exact encoding and reading, simulation reproduction, replay exhaustion, and the same-address evidence join.
+Their vocabulary is reexported only through `macroonz_harness::network`, so recursive ownership adds no new public path.
 
-## The vocabulary
+## Composition
 
-A **topology** is adopter-named nodes and the directed links between them.
-A payload is whatever type the adopter carries — this home never learns what a message means, and it defines **no port trait**: the adopter's own port wraps the sim inside their adapter, exactly as the fault home's adversity stays the adopter's.
+A simulation retains its declared topology, selected schedule, successful caller actions, and delivery history.
+The transcript writer projects those already-informed values to bytes and later reproduces them through the same public simulation operations.
+No second simulator, fault roster, schedule semantics, or decoded-name mint exists in the transcript child.
 
-Time is **logical ticks**, owned by the sim.
-A send is placed at the current tick; a delivery comes due a tick later, plus whatever the discipline adds.
-No wall clock participates anywhere — the clock home stays the measurement boundary it always was.
+Deliveries remain command-shaped values for the adopter to feed into the properties and interleave instruments.
+Host-observed live traffic remains the adopter's input and may enter the generic runner recording road as an ordinary host observation.
+Instruction-level preemption remains the separate target-qualified preemption floor.
 
-**Discipline** is per-link adversity in the fault home's shape: named schedules gathered into a campaign, a quiet control beside the hostile ones, selected by name.
-The faults are this home's own closed roster, applied by send ordinal on the link:
+## Boundary
 
-| Fault | What the link does |
-| --- | --- |
-| drop at a position | that send is lost |
-| delay at a position | that send's delivery comes due later, by declared ticks |
-| duplicate at a position | that send is delivered twice |
-| partition over an interval | every send placed while the interval is open is lost |
-
-Reordering is a delay that crosses: hold an earlier send longer than a later one and their deliveries change order.
-That is how real networks reorder — latency variation, not a sorting demon — so no separate reorder fault exists to pretend otherwise.
-
-## The road
-
-Declare a topology, declare schedules, gather them into a campaign, select one by name, and open the sim over the pair.
-Then drive it: `send` places a payload on a link and hands back a receipt naming the send's fate — scheduled, and for when, or dropped, and by what; `advance` moves the tick and hands back every delivery that came due, in deterministic order.
-The census counts what became of every send, so a schedule that quietly dropped half the traffic cannot read as a calm run.
-
-A **delivery is a command-shaped event**: link, ordinal, payload, sent and delivered ticks, and whether it is the original or a duplicate.
-That shape is the keystone — deliveries feed a [`crate::properties`] transition contract directly, and per-link delivery sequences stand as [`crate::interleave`] strands, so delivery orders, party schedules, and link faults explore in one seeded, replayable space.
-
-## Records, reproduction, and replays
-
-A run worth keeping becomes a **transcript pack**: the topology, a source claim, and every delivery with its whole lineage — link, ordinal, payload bytes, sent and delivered ticks, original or duplicate — in one content-addressed envelope, the address derived over the whole body and written ahead of it, so a reader re-derives the claim before it believes a single row.
-
-The source-specific writers retain different material:
-
-- **`Simulated`** retains the selected schedule and every successful `send` and `advance` in exact drive order beside the delivery rows.
-  The writer projects payloads to bytes, executes that complete byte-valued manifest through the same sim engine, and returns reproduction standing separately from the pack.
-- **`RecordedLive`** retains rows witnessed on a real network by an adopter's adapter, outside this crate.
-  A transcript entry is openly mintable for exactly this reason: an adapter writes down what it observed, while the live writer has no seat for a simulated source claim.
-
-Reading and reproduction are separate authority steps.
-The simulated reader compares foreign bytes with the owner-built topology and selected schedule and returns addressed declaration material only.
-The reproduction operation drives those retained inputs through `SimNet<Vec<u8>>` and mints standing only when every resulting delivery row equals the addressed roster.
-Recorded-live material has no simulation manifest and cannot enter that operation.
-
-A pack opens as a **replay**: exactly the recorded deliveries at exactly their recorded ticks, no sends taken, no discipline consulted.
-Consuming an exhausted replay mints `ReplayExhaustion` bound to the exact transcript address, total rows handed out, and final replay tick; an incomplete replay refuses with the exact remaining-row count.
-Simulation reproduction and replay exhaustion join only when both name one address, proving that the manifest reproduced the rows and playback handed every row out without claiming that the caller processed any delivery.
-Live traffic thereby becomes a deterministic regression input, and the replayed deliveries are ordinary command-shaped events judged on the same temporal road as everything else.
-
-Live end-to-end runs themselves execute outside — a real client, a real server, a real wire — and their observations enter evidence through the runner's recording road, where a host cannot author evidence it never observed.
-This home ships the pack writer and reader; it never owns a socket.
-
-## What it refuses
-
-- A topology with no node, no link, a repeated node or link, or a link naming a node never declared.
-- A schedule with two disciplines on one link, or a partition interval that closes before it opens.
-- A campaign with no schedule, a repeated name, or nothing but quiet controls — pressure declared and applied nowhere.
-- Selecting a name the campaign never declared, opening a sim whose schedule disciplines a link outside its topology, and sending on an undeclared link.
-
-## What this home will not tell you
-
-The sim is a value, not a socket.
-Nothing here binds a port, spawns a task, or touches an operating system; running real traffic is the adopter's act, outside, and its observations enter evidence through the runner's ordinary recording road.
-
-The fate a receipt names is the experimenter's truth, not the subject's: a real sender never learns its packet died.
-What the subject under test is allowed to see is the adopter's port's decision, and this home does not police it.
-
-Delivery order among same-tick deliveries is the scheduling order, deterministically — not a claim that real networks order anything.
-The discipline is where disorder is declared, and the quiet control is what it is measured against.
+This home owns no socket, port trait, task, operating-system interaction, wall clock, or product protocol.
+A live adapter may mint transcript entries for what it observed, but only the transcript roads can admit a pack or mint reproduction and replay standing.
+The experimenter's send receipt is not a claim about what a real subject can observe.

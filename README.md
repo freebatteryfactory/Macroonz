@@ -37,13 +37,16 @@ One storefront opens onto the oven, the hand that loads it, and the taste tester
 
 | Crate | Directory | What it is |
 | --- | --- | --- |
-| **`macroonz`** | `/` | The storefront. It preserves the three owners as `compiler`, `macros`, and feature-gated `harness` modules. This is the crate you add. |
+| **`macroonz`** | `/` | The storefront. It preserves the owners as `compiler`, `macros`, and feature-gated `harness` modules. This is the crate you add. |
 | **`macroonz-compiler`** | `macros/compiler/` | The compiler, as ordinary functions. Capture a declaration, build a request, plan, render, close, explain, bind, emit. |
-| **`macroonz-macros`** | `macros/proc/` | The generic entries: `#[trials]`, `#[bench]`, and `#[mutations]`, each expanding to one inert exported carrier beside the item it decorates, and the three direct declarations — `shadow!` for two-faced synchronization imports, `network!` for a topology's builder module, `concurrency!` for declared interleaving explorations. It owns no grammar — every reading and every road is the compiler's. |
-| **`macroonz-harness`** | `harness/` | The judge. Descriptors, generation, properties, oracles, faults, corpus, mutation, benches, reports, replay. The default storefront includes it; the diet posture removes it from a shipping graph. |
+| **`macroonz-macros`** | `macros/proc/` | The thin procedural host. Item-preserving attributes and direct declarations call compiler-owned descriptor doors, then carry token conversion, span custody, diagnostic placement, and emission. It owns no grammar. |
+| **`macroonz-harness`** | `harness/` | The judge. Descriptors, generation, properties, oracles, faults, corpus, fuzz composition, mutation, benches, reports, replay. The default storefront includes it; the diet posture removes it from a shipping graph. |
 
 ```mermaid
 flowchart LR
+    accTitle: Macroonz package dependencies
+    accDescr: The macroonz facade depends on the compiler and procedural macro crates, the procedural macro crate also depends on the compiler, and the optional harness feature adds the harness crate.
+
     YOU["your crate"] --> F["macroonz"]
     F --> C["macroonz-compiler"]
     F --> PROC["macroonz-macros"]
@@ -102,6 +105,9 @@ Each step hands the next a value it cannot forge.
 
 ```mermaid
 flowchart LR
+    accTitle: Compiler request road
+    accDescr: Every request proceeds from account through intent, context, plan, render, close, explain, and bind in that order.
+
     A["1 · account"] --> I["2 · intent"] --> X["3 · context"] --> P["4 · plan"]
     P --> R["5 · render"] --> CL["6 · close"] --> E["7 · explain"] --> B["8 · bind"]
 ```
@@ -135,12 +141,25 @@ The harness hands you the instruments — each independently callable, composed 
 - **Generates** inputs against the description, structure-aware, from a seed it records.
 - **Injects** faults on a declared schedule, and measures against a clock the caller declares, so the subject is judged under pressure and not on a sunny day.
 - **Reduces** a failure to the smallest witness reached under the declared reducers and budget, and mints a replay capsule over it.
+- **Observes** stable-Rust targets compiled with rustc coverage instrumentation through the pinned toolchain's matching LLVM tools, retains coverage-novel bytes, and hands them into that same reduction and replay road.
 - **Mutates** the subject's own code and runs the trials against each mutant, to prove the trials can tell right from wrong.
 - **Benchmarks** with the same receiver and the same pinned profile, so a number means the same thing tomorrow.
 - **Reports** each verdict with its standing, its site, and its complete denominator — joined to its replay capsule, where a reduction earned one, on one execution key.
 
 Descriptors, trials, mutations, and benches live in your tests — written through the generic `macroonz::macros` attributes, through your own attributes, or by hand.
 The harness owns how they are judged, never what they mean.
+The stable coverage path remains one-package usage through `macroonz::harness::fuzz`; its [fuzz home](harness/src/fuzz/README.md#runnable-road) owns the runnable facade example and command.
+
+---
+
+## Getting started
+
+1. Pick a posture from [The three postures](#the-three-postures).
+2. Add `macroonz` with that command.
+3. Follow the compiler, proc, or harness crate README for the road you are on.
+
+Contribution procedure lives in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Security reporting lives in [`SECURITY.md`](SECURITY.md).
 
 ---
 
@@ -168,12 +187,13 @@ The wall it names, run locally:
 ```sh
 cargo check  --workspace --all-targets --all-features
 cargo clippy --workspace --all-targets --all-features
-cargo nextest run --workspace --all-features --run-ignored all
+cargo nextest run --workspace --all-features
 cargo fmt --all -- --check
 cargo deny --workspace check
 ```
 
 The wall runs with every feature on, so the optional homes — the target-qualified Loom-backed `preemption` exploration among them — are exercised together.
+The pinned stable Rust 1.98 toolchain also installs `llvm-tools-preview`, whose matching `llvm-profdata` and `llvm-cov` binaries read profiles for the safe-Rust fuzz composition road.
 
 ---
 

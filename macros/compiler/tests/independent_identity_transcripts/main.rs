@@ -18,6 +18,7 @@
 //! A match that could not fail proves nothing.
 //! Three negative controls run beside the positive ones: an encoder that drops the material's length prefix, one that assembles the derive-key context with the subject and the role transposed, and one that writes the generator's name and shape position into the preimage — a pair no grammar names.
 
+use macroonz_compiler::request;
 use macroonz_compiler::{
     CrateBinding, Door, Expansion, GeneratedToken, GeneratedTree, Kind, NoQuestions, Producer,
     Request, Role, SoleRole, TextCapture,
@@ -57,6 +58,12 @@ struct Seat {
 /// The captured-declaration grammar, at the position it was first declared with.
 const CAPTURED_DECLARATION: Grammar = Grammar {
     name: "captured-declaration",
+    version: 1,
+};
+
+/// The captured-helper grammar, at the position it was first declared with.
+const CAPTURED_HELPER: Grammar = Grammar {
+    name: "captured-helper",
     version: 1,
 };
 
@@ -103,6 +110,13 @@ const CAPTURE_SEAT: Seat = Seat {
     name: "captured-declaration",
     slot: 0,
     grammar: CAPTURED_DECLARATION,
+};
+
+/// The seat one captured helper's commitment stands at.
+const HELPER_SEAT: Seat = Seat {
+    name: "captured-helper",
+    slot: 15,
+    grammar: CAPTURED_HELPER,
 };
 
 /// The seat one projection intent stands at.
@@ -264,6 +278,9 @@ const DOOR: Door = Door::declared(
 /// One declared input this lane hands the compiler.
 const DECLARATION: &str = "struct Greeting { line: Line }";
 
+/// One helper input this lane reads beside the declaration.
+const HELPER: &str = "support = greeting_support,";
+
 /// The word the renderer writes, so this lane can state the rendered material it re-derives over.
 const RENDERED_WORD: &str = "greeting";
 
@@ -359,6 +376,43 @@ fn the_specification_re_derives_a_real_captured_declaration_commitment() -> Resu
             0
         )
     );
+    Ok(())
+}
+
+/// The specification re-derives one helper identity at every descriptor-helper position.
+///
+/// The declaration material remains the anchor for all three, while the position is the only moving member, so agreement establishes the mint and pairwise inequality establishes the closed position space without consulting the compiler's constants.
+#[test]
+fn the_specification_re_derives_the_three_captured_helper_positions() -> Result<(), ()> {
+    let declaration = TextCapture::read(DECLARATION).map_err(|_refusal| ())?;
+    let helper = TextCapture::read(HELPER).map_err(|_refusal| ())?;
+    let declaration_material = declaration.input().canonical_bytes();
+    let helper_material = helper.input().canonical_bytes();
+    let anchor = specified(
+        CAPTURE_SEAT,
+        "captured-declaration",
+        ROOTED,
+        &[],
+        &declaration_material,
+        0,
+    );
+    let first = request::committed_helper(declaration.input(), helper.input(), 0);
+    let second = request::committed_helper(declaration.input(), helper.input(), 1);
+    let third = request::committed_helper(declaration.input(), helper.input(), 2);
+    for (position, actual) in [(0, first), (1, second), (2, third)] {
+        let expected = specified(
+            HELPER_SEAT,
+            "captured-helper",
+            UNDER_PROJECTION,
+            &anchor,
+            &helper_material,
+            position,
+        );
+        assert_eq!(actual.as_bytes(), &expected);
+    }
+    assert_ne!(first, second);
+    assert_ne!(first, third);
+    assert_ne!(second, third);
     Ok(())
 }
 

@@ -1,13 +1,20 @@
-//! The three roads a generic attribute walks, exercised from outside: a captured body in, one sealed carrier expansion out.
+//! The three roads a generic attribute walks, exercised from outside: a captured body and semantic item in, one sealed carrier expansion out.
 //!
 //! Every claim below is asked through the road a proc host takes — `descriptor::door` — with nothing reached around it.
 //! The positive lanes establish that each road's carrier really composes what its reading produced, and each refusal lane reverses one clause of that, so a road that stopped reading or stopped refusing is caught from this side of the wall.
 
+use macroonz_compiler::descriptor::bench::BENCH_HELPER_POSITION;
 use macroonz_compiler::descriptor::door;
+use macroonz_compiler::descriptor::mutation::MUTATION_HELPER_POSITION;
+use macroonz_compiler::descriptor::trial::TRIAL_HELPER_POSITION;
 use macroonz_compiler::descriptor::{Emitter, Grammar};
-use macroonz_compiler::support::SupportCarrier;
+use macroonz_compiler::request;
+use macroonz_compiler::support::{
+    ASSEMBLY_FACT, DeclarationError as SupportDeclarationError, ShellError, SupportCarrier,
+};
 use macroonz_compiler::{
-    CrateBinding, Diagnostic, Door, Expansion, PartitionCargo, Phase, Producer, TextCapture,
+    CrateBinding, Diagnostic, Door, Expansion, LineBody, Observed, Overflow, PartitionCargo, Phase,
+    Producer, RefusalClass, Refused, SHELL_FAMILY, SUPPORT_DECLARATION_FAMILY, TextCapture,
 };
 
 /// The one value that says who is asking.
@@ -79,6 +86,9 @@ const MUTATION_BODY: &str = r#"
 /// The item a mutation declaration sits on: three variants, so two adjacent transpositions exist.
 const MUTATION_ITEM: &str = "pub enum Cause { First, Second, Third }";
 
+/// The semantic item the trial and bench helpers exercise.
+const DECLARATION_ITEM: &str = "pub struct Declaration;";
+
 /// One lawful bench declaration body.
 const BENCH_BODY: &str = r#"
     support = pace_support,
@@ -102,8 +112,10 @@ const BENCH_BODY: &str = r#"
 /// The trial road walked over one source, or nothing where the lane's own source did not capture.
 fn trials(source: &str) -> Option<Result<Expansion<SupportCarrier>, Diagnostic>> {
     let read = TextCapture::read(source).ok()?;
+    let item = TextCapture::read(DECLARATION_ITEM).ok()?;
     Some(door::trials(
-        read.input().clone(),
+        read.input(),
+        item.input(),
         TRIALS,
         TRIALS_EMITTER,
         &DOOR,
@@ -115,7 +127,7 @@ fn mutations(body: &str, item: &str) -> Option<Result<Expansion<SupportCarrier>,
     let read = TextCapture::read(body).ok()?;
     let sat_on = TextCapture::read(item).ok()?;
     Some(door::mutations(
-        read.input().clone(),
+        read.input(),
         sat_on.input(),
         MUTATIONS,
         &DOOR,
@@ -125,8 +137,10 @@ fn mutations(body: &str, item: &str) -> Option<Result<Expansion<SupportCarrier>,
 /// The bench road walked over one source, on the same terms.
 fn bench(source: &str) -> Option<Result<Expansion<SupportCarrier>, Diagnostic>> {
     let read = TextCapture::read(source).ok()?;
+    let item = TextCapture::read(DECLARATION_ITEM).ok()?;
     Some(door::bench(
-        read.input().clone(),
+        read.input(),
+        item.input(),
         BENCH,
         BENCH_EMITTER,
         &DOOR,
@@ -139,6 +153,14 @@ fn emitted(expansion: &Expansion<SupportCarrier>) -> Option<String> {
         .emit()
         .tokens()
         .map(macroonz_compiler::GeneratedTree::inspected)
+}
+
+/// Removes the last trailing comma while leaving every declared value unchanged.
+fn without_trailing_comma(source: &str) -> Option<String> {
+    let at = source.rfind(',')?;
+    let mut changed = source.to_owned();
+    changed.remove(at);
+    Some(changed)
 }
 
 /// A trial declaration becomes one carrier at the declaration site and nothing anywhere else.
@@ -194,9 +216,13 @@ fn a_trial_body_missing_its_support_clause_refuses() -> Result<(), ()> {
     Ok(())
 }
 
-/// A mutation declaration becomes one carrier whose opaque seat carries the rendered module.
-///
-/// The declared order is the item's own variant list: every variant spelling appears in the emitted carrier, and so does the one operator family the door produces alternatives under.
+/// Claim: A mutation declaration becomes one carrier whose opaque seat calls the public discovery-lowering road.
+/// Subject: The rendered module carried by one complete mutation declaration.
+/// Population: The carrier text, all three declared variants, and the one generated discovery call.
+/// Hostile control: The assertion rejects the private semantic-home path and requires the exact public operation path.
+/// Denominator: The complete emitted carrier for the declaration and item used by this fixture.
+/// Evidence ceiling: This compiler-side test establishes generated tokens only, not downstream execution.
+/// Retained regression: Public-path drift, private-home leakage, and lost declared variants remain permanent regressions.
 #[test]
 fn a_mutation_declaration_becomes_one_carrier_carrying_the_module() -> Result<(), ()> {
     let carrier = mutations(MUTATION_BODY, MUTATION_ITEM)
@@ -206,6 +232,13 @@ fn a_mutation_declaration_becomes_one_carrier_carrying_the_module() -> Result<()
     let text = emitted(&carrier).ok_or(())?;
     assert!(text.contains("press_support"));
     assert!(text.contains("declared-order-permutation"));
+    assert!(
+        text.contains(
+            "$harness $( :: $harness_segment ) * :: muterprater :: discover :: lower_discoveries"
+        ),
+        "{text}"
+    );
+    assert!(!text.contains("$harness $( :: $harness_segment ) * :: muterprater :: discovery"));
     for variant in ["First", "Second", "Third"] {
         assert!(text.contains(variant), "the order does not carry {variant}");
     }
@@ -216,19 +249,152 @@ fn a_mutation_declaration_becomes_one_carrier_carrying_the_module() -> Result<()
     Ok(())
 }
 
-/// The item's capture rides the mutation request as a dependency, so editing the item moves the plan.
+/// The mutation item is the declaration root rather than a dependency beside the helper body.
 #[test]
-fn the_mutation_item_rides_as_a_dependency() -> Result<(), ()> {
+fn the_mutation_item_is_the_request_root() -> Result<(), ()> {
     let carrier = mutations(MUTATION_BODY, MUTATION_ITEM)
         .ok_or(())?
         .ok()
         .ok_or(())?;
-    assert_eq!(carrier.plan().account().dependencies().len(), 1);
+    let captured_item = TextCapture::read(MUTATION_ITEM).map_err(|_refusal| ())?;
+    assert_eq!(
+        carrier.plan().account().commitment(),
+        request::committed(captured_item.input())
+    );
+    assert!(carrier.plan().account().dependencies().is_empty());
     let reordered = mutations(MUTATION_BODY, "pub enum Cause { Third, Second, First }")
         .ok_or(())?
         .ok()
         .ok_or(())?;
     assert_ne!(carrier.identity(), reordered.identity());
+    Ok(())
+}
+
+/// Prove one helper road's movement and non-movement slice.
+fn assert_helper_movement(
+    name: &str,
+    first: &Expansion<SupportCarrier>,
+    changed: &Expansion<SupportCarrier>,
+) -> Result<(), ()> {
+    let first_account = first.plan().account();
+    let changed_account = changed.plan().account();
+    let first_content = first_account.content();
+    let changed_content = changed_account.content();
+    let first_helper = first_content.helper().ok_or(())?;
+    let changed_helper = changed_content.helper().ok_or(())?;
+    assert_eq!(
+        first_account.commitment(),
+        changed_account.commitment(),
+        "{name} moved the semantic declaration"
+    );
+    assert_eq!(
+        first_account.kind(),
+        changed_account.kind(),
+        "{name} moved the unrelated projection kind"
+    );
+    assert_eq!(first_content.root(), changed_content.root());
+    assert_eq!(first_content.expectation(), changed_content.expectation());
+    assert_eq!(first_content.address(), changed_content.address());
+    assert_eq!(first_content.declared(), changed_content.declared());
+    assert_eq!(first_content.deferred(), changed_content.deferred());
+    assert_eq!(first_content.bench(), changed_content.bench());
+    assert_ne!(
+        first_helper, changed_helper,
+        "{name} did not move the captured helper"
+    );
+    assert_ne!(
+        first_account.content_commitment(),
+        changed_account.content_commitment(),
+        "{name} did not carry helper movement into the assembly content"
+    );
+    assert_ne!(
+        first.identity(),
+        changed.identity(),
+        "{name} did not carry helper movement into the sealed expansion"
+    );
+    Ok(())
+}
+
+/// Prove that one actual door uses the position its semantic helper owner declares.
+fn assert_helper_position(
+    expansion: &Expansion<SupportCarrier>,
+    body: &str,
+    item: &str,
+    position: u32,
+) -> Result<(), ()> {
+    let captured_body = TextCapture::read(body).map_err(|_| ())?;
+    let captured_item = TextCapture::read(item).map_err(|_| ())?;
+    assert_eq!(
+        expansion.plan().account().content().helper(),
+        Some(request::committed_helper(
+            captured_item.input(),
+            captured_body.input(),
+            position,
+        ))
+    );
+    Ok(())
+}
+
+/// Each attribute-helper door seats its captured body at the public position its owner declares.
+#[test]
+fn the_three_attribute_doors_use_their_declared_helper_positions() -> Result<(), ()> {
+    assert_eq!(
+        [
+            TRIAL_HELPER_POSITION,
+            MUTATION_HELPER_POSITION,
+            BENCH_HELPER_POSITION,
+        ],
+        [0, 1, 2],
+    );
+    let trial = trials(TRIAL_BODY).ok_or(())?.ok().ok_or(())?;
+    assert_helper_position(&trial, TRIAL_BODY, DECLARATION_ITEM, TRIAL_HELPER_POSITION)?;
+
+    let mutation = mutations(MUTATION_BODY, MUTATION_ITEM)
+        .ok_or(())?
+        .ok()
+        .ok_or(())?;
+    assert_helper_position(
+        &mutation,
+        MUTATION_BODY,
+        MUTATION_ITEM,
+        MUTATION_HELPER_POSITION,
+    )?;
+
+    let benchmark = bench(BENCH_BODY).ok_or(())?.ok().ok_or(())?;
+    assert_helper_position(
+        &benchmark,
+        BENCH_BODY,
+        DECLARATION_ITEM,
+        BENCH_HELPER_POSITION,
+    )?;
+    Ok(())
+}
+
+/// Each helper identity moves independently while the semantic item and unrelated kind identity remain fixed.
+///
+/// Removing a trailing comma changes the helper's canonical token material without changing the declaration each grammar reads, so the final assembly commitment and carrier expansion can move only through the captured-helper seat.
+#[test]
+fn all_three_helper_roads_move_only_the_helper_side_of_the_join() -> Result<(), ()> {
+    let trial_changed = without_trailing_comma(TRIAL_BODY).ok_or(())?;
+    let first_trial = trials(TRIAL_BODY).ok_or(())?.ok().ok_or(())?;
+    let changed_trial = trials(&trial_changed).ok_or(())?.ok().ok_or(())?;
+    assert_helper_movement("trials", &first_trial, &changed_trial)?;
+
+    let mutation_changed = without_trailing_comma(MUTATION_BODY).ok_or(())?;
+    let first_mutation = mutations(MUTATION_BODY, MUTATION_ITEM)
+        .ok_or(())?
+        .ok()
+        .ok_or(())?;
+    let changed_mutation = mutations(&mutation_changed, MUTATION_ITEM)
+        .ok_or(())?
+        .ok()
+        .ok_or(())?;
+    assert_helper_movement("mutations", &first_mutation, &changed_mutation)?;
+
+    let bench_changed = without_trailing_comma(BENCH_BODY).ok_or(())?;
+    let first_bench = bench(BENCH_BODY).ok_or(())?.ok().ok_or(())?;
+    let changed_bench = bench(&bench_changed).ok_or(())?.ok().ok_or(())?;
+    assert_helper_movement("bench", &first_bench, &changed_bench)?;
     Ok(())
 }
 
@@ -533,5 +699,152 @@ fn two_declarations_mint_two_exported_names() -> Result<(), ()> {
     let first_name = name(&first_text).ok_or(())?;
     let second_name = name(&second_text).ok_or(())?;
     assert_ne!(first_name, second_name);
+    Ok(())
+}
+
+/// Appends this lane's independent eight-byte length frame.
+fn framed(material: &[u8], into: &mut Vec<u8>) {
+    into.extend_from_slice(
+        &u64::try_from(material.len())
+            .unwrap_or(u64::MAX)
+            .to_be_bytes(),
+    );
+    into.extend_from_slice(material);
+}
+
+/// Claim: every support-declaration refusal has one stable slot, one canonical byte, and the typed diagnostic posture declared by the support home.
+/// Subject: the public support `DeclarationError` roster and its `Refused` implementation.
+/// Population: all five refusal variants.
+/// Hostile control: the expected slot and observation are restated independently for every row, so two variants sharing either disagrees.
+/// Denominator: the complete public support-declaration refusal roster.
+/// Evidence ceiling: these payload-free rows establish their own bytes and diagnostic facts, not a later composed diagnostic identity.
+#[test]
+fn every_support_declaration_refusal_keeps_its_public_contract() {
+    let cases = [
+        (
+            SupportDeclarationError::EmptyNamespace,
+            0,
+            Observed::SeatAbsent,
+            "a name states no owner",
+        ),
+        (
+            SupportDeclarationError::EmptyStem,
+            1,
+            Observed::SeatAbsent,
+            "a name states no spelling",
+        ),
+        (
+            SupportDeclarationError::SpellingNotAnIdentifier,
+            2,
+            Observed::ContractDisagreement,
+            "a rendered spelling is not one Rust identifier",
+        ),
+        (
+            SupportDeclarationError::PathSegmentsAbsent,
+            3,
+            Observed::SeatAbsent,
+            "a rendered path names no segment past the crate it is rooted at",
+        ),
+        (
+            SupportDeclarationError::PathSegmentsUnbounded,
+            4,
+            Observed::BoundExceeded,
+            "a rendered path carries more segments than the declared magnitude",
+        ),
+    ];
+    for (refusal, slot, observed, first) in cases {
+        assert_eq!(refusal.slot(), slot);
+        assert_eq!(refusal.canonical_bytes(), vec![slot]);
+        let mut appended = vec![u8::MAX];
+        refusal.encode_into(&mut appended);
+        assert_eq!(appended, vec![u8::MAX, slot]);
+        assert_eq!(refusal.to_string(), first);
+        assert_eq!(refusal.class(), RefusalClass::CarrierNotDeclared);
+        assert_eq!(refusal.first(), first);
+        assert_eq!(refusal.observed(), observed);
+        assert_eq!(refusal.body(), LineBody::SingleCause);
+        assert!(refusal.related().is_empty());
+        assert!(refusal.repairs().is_empty());
+    }
+    assert_eq!(<SupportDeclarationError as Refused>::PHASE, Phase::Capture);
+    assert_eq!(
+        <SupportDeclarationError as Refused>::FAMILY,
+        SUPPORT_DECLARATION_FAMILY
+    );
+}
+
+/// Claim: both shell-refusal rows keep their typed causality and complete canonical payloads at the public boundary.
+/// Subject: `ShellError` construction, encoding, display, and `Refused` projection.
+/// Population: the declaration-identity mismatch and generated-tree overflow rows.
+/// Hostile control: two independently captured declarations supply distinct identity payloads, while the overflow row carries distinct bound and observed counts.
+/// Denominator: the complete public `ShellError` roster, including its `Overflow` conversion.
+/// Evidence ceiling: this observes the refusal values directly and does not manufacture an invalid `SupportAssembly` through private seats.
+#[test]
+fn every_shell_refusal_keeps_its_public_contract() -> Result<(), ()> {
+    let stated_capture = TextCapture::read("pub struct Stated;").map_err(|_| ())?;
+    let planned_capture = TextCapture::read("pub struct Planned;").map_err(|_| ())?;
+    let stated = request::committed(stated_capture.input());
+    let planned = request::committed(planned_capture.input());
+    let mismatch = ShellError::NotOneDeclaration { stated, planned };
+    let mut mismatch_bytes = vec![0];
+    framed(stated.as_bytes(), &mut mismatch_bytes);
+    framed(planned.as_bytes(), &mut mismatch_bytes);
+    assert_eq!(mismatch.slot(), 0);
+    assert_eq!(mismatch.canonical_bytes(), mismatch_bytes);
+    let mut mismatch_appended = vec![u8::MAX];
+    mismatch.encode_into(&mut mismatch_appended);
+    let mut expected_mismatch_appended = vec![u8::MAX];
+    expected_mismatch_appended.extend_from_slice(&mismatch_bytes);
+    assert_eq!(mismatch_appended, expected_mismatch_appended);
+    assert_eq!(mismatch.class(), RefusalClass::CarrierNotAssembled);
+    assert_eq!(mismatch.observed(), Observed::IdentityDisagreement);
+    assert_eq!(mismatch.body(), LineBody::SingleCause);
+    assert!(mismatch.related().is_empty());
+    assert!(mismatch.to_string().contains("other than the one"));
+    let mismatch_repairs = mismatch.repairs();
+    assert_eq!(mismatch_repairs.len(), 1);
+    assert_eq!(
+        mismatch_repairs
+            .as_slice()
+            .first()
+            .map(|repair| repair.declared_by),
+        Some(ASSEMBLY_FACT)
+    );
+
+    let overflow = Overflow {
+        capacity: 16,
+        offered: 19,
+    };
+    let unbounded = ShellError::from(overflow);
+    assert_eq!(
+        unbounded,
+        ShellError::TreeUnbounded {
+            bound: 16,
+            observed: 19,
+        }
+    );
+    let mut unbounded_bytes = vec![1];
+    unbounded_bytes.extend_from_slice(&16_u64.to_be_bytes());
+    unbounded_bytes.extend_from_slice(&19_u64.to_be_bytes());
+    assert_eq!(unbounded.slot(), 1);
+    assert_eq!(unbounded.canonical_bytes(), unbounded_bytes);
+    let mut unbounded_appended = vec![u8::MAX];
+    unbounded.encode_into(&mut unbounded_appended);
+    let mut expected_unbounded_appended = vec![u8::MAX];
+    expected_unbounded_appended.extend_from_slice(&unbounded_bytes);
+    assert_eq!(unbounded_appended, expected_unbounded_appended);
+    assert_eq!(unbounded.class(), RefusalClass::MagnitudeNotHeld);
+    assert_eq!(unbounded.observed(), Observed::BoundExceeded);
+    assert_eq!(unbounded.body(), LineBody::SingleCause);
+    assert!(unbounded.related().is_empty());
+    assert!(unbounded.repairs().is_empty());
+    assert!(
+        unbounded
+            .to_string()
+            .contains("19 offered where 16 are declared")
+    );
+
+    assert_eq!(<ShellError as Refused>::PHASE, Phase::Assembly);
+    assert_eq!(<ShellError as Refused>::FAMILY, SHELL_FAMILY);
     Ok(())
 }

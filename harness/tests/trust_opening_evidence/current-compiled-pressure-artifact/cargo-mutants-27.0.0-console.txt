@@ -1,0 +1,4 @@
+Found 1 mutant to test
+ok       Unmutated baseline
+caught   harness/src/muterprater/backend/wrap.rs:351:13: replace != with == in roster_count
+1 mutant tested: 1 caught

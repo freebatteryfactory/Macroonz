@@ -1,9 +1,7 @@
 # request — the front door
 
 A request is what you hand this compiler, and an expansion is what comes back.
-
-Everything between the two is the road: plan, render, close, explain, bind.
-One call walks it in order, and every refusal on the way comes back as one diagnostic composed under your door.
+This home owns the consumer-declared door and the complete walk from captured meaning to a sealed expansion.
 
 ## The door says who is asking
 
@@ -12,8 +10,11 @@ One door declares the prefix your users read at the head of every line, the stab
 Say them once, in a `const`, and pass a reference from then on.
 Diagnostics read the diagnostic spellings, rendered paths read the crate binding, and the projection-kind identity reads the producer qualification, so each fact reaches only the product surface it owns.
 
-No spelling of any of the four lives here.
+No consumer spelling lives here.
 A consumer may rename its dependencies, so a binding this compiler chose for you would name a crate you do not have.
+
+`Door` is declared here.
+The crate root and `diagnostic::Door` remain compatibility navigation to that same request-owned type.
 
 ## What a request decides for you
 
@@ -24,23 +25,15 @@ The content binding, semantic key, origin node, and digest contract of each memb
 They are never supplied, because a caller who could supply them could make a plan agree with content or a rendering it was not planned for.
 
 A kind whose output set varies with what was declared does not use this door.
-The eight steps are ordinary public functions and stay reachable underneath, which is where a conditional membership is built.
+The lower-level homes remain reachable underneath, which is where a conditional membership is built and proved explicitly.
 
 ## What you decide
 
-Six seats, each stated once, each optional except the first.
+The caller hands over captured material, the kind's own content, and the door.
+It may then state the captured dependencies the content stands on, the profile the request runs under, the owner facts the projection assumes, the address of each publishing seat, and the answers to the kind's own questions.
+The exact defaults and replacement behavior are the caller contract on [`Request`](crate::request::Request).
 
-| Step | States |
-| --- | --- |
-| `over` | The captured material, the kind's own content, and the door. |
-| `depending_on` | The captures this content declares it stands on. |
-| `profile` | The profile the request runs under, where it is not the declaration profile. |
-| `assuming` | The owner facts the projection rests on, which are also what the decision trace cites. |
-| `publishing_at` | The address one seat's unit is written to, for a seat that publishes. |
-| `answering` | The answers to the questions the kind itself declares. |
-
-A step states its seat; stating it twice keeps the last statement.
-The nine questions every kind owes are answered here, off the plan and the proof, so a caller answers only what its own kind asked.
+The compiler's universal questions are answered from the plan and proof, so a caller answers only what its own kind asked.
 
 ## How it says no
 
@@ -51,11 +44,3 @@ This home supplies the door and the placement, and the placement is always the d
 
 There is no partial answer anywhere on the road.
 A request that fails a step is refused whole, and nothing that did not bind is handed out.
-
-## The seats
-
-`types.rs` declares the request, the producer, the crate binding, the profile a request runs under, and the fact the selection rule cites.
-
-Its own child `type_guard.rs` holds every road that reaches a private field: the six steps, and the one walk.
-`decide.rs` states what a request decides before a token of Rust exists — the capture commitment, owner-qualified kind, content binding, seat identities, membership, trail, and trace.
-`explain.rs` composes the nine universal answers off the plan and the closure.

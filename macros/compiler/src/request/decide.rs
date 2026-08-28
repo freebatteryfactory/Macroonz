@@ -4,9 +4,9 @@
 //! No caller supplies the primary capture, kind, content, member, or plan identity: each is derived from the informed values this road receives.
 //! Dependency captures and publication addresses cross as typed citations because their owners are independent declarations, and they never substitute for an identity this request mints.
 
+use super::Door;
 use super::SELECTION_FACT;
 use crate::bounded::{Bounded, Overflow};
-use crate::diagnostic::Door;
 use crate::identity::{
     self, Identity, OwnerFact, OwnerIdentity, Profile, Transcript, encode_bytes,
 };
@@ -220,6 +220,25 @@ pub fn committed(capture: &CapturedInput) -> Identity<identity::CapturedDeclarat
         identity::Role::CapturedDeclaration,
         &capture.canonical_bytes(),
         0,
+    ))
+}
+
+/// The identity of one helper capture read beside a semantic declaration.
+///
+/// The declaration's commitment is the anchor, the helper capture's complete canonical bytes are the material, and the caller supplies the position its helper grammar declares.
+/// This is the one derivation of a captured helper's identity, so descriptor and adopter roads do not restate the preimage beside this owner.
+#[must_use]
+pub fn committed_helper(
+    declaration: &CapturedInput,
+    helper: &CapturedInput,
+    position: u32,
+) -> Identity<identity::CapturedHelper> {
+    let anchor = committed(declaration);
+    Identity::derived(Transcript::under_projection(
+        identity::Role::CapturedHelper,
+        &anchor,
+        &helper.canonical_bytes(),
+        position,
     ))
 }
 

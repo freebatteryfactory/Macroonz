@@ -1,21 +1,23 @@
-//! The diagnostic home's invariant nucleus: the one road that builds a related set, the one road that builds a diagnostic, and the roads a site and a door are read through.
+//! The diagnostic home's invariant nucleus: the one road that builds a related set, the two placement-safe roads that build diagnostics, and the roads its own values are read through.
 //!
 //! Declared inside `types.rs` as its own child, so the seats a caller may not write are reachable here and nowhere else.
 //!
 //! What lands here is what is about an ACT rather than about a value.
 //! The related-set road takes the issue material — not a count, and not identities somebody else already derived — and builds the set, so the capping and the identities are two readings of one act.
-//! The diagnostic road takes a refusal, a door, and a placement, and composes the summary, the site, and the related set together, so a line naming one position beside a seat holding another is unrepresentable.
+//! The caller-placed road takes a refusal, a door, and the public placement vocabulary; the intrinsic road takes a refusal projection whose own type supplies its site.
+//! Both end at the same private composition, so a line naming one position beside a seat holding another is unrepresentable.
 
 use super::{
-    Diagnostic, DiagnosticSeats, Door, Family, Line, LineSite, Observed, Phase, Placement, Refused,
-    RelatedIdentity, RelatedSet, Repair, Route, Site, SiteCoordinate,
+    Diagnostic, DiagnosticName, DiagnosticNameRefusal, DiagnosticSeats, Family, IntrinsicRefused,
+    Line, LineSite, Observed, Phase, Placement, Refused, RelatedIdentity, RelatedSet, Repair,
+    Route, Site, SiteCoordinate,
 };
 use crate::bounded::{Bounded, Capping};
 use crate::diagnostic::project::{composed, witnessed};
 use crate::identity::{
     Contract, Identity, RelatedBody, RelatedIssue, Role, ServiceEntry, Transcript, encode_bytes,
 };
-use crate::request::{CrateBinding, Producer};
+use crate::request::Door;
 use crate::token::{SourceCoordinate, SpanHandle};
 
 impl Family {
@@ -40,6 +42,49 @@ impl Family {
     pub const fn name(self) -> &'static str {
         self.0
     }
+}
+
+impl DiagnosticName {
+    /// Declares one lowercase ASCII kebab-case diagnostic name without normalizing it.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DiagnosticNameRefusal::Empty`] where no name was supplied and [`DiagnosticNameRefusal::NotKebabCase`] where the spelling contains another character or a leading, trailing, or doubled separator.
+    pub const fn declared(name: &'static str) -> Result<Self, DiagnosticNameRefusal> {
+        if name.is_empty() {
+            return Err(DiagnosticNameRefusal::Empty);
+        }
+        if !diagnostic_name_is_kebab_case(name.as_bytes()) {
+            return Err(DiagnosticNameRefusal::NotKebabCase);
+        }
+        Ok(Self(name))
+    }
+
+    /// The name, exactly as declared.
+    #[must_use]
+    pub const fn spelling(self) -> &'static str {
+        self.0
+    }
+}
+
+/// Whether one non-empty spelling is lowercase ASCII kebab-case.
+const fn diagnostic_name_is_kebab_case(name: &[u8]) -> bool {
+    let mut rest = name;
+    let mut separator = true;
+    while let Some((byte, remaining)) = rest.split_first() {
+        if *byte == b'-' {
+            if separator {
+                return false;
+            }
+            separator = true;
+        } else if byte.is_ascii_lowercase() || byte.is_ascii_digit() {
+            separator = false;
+        } else {
+            return false;
+        }
+        rest = remaining;
+    }
+    !separator
 }
 
 /// Whether the first `/` in the bytes has material on both sides.
@@ -238,97 +283,14 @@ impl Route {
     }
 }
 
-impl Door {
-    /// One door, by the five facts a consumer declares once.
-    ///
-    /// A `const`, so a consumer writes it down beside its derive and passes it by reference from then on.
-    #[must_use]
-    pub const fn declared(
-        prefix: &'static str,
-        grammar: &'static str,
-        entry: &'static str,
-        binding: CrateBinding,
-        producer: Producer,
-    ) -> Self {
-        Self {
-            prefix,
-            grammar,
-            entry,
-            binding,
-            producer,
-        }
-    }
-
-    /// The word every line composed through this door opens with.
-    #[must_use]
-    pub const fn prefix(&self) -> &'static str {
-        self.prefix
-    }
-
-    /// The declaration grammar every diagnostic through this door expected to hold.
-    ///
-    /// Derived over the declared name's own bytes, rooted at [`Role::DeclaredName`], at position zero — the seat this compiler assigns a door's grammar.
-    #[must_use]
-    pub fn grammar(&self) -> Identity<Contract> {
-        Identity::derived(Transcript::rooted(
-            Role::DeclaredName,
-            self.grammar.as_bytes(),
-            0,
-        ))
-    }
-
-    /// The callable entry point every diagnostic through this door reproduces at.
-    ///
-    /// Derived on [`Door::grammar`]'s terms, separated from it by its own subject and by its own content, at position one.
-    #[must_use]
-    pub fn entry(&self) -> Identity<ServiceEntry> {
-        Identity::derived(Transcript::rooted(
-            Role::DeclaredName,
-            self.entry.as_bytes(),
-            1,
-        ))
-    }
-
-    /// The crate a path rendered through this door is rooted at.
-    #[must_use]
-    pub const fn binding(&self) -> CrateBinding {
-        self.binding
-    }
-
-    /// Who is producing, for whatever this door's expansions are stamped into.
-    #[must_use]
-    pub const fn producer(&self) -> Producer {
-        self.producer
-    }
-}
-
 impl Diagnostic {
-    /// Project one refused step into the diagnostic its door hands back.
+    /// Project one caller-placed refused step into the diagnostic its door hands back.
     ///
-    /// The one road, and every seat that could be written two ways is written once on it: the line through [`composed`], the expected contract and the reproduction route off the door, and the site through the placement the caller states.
+    /// Every seat that could be written two ways is written once on this road: the line through [`composed`], the expected contract and the reproduction route off the door, and the site through the placement the caller states.
     /// The site is built once and read twice — the prose and the seat are projections of the same value.
+    /// Refusal types whose site is intrinsic expose their own diagnostic road and do not implement this method's public bound.
     pub fn refused<E: Refused>(refusal: &E, door: &Door, placement: &Placement<'_>) -> Self {
-        let related = RelatedSet::derived_over(E::FAMILY, &refusal.related());
-        let site = placement_site(placement);
-        let first = refusal.first();
-        let line = Line {
-            class: refusal.class(),
-            first: &first,
-            body: refusal.body(),
-        };
-        let composed_line = composed(door, &line, placement_line_site(site));
-        Self {
-            phase: E::PHASE,
-            site,
-            observed: refusal.observed(),
-            carried: Box::new(DiagnosticSeats {
-                summary: witnessed(&composed_line, related.capping()),
-                expected: door.grammar(),
-                related,
-                repairs: refusal.repairs(),
-                route: Route::through(door.entry()),
-            }),
-        }
+        compose_diagnostic(refusal, door, placement_site(placement))
     }
 
     /// The step that was running.
@@ -378,6 +340,35 @@ impl Diagnostic {
     #[must_use]
     pub fn route(&self) -> Route {
         self.carried.route
+    }
+}
+
+/// Compose one intrinsically placed refusal without accepting a second site beside it.
+pub(crate) fn intrinsic_diagnostic<E: IntrinsicRefused>(refusal: &E, door: &Door) -> Diagnostic {
+    compose_diagnostic(refusal, door, refusal.site())
+}
+
+/// Compose one refusal over the site its lawful road established.
+fn compose_diagnostic<E: Refused>(refusal: &E, door: &Door, site: Site) -> Diagnostic {
+    let related = RelatedSet::derived_over(E::FAMILY, &refusal.related());
+    let first = refusal.first();
+    let line = Line {
+        class: refusal.class(),
+        first: &first,
+        body: refusal.body(),
+    };
+    let composed_line = composed(door, &line, placement_line_site(site));
+    Diagnostic {
+        phase: E::PHASE,
+        site,
+        observed: refusal.observed(),
+        carried: Box::new(DiagnosticSeats {
+            summary: witnessed(&composed_line, related.capping()),
+            expected: door.grammar(),
+            related,
+            repairs: refusal.repairs(),
+            route: Route::through(door.entry()),
+        }),
     }
 }
 

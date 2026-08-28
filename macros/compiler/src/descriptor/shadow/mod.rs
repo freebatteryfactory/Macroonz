@@ -7,6 +7,4 @@ mod types;
 
 pub use capture::chosen;
 pub use render::faces;
-pub use types::{
-    SHADOW_HELPER_POSITION, SHADOW_ROSTER, ShadowCaptureError, ShadowFace, ShadowRow, Shadows,
-};
+pub use types::{SHADOW_ROSTER, ShadowCaptureError, ShadowFace, ShadowRow, Shadows};

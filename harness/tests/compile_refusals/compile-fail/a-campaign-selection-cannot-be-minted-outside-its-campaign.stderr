@@ -1,0 +1,5 @@
+error[E0451]: field `schedule` of struct `CampaignSelection` is private
+  --> tests/compile_refusals/compile-fail/a-campaign-selection-cannot-be-minted-outside-its-campaign.rs:15:25
+   |
+15 |     CampaignSelection { schedule }
+   |                         ^^^^^^^^ private field

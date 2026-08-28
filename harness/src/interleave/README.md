@@ -1,62 +1,74 @@
 # interleave
 
-The schedule is an input.
+This home treats a schedule as declared input and judges command-order concurrency without running threads or reading a clock.
 
-Two parties that each behave alone can still break together, and the break lives in nothing but the order their steps merged in.
-This home explores those orders: every way a set of declared command sequences can interleave, each merged history judged under one transition contract, with the same seeds, census honesty, and replay every other input here carries.
-No thread runs and no clock ticks — a schedule is bytes, like any other input, which is what makes a concurrency bug a thing you can hold.
+Two parties can each behave lawfully alone and still break when their steps merge in one particular order.
+The interleave owner makes that order a value which can be counted, generated, replayed, reduced, and held beside the finding it produced.
 
-## The vocabulary
+## Mental model
 
-A **strand** is one named party: the commands it will issue, in its own program order.
-The word is Cilk's, for a serial chain of steps, and it is chosen over "thread" precisely because no operating-system thread is involved — a strand is as at home in async code, in multi-node logic, or in two business workflows racing over one account.
+A strand is one named party's nonempty command sequence.
+A strand set preserves each party's program order while admitting every cross-party merge.
+An interleaving is the canonical choice string naming which live strand contributes the next command.
+Material is the byte-string input from which that canonical choice string is interpreted.
 
-A **strand set** is the parties together — at least two, uniquely named, no more than one choice byte can address.
+```mermaid
+flowchart LR
+    accTitle: Interleaving exploration road
+    accDescr: Declared strands, bounds, lineage, and transition meaning select exhaustive or sampled schedules, whose histories yield bounded standing or a replayable counterexample.
 
-An **interleaving** is one merge order, spelled as the canonical choice string: which strand stepped next, one ordinal per step.
-Within it, every strand keeps its own program order; across strands, anything goes.
-That is the whole space this home explores.
+    subgraph authority[Declared authority]
+        strands[Strand set<br/>named program orders]
+        bound[Exploration bound<br/>exhaustive ceiling + samples]
+        lineage[Population + root seed]
+        contract[Transition contract]
+    end
 
-**Material** is an interleaving written in interpretation coordinates — the bytes a byte stream supplies.
-At each step, the byte picks among the strands that still hold commands, so *every* byte string denotes exactly one lawful interleaving: interpretation is total, missing tail bytes read as the first live strand, and surplus bytes go unread.
-Totality is the shrink story — a reducer can remove or zero any window of material and still hold a lawful schedule whose failure a fingerprint probe can judge.
+    strands -->|count merge orders| space{Space within<br/>exhaustive ceiling?}
+    bound --> space
+    lineage --> sampled[Sampled schedules]
+    space -->|yes| exhaustive[Enumerate every schedule]
+    space -->|no| sampled
+    exhaustive -->|drive histories| judge[Judge one transition history]
+    sampled -->|drive histories| judge
+    contract --> judge
+    judge -->|all held| standing[Evidence-bounded standing]
+    judge -->|claim refused| counterexample[Counterexample<br/>site + schedule + finding]
+    counterexample -->|encode then interpret| replay[Replayable material]
 
-## The road
+    classDef authority fill:#1f4b6e,stroke:#9ad5ff,color:#ffffff,stroke-width:2px;
+    classDef operation fill:#4b3f72,stroke:#d5c8ff,color:#ffffff,stroke-width:2px;
+    classDef evidence fill:#185c4a,stroke:#9ff0d3,color:#ffffff,stroke-width:2px;
+    classDef refusal fill:#7a2f3b,stroke:#ffb2bd,color:#ffffff,stroke-width:2px;
+    class strands,bound,lineage,contract authority;
+    class space,exhaustive,sampled,judge operation;
+    class standing,replay evidence;
+    class counterexample refusal;
+```
 
-`explored` walks the space one way or the other, and says which:
+## Evidence ceiling
 
-- **Exhaustive**, while the counted space fits the declared bound: every interleaving, enumerated in ascending position order, each driven through [`crate::properties::holds_over_history`].
-  An all-pass here is a statement about the *whole* space.
-- **Sampled**, beyond the bound: choice bytes are drawn through the one shared sequence driver ([`crate::generate::drive`]) under a seeded plan this home sizes exactly, so a sampled schedule carries a seed and a case like any generated input.
-  An all-pass here is a statement about the sampled schedules and nothing more — the standing spells the difference, and no reader can mistake one for the other.
+An exhaustive walk is available only when the counted space fits the declared ceiling.
+Its clean standing covers every interleaving in that space.
 
-The reading carries the counted space, the mode with its generation census, how many interleavings were judged, and the standing.
-A counterexample carries the site it was found at, the canonical interleaving, and the typed finding — `encoded` turns the interleaving back into material, `interpreted` realizes material into the merged history, and the two compose into replay with nothing hidden between them.
+A larger space is sampled through the harness's shared seeded generation road.
+Its clean standing covers only the schedules actually drawn, and the mode, census, halt, and explored count retain that narrower claim.
+No sampled result can wear the exhausted-space standing.
 
-A directed check is the same two calls in the other direction: author the choice string yourself, encode it, realize it, judge it — the exact schedule that once failed, pinned as a regression.
+The counterexample owns the canonical schedule and typed finding at the site where exploration found it.
+Encoding that schedule and interpreting the resulting material reconstructs the same merged command history without hidden state.
 
-`concluded` reads a whole exploration into one ordinary trial conclusion: a counterexample as the refusal its own finding states, an exhausted space as a pass over the whole space, a clean sample as a pass of the declared exploration exactly when its drive met its declared budget — and as a refusal where it stopped short, because an all-pass over fewer schedules than were declared is unexercised evidence.
-The reading stays the owner of the replay; the conclusion is the verdict alone, and it rides the report vocabulary every fingerprint and rerun selection already reads.
+## Composition
 
-## Faults compose
+Fault injection composes before strand declaration, so adversity remains owned by the fault home and the resulting commands remain ordinary strand input here.
+Network deliveries are command-shaped values and per-link delivery sequences can therefore become strands without teaching either owner the other's vocabulary.
+Reduction can transform material because every byte string interprets to a lawful schedule and unused suffix bytes carry no effect.
 
-Adversity is per-party: inject a [`crate::fault`] schedule into one strand's commands *before* declaring the strand, and explore the injected commands like any others.
-Each party's adversity stays that party's, and the exploration multiplies schedules by orders without either home learning the other's vocabulary.
+## Boundary
 
-## What it refuses
+Each command is one atomic step at this floor.
+Instruction-level preemption and memory-model behavior belong to the target-qualified preemption owner.
+Delivery timing and network discipline belong to the network owner.
 
-- A strand with no commands: a declared party that never acts is vacuous, and vacuity is refused where it is written.
-- A set with fewer than two strands — an exploration needs something to reorder — or with a repeated name, or with more strands than a choice byte can address, or whose step total no address can hold.
-- A bound with no interleaving seat or no sample seat.
-- Encoding an interleaving foreign to the set: wrong step count, an ordinal no strand owns, a strand drawn past its length — each named at the step it broke.
-
-## What this home will not tell you
-
-A strand's command is one atomic step.
-Instruction-level preemption and the memory model live below this floor: what happens *inside* a step is the subject's own, and a claim here says nothing about it.
-
-Two interleavings that merge commuting commands are both counted and both driven.
-No partial-order reduction is performed in this vocabulary — exhaustive-under-bound means exactly what it says, and an equivalence over schedules would be a claim needing its own evidence.
-
-Sampling finds presence, never absence.
-The standing after an all-pass sample is worded so that nothing downstream can read it as the exhausted space.
+This home performs no partial-order reduction.
+Commuting schedules are still distinct schedules, so an exhaustive standing covers the literal declared space rather than an unproved equivalence class.

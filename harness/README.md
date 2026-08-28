@@ -56,6 +56,9 @@ The harness stores your names, hashes your names, and never reads inside them.
 
 ```mermaid
 flowchart LR
+    accTitle: Harness evidence composition
+    accDescr: Descriptor, generation, and scheduled adversity enter the runner, whose report can feed mutation, oracle, and benchmark evidence roads.
+
     D["descriptor<br/>a row says what it claims"] --> S["runner<br/>select · bind · execute"]
     G["generate<br/>inputs from a seed"] --> S
     F["fault · clock<br/>adversity on schedule"] --> S
@@ -74,12 +77,13 @@ flowchart LR
 | `fault/` | Adversity the owner schedules: which fault, at which call. |
 | `clock/` | A clock the harness reads but never owns. Time is an input. |
 | `corpus/` | Warm starts from content-addressed seed packs. |
+| `fuzz/` | Thin safe-Rust composition over stable rustc coverage instrumentation and LLVM tools derived from that exact compiler: active informed readiness, root-independent coverage identity, deterministic neighboring inputs, novelty retention, safe isolated execution, and interesting-byte handoff into reduction and replay. |
 | `report/` | What a run leaves behind: trial identities, revision identities, execution keys, fingerprints, replay capsules, coverage, comparison. |
 | `oracle/` | An independent second opinion where self-agreement would be vacuous: golden vectors, an independent transcript, a structural read of generated source, a compiled read-back. |
 | `muterprater/` | Mutation pressure: which damages a subject may suffer, pressing them, and refusing to let a run claim more than its evidence affords. Four evidence roads stay physically distinct. |
 | `bench/` | Work measured under a pinned receiver and profile, with complexity claims and planted-worse controls, so a number means the same thing tomorrow. |
 | `depot/` | The harness's own fact bank: the mutation-operator taxonomy and the separations among its own types. Nothing product-shaped is banked here. |
-| `identity.rs` | One derivation substrate: domain-tagged, versioned content addresses. |
+| `identity/` | One derivation substrate: domain-tagged, versioned content addresses. |
 
 ---
 

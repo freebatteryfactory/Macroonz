@@ -8,8 +8,8 @@ error[E0382]: use of moved value: `level`
 9 |     let _partial = level.finish();
   |                    ^^^^^ value used here after move
   |
-note: `token::types::guard::<impl CaptureLevel<'_, Position>>::atom` takes ownership of the receiver `self`, which moves `level`
- --> src/token/type_guard.rs
+note: `token::capture::types::guard::<impl CaptureLevel<'_, Position>>::atom` takes ownership of the receiver `self`, which moves `level`
+ --> src/token/capture/type_guard.rs
   |
   |         mut self,
   |             ^^^^

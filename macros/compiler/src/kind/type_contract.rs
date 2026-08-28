@@ -1,7 +1,11 @@
-//! The two rosters this home owns, implemented: the one-role roster, and the roster of a kind that owes no questions.
+//! The compiler-owned roster contracts and how a disposition-set completion refusal reads.
 
-use super::types::{Answer, CanonicalContent, Destination, NoQuestions, Question, Role, SoleRole};
+use super::types::{
+    Answer, CanonicalContent, Destination, DispositionSetError, NoQuestions, Question, Role,
+    SoleRole,
+};
 use crate::identity::encode_bytes;
+use core::fmt;
 
 impl CanonicalContent for () {
     fn encode_content_into(&self, _into: &mut Vec<u8>) {}
@@ -50,3 +54,20 @@ impl Answer for NoQuestions {
         match *self {}
     }
 }
+
+impl fmt::Display for DispositionSetError {
+    fn fmt(&self, into: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::CountMismatch { expected, observed } => write!(
+                into,
+                "the kind set declares {expected} names but its disposition record surrendered {observed} rows"
+            ),
+            Self::KindMismatch { expected, observed } => write!(
+                into,
+                "the kind set declares `{expected}` at this position but its disposition record surrendered `{observed}`"
+            ),
+        }
+    }
+}
+
+impl core::error::Error for DispositionSetError {}

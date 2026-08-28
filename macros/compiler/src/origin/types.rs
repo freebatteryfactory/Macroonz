@@ -1,8 +1,3 @@
-//! The origin home's declarations: the relations an edge may stand for, the trail those edges walk, what a plan decided and on whose fact, and what it leaves unclaimed.
-//!
-//! Declarations only.
-//! Every road that reaches a private field lives in `type_guard.rs`, this file's own child, which is what makes the orphan law structural: there is no other seam that can draw a trail.
-
 use crate::bounded::{Empty, NonEmpty, Overflow};
 use crate::identity::{self, Identity, OwnerFact};
 
@@ -11,7 +6,7 @@ mod guard;
 
 /// Edges one trail may draw.
 ///
-/// A trail is the end-to-end walk from a generated unit back to authored material, one edge per act that stands between them, and a walk longer than this has stopped being provenance a reader can follow.
+/// A trail is the end-to-end walk from producing material toward a generated unit, one edge per act that stands between them, and a walk longer than this has stopped being provenance a reader can follow.
 pub const ORIGIN_EDGE_LIMIT: usize = 64;
 
 /// Entries one decision trace may record.
@@ -57,7 +52,7 @@ pub struct OriginEdge {
     pub to: Identity<identity::OriginNode>,
 }
 
-/// The walk from one generated unit back to the material a person authored.
+/// The derivation walk from producing material toward one generated unit.
 ///
 /// Edges are held in walk order, and there is always at least one of them.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

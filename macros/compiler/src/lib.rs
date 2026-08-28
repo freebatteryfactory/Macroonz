@@ -2,7 +2,7 @@
 //!
 //! The crate README is the specification — what a kind is, what each step of the road settles, and which half of the work is the caller's.
 //! Every home below carries its own README as its module documentation.
-//! The module list is written in dependency order: a home imports only homes declared before it, and the crate depends on nothing else in this workspace.
+//! The module list is a reading order: homes cite their semantic owners directly, including the request-owned door whose diagnostic projections are consumed by the diagnostic home, and the crate depends on nothing else in this workspace.
 
 #[cfg(feature = "host")]
 extern crate proc_macro;
@@ -34,13 +34,12 @@ pub use closure::{
 };
 pub use diagnostic::{
     ASSEMBLY_FAMILY, BENCH_HELPER_FAMILY, BINDING_FAMILY, CAPTURE_FAMILY, CLOSURE_FAMILY,
-    CODEC_DECLARATION_FAMILY, CONCURRENCY_HELPER_FAMILY, DECLARATION_FAMILY,
-    DESCRIPTOR_PLAN_FAMILY, Diagnostic, Door, EXPLANATION_FAMILY, ExplanationSeat,
-    FIRST_HELPER_FAMILY, Family, Line, LineBody, LineSite, NETWORK_HELPER_FAMILY, Observed,
-    PLANNING_FAMILY, Phase, Placement, RELATED_ISSUE_LIMIT, RENDERING_FAMILY, REPAIR_LIMIT,
-    RefusalClass, Refused, RelatedIdentity, RelatedSet, RenderedMagnitude, Repair, Route,
-    SECOND_HELPER_FAMILY, SHADOW_HELPER_FAMILY, SHELL_FAMILY, SUPPORT_DECLARATION_FAMILY, Site,
-    SiteCoordinate, composed,
+    CODEC_DECLARATION_FAMILY, CONCURRENCY_HELPER_FAMILY, DECLARATION_FAMILY, Diagnostic,
+    DiagnosticName, DiagnosticNameRefusal, EXPLANATION_FAMILY, FIRST_HELPER_FAMILY, Family, Line,
+    LineBody, LineSite, NETWORK_HELPER_FAMILY, Observed, PLANNING_FAMILY, Phase, Placement,
+    RELATED_ISSUE_LIMIT, RENDERING_FAMILY, REPAIR_LIMIT, RefusalClass, Refused, RelatedIdentity,
+    RelatedSet, RenderedMagnitude, Repair, Route, SECOND_HELPER_FAMILY, SHADOW_HELPER_FAMILY,
+    SHELL_FAMILY, SUPPORT_DECLARATION_FAMILY, Site, SiteCoordinate, composed,
 };
 pub use expansion::{Accounted, BINDING_FACT, BindError, Expansion};
 pub use explanation::{
@@ -60,8 +59,8 @@ pub use identity::{
     encode_bytes, encode_length, names_are_separating,
 };
 pub use kind::{
-    Answer, CanonicalContent, Destination, Disposition, Kind, KindSet, NoQuestions, Question, Role,
-    SoleRole,
+    Answer, CanonicalContent, Destination, Disposition, DispositionRecord, DispositionSet,
+    DispositionSetError, Kind, KindSet, NoQuestions, Question, Role, SoleRole,
 };
 pub use origin::{
     DecisionTrace, Nonclaim, ORIGIN_EDGE_LIMIT, OriginEdge, OriginRelation, OriginTrail,
@@ -75,7 +74,7 @@ pub use plan::{
 };
 pub use render::{Output, RENDERED_BYTE_LIMIT, RenderError, RenderedProjection, RenderedUnit};
 pub use request::{
-    CrateBinding, Producer, RUST_DECLARATION_PROFILE, Request, SELECTION_FACT, bound_content,
+    CrateBinding, Door, Producer, RUST_DECLARATION_PROFILE, Request, SELECTION_FACT, bound_content,
 };
 pub use token::{
     CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound,
@@ -83,8 +82,9 @@ pub use token::{
     CapturedDelimiter, CapturedInput, CapturedPayload, CapturedTokenTree, CoordinateRole,
     GENERATED_TOKEN_LIMIT, GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree,
     LiteralReadCause, SourceCoordinate, SpanHandle, SpanResolutionRefusal, SpanTable,
-    TOKEN_PATH_DEPTH_LIMIT, TextCapture, TextReadCause, TextReadRefusal, TokenPath, absolute_path,
-    and_all, attribute, bound_local, bound_path, call, capture_literal, comma, comma_many,
-    constant, documentation, equality, function, group, metavariable, method_call, method_chain,
-    rendered_identifier, rendered_name, result_type, roster, rust_keyword, text_pair, twin_path,
+    TEXT_SOURCE_BYTE_LIMIT, TOKEN_PATH_DEPTH_LIMIT, TextCapture, TextLexicalCause, TextReadCause,
+    TextReadRefusal, TokenPath, absolute_path, and_all, attribute, bound_local, bound_path, call,
+    capture_literal, comma, comma_many, constant, documentation, equality, function, group,
+    metavariable, method_call, method_chain, rendered_identifier, rendered_name, result_type,
+    roster, rust_keyword, text_pair, twin_path,
 };

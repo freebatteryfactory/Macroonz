@@ -1,5 +1,3 @@
-//! Handing admitted seeds to the generation home as exact supplied material.
-
 use super::SeedPack;
 use crate::generate::InputOrigin;
 

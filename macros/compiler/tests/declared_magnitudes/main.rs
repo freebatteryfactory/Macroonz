@@ -20,8 +20,8 @@ use core::convert::Infallible;
 use macroonz_compiler::{
     CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound,
     CaptureBuildRefusal, CaptureBuilder, CapturedAtom, CapturedDelimiter, CapturedInput,
-    CapturedTokenTree, CoordinateRole, TOKEN_PATH_DEPTH_LIMIT, TextCapture, TextReadCause,
-    TokenPath,
+    CapturedTokenTree, CoordinateRole, TEXT_SOURCE_BYTE_LIMIT, TOKEN_PATH_DEPTH_LIMIT, TextCapture,
+    TextReadCause, TextReadRefusal, TokenPath,
 };
 
 /// An ordinary declaration, small enough that no magnitude is anywhere near it.
@@ -163,7 +163,8 @@ fn a_fresh_capture_after_refusal_preserves_prior_handles_without_ghost_positions
 
     assert!(matches!(
         builder.open().atom(20u64, |_| Err("unread")),
-        Err(CaptureBuildRefusal::ProducerRefused { cause: "unread", at }) if at.index() == 1
+        Err(CaptureBuildRefusal::ProducerRefused { cause: "unread", path, at })
+            if path.steps() == [0] && at.index() == 1
     ));
     assert_eq!(builder.positions(), &[10u64, 20u64]);
 
@@ -196,6 +197,60 @@ fn the_planted_depth_and_index_coordinate_names_two_tokens_at_once() {
         let separate = left.path() != right.path();
         firsts.len() == 2 && collided && separate
     }));
+}
+
+/// Hostile caller text reaches typed refusals without an unchecked branch.
+#[test]
+fn malformed_text_shapes_refuse_at_their_established_bytes() {
+    let cases = [
+        (
+            "(",
+            TextReadRefusal {
+                cause: TextReadCause::NotBalanced,
+                at: 0,
+            },
+        ),
+        (
+            ")",
+            TextReadRefusal {
+                cause: TextReadCause::NotOpened,
+                at: 0,
+            },
+        ),
+        (
+            "\"open",
+            TextReadRefusal {
+                cause: TextReadCause::NotTerminated,
+                at: 0,
+            },
+        ),
+        (
+            "\"\\q\"",
+            TextReadRefusal {
+                cause: TextReadCause::NotEscapeFree,
+                at: 0,
+            },
+        ),
+    ];
+    for (source, expected) in cases {
+        assert_eq!(TextCapture::read(source), Err(expected));
+    }
+}
+
+/// A trivia-only source reaches the source-byte magnitude even though it retains no token tree.
+#[test]
+fn source_bytes_are_bounded_independently_of_structural_tokens() {
+    let lawful = " ".repeat(TEXT_SOURCE_BYTE_LIMIT);
+    assert!(TextCapture::read(&lawful).is_ok_and(|read| read.input().is_empty()));
+
+    let hostile = " ".repeat(TEXT_SOURCE_BYTE_LIMIT.saturating_add(1));
+    assert_eq!(
+        TextCapture::read(&hostile),
+        Err(TextReadRefusal {
+            cause: TextReadCause::SourceBytesUnbounded,
+            at: u64::try_from(TEXT_SOURCE_BYTE_LIMIT).unwrap_or(u64::MAX),
+        })
+    );
 }
 
 /// Nesting to the declared depth reads, and one level deeper refuses naming the depth.

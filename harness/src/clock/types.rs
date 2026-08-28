@@ -6,12 +6,18 @@ use super::read::{Opening, Source};
 mod guard;
 
 /// The wall-measurement source a caller declares for one run.
+///
+/// The source is either an infallible or fallible capture-free function pointer, or declared unavailability.
+/// A function pointer excludes captured state and establishes neither purity, monotonicity, termination, nor abort safety.
 #[derive(Debug, Clone, Copy)]
 pub struct HarnessClock {
     pub(in crate::clock) source: Source,
 }
 
 /// An open measurement, finishable exactly once and only against the source it opened on.
+///
+/// Its opening and retained source are private, and [`MeasurementStart::finish`] consumes the value.
+/// An outside caller therefore cannot replace the source, reverse the readings, or publish two readings from one opening.
 #[must_use = "a measurement start must be finished to produce its reading"]
 #[derive(Debug)]
 pub struct MeasurementStart {
@@ -61,6 +67,9 @@ pub enum ClockFailure {
 }
 
 /// The complete wall reading one run leaves in its report.
+///
+/// Observed zero, declared unavailability, and failure are distinct postures.
+/// A failure retains its read boundary or both backwards ticks through [`ClockFailure`].
 #[must_use = "a measurement reading is a report fact"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MeasurementReading {

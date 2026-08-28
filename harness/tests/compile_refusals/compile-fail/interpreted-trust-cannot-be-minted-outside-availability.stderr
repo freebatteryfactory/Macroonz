@@ -1,0 +1,11 @@
+error[E0451]: fields `surface`, `suite` and `projection` of struct `InterpretedTrust` are private
+  --> tests/compile_refusals/compile-fail/interpreted-trust-cannot-be-minted-outside-availability.rs:20:9
+   |
+19 |     InterpretedTrust {
+   |     ---------------- in this type
+20 |         surface,
+   |         ^^^^^^^ private field
+21 |         suite,
+   |         ^^^^^ private field
+22 |         projection,
+   |         ^^^^^^^^^^ private field

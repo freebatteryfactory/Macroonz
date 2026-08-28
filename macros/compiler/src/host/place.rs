@@ -26,9 +26,9 @@ impl CaptureError {
     /// It is not a [`Diagnostic`]: composing one needs the door whose prefix, grammar, and callable entry the line carries, and a capture runs before any door is named.
     #[must_use]
     pub fn placed(self, spans: &Spans) -> TokenStream {
-        let at = match self {
+        let at = match &self {
             Self::Unbounded { .. } => Span::call_site(),
-            Self::Unread { at, .. } => spans.at(at),
+            Self::Unread { at, .. } => spans.at(*at),
         };
         refused(&self.to_string(), at)
     }

@@ -43,31 +43,13 @@ impl<Command> StrandSet<Command> {
     ///
     /// Refuses a repeated name, then a set larger than [`ADDRESSABLE_STRANDS`], then a step total past addressing, then a set with fewer than two strands.
     pub fn declared(strands: Vec<Strand<Command>>) -> Result<Self, StrandSetRefusal> {
-        let mut seen = BTreeSet::new();
-        for strand in &strands {
-            if !seen.insert(strand.name()) {
-                return Err(StrandSetRefusal::DuplicateStrand(strand.name()));
-            }
-        }
+        unique_names(&strands)?;
         if strands.len() > ADDRESSABLE_STRANDS {
             return Err(StrandSetRefusal::MoreStrandsThanAddressable {
                 strands: strands.len(),
             });
         }
-        let mut steps = 0usize;
-        for strand in &strands {
-            steps = steps
-                .checked_add(strand.commands().len())
-                .ok_or(StrandSetRefusal::StepsUnaddressable)?;
-        }
-        let width = match CaseWidth::declared(steps) {
-            Ok(width) => width,
-            Err(CaseWidthRefusal::ZeroBytes) => {
-                return Err(StrandSetRefusal::FewerThanTwoStrands {
-                    strands: strands.len(),
-                });
-            }
-        };
+        let (steps, width) = steps_and_width(&strands)?;
         if strands.len() < 2 {
             return Err(StrandSetRefusal::FewerThanTwoStrands {
                 strands: strands.len(),
@@ -96,6 +78,35 @@ impl<Command> StrandSet<Command> {
     #[must_use]
     pub(crate) const fn width(&self) -> CaseWidth {
         self.width
+    }
+}
+
+/// Establish that every strand has one distinct name.
+fn unique_names<Command>(strands: &[Strand<Command>]) -> Result<(), StrandSetRefusal> {
+    let mut seen = BTreeSet::new();
+    for strand in strands {
+        if !seen.insert(strand.name()) {
+            return Err(StrandSetRefusal::DuplicateStrand(strand.name()));
+        }
+    }
+    Ok(())
+}
+
+/// Establish the addressable step total and the case width sampled material uses.
+fn steps_and_width<Command>(
+    strands: &[Strand<Command>],
+) -> Result<(usize, CaseWidth), StrandSetRefusal> {
+    let mut steps = 0usize;
+    for strand in strands {
+        steps = steps
+            .checked_add(strand.commands().len())
+            .ok_or(StrandSetRefusal::StepsUnaddressable)?;
+    }
+    match CaseWidth::declared(steps) {
+        Ok(width) => Ok((steps, width)),
+        Err(CaseWidthRefusal::ZeroBytes) => Err(StrandSetRefusal::FewerThanTwoStrands {
+            strands: strands.len(),
+        }),
     }
 }
 

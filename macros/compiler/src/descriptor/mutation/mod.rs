@@ -1,11 +1,13 @@
 #![doc = include_str!("README.md")]
 
 mod capture;
+mod complete;
 mod render;
 mod type_contract;
 mod types;
 
-pub use capture::{captured, completed};
+pub use capture::captured;
+pub use complete::completed;
 pub use render::generated_module;
 pub use types::{
     ALTERNATIVE_LIMIT, Address, Alternative, DECLARED_ORDER_FAMILY, Declaration, FactMapping,

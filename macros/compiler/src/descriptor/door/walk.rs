@@ -2,10 +2,11 @@
 
 use crate::bounded::Overflow;
 use crate::closure::PartitionCargo;
-use crate::diagnostic::{Diagnostic, Door, Placement, Refused};
+use crate::diagnostic::{Diagnostic, Placement, Refused};
 use crate::expansion::Expansion;
 use crate::kind::{Destination, Kind};
 use crate::render::RenderError;
+use crate::request::Door;
 use crate::support::{AssemblyError, CargoAxis, DeferredCargo, ProvedCargo, SupportName};
 use crate::token::{GeneratedToken, GeneratedTree, SpanHandle, SpanTable};
 

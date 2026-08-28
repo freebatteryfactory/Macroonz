@@ -1,4 +1,4 @@
-/target
+target/
 
 .DS_Store
 Thumbs.db
@@ -6,6 +6,10 @@ desktop.ini
 
 .vscode/
 .idea/
+.cursor/
+.codex/
+.claude/
+.serena/
 
 *.rs.bk
 *.orig

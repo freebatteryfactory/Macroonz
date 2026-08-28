@@ -61,7 +61,9 @@ A declaration may carry three helper bodies — trial, bench, mutation — and t
 
 It is a declaration and not an inventory: naming, in one place, exactly which providers compose is a statement somebody made and can be held to, while an unchecked list is right when it is written and refuses nothing when it stops being right.
 
-Duplicate-free by construction — the scan runs before the value exists — and structurally non-empty, because a composition with no provider is not a composition, it is silence.
+A composition is structurally non-empty and duplicate-free, because a composition with no provider is silence and two declarations of one provider identity do not name two providers.
+Absence and magnitude refuse before duplicates are explored, so pairwise work ranges only over an admitted provider set.
+Every refusal carries its complete finding set and cites the descriptor meaning that repairs the disagreement.
 
 ## The homes
 

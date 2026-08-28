@@ -4,7 +4,6 @@ This file binds every person, model, and agent who edits this repository.
 It is the only such file; `CLAUDE.md` is a pointer to it.
 The [README](README.md) owns the product and the crate map, and nothing here repeats it.
 
-> There is no CI and no gate.
 > The toolchain at the root, run locally, is the enforcement surface: the lint wall in `Cargo.toml`, `clippy.toml`, `deny.toml`, `.cargo/config.toml`, the compiler itself, and the lanes.
 > Checks report.
 > A human decides.
@@ -107,9 +106,15 @@ A README has no yaml blocks, no ledgers, no status tables.
 - **No Python.** Ever. Tooling is Rust.
 - **Declared input only.** Expansion and judgment are functions of what they were handed: no network, no filesystem scan, no environment, no clock, no entropy. The harness may read the host facts it needs to run; they never enter an identity or a verdict.
 - **The proc host carries.** Token conversion, span custody, one compiler call, diagnostic placement, emission. It owns no grammar.
-- **Nothing sneaks in.** No probes, no symlinks, no `build.rs`. LF everywhere. No person's name in any file.
+- **Nothing sneaks in.** No product or runtime probes, no symlinks, no `build.rs`. LF everywhere. No person's name in any file.
+- **Qualification drivers stay outside product authority:** a bounded external driver may consume declared public inputs from disposable `target/qualification` storage only when it adds no product observation channel, records its exact source, tool, command, host, target, seed or corpus, and evidence, and promotes every meaningful minimized finding into the owning tracked regression plane.
+- **Qualification does not create a parallel Cargo architecture:** a separate repository-test package is lawful only when Rust or the compiler requires that package boundary to observe an existing product owner independently, and it owns only that test question. General-purpose qualification, evidence, launcher, and campaign machinery must use an existing package target or disposable `target/qualification` material.
+- **Git owns accepted evidence:** raw campaign output remains disposable under `target/qualification`; meaningful minimized findings become owning tracked tests or vectors; an accepted observation that tests cannot retain becomes a small readable tracked receipt and, only when necessary, one deterministic compressed payload. No ignored local warehouse or custom filesystem sealer has repository authority.
+- **Build output is disposable:** a task may clean its exact target directory after every retained artifact has been committed or promoted, never while another live task uses that directory and never by redirecting general build caches to a slower drive.
 - **Red is a sensor.** A failing lane, lint, metric, or search result is evidence; the owner rules on the substance before code changes to answer it. No code is edited to silence a finding.
 - **Unused is not dead.** `unused`, `uncalled`, and `unreached` are wiring facts, never deletion authority.
 - **Read whole.** Every assigned file, top to bottom, before classifying or editing it. Search output enumerates candidates; it is never the denominator.
 - **Name the plane.** "Complete", "closed", and "proven" are never written bare. Local green is not hosted, packaged, or accepted.
-- **Humans commit.** Commits, pushes, branch rewrites, and recovery operations are a human's. An agent never initiates one.
+- **Agents commit accepted work:** an agent may stage and commit qualified files within the authorized task after its required checks pass, using a truthful message and never folding unrelated dirty work into the commit.
+- **Task boundaries control:** an active task-specific no-commit instruction overrides autonomous commit authority until that boundary is lifted.
+- **Humans authorize Git publication and surgery:** pushes, merges, branch rewrites, ref movement, and recovery operations require explicit human authorization, and an agent performs only the bounded operation authorized.

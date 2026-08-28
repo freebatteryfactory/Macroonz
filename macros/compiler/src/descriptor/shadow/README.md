@@ -1,52 +1,24 @@
 # shadow
 
-One declaration, two worlds.
+One declaration, two synchronization worlds.
 
-A crate whose concurrency should be explorable under a preemption scheduler needs its synchronization primitives to resolve to the scheduler's shadow types when the exploration build asks, and to the standard library the rest of the time.
-The ecosystem's convention for that switch is the `loom` configuration flag — and the ceremony it usually costs an author is a hand-written pair of `cfg`-gated imports for every primitive, in every crate, forever.
+## Boundary
 
-This home absorbs that ceremony.
-A shadow declaration chooses names from a stated roster, and the rendering writes the two faces the author would have written by hand:
+An adopting crate supplies the physical path to its Loom-compatible vocabulary and chooses an ordered set of names from the adapter's stated roster.
+This home informs that declaration before it renders anything, so an unknown or repeated choice and an unreadable binding refuse at the authored token rather than escaping as a downstream resolution error.
 
-```text
-shadow! {
-    loom = renamed_loom,
-    names = [Arc, Mutex, AtomicUsize, thread],
-}
-```
+What leaves is one direct declaration-site projection.
+Each chosen name has an ordinary standard-library face and a shadow face selected by the adopting crate's `loom` configuration, and no carrier or later consumption target stands between the declaration and those imports.
 
-becomes, for each chosen name, exactly
+## Composition
 
-```text
-#[cfg(not(loom))]
-pub use std::sync::Arc;
-#[cfg(loom)]
-pub use loom::sync::Arc;
-```
+The physical binding may name a direct dependency or a facade path, and it is part of the declaration's canonical content because changing it changes the Rust that leaves this home.
+The roster is the adapter's bounded backend knowledge: each row joins one public spelling to its ordinary and shadow path suffixes, while the harness's pinned preemption lane independently witnesses that the shadow suffix remains real.
 
-The `loom` clause is the physical path this scope uses for the shadow vocabulary.
-The adapter contributes the roster suffix, while the declaration supplies the dependency alias or facade path that roots it.
+The production crate imports through the module where its declaration stands, while the harness explores models through its separate preemption owner.
+This home supplies the two-faced vocabulary that lets those roads meet without importing harness types or scheduler policy into the compiler.
 
-Write the declaration once in a module of the production crate, import through that module everywhere, and the crate is explorable under the shadow scheduler for the rest of its life — no gate is hand-spelled again.
+## Trust ceiling
 
-## The roster is the contract
-
-The covered names live in one stated table: each row is the chosen spelling, its standard-library path, and its shadow path.
-A name outside the roster refuses at its own token with a typed cause, which is the honesty a hand-rolled re-export could never give — a typo there is a bare resolution error three crates away, a typo here is this grammar naming the roster.
-
-The roster grows a row when the shadow library covers the primitive, and not before: a row nothing realizes would be a declaration that compiles into a lie under the flag.
-
-Two rows are macros rather than types — `thread_local` and the `mpsc` module's siblings ride the same `pub use` road, because Rust re-exports a macro by path like anything else.
-One spelling caveat rides the `thread_local` row: the `const { … }` initializer block belongs to the standard macro alone, so a declaration meant to live under both faces states the classic initializer.
-
-## What stays the author's
-
-Two declared rows in the adopting crate's own manifest, exactly as the shadow library's documentation prescribes, and the declaration's matching `loom` binding:
-
-- `[target.'cfg(loom)'.dependencies]` naming the shadow library — a row that compiles into nothing under every ordinary and release build;
-- `[lints.rust] unexpected_cfgs = { level = "warn", check-cfg = ["cfg(loom)"] }` — the statement that `loom` is a configuration this crate knows.
-
-This home writes imports; it neither owns the dependency nor hides it, which is the declared-input doctrine applied to the manifest itself.
-
-The expansion is direct declaration-site items — nothing here is inert, nothing rides a carrier, and no consumption target is involved.
-What the chosen names are used *for* is the production crate's own business.
+This home writes imports from declared input.
+It does not declare a dependency, select a target, install a scheduler, judge a concurrent model, or decide what any chosen primitive means to the adopting crate.

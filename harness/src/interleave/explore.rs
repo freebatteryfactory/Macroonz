@@ -1,24 +1,23 @@
 //! The exploration road: every order a strand set can merge in, judged under one contract.
 //!
 //! The space is walked exhaustively while its count fits the declared bound, and sampled through the one shared sequence driver ([`crate::generate::drive`]) beyond it — a schedule is a structured input like any other, so its bytes come from the same seeded, seekable stream every generated input comes from, and no loop of the driver's kind grows here.
-//!
-//! Interpretation is total: every byte string denotes exactly one lawful interleaving.
-//! At each step the next byte picks among the strands that still hold commands, a missing tail reads as the first live strand, and surplus bytes go unread.
-//! Totality is what lets a reducer remove or zero any window of material and still hold a schedule a fingerprint probe can judge.
 
+use super::material::realized;
+use super::space::{advanced, interleaving_space};
 use super::types::{
-    Counterexample, EXPLORATION_STARVED, EncodingRefusal, ExplorationBound, ExplorationMode,
-    ExplorationReading, ExplorationRefusal, ExplorationSite, ExplorationStanding,
-    InterleavedSequence, Interleaving, InterleavingSpace, StrandSet,
+    Counterexample, EXPLORATION_STARVED, ExplorationBound, ExplorationMode, ExplorationReading,
+    ExplorationRefusal, ExplorationSite, ExplorationStanding, Interleaving, InterleavingSpace,
+    StrandSet,
 };
 use crate::descriptor::PopulationRef;
 use crate::generate::{
-    ByteSource, GenerationHalt, GenerationPlan, InputOrigin, RejectionAllowance, RootSeed,
-    SizeProgression, admit_every_sequence, decode_arbitrary, drive,
+    ByteSource, CaseIndex, CommandSequence, GenerationHalt, GenerationPlan, InputOrigin,
+    RejectionAllowance, RootSeed, SizeProgression, admit_every_sequence, decode_arbitrary, drive,
 };
 use crate::properties::{Holding, TransitionContract, holds_over_history};
-use crate::report::{ByteBudget, CaseBudget, FailureClass, GenerationProfile, TrialConclusion};
-use std::collections::VecDeque;
+use crate::report::{
+    ByteBudget, CaseBudget, FailureClass, GenerationProfile, TrialConclusion, TrialFinding,
+};
 
 /// The generator identity every sampled exploration draws under.
 const CHOICE_GENERATOR: &str = "interleaving-choices";
@@ -65,134 +64,24 @@ pub fn concluded(reading: &ExplorationReading) -> TrialConclusion {
             TrialConclusion::Refused(counterexample.finding().clone())
         }
         ExplorationStanding::SpaceExhaustedAllHold => TrialConclusion::Passed,
-        ExplorationStanding::SampledAllHold => match reading.mode() {
-            ExplorationMode::Sampled {
-                halt: GenerationHalt::CaseBudgetMet,
-                census: _,
-            } => TrialConclusion::Passed,
-            ExplorationMode::Exhaustive | ExplorationMode::Sampled { .. } => {
-                crate::properties::concluded(
-                    Holding::Fails,
-                    FailureClass::RefusedByCheck,
-                    EXPLORATION_STARVED,
-                )
-            }
-        },
+        ExplorationStanding::SampledAllHold => sampled_conclusion(reading.mode()),
     }
 }
 
-/// Realize one material string over a strand set.
-///
-/// Total by construction: any bytes are a lawful schedule, spelled canonically in the result.
-#[must_use]
-pub fn interpreted<Command: Clone>(
-    set: &StrandSet<Command>,
-    material: &[u8],
-) -> InterleavedSequence<Command> {
-    let realization = realized(set, material);
-    InterleavedSequence::realized(
-        Interleaving::declared(realization.choices),
-        realization.commands,
-    )
-}
-
-/// Write one canonical interleaving as the material that realizes it.
-///
-/// The walk is the validation: an interleaving foreign to the set refuses at the exact step it breaks, and one this home minted over the same set always encodes.
-/// [`interpreted`] over the encoded material realizes the same interleaving, which is what makes the pair a replay.
-///
-/// # Errors
-///
-/// Refuses a step-count mismatch before any step is walked, then the first choice naming an ordinal no strand owns, then the first choice drawing a strand past its length.
-pub fn encoded<Command>(
-    set: &StrandSet<Command>,
-    interleaving: &Interleaving,
-) -> Result<Vec<u8>, EncodingRefusal> {
-    if interleaving.choices().len() != set.steps() {
-        return Err(EncodingRefusal::StepsMismatch {
-            declared: interleaving.choices().len(),
-            steps: set.steps(),
-        });
-    }
-    let mut remaining: Vec<usize> = set
-        .strands()
-        .iter()
-        .map(|strand| strand.commands().len())
-        .collect();
-    let mut material = Vec::with_capacity(set.steps());
-    for (at, &choice) in interleaving.choices().iter().enumerate() {
-        let Some(stock) = remaining.get(usize::from(choice)).copied() else {
-            return Err(EncodingRefusal::ChoiceOutsideStrands { at, choice });
-        };
-        if stock == 0usize {
-            return Err(EncodingRefusal::StrandExhausted { at, choice });
-        }
-        let position = remaining
-            .iter()
-            .take(usize::from(choice))
-            .filter(|&&held| held > 0usize)
-            .count();
-        material.push(u8::try_from(position).unwrap_or(u8::MAX));
-        if let Some(held) = remaining.get_mut(usize::from(choice)) {
-            *held = stock.saturating_sub(1usize);
-        }
-    }
-    Ok(material)
-}
-
-/// One realized walk: the canonical choices, the merged commands, and how many live strands each step chose among.
-struct Realization<Command> {
-    /// The canonical choice string: which strand stepped, per step.
-    choices: Vec<u8>,
-    /// The commands, in merged order.
-    commands: Vec<Command>,
-    /// The live-strand count each step's byte picked among — the radix the enumerator advances under.
-    radixes: Vec<usize>,
-}
-
-/// Walk one material string over the set, total on any bytes.
-///
-/// The live list holds the strands that still owe commands, in ordinal order; each step's byte picks a position in it, an exhausted strand leaves it, and the walk ends when it empties.
-/// The `else` exits are unreachable while the list drops emptied strands — ending the merge early there is the one honest thing left if the invariant ever broke.
-fn realized<Command: Clone>(set: &StrandSet<Command>, material: &[u8]) -> Realization<Command> {
-    let mut live: Vec<(u8, VecDeque<Command>)> = set
-        .strands()
-        .iter()
-        .enumerate()
-        .map(|(ordinal, strand)| {
-            (
-                u8::try_from(ordinal).unwrap_or(u8::MAX),
-                strand.commands().iter().cloned().collect(),
+/// Read a clean sampled standing into the conclusion its exact mode earns.
+fn sampled_conclusion(mode: ExplorationMode) -> TrialConclusion {
+    match mode {
+        ExplorationMode::Sampled {
+            halt: GenerationHalt::CaseBudgetMet,
+            census: _,
+        } => TrialConclusion::Passed,
+        ExplorationMode::Exhaustive | ExplorationMode::Sampled { .. } => {
+            crate::properties::concluded(
+                Holding::Fails,
+                FailureClass::RefusedByCheck,
+                EXPLORATION_STARVED,
             )
-        })
-        .collect();
-    let mut choices = Vec::with_capacity(set.steps());
-    let mut commands = Vec::with_capacity(set.steps());
-    let mut radixes = Vec::with_capacity(set.steps());
-    let mut fuel = material.iter().copied();
-    while !live.is_empty() {
-        let raw = fuel.next().unwrap_or(0u8);
-        let pick = usize::from(raw).checked_rem(live.len()).unwrap_or(0usize);
-        radixes.push(live.len());
-        let emptied = {
-            let Some((ordinal, queue)) = live.get_mut(pick) else {
-                break;
-            };
-            choices.push(*ordinal);
-            match queue.pop_front() {
-                Some(command) => commands.push(command),
-                None => break,
-            }
-            queue.is_empty()
-        };
-        if emptied {
-            live.remove(pick);
         }
-    }
-    Realization {
-        choices,
-        commands,
-        radixes,
     }
 }
 
@@ -202,46 +91,6 @@ fn within_bound(space: InterleavingSpace, bound: ExplorationBound) -> bool {
         InterleavingSpace::Counted(count) => count <= u128::from(bound.interleavings()),
         InterleavingSpace::BeyondCount => false,
     }
-}
-
-/// How many interleavings the set admits: the multinomial over its strand lengths.
-///
-/// Computed as a running product of binomials, and surrendered honestly the moment any intermediate leaves the counter's range.
-fn interleaving_space<Command>(set: &StrandSet<Command>) -> InterleavingSpace {
-    let mut placed = 0u128;
-    let mut count = 1u128;
-    for strand in set.strands() {
-        let Ok(commands) = u128::try_from(strand.commands().len()) else {
-            return InterleavingSpace::BeyondCount;
-        };
-        let Some(next_placed) = placed.checked_add(commands) else {
-            return InterleavingSpace::BeyondCount;
-        };
-        placed = next_placed;
-        let Some(ways) = choose(placed, commands) else {
-            return InterleavingSpace::BeyondCount;
-        };
-        let Some(product) = count.checked_mul(ways) else {
-            return InterleavingSpace::BeyondCount;
-        };
-        count = product;
-    }
-    InterleavingSpace::Counted(count)
-}
-
-/// The binomial coefficient, or nothing where the running product leaves the counter's range.
-///
-/// The prefix products are themselves binomials, so every division is exact.
-fn choose(total: u128, taken: u128) -> Option<u128> {
-    let low = taken.min(total.checked_sub(taken)?);
-    let mut count = 1u128;
-    let mut term = 1u128;
-    while term <= low {
-        let factor = total.checked_sub(low)?.checked_add(term)?;
-        count = count.checked_mul(factor)?.checked_div(term)?;
-        term = term.checked_add(1u128)?;
-    }
-    Some(count)
 }
 
 /// Walk the whole space in ascending position order, judging every merged history.
@@ -283,28 +132,6 @@ fn enumerated<State, Command: Clone>(
     )
 }
 
-/// Advance the material to the next position string in ascending order, or report the space walked out.
-///
-/// The rightmost position with room under its own radix steps up and the tail returns to zero, which is always lawful because a zero position names the first live strand.
-/// The prefix before the pivot is unchanged, so the pivot's radix — computed under that prefix — still governs it.
-fn advanced(material: &mut [u8], radixes: &[usize]) -> bool {
-    let Some(pivot) = material
-        .iter()
-        .zip(radixes)
-        .rposition(|(&position, &radix)| usize::from(position).saturating_add(1usize) < radix)
-    else {
-        return false;
-    };
-    let Some(slot) = material.get_mut(pivot) else {
-        return false;
-    };
-    *slot = slot.saturating_add(1u8);
-    if let Some(tail) = material.get_mut(pivot.saturating_add(1usize)..) {
-        tail.fill(0u8);
-    }
-    true
-}
-
 /// Draw the bound's sample seat through the shared driver and judge every drawn schedule.
 fn sampled<State, Command: Clone>(
     set: &StrandSet<Command>,
@@ -340,32 +167,41 @@ fn sampled<State, Command: Clone>(
         census: generated.census(),
         halt: generated.halt(),
     };
+    let (explored, counterexample) = sampled_counterexample(set, contract, generated.sequences());
+    let standing = counterexample.map_or(
+        ExplorationStanding::SampledAllHold,
+        ExplorationStanding::CounterexampleFound,
+    );
+    Ok(ExplorationReading::read(space, mode, explored, standing))
+}
+
+/// Judge sampled sequences in drive order and retain the first counterexample.
+fn sampled_counterexample<State, Command: Clone>(
+    set: &StrandSet<Command>,
+    contract: &TransitionContract<State, Command>,
+    sequences: &[CommandSequence<u8>],
+) -> (u64, Option<Counterexample>) {
     let mut explored = 0u64;
-    for sequence in generated.sequences() {
+    for sequence in sequences {
         let realization = realized(set, sequence.commands());
         explored = explored.saturating_add(1u64);
-        if let TrialConclusion::Refused(finding) =
-            holds_over_history(contract, &realization.commands)
-        {
-            let counterexample = Counterexample::found(
-                ExplorationSite::Sampled {
-                    case: sequence.case(),
-                },
-                Interleaving::declared(realization.choices),
-                finding,
-            );
-            return Ok(ExplorationReading::read(
-                space,
-                mode,
-                explored,
-                ExplorationStanding::CounterexampleFound(counterexample),
-            ));
-        }
+        let TrialConclusion::Refused(finding) = holds_over_history(contract, &realization.commands)
+        else {
+            continue;
+        };
+        return (
+            explored,
+            Some(sampled_found(sequence.case(), realization.choices, finding)),
+        );
     }
-    Ok(ExplorationReading::read(
-        space,
-        mode,
-        explored,
-        ExplorationStanding::SampledAllHold,
-    ))
+    (explored, None)
+}
+
+/// Mint the first sampled counterexample at its generated case.
+fn sampled_found(case: CaseIndex, choices: Vec<u8>, finding: TrialFinding) -> Counterexample {
+    Counterexample::found(
+        ExplorationSite::Sampled { case },
+        Interleaving::declared(choices),
+        finding,
+    )
 }

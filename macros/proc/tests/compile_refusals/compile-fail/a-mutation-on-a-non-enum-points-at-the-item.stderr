@@ -1,0 +1,5 @@
+error: macroonz: the declaration was not read: in `mutations`: the item the helper sits on states no declared order (at semantic-origin position 59)
+  --> tests/compile_refusals/compile-fail/a-mutation-on-a-non-enum-points-at-the-item.rs:13:1
+   |
+13 | struct Flat;
+   | ^^^^^^

@@ -8,6 +8,6 @@ mod types;
 pub use capture::declared;
 pub use render::rendered;
 pub use types::{
-    DisciplineRow, FaultRow, LinkRow, NETWORK_HELPER_POSITION, NetworkCaptureError,
-    NetworkDeclaration, NetworkModule, ScheduleRow,
+    DisciplineRow, FaultRow, LinkRow, NetworkCaptureError, NetworkDeclaration, NetworkModule,
+    ScheduleRow,
 };

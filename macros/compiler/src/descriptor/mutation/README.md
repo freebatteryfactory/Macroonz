@@ -47,6 +47,8 @@ Neither is a refusal here. Whether an unmapped discovery may become executable i
 
 `type_contract.rs` states what the kind is and where its unit lands.
 
-`capture.rs` reads one helper body into the declaration, and holds the declared-order door that completes one from the item it sits on.
+`capture.rs` reads one helper body into the declaration.
+
+`complete.rs` holds the declared-order door that completes one from the item it sits on.
 
 `render.rs` writes the tokens.

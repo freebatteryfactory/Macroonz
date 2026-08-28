@@ -1,59 +1,70 @@
-# expansion — the one value tokens come out of
+# expansion — one request's sealed result
 
-An expansion is everything one request produced, sealed under one identity.
+An expansion is the point at which one request's plan, proof, and explanation become one result that may release generated material.
 
-The plan says what will exist.
-The closure proves that what was rendered is what was planned.
-The explanation answers every question the kind owes, over those two.
-Binding the three is what turns them into one account, and the account is the only value in this crate that hands tokens back.
+The boundary exists because those values are produced separately.
+Sharing a kind does not prove that they describe the same request, the same rendering, or the same answered subject.
 
-## The three must name one another
+## Binding one account
 
-Each of the three was produced separately, and each carries the parentage it was produced under.
+Binding compares the parent identities carried by all three values and refuses the first disagreement without electing either side.
+Only after they agree does the home derive the identity of the whole expansion.
 
-A closure names the plan it was proved against; an explanation names the plan and the closure it was answered over.
-All three comparisons are made here, in that order, and none of them is reconciled — a disagreement is a typed refusal naming both identities rather than an election between them.
+```mermaid
+flowchart LR
+    accTitle: Expansion binding and delivery
+    accDescr: A plan, closure, and explanation bind only when their parent identities agree, after which the sealed expansion exposes proved build deliveries and addressed publication units.
 
-The type parameter does not do this work.
-A kind is not an expansion: two plans of one kind admit the same questions, so an explanation written over the other one covers its roster exactly and answers every question correctly about the wrong subject.
+    P["Plan<br/>what will exist"]
+    C["Closure<br/>what the rendering proved"]
+    E["Explanation<br/>what the decisions mean"]
+    B{{"Bind<br/>parent identities agree"}}
+    X["Sealed expansion"]
+    D["Build deliveries"]
+    A["Publication units<br/>each keeps its address"]
 
-## Where the tokens come from
+    P -->|"supplies the planned identity"| B
+    C -->|"names the plan it proved"| B
+    E -->|"names the plan and closure"| B
+    B -->|"derives one identity"| X
+    X -->|"borrows proved partitions"| D
+    X -->|"reads the proved rendering"| A
 
-An expansion holds no tokens of its own.
+    classDef authority fill:#e9f5ff,stroke:#1769aa,color:#102a43,stroke-width:2px
+    classDef operation fill:#fff3cd,stroke:#9a6700,color:#3d2b00,stroke-width:2px
+    classDef result fill:#e8f8ef,stroke:#1f7a45,color:#123524,stroke-width:3px
+    classDef evidence fill:#f2e9ff,stroke:#6f42c1,color:#2f1b52,stroke-width:2px
+    class P,C,E authority
+    class B operation
+    class X result
+    class D,A evidence
+```
 
-The deliveries belong to the closure, which built them while proving and committed to their digests inside its own identity; this value borrows them.
-One handed a delivery alongside a closure could have been handed a delivery that closure never joined.
+The plan states the complete output set.
+The closure proves the rendered set against that plan and carries the resulting delivery partitions.
+The explanation answers over both.
+The expansion seals their agreement rather than reproducing any of their answers.
 
-Four readings are the whole emission surface: what the declaration site expands into, what a test target invokes, what a bench target invokes, and every unit a publication writes to its own address.
-The first three are joined streams the closure proved.
-The fourth is read off the rendered units themselves, because two artifacts are two addresses and one stream claiming to be both is the thing a publication must not write.
+## Emission remains proved
 
-## What it does not claim
+The expansion stores no second token collection.
+Build deliveries are borrowed from the closure that joined and proved them, so emitted material cannot drift from the proof that authorized it.
 
-It names no carrier and holds no publication receipt.
+Publication artifacts remain individual rendered units because each unit carries its own planned address.
+Combining them into one stream would erase the boundary a publisher must preserve.
 
-The shell a carrier's cargo rides is named where that shell is rendered, and whether a publication ever wrote an artifact belongs to the road that writes it.
-Neither absence is a seat somebody forgot to fill: a seat that could hold an invented carrier name would read exactly like a published one.
+## Accounting without inference
 
-## The account beside it
+An expansion says what one door produced and is deliberately silent about kinds that produced nothing.
+The accounting value seats the expansion beside a kind-owned completeness witness that gives every declared kind one disposition in declaration order.
 
-An expansion is what a door produced, and it is silent about every kind that produced nothing, because there is nothing of those for it to hold.
+The compiler verifies the witness's completeness before this home accepts it.
+Which row stands for the generated expansion remains the consumer door's decision because this compiler owns no product kinds.
 
-`Accounted` seats a disposition record beside it — one required seat per kind of a declared set — so a reader asking why a kind is absent reads the answer instead of inferring it from an emptiness.
-The record's shape is the consumer's: `KindSet` names it, the `kinds!` stamp writes it, and this home reads it through nothing at all.
-Which kind an expansion stands for, and therefore which seat of the record says generated about it, is the door's decision; a value that decided it here would be this compiler electing what a door meant.
+## Trust ceiling
 
-## How it says no
+This home proves agreement among the plan, closure, and explanation and provides the only route from that agreement to generated material.
+It does not name a carrier, publish an artifact, or claim that any consumer target invoked a delivery.
 
-A binding compares each pair in turn and refuses at the first that disagrees, so a binding refusal carries exactly one cause and enumerates nothing behind it.
-
-It is an ordinary error: it prints, it is a `core::error::Error`, and it projects into a diagnostic through the one contract every refusing step implements.
-The repair it cites is this home's own declared fact, because the law it names is this compiler's and not the caller's declaration.
-
-## The seats
-
-`types.rs` declares the expansion, the binding refusal, the account, and the fact a refusal cites.
-
-Its own child `type_guard.rs` holds every road that reaches a private field: the binding, the account built over it, and the readers of both.
-`type_contract.rs` states the refusal's row positions and the contracts it stands under.
-`encode.rs` writes the bytes one disagreement is named by.
+A binding refusal is an ordinary typed error and projects through the compiler's shared diagnostic contract.
+Because binding stops at the first parentage disagreement, the refusal has one cause, no related remainder, and the repair declared by this home.

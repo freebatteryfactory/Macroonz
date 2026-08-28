@@ -8,11 +8,12 @@
 //! A grammar that composed anything would satisfy a lane that only checked for a non-empty sentence.
 //! So each clause is required to appear where it belongs and to stay absent where it does not: a whole-declaration refusal adds no position, a handle the producer's table does not reach says so rather than rendering a number, and two refusals that classify alike stay two refusals.
 
+use macroonz_compiler::diagnostic::{DiagnosticName, DiagnosticNameRefusal};
 use macroonz_compiler::{
     Bounded, Capping, CoordinateRole, CrateBinding, Diagnostic, Door, ExplanationError,
     ExplanationIssue, Family, Line, LineBody, LineSite, Observed, Phase, Placement, Producer,
     RELATED_ISSUE_LIMIT, REPAIR_LIMIT, RefusalClass, Refused, RenderError, Repair, SiteCoordinate,
-    SourceCoordinate, SpanHandle, TextCapture, UniversalQuestion, composed,
+    SourceCoordinate, SpanHandle, TEXT_SOURCE_BYTE_LIMIT, TextCapture, UniversalQuestion, composed,
 };
 
 /// The one value that says who is asking.
@@ -194,6 +195,53 @@ fn a_refusal_at_one_token_names_where_the_producer_put_it() -> Result<(), ()> {
     Ok(())
 }
 
+/// A text refusal established before capture retains its exact byte without inventing a token handle.
+///
+/// The refusal already owns the byte coordinate, so another table cannot answer it differently and the summary cannot state it twice.
+#[test]
+fn a_text_refusal_before_capture_keeps_its_exact_byte_without_inventing_a_token() -> Result<(), ()>
+{
+    let refusal = TextCapture::read("one )").err().ok_or(())?;
+    let refused = refusal.diagnostic(&DOOR);
+    assert_eq!(refused.phase(), Phase::Capture);
+    assert_eq!(refused.observed(), Observed::ContractDisagreement);
+    assert_eq!(refused.site().token(), None);
+    assert_eq!(
+        refused.site().coordinate(),
+        Some(SiteCoordinate::Resolved(SourceCoordinate {
+            role: CoordinateRole::Byte,
+            position: 4,
+        }))
+    );
+    assert_eq!(
+        refused.summary(),
+        "lane: the declaration was not read: a closing delimiter arrived with no group open (at byte 4)"
+    );
+    assert!(refused.related().carried().is_empty());
+    assert!(refused.repairs().is_empty());
+    Ok(())
+}
+
+/// A pre-capture source-magnitude refusal retains the bound classification on the same intrinsic road.
+#[test]
+fn a_text_source_bound_refusal_projects_as_bound_exceeded() -> Result<(), ()> {
+    let source = " ".repeat(TEXT_SOURCE_BYTE_LIMIT.saturating_add(1));
+    let refusal = TextCapture::read(&source).err().ok_or(())?;
+    let refused = refusal.diagnostic(&DOOR);
+    assert_eq!(refused.phase(), Phase::Capture);
+    assert_eq!(refused.observed(), Observed::BoundExceeded);
+    assert_eq!(
+        refused.site().coordinate(),
+        Some(SiteCoordinate::Resolved(SourceCoordinate {
+            role: CoordinateRole::Byte,
+            position: u64::try_from(TEXT_SOURCE_BYTE_LIMIT).map_err(|_| ())?,
+        }))
+    );
+    assert!(refused.related().carried().is_empty());
+    assert!(refused.repairs().is_empty());
+    Ok(())
+}
+
 /// A handle the producer's table does not reach says so, rather than being filled with a stand-in.
 ///
 /// A coordinate written where a table did not reach would read exactly like a coordinate the table resolved, and the reader has no third value to compare it against.
@@ -264,4 +312,41 @@ fn every_diagnostic_carries_the_doors_grammar_and_its_reproduction_route() {
     assert_eq!(refused.expected(), DOOR.grammar());
     assert_eq!(refused.route().entry(), DOOR.entry());
     assert!(refused.repairs().is_empty());
+}
+
+/// An adopter-defined diagnostic name is admitted exactly when its spelling is lowercase ASCII kebab-case.
+///
+/// Admission never normalizes a spelling, and the typed refusal distinguishes absence from a spelling outside the grammar.
+#[test]
+fn adopter_declared_names_refuse_outside_kebab_case_without_normalization() -> Result<(), ()> {
+    assert_eq!(
+        DiagnosticName::declared(""),
+        Err(DiagnosticNameRefusal::Empty)
+    );
+    for spelling in [
+        "-leading",
+        "trailing-",
+        "two--segments",
+        "Upper",
+        "under_score",
+    ] {
+        assert_eq!(
+            DiagnosticName::declared(spelling),
+            Err(DiagnosticNameRefusal::NotKebabCase)
+        );
+    }
+
+    let name = DiagnosticName::declared("adopter-class-7").map_err(|_| ())?;
+    let class = RefusalClass::Declared {
+        name,
+        described: "the adopter's declared class refused",
+    };
+    let observed = Observed::Declared {
+        name,
+        described: "the adopter's declared difference was observed",
+    };
+    assert_eq!(name.spelling(), "adopter-class-7");
+    assert_eq!(class.name(), "adopter-class-7");
+    assert_eq!(observed.name(), "adopter-class-7");
+    Ok(())
 }

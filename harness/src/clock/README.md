@@ -2,47 +2,32 @@
 
 Time is an input.
 
-The harness measures elapsed wall time and owns no clock.
-A caller declares one `HarnessClock` at the invocation, and every wall reading in that run comes from the declared source and from nowhere else.
+This home turns one caller-declared source into a typed elapsed reading.
+It owns the boundary discipline around that source and no theory of what time means to the caller.
 Nothing here asks the host what time it is, because a duration nobody declared is a number a report cannot stand behind.
 
-## One measurement
+## One source, one measurement
 
-`HarnessClock::begin` reads the declared source once and hands back an opaque `MeasurementStart`.
-The caller then does the work it wanted timed.
-`MeasurementStart::finish` consumes that start and reads the same source a second time.
+Opening a measurement retains the declared source behind an opaque value.
+Finishing consumes that value, so the second read cannot be redirected, repeated, or separated from the first.
+A source that is unavailable or fails while opening still leaves a finishable value, allowing the caller's work to run before the measurement posture is published.
 
-The start is opaque and single-use on purpose.
-No caller can swap the clock halfway, reverse the two readings, or close one measurement twice.
+The two admitted readings share the caller's own origin.
+Their checked difference is a duration only when the closing reading does not precede the opening reading.
 
-## Three readings that never collapse
+## Honest outcomes
 
-A `MeasurementReading` is exactly one of three things.
+An observed duration, declared unavailability, and a failed measurement remain different facts.
+Zero is an observation rather than an alias for unavailability.
+A failure retains whether opening or closing refused or unwound, and a backwards pair retains both readings rather than saturating to zero.
 
-- `Observed` carries a duration, and a duration of zero is a real observation.
-- `Unavailable` says the caller declared no clock for this run.
-- `Failed` says a clock was offered, the measurement did not complete, and here is why.
+The source boundary catches an ordinary Rust unwind and records it without claiming that a caller function is pure, monotonic, terminating, or abort-safe.
+Those properties remain the caller's evidence.
 
-A failure keeps the boundary it happened on: whether the source refused or unwound while opening, or while closing.
-A closing reading that precedes its opening reading is a `Regressed` failure carrying both readings, never a difference saturated to zero.
+## Composition and ceiling
 
-Ticks and durations are separate types.
-A `MeasurementTick` is one admitted reading on the caller's own origin, and a `RecordedDuration` is the checked difference between two of them.
+Runner, benchmark, and mutation operations may record the reading beside their own evidence.
+The reading never enters an identity, selection, conclusion, budget decision, mutation classification, or owner judgment.
 
-## What a source may be
-
-The source is a plain function pointer, because clocks are declared in generated and hand-written test targets where a closure cannot be spelled as a constant.
-A function pointer excludes captured state; it does not make the caller's function pure.
-
-An infallible source returns nanoseconds.
-A fallible source returns `ClockReadRefusal` instead of unwinding.
-Either way, an ordinary Rust unwind out of a source read is caught at the boundary it happened on and recorded as a failure.
-A process abort remains the host's business.
-
-## What this home will not grow
-
-It measures, and that is the whole job.
-
-A reading is recorded beside a verdict and never inside one: it enters no identity, no selection, no conclusion, no budget decision, and no mutation control.
-There is no scheduling here, no sleeping, no deadline, and no shared notion of now.
-Whoever adopts the harness keeps its own time semantics, and declaring a source here creates no clock for the rest of that system to consult.
+This home schedules nothing, sleeps nowhere, owns no deadline, and creates no shared notion of now.
+Declaring a source here creates no clock for the rest of an adopter's system to consult.

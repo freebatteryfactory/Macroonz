@@ -4,7 +4,7 @@ error[E0624]: associated function `captured` is private
 6 |     let _forged = CapturedTokenTree::captured(
   |                                      ^^^^^^^^ private associated function
   |
- ::: src/token/type_guard.rs
+ ::: src/token/capture/type_guard.rs
   |
   |     const fn captured(payload: CapturedPayload, path: TokenPath, span: SpanHandle) -> Self {
   |     -------------------------------------------------------------------------------------- private associated function defined here

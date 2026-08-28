@@ -1,10 +1,10 @@
 error[E0624]: associated function `admitted` is private
-  --> tests/compile_refusals/compile-fail/an-executable-mutation-surface-cannot-bypass-discovery-lowering.rs:21:28
+  --> tests/compile_refusals/compile-fail/an-executable-mutation-surface-cannot-bypass-discovery-lowering.rs:25:28
    |
-21 |       let _ = MutationPoint::admitted(policy, claim, point_site);
+25 |       let _ = MutationPoint::admitted(policy, claim, point_site);
    |                              ^^^^^^^^ private associated function
    |
-  ::: src/muterprater/type_guard.rs
+  ::: src/muterprater/discovery/type_guard.rs
    |
    | /     pub(in crate::muterprater) fn admitted(
    | |         policy: &MutationPolicy,
@@ -14,12 +14,12 @@ error[E0624]: associated function `admitted` is private
    | |_____________- private associated function defined here
 
 error[E0624]: associated function `recorded` is private
-  --> tests/compile_refusals/compile-fail/an-executable-mutation-surface-cannot-bypass-discovery-lowering.rs:22:29
+  --> tests/compile_refusals/compile-fail/an-executable-mutation-surface-cannot-bypass-discovery-lowering.rs:26:33
    |
-22 |       let _ = DiscoveryEntry::recorded(entry_site, disposition);
-   |                               ^^^^^^^^ private associated function
+26 |       let entry = DiscoveryEntry::recorded(entry_site, disposition);
+   |                                   ^^^^^^^^ private associated function
    |
-  ::: src/muterprater/type_guard.rs
+  ::: src/muterprater/discovery/type_guard.rs
    |
    | /     pub(in crate::muterprater) fn recorded(
    | |         site: DiscoveredMutationSite,
@@ -27,13 +27,27 @@ error[E0624]: associated function `recorded` is private
    | |     ) -> Self {
    | |_____________- private associated function defined here
 
-error[E0624]: associated function `admitted` is private
-  --> tests/compile_refusals/compile-fail/an-executable-mutation-surface-cannot-bypass-discovery-lowering.rs:23:32
+error[E0624]: associated function `recorded` is private
+  --> tests/compile_refusals/compile-fail/an-executable-mutation-surface-cannot-bypass-discovery-lowering.rs:27:39
    |
-23 |       let _ = EvaluationSurface::admitted(policy, vec![point]);
+27 |       let _ = MutationDiscoveryReading::recorded(policy, vec![entry]);
+   |                                         ^^^^^^^^ private associated function
+   |
+  ::: src/muterprater/discovery/type_guard.rs
+   |
+   | /     pub(in crate::muterprater) fn recorded(
+   | |         policy: &MutationPolicy,
+   | |         entries: Vec<DiscoveryEntry>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0624]: associated function `admitted` is private
+  --> tests/compile_refusals/compile-fail/an-executable-mutation-surface-cannot-bypass-discovery-lowering.rs:28:32
+   |
+28 |       let _ = EvaluationSurface::admitted(policy, vec![point]);
    |                                  ^^^^^^^^ private associated function
    |
-  ::: src/muterprater/type_guard.rs
+  ::: src/muterprater/discovery/type_guard.rs
    |
    | /     pub(in crate::muterprater) fn admitted(
    | |         policy: &MutationPolicy,
@@ -42,12 +56,12 @@ error[E0624]: associated function `admitted` is private
    | |_____________- private associated function defined here
 
 error[E0624]: associated function `lowered` is private
-  --> tests/compile_refusals/compile-fail/an-executable-mutation-surface-cannot-bypass-discovery-lowering.rs:24:38
+  --> tests/compile_refusals/compile-fail/an-executable-mutation-surface-cannot-bypass-discovery-lowering.rs:29:38
    |
-24 |       let _ = MutationSurfaceLowering::lowered(discovery, surface);
+29 |       let _ = MutationSurfaceLowering::lowered(discovery, surface);
    |                                        ^^^^^^^ private associated function
    |
-  ::: src/muterprater/type_guard.rs
+  ::: src/muterprater/discovery/type_guard.rs
    |
    | /     pub(in crate::muterprater) fn lowered(
    | |         discovery: MutationDiscoveryReading,

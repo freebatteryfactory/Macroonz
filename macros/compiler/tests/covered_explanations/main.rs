@@ -150,6 +150,30 @@ fn every_question_a_kind_owes_is_answered_exactly_once() -> Result<(), ()> {
     Ok(())
 }
 
+/// Every typed universal answer projects the line a person reads, in the same declared order as the questions it answers.
+///
+/// The typed value remains the authority: these lines are asked from the answers a lawful expansion actually carries rather than stored beside them in the fixture.
+#[test]
+fn every_universal_answer_projects_its_human_line() -> Result<(), ()> {
+    let bound = lawful().ok_or(())?;
+    let expected = [
+        "the kind this output is",
+        "the owner fact that required this output",
+        "the declarations this output was derived from",
+        "the profile this output was decided under",
+        "every planned member in roster order, and the digest proved over each one's rendered bytes",
+        "the owner facts this output rests on",
+        "the watched things whose change makes this output stale",
+        "what happened to every related kind, and why",
+        "the owner-declared repairs that apply",
+    ];
+    assert_eq!(bound.explain().universal().len(), expected.len());
+    for (answer, line) in bound.explain().universal().iter().zip(expected) {
+        assert_eq!(answer.human(), line);
+    }
+    Ok(())
+}
+
 /// One set of answers is one explanation whichever order it was supplied in.
 ///
 /// The seats stand in their rosters' declared order and never in the caller's, and that order is what the identity is derived over — so a caller cannot rename an explanation by shuffling its answer sheet.

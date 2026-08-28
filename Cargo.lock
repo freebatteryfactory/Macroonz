@@ -175,6 +175,7 @@ name = "macroonz-compiler"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "ra-ap-rustc_lexer",
  "trybuild",
 ]
 
@@ -196,6 +197,7 @@ version = "0.1.0"
 dependencies = [
  "macroonz-compiler",
  "macroonz-harness",
+ "trybuild",
 ]
 
 [[package]]
@@ -256,6 +258,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001"
 dependencies = [
  "proc-macro2",
+]
+
+[[package]]
+name = "ra-ap-rustc_lexer"
+version = "0.174.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e3150be7e79139b0f085e886dd71b0bb9cd6b35da0a61fca1042ac400b1687e"
+dependencies = [
+ "memchr",
+ "unicode-ident",
+ "unicode-properties",
 ]
 
 [[package]]
@@ -502,6 +515,12 @@ name = "unicode-ident"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
+
+[[package]]
+name = "unicode-properties"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7df058c713841ad818f1dc5d3fd88063241cc61f49f5fbea4b951e8cf5a8d71d"
 
 [[package]]
 name = "valuable"

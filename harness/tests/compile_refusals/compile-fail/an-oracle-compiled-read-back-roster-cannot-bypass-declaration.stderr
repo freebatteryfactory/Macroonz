@@ -1,0 +1,5 @@
+error[E0451]: field `members` of struct `DeclaredReadBackRoster` is private
+  --> tests/compile_refusals/compile-fail/an-oracle-compiled-read-back-roster-cannot-bypass-declaration.rs:15:30
+   |
+15 |     DeclaredReadBackRoster { members }
+   |                              ^^^^^^^ private field

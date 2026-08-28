@@ -2,11 +2,15 @@
 //!
 //! The positive lanes hold the emitted text to the shapes the grammars promise; the refusal lanes reverse one clause each — an undeclared key, a doubled name, a foreign endpoint, an unreadable phrase, a missing fact, an empty declaration, a separator separating nothing.
 
+mod codec_generated_behavior;
+
 use macroonz_compiler::descriptor::Grammar;
 use macroonz_compiler::descriptor::concurrency::ConcurrencyModule;
 use macroonz_compiler::descriptor::door;
 use macroonz_compiler::descriptor::network::NetworkModule;
+use macroonz_compiler::diagnostic::Door as DiagnosticDoor;
 use macroonz_compiler::kind::Kind;
+use macroonz_compiler::request::Door as RequestDoor;
 use macroonz_compiler::{CrateBinding, Diagnostic, Door, Expansion, Phase, Producer, TextCapture};
 
 /// The one value that says who is asking.
@@ -20,6 +24,11 @@ const DOOR: Door = Door::declared(
         name: "declared",
     },
 );
+
+/// Every approved public path names the one request-owned type.
+const _: RequestDoor = DOOR;
+const _: DiagnosticDoor = DOOR;
+const _: Door = DOOR;
 
 /// The network grammar this lane registers.
 const NETWORK: Grammar = Grammar {
@@ -351,56 +360,6 @@ fn a_concurrency_separator_separating_nothing_refuses() -> Result<(), ()> {
             "{source} carries no coordinate"
         );
     }
-    Ok(())
-}
-
-/// The three typed rootings render the language's own qualifiers — the caller's crate, the landing module, and its parent — never the extern prelude.
-#[test]
-fn a_codec_path_renders_under_its_typed_rooting() -> Result<(), ()> {
-    use macroonz_compiler::codec::{
-        AssemblyPosture, Cardinality, CodecAssembly, CodecContent, CodecDirection, CodecMember,
-        CodecMemberShape, CodecPlacement, CodecShape, CodecTypePath, PathRooting, codec_surface,
-    };
-    let owner = CodecTypePath::spelled(PathRooting::CrateAbsolute, vec!["Demo".to_owned()])
-        .map_err(|_| ())?;
-    let held = CodecTypePath::spelled(PathRooting::ParentScoped, vec!["Held".to_owned()])
-        .map_err(|_| ())?;
-    let near =
-        CodecTypePath::spelled(PathRooting::SelfScoped, vec!["Near".to_owned()]).map_err(|_| ())?;
-    let members = vec![
-        CodecMember::declared(
-            "held",
-            held,
-            CodecMemberShape::Nested,
-            Cardinality::Required,
-        )
-        .map_err(|_| ())?,
-        CodecMember::declared(
-            "near",
-            near,
-            CodecMemberShape::Nested,
-            Cardinality::Required,
-        )
-        .map_err(|_| ())?,
-    ];
-    let assembly = CodecAssembly::stated("assembled", AssemblyPosture::Total).map_err(|_| ())?;
-    let shape = CodecShape::declared(owner, "DemoRefusal", assembly, members).map_err(|_| ())?;
-    let content = CodecContent {
-        shape,
-        direction: CodecDirection::RoundTrip,
-        placement: CodecPlacement::AtDeclarationSite,
-        schema: None,
-        byte_role: None,
-        assumptions: macroonz_compiler::Bounded::empty(),
-    };
-    let text = codec_surface(&content).map_err(|_| ())?.inspected();
-    for spelled in ["crate :: Demo", "super :: Held", "self :: Near"] {
-        assert!(
-            text.contains(spelled),
-            "the surface does not spell {spelled}"
-        );
-    }
-    assert!(!text.contains(":: crate"), "the extern prelude leaked in");
     Ok(())
 }
 

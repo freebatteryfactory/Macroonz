@@ -6,18 +6,19 @@ use macroonz_harness::descriptor::{
     ExecutionSuite, GeneratedSupportSchemaId, Origin, PopulationRef, Provenance, RevisionBinding,
     Role, Row, SubjectRoute, Tag, TrialCoordinates, TrialKey,
 };
-use macroonz_harness::generate::{
+use macroonz_harness::generate::reduce::{capture_replay, reduce, shrink_verdict};
+use macroonz_harness::generate::types::{
     ByteReducerExecution, ByteReducerId, FingerprintPreservation, ProbeOutcome, ReductionBudget,
-    ReductionHalt, ReductionPlan, ReductionPlanRefusal, ReductionProbeBinding, ReductionRefusal,
-    SemanticCandidateRefusal, SemanticCandidates, SemanticReducerBinding, SemanticReducerId,
-    ShrinkVerdict, capture_replay, reduce, shrink_verdict,
+    ReductionHalt, ReductionPlan, ReductionPlanRefusal, ReductionProbeBinding,
+    ReductionProbeRefusal, ReductionRefusal, SemanticCandidateRefusal, SemanticCandidates,
+    SemanticReducerBinding, SemanticReducerId, ShrinkVerdict,
 };
-use macroonz_harness::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use macroonz_harness::identity::{ContentAddress, DomainTag, IdentityProfileVersion, encode_bytes};
 use macroonz_harness::report::{
     ByteBudget, CaseBudget, FailureClass, FindingCause, FindingLocation, Fingerprint,
-    GenerationProfile, InvocationProfile, MinimizationProfile, ReplayPosture, TargetBinding,
-    TargetTriple, TimeBudget, ToolchainIdentity, TrialConclusion, TrialFinding, TrialId,
-    TrialProfile, TrialSite,
+    GenerationProfile, InvocationProfile, MinimizationProfile, REPLAY_CAPSULE_TAG, ReplayCapsule,
+    ReplayPosture, TargetBinding, TargetTriple, TimeBudget, ToolchainIdentity, TrialConclusion,
+    TrialFinding, TrialId, TrialProfile, TrialSite,
 };
 use macroonz_harness::runner::{Invocation, TrialBinding, run_one};
 use std::fmt;
@@ -28,6 +29,28 @@ const REVISION_TAG: DomainTag =
     DomainTag::declared("reduction-revision", IdentityProfileVersion::declared(1));
 const SCHEMA_TAG: DomainTag =
     DomainTag::declared("reduction-schema", IdentityProfileVersion::declared(1));
+
+const fn independent_replay_posture_slot(posture: ReplayPosture) -> u8 {
+    match posture {
+        ReplayPosture::ExactDerived => 0,
+        ReplayPosture::DeclaredByAuthor => 1,
+        ReplayPosture::UnavailableBecauseUntracked => 2,
+    }
+}
+
+fn independently_derived_capsule_identity(capsule: &ReplayCapsule) -> ContentAddress {
+    let mut preimage = Vec::new();
+    encode_bytes(capsule.key().address().as_bytes(), &mut preimage);
+    encode_bytes(capsule.input(), &mut preimage);
+    encode_bytes(capsule.fingerprint().address().as_bytes(), &mut preimage);
+    encode_bytes(capsule.generation().name().as_bytes(), &mut preimage);
+    preimage.extend_from_slice(&capsule.generation().version().to_be_bytes());
+    encode_bytes(capsule.minimization().name().as_bytes(), &mut preimage);
+    preimage.extend_from_slice(&capsule.minimization().version().to_be_bytes());
+    encode_bytes(capsule.schema().address().as_bytes(), &mut preimage);
+    preimage.push(independent_replay_posture_slot(capsule.posture()));
+    ContentAddress::derived(REPLAY_CAPSULE_TAG, &preimage)
+}
 
 enum ReductionRoadFailure {
     Plan(ReductionPlanRefusal),
@@ -96,11 +119,15 @@ fn refused_trial(_invocation: &Invocation) -> TrialConclusion {
     ))
 }
 
+fn passed_trial(_invocation: &Invocation) -> TrialConclusion {
+    TrialConclusion::Passed
+}
+
 fn revision_derived_from(material: &[u8]) -> RevisionBinding {
     RevisionBinding::derived(DerivedRevision::from_material(material))
 }
 
-fn trial_binding() -> Option<TrialBinding> {
+fn trial_binding_with(call: fn(&Invocation) -> TrialConclusion) -> Option<TrialBinding> {
     let subject = SubjectRoute::named("harness", "byte-input").ok()?;
     let check = CheckRef::named("harness", "fingerprint-preserved").ok()?;
     let row = Row::declared(
@@ -120,10 +147,14 @@ fn trial_binding() -> Option<TrialBinding> {
     let revision = revision_derived_from(b"trial");
     Binding::bound(
         row,
-        ExecutableAttachment::attached(subject, check, revision, revision, refused_trial),
+        ExecutableAttachment::attached(subject, check, revision, revision, call),
         Provenance::Unproduced,
     )
     .ok()
+}
+
+fn trial_binding() -> Option<TrialBinding> {
+    trial_binding_with(refused_trial)
 }
 
 fn invocation() -> Invocation {
@@ -160,6 +191,24 @@ fn semantic_candidates(input: &[u8]) -> Result<SemanticCandidates, SemanticCandi
         [1u8, 2u8, 3u8] => SemanticCandidates::proposed(input, vec![vec![1u8, 2u8], vec![1u8]]),
         _ => SemanticCandidates::proposed(input, Vec::new()),
     }
+}
+
+fn first_semantic_step(input: &[u8]) -> Result<SemanticCandidates, SemanticCandidateRefusal> {
+    match input {
+        [1u8, 2u8, 3u8] => SemanticCandidates::proposed(input, vec![vec![1u8, 2u8]]),
+        _ => SemanticCandidates::proposed(input, Vec::new()),
+    }
+}
+
+fn second_semantic_step(input: &[u8]) -> Result<SemanticCandidates, SemanticCandidateRefusal> {
+    match input {
+        [1u8, 2u8] => SemanticCandidates::proposed(input, vec![vec![1u8]]),
+        _ => SemanticCandidates::proposed(input, Vec::new()),
+    }
+}
+
+fn non_descending_candidates(input: &[u8]) -> Result<SemanticCandidates, SemanticCandidateRefusal> {
+    SemanticCandidates::proposed(input, vec![input.to_vec()])
 }
 
 #[test]
@@ -224,6 +273,10 @@ fn generic_reduction_preserves_one_fingerprint_and_reports_every_candidate_class
 #[test]
 fn semantic_reducer_custody_and_replay_posture_are_run_derived() -> Result<(), ReductionRoadFailure>
 {
+    assert_eq!(ReplayPosture::ExactDerived.slot(), 0);
+    assert_eq!(ReplayPosture::DeclaredByAuthor.slot(), 1);
+    assert_eq!(ReplayPosture::UnavailableBecauseUntracked.slot(), 2);
+
     let reducer = SemanticReducerId::named("harness", "sequence-aware")
         .map_err(|_| ReductionRoadFailure::Fixture)?;
     let derived_revision = revision_derived_from(b"semantic-reducer");
@@ -265,6 +318,10 @@ fn semantic_reducer_custody_and_replay_posture_are_run_derived() -> Result<(), R
     assert_eq!(capsule.minimization(), evidence.minimization());
     assert_eq!(capsule.schema(), evidence.schema());
     assert_eq!(capsule.posture(), ReplayPosture::ExactDerived);
+    assert_eq!(
+        capsule.identity(),
+        independently_derived_capsule_identity(&capsule)
+    );
 
     let declared_plan = ReductionPlan::declared(
         MinimizationProfile::declared("semantic-reduction", 1),
@@ -316,6 +373,53 @@ fn semantic_reducer_custody_and_replay_posture_are_run_derived() -> Result<(), R
 }
 
 #[test]
+fn semantic_reducers_run_in_declared_order_over_the_current_best()
+-> Result<(), ReductionRoadFailure> {
+    let first = SemanticReducerId::named("harness", "first-semantic-step")
+        .map_err(|_| ReductionRoadFailure::Fixture)?;
+    let second = SemanticReducerId::named("harness", "second-semantic-step")
+        .map_err(|_| ReductionRoadFailure::Fixture)?;
+    let plan = ReductionPlan::declared(
+        MinimizationProfile::declared("ordered-semantic-reduction", 1u32),
+        ByteReducerId::ChunkRemovalAndZeroing,
+        vec![
+            SemanticReducerBinding::bound(
+                first,
+                revision_derived_from(b"first-semantic-step"),
+                first_semantic_step,
+            ),
+            SemanticReducerBinding::bound(
+                second,
+                revision_derived_from(b"second-semantic-step"),
+                second_semantic_step,
+            ),
+        ],
+        FingerprintPreservation::Required,
+        ReductionBudget::declared(2u32),
+    )?;
+    let Some(binding) = probe_binding(revision_derived_from(b"ordered-probe")) else {
+        return Err(ReductionRoadFailure::Fixture);
+    };
+    let evidence = reduce(&plan, &[1u8, 2u8, 3u8], &binding)?;
+    let [first_execution, second_execution] = evidence.semantic_reducers() else {
+        return Err(ReductionRoadFailure::Fixture);
+    };
+    assert_eq!(first_execution.reducer(), first);
+    assert_eq!(first_execution.candidates(), 1usize);
+    assert_eq!(first_execution.probes(), 1usize);
+    assert_eq!(second_execution.reducer(), second);
+    assert_eq!(second_execution.candidates(), 1usize);
+    assert_eq!(second_execution.probes(), 1usize);
+    assert_eq!(evidence.outcome().input(), &[1u8]);
+    assert_eq!(evidence.outcome().halt(), ReductionHalt::BudgetExhausted);
+    assert_eq!(
+        evidence.byte_reducer(),
+        ByteReducerExecution::NotReachedBecauseBudgetSpent
+    );
+    Ok(())
+}
+
+#[test]
 fn semantic_candidate_and_plan_boundaries_refuse_non_descent_and_duplicate_identity()
 -> Result<(), ReductionRoadFailure> {
     assert_eq!(
@@ -342,5 +446,74 @@ fn semantic_candidate_and_plan_boundaries_refuse_non_descent_and_duplicate_ident
         ),
         Err(ReductionPlanRefusal::DuplicateSemanticReducer(found)) if found == reducer
     ));
+    Ok(())
+}
+
+#[test]
+fn plan_and_probe_bindings_refuse_the_first_unwarranted_claim() -> Result<(), ReductionRoadFailure>
+{
+    let reducer = SemanticReducerId::named("harness", "ordered-refusal")
+        .map_err(|_| ReductionRoadFailure::Fixture)?;
+    let revision = revision_derived_from(b"ordered-refusal");
+    assert!(matches!(
+        ReductionPlan::declared(
+            MinimizationProfile::declared("ordered-refusal", 1u32),
+            ByteReducerId::ChunkRemovalAndZeroing,
+            vec![
+                SemanticReducerBinding::bound(reducer, revision, semantic_candidates),
+                SemanticReducerBinding::bound(reducer, revision, semantic_candidates),
+            ],
+            FingerprintPreservation::Required,
+            ReductionBudget::declared(0u32),
+        ),
+        Err(ReductionPlanRefusal::ZeroReductionBudget)
+    ));
+
+    let Some(trial) = trial_binding_with(passed_trial) else {
+        return Err(ReductionRoadFailure::Fixture);
+    };
+    let report = run_one(&trial, &invocation());
+    assert!(matches!(
+        ReductionProbeBinding::bound(
+            &report,
+            GenerationProfile::declared("passed-probe", 1u32),
+            GeneratedSupportSchemaId::over(ContentAddress::derived(SCHEMA_TAG, b"passed")),
+            revision,
+            probe,
+        ),
+        Err(ReductionProbeRefusal::TrialPassed)
+    ));
+    Ok(())
+}
+
+#[test]
+fn invoked_semantic_reducer_refusal_keeps_reducer_and_cause() -> Result<(), ReductionRoadFailure> {
+    let reducer = SemanticReducerId::named("harness", "hostile-candidates")
+        .map_err(|_| ReductionRoadFailure::Fixture)?;
+    let plan = ReductionPlan::declared(
+        MinimizationProfile::declared("hostile-candidates", 1u32),
+        ByteReducerId::ChunkRemovalAndZeroing,
+        vec![SemanticReducerBinding::bound(
+            reducer,
+            revision_derived_from(b"hostile-candidates"),
+            non_descending_candidates,
+        )],
+        FingerprintPreservation::Required,
+        ReductionBudget::declared(4u32),
+    )?;
+    let Some(binding) = probe_binding(revision_derived_from(b"probe")) else {
+        return Err(ReductionRoadFailure::Fixture);
+    };
+    assert_eq!(
+        reduce(&plan, &[1u8, 2u8, 3u8], &binding),
+        Err(ReductionRefusal::SemanticReducerRefused {
+            reducer,
+            cause: SemanticCandidateRefusal::NotStrictlySmaller {
+                position: 0usize,
+                predecessor_bytes: 3usize,
+                candidate_bytes: 3usize,
+            },
+        })
+    );
     Ok(())
 }

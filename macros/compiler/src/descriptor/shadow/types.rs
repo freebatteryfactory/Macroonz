@@ -7,9 +7,6 @@ use crate::descriptor::{DirectBinding, HelperRefusal};
 #[path = "type_guard.rs"]
 mod guard;
 
-/// Where this helper's family sits among the declaration helpers.
-pub const SHADOW_HELPER_POSITION: u32 = 3;
-
 /// One row of the shadow roster: the chosen spelling, its standard-library path, and its shadow path.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ShadowRow {

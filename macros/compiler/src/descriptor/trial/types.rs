@@ -33,7 +33,7 @@ pub const SUITE_GROUP_LIMIT: usize = 32;
 
 /// The transcript position a captured reading of this grammar is separated by.
 ///
-/// Two helper readings of one declaration share the captured-helper role and are told apart by position alone, so the numbering is one closed space across the grammars this home declares: this one is the first.
+/// The three attribute-helper readings of one declaration share the captured-helper role and are told apart by position alone: this one is the first.
 pub const TRIAL_HELPER_POSITION: u32 = 0;
 
 /// The kind one trial declaration produces: a stamped trial table, delivered at the declaration site inside the carrier's stamped seat.

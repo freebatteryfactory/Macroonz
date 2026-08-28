@@ -1,0 +1,10 @@
+error[E0624]: associated function `established` is private
+ --> tests/compile_refusals/compile-fail/a-composition-refusal-cannot-be-minted-beside-its-guard.rs:8:37
+  |
+8 |     let _minted = CompositionError::established(vec![CompositionIssue::Declaration {
+  |                                     ^^^^^^^^^^^ private associated function
+  |
+ ::: src/descriptor/type_guard.rs
+  |
+  |     fn established(issues: Vec<CompositionIssue>) -> Option<Self> {
+  |     ------------------------------------------------------------- private associated function defined here

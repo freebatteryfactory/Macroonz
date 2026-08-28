@@ -1,14 +1,35 @@
-//! The kind home's declarations: the four open traits a consumer implements, the two rosters the compiler owns, the destination, the disposition, the set contract, and the two stamps that write a roster down.
+//! The kind home's declarations: the open semantic traits a consumer implements, the rosters the compiler owns, the disposition vocabulary, the complete-set witness, and the two stamps that write declarations down.
 //!
-//! Declarations only.
-//! Nothing here holds a private field, so the home has no invariant nucleus and no `type_guard.rs`.
+//! Declarations only, with every road that reaches a private field in `type_guard.rs`, this file's own child.
 
 use crate::identity::{GeneratedUnit, Identity, OwnerFact, Profile};
+use core::marker::PhantomData;
+
+#[path = "type_guard.rs"]
+mod guard;
 
 /// What one request produces.
 ///
 /// A kind is a marker type in the crate that declares it, and the compiler is generic over it from the first step of the road to the last.
 /// Nothing seals this trait and nothing registers an implementation of it.
+///
+/// # Examples
+///
+/// ```rust
+/// use macroonz_compiler::{Kind, NoQuestions, SoleRole};
+///
+/// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// struct GreetImpl;
+///
+/// impl Kind for GreetImpl {
+///     const NAME: &'static str = "greet.impl";
+///     type Content = ();
+///     type Role = SoleRole;
+///     type Question = NoQuestions;
+/// }
+///
+/// assert_eq!(GreetImpl::NAME, "greet.impl");
+/// ```
 pub trait Kind: 'static {
     /// The name this kind is spelled by wherever a name is written down.
     ///
@@ -172,15 +193,55 @@ pub enum Disposition {
     },
 }
 
-/// One declared set of kinds, and the record that says what happened to every one of them.
+/// A consumer-owned record that can surrender its named dispositions in kind declaration order.
 ///
-/// The record has one required seat per kind, so a set that leaves a kind unanswered is a struct nobody can finish writing.
+/// Implementations state rows, not completeness.
+/// [`DispositionSet::complete`] compares every surrendered name and the whole row count with the owning [`KindSet`] before the record can become the witness an account seats.
+pub trait DispositionRecord: Clone + Eq + core::fmt::Debug {
+    /// Surrender every stated kind name and disposition, in the set's declaration order.
+    fn into_dispositions(self) -> impl Iterator<Item = (&'static str, Disposition)>;
+}
+
+/// One declared set of kinds and the record from which its complete disposition witness is built.
+///
+/// The trait remains open, but naming a record here does not certify its completeness.
+/// Only [`DispositionSet::complete`] can turn the record into the private-field witness [`Accounted`](crate::Accounted) accepts.
 pub trait KindSet {
-    /// One required seat per kind of the set.
-    type Dispositions: Clone + Eq + core::fmt::Debug;
+    /// The consumer-owned disposition record for this set.
+    type Dispositions: DispositionRecord;
 
     /// Every kind's declared name, in the order the set states them.
     const NAMES: &'static [&'static str];
+}
+
+/// A disposition for every declared kind of one set, in declaration order.
+///
+/// The rows are private and the only public constructor checks every name and the complete row count against [`KindSet::NAMES`], so an omitted, doubled, foreign, or reordered seat cannot become this value and cannot be seated beside an expansion.
+#[must_use = "a complete disposition set is the witness an accounted expansion requires"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DispositionSet<Set: KindSet> {
+    dispositions: Vec<Disposition>,
+    kind_set: PhantomData<fn() -> Set>,
+}
+
+/// How a disposition record refuses to become a complete set witness.
+#[must_use = "a disposition-set refusal names the count or kind-name disagreement"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DispositionSetError {
+    /// The record surrendered a different number of rows than the kind set declares.
+    CountMismatch {
+        /// How many kind names the set declares.
+        expected: usize,
+        /// How many disposition rows the record surrendered.
+        observed: usize,
+    },
+    /// One surrendered row names a kind other than the kind declared at that position.
+    KindMismatch {
+        /// The kind name the set declares at this position.
+        expected: &'static str,
+        /// The kind name the record surrendered at this position.
+        observed: &'static str,
+    },
 }
 
 /// One row's position in its roster, or the roster's length where the roster does not carry it.
@@ -241,10 +302,11 @@ macro_rules! roster {
     };
 }
 
-/// Declares one set of kinds: a marker type and its [`Kind`] implementation per row, the enumerated set, its [`KindSet`] implementation, and the disposition record.
+/// Declares one set of kinds: a marker type and its [`Kind`] implementation per row, the enumerated set, its [`KindSet`] implementation, and its [`DispositionRecord`].
 ///
 /// One declaration, so the marker, the set, and the record cannot drift apart.
 /// A kind added to a declaration grows all three together and stops the compiler at every construction of the record until somebody says what happens to it.
+/// The record then becomes a [`DispositionSet`] only after the compiler independently checks every surrendered name and the whole row count against the set's declaration.
 ///
 /// The seat is the field name the record carries a row's answer under, declared beside the kind rather than composed from the marker's spelling, for the same reason the declared name beside it is: a field renamed by every refactor of a Rust identifier is a field nobody can rely on.
 ///
@@ -261,10 +323,17 @@ macro_rules! roster {
 ///     GreetImpl = "greet.impl", greet_impl => Greeting, SoleRole, NoQuestions;
 /// }
 ///
-/// use macroonz_compiler::{KindSet, NoQuestions, SoleRole};
+/// use macroonz_compiler::{Disposition, DispositionSet, KindSet, NoQuestions, OwnerFact, SoleRole};
 ///
 /// assert_eq!(<GreetKinds as KindSet>::NAMES, &["greet.impl"]);
 /// assert_eq!(GreetKinds::GreetImpl.name(), "greet.impl");
+///
+/// let record = GreetDispositions {
+///     greet_impl: Disposition::NotApplicable {
+///         because: OwnerFact { home: "greet", name: "not-applicable" },
+///     },
+/// };
+/// assert!(DispositionSet::<GreetKinds>::complete(record).is_ok());
 /// ```
 #[macro_export]
 macro_rules! kinds {
@@ -334,6 +403,14 @@ macro_rules! kinds {
                 match row {
                     $( $set::$kind => &self.$seat ),+
                 }
+            }
+        }
+
+        impl $crate::kind::DispositionRecord for $record {
+            fn into_dispositions(
+                self,
+            ) -> impl Iterator<Item = (&'static str, $crate::kind::Disposition)> {
+                [$( (<$kind as $crate::kind::Kind>::NAME, self.$seat) ),+].into_iter()
             }
         }
     };

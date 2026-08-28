@@ -1,5 +1,3 @@
-//! What a fault is, where it is scheduled, and what a selection and an injection hand back.
-
 #[path = "type_guard.rs"]
 mod guard;
 

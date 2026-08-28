@@ -1,34 +1,29 @@
-# `vocabulary` — what the harness publishes, written down once
+# `vocabulary` — the destination language of harness emissions
 
-Three renderings in this home write expressions that resolve at one address: the harness's own descriptor, bench, and mutation vocabulary.
+The descriptor adapter emits ordinary Rust expressions that reach the harness through public constructors, readers, closed-choice arms, stamp clauses, and operation roads.
+This home owns those destination spellings so each renderer states which harness concept it needs instead of carrying an independent string copy of the address.
 
-Every name they spell is here, in two tables.
+## Authority in and value out
 
-## Why a table and not constants beside the renderings
+[`HarnessName`] names a semantic segment of a rendered harness path or call.
+[`HarnessWord`] names a clause key or target-supplied seat in stamped material.
+The rendering operations turn those informed spellings into generated tokens rooted at the harness binding declared by the consuming target.
 
-A spelling that lives beside the code that writes it is a spelling nobody can read back.
+The vocabulary is demand-driven rather than an introspection registry.
+A renderer asks for the destination it needs, while the harness remains the authority that declares what the destination means and whether a construction is lawful.
 
-Forty names scattered through a renderer answer the question "what does this emission depend on?" only if you read the renderer. Two tables answer it by being read.
+## Composition
 
-They are also the join: a person checking that this compiler and the harness still agree reads one file on each side, and the diff between them is a list rather than a search.
+Trial, benchmark, and mutation projections consume this shared destination language while retaining their own declaration grammars and render operations.
+The support home owns the carrier, schema gate, and invocation matcher that transport those projections across the consumption boundary.
+The harness descriptor, benchmark, and Muterprater homes own the public values and operations the generated expressions reach.
 
-## The two tables
+[`path`] preserves the complete caller-declared harness binding before appending destination segments.
+A consumer therefore reaches the same vocabulary through a direct dependency, a renamed dependency, or a facade path without this home learning a crate spelling.
 
-[`HarnessName`] is what a rendered path spells or a rendered call lands on: the modules, the types, the constructor roads, and the arms of the harness's closed choices.
+## Evidence ceiling
 
-[`HarnessWord`] is what a stamped payload's grammar is written in: the clause keys and the seat names a stamp reads.
+Centralized destination spellings prevent renderer-local drift, but they cannot prove that the harness still publishes every destination.
+That agreement is established only when generated cargo is expanded and type-checked against the harness, alongside the independent schema-pin and public-operation observations.
 
-Neither carries a complete roster, because nothing walks a vocabulary. A rendering asks for one spelling at a time, and a row nothing asks for is a row nothing renders.
-
-## What is not here
-
-A benchmark backend protocol, because the harness publishes none and the compiler invents none.
-The bench target supplies a plain report-reader function through the carrier instead.
-
-The carrier's own gate grammar. The shell, its matcher, and the gate invocation are the support home's, and a payload written here is cargo that rides inside them.
-
-Rust's own roads — `map_err`, `and_then`, `to_vec` — because they belong to the language.
-
-## Rooting
-
-[`path`] writes the harness binding's root and repeated segments before the destination segments, so a consumer reaching the harness through a facade or renamed dependency uses the path it owns. Nothing in this home ever spells a crate.
+This home does not own harness policy, a benchmark backend, the carrier gate grammar, or Rust's own operations.

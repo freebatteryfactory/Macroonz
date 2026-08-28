@@ -82,6 +82,9 @@ You cannot get tokens out of anything but an expansion, and you cannot get an ex
 
 ```mermaid
 flowchart LR
+    accTitle: Compiler request road
+    accDescr: A compiler request proceeds from account through intent, context, plan, render, close, explain, and bind in that order.
+
     A["account"] --> I["intent"] --> X["context"] --> P["plan"]
     P --> R["render"] --> C["close"] --> E["explain"] --> B["bind"]
 ```
@@ -111,7 +114,7 @@ A request that fails any step is refused whole — there is no partial output.
 | `token/` | Captured token trees with spans, the literal reader, the text route, generated tokens, and the Rust-expression helpers every renderer needs. |
 | `kind/` | `Kind`, `CanonicalContent`, `Role`, `Question`, `Answer`, the `kinds!` declaration, and dispositions. |
 | `diagnostic/` | `Diagnostic`: phase, site, summary, expected, observed, related set, repairs, reproduction route; and the one line grammar every refusal is projected through. |
-| `origin/` | Where a generated thing came from: the non-empty trail back to authored material, and the decision trace. |
+| `origin/` | Where generated material came from: directed non-empty derivation trails and ordered decision traces. |
 | `plan/` | Account, intent, context, membership, destinations, invalidation, and the plan itself. |
 | `render/` | Rendered units and projections. |
 | `closure/` | The proof and the partitioned emission. |

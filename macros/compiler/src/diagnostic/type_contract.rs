@@ -3,7 +3,9 @@
 //! Nothing here computes and nothing here decides; the deciding happened where the table was asked.
 //! Each table is total, so a row admitted later stops the compiler until somebody says what that row's stable name and sentence are.
 
-use super::{ExplanationSeat, Observed, Phase, RefusalClass, RenderedMagnitude, SiteCoordinate};
+use super::{
+    DiagnosticNameRefusal, Observed, Phase, RefusalClass, RenderedMagnitude, SiteCoordinate,
+};
 use crate::token::{SourceCoordinate, SpanResolutionRefusal};
 
 impl Phase {
@@ -43,7 +45,6 @@ impl RefusalClass {
         Self::RenderingNotProduced,
         Self::RenderingNotClosed,
         Self::ExplanationNotCovered,
-        Self::ExplanationNotBound,
         Self::MagnitudeNotHeld,
         Self::ExpansionNotBound,
         Self::CarrierNotAssembled,
@@ -59,12 +60,11 @@ impl RefusalClass {
             Self::RenderingNotProduced => "rendering-not-produced",
             Self::RenderingNotClosed => "rendering-not-closed",
             Self::ExplanationNotCovered => "explanation-not-covered",
-            Self::ExplanationNotBound => "explanation-not-bound",
             Self::MagnitudeNotHeld => "magnitude-not-held",
             Self::ExpansionNotBound => "expansion-not-bound",
             Self::CarrierNotAssembled => "carrier-not-assembled",
             Self::CarrierNotDeclared => "carrier-not-declared",
-            Self::Declared { name, .. } => name,
+            Self::Declared { name, .. } => name.spelling(),
         }
     }
 
@@ -79,7 +79,6 @@ impl RefusalClass {
                 "the rendering does not close over the plan it claims to materialize"
             }
             Self::ExplanationNotCovered => "the explanation does not cover its kind's questions",
-            Self::ExplanationNotBound => "the explanation cannot bind its subject",
             Self::MagnitudeNotHeld => "a rendering would pass a declared magnitude",
             Self::ExpansionNotBound => "the three values do not belong to one expansion",
             Self::CarrierNotAssembled => "the closed outputs do not compose into one carrier",
@@ -112,10 +111,21 @@ impl Observed {
             Self::ProfileDisagreement => "profile-disagreement",
             Self::BoundExceeded => "bound-exceeded",
             Self::OriginAbsent => "origin-absent",
-            Self::Declared { name, .. } => name,
+            Self::Declared { name, .. } => name.spelling(),
         }
     }
 }
+
+impl core::fmt::Display for DiagnosticNameRefusal {
+    fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        into.write_str(match self {
+            Self::Empty => "a declared diagnostic name is empty",
+            Self::NotKebabCase => "a declared diagnostic name is not lowercase ASCII kebab-case",
+        })
+    }
+}
+
+impl core::error::Error for DiagnosticNameRefusal {}
 
 impl RenderedMagnitude {
     /// Every declared magnitude a rendering can pass, in declaration order.
@@ -142,35 +152,6 @@ impl RenderedMagnitude {
             Self::RenderedBytes => "the bytes one rendered unit may carry",
             Self::RenderedUnits => "the units one rendering may carry",
             Self::GeneratedTokens => "the tokens one generated tree may carry at one nesting level",
-        }
-    }
-}
-
-impl ExplanationSeat {
-    /// Every seat an explanation binds its subject to, in declaration order.
-    pub const ALL: &'static [Self] = &[
-        Self::PlannedMember,
-        Self::ProvedDigest,
-        Self::DeclaredAssumption,
-    ];
-
-    /// The seat's stable name.
-    #[must_use]
-    pub const fn name(self) -> &'static str {
-        match self {
-            Self::PlannedMember => "planned-member",
-            Self::ProvedDigest => "proved-digest",
-            Self::DeclaredAssumption => "declared-assumption",
-        }
-    }
-
-    /// The seat rendered for the line that says it is absent.
-    #[must_use]
-    pub const fn described(self) -> &'static str {
-        match self {
-            Self::PlannedMember => "the planned member under the kind's role",
-            Self::ProvedDigest => "the digest the closure proved over that member's bytes",
-            Self::DeclaredAssumption => "the first owner fact the plan declares",
         }
     }
 }

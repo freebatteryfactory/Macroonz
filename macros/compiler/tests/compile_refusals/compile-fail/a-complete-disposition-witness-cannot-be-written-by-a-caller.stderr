@@ -1,0 +1,9 @@
+error[E0451]: fields `dispositions` and `kind_set` of struct `DispositionSet` are private
+  --> tests/compile_refusals/compile-fail/a-complete-disposition-witness-cannot-be-written-by-a-caller.rs:26:9
+   |
+25 |     DispositionSet {
+   |     -------------- in this type
+26 |         dispositions: Vec::new(),
+   |         ^^^^^^^^^^^^ private field
+27 |         kind_set: PhantomData,
+   |         ^^^^^^^^ private field

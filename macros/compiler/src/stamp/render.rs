@@ -175,11 +175,8 @@ fn front_arm(stamp: &Stamp, reach: Visibility) -> Result<Vec<GeneratedToken>, St
     let mut carried = vec![
         GeneratedToken::joint('@'),
         GeneratedToken::word(TRANSCRIBE_ARM),
-        token::group(
-            GeneratedDelimiter::Bracket,
-            transported_reach(reach.transported())?,
-        )?,
-        token::group(GeneratedDelimiter::Bracket, declared)?,
+        bracketed_reach(transported_reach(reach.transported())?)?,
+        bracketed_reach(declared)?,
     ];
     carried.extend(restated(pattern)?);
 
@@ -194,14 +191,8 @@ fn transcribe_arm(pattern: &Pattern) -> Result<Vec<GeneratedToken>, StampError> 
     let mut matcher = vec![
         GeneratedToken::joint('@'),
         GeneratedToken::word(TRANSCRIBE_ARM),
-        token::group(
-            GeneratedDelimiter::Bracket,
-            fragment_of(TRANSPORTED_REACH, VIS_FRAGMENT),
-        )?,
-        token::group(
-            GeneratedDelimiter::Bracket,
-            fragment_of(DECLARED_REACH, VIS_FRAGMENT),
-        )?,
+        bracketed_reach(fragment_of(TRANSPORTED_REACH, VIS_FRAGMENT))?,
+        bracketed_reach(fragment_of(DECLARED_REACH, VIS_FRAGMENT))?,
     ];
     matcher.extend(matched(pattern, &[])?);
     rule(matcher, pattern.body().tokens().to_vec())
@@ -271,6 +262,14 @@ fn fragment_of(name: &str, kind: &str) -> Vec<GeneratedToken> {
     tokens.push(GeneratedToken::alone(':'));
     tokens.push(GeneratedToken::word(kind));
     tokens
+}
+
+/// One internal visibility seat, terminated so the private empty `vis` can bind lawfully.
+///
+/// The comma is a matcher follow token rather than caller syntax: without it, the empty declared reach reaches the closing bracket before the `vis` fragment can bind.
+fn bracketed_reach(mut reach: Vec<GeneratedToken>) -> Result<GeneratedToken, StampError> {
+    reach.push(GeneratedToken::alone(','));
+    Ok(token::group(GeneratedDelimiter::Bracket, reach)?)
 }
 
 /// One repetition over the tokens inside it, separated where a separator was stated.

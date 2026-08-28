@@ -1,0 +1,9 @@
+error[E0451]: fields `command` and `faults` of struct `InjectedCommand` are private
+  --> tests/compile_refusals/compile-fail/an-injected-command-cannot-be-minted-outside-injection.rs:14:9
+   |
+13 |     InjectedCommand {
+   |     --------------- in this type
+14 |         command: 1u8,
+   |         ^^^^^^^ private field
+15 |         faults: Vec::new(),
+   |         ^^^^^^ private field

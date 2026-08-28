@@ -1,0 +1,5 @@
+error: macroonz: the declaration was not read: in `trials`: a clause is not one key and one value (at semantic-origin position 2)
+ --> tests/compile_refusals/compile-fail/a-malformed-trials-body-points-at-the-malformed-value.rs:4:15
+  |
+4 |     support = 7,
+  |               ^

@@ -1,41 +1,63 @@
-# bounded — the compiler's own collections
+# bounded — collection shape under an owned ceiling
 
-Three lists that carry their ceiling in their type, and the two ways a list refuses to be built.
+This home makes a collection's maximum cardinality part of its Rust type and keeps every field behind the constructors that establish that cardinality.
 
-Every list the compiler holds has a bound.
-Written here, once, the bound stops being something a downstream seat has to remember and starts being something it cannot get wrong.
+The const parameter is only a ceiling.
+The semantic home holding a bounded collection owns the meaning of that ceiling and names the constant supplied to it.
 
-## The three
+```mermaid
+flowchart LR
+    accTitle: Bounded collection construction
+    accDescr: Complete offerings either become bounded or required nonempty collections or receive typed refusals, while prefix capping retains what fits and records any omission.
 
-| Type | Holds | Refuses with |
-| --- | --- | --- |
-| `Bounded<T, N>` | zero to `N` items | `Overflow` |
-| `NonEmpty<T, N>` | one to `N` items | `NonEmptyError` — `Empty` or `Overflow` |
-| `Capped<T, N>` | one to `N` items, and how it was capped | nothing |
+    offered[[Offered items]]
+    bounded{"May empty be lawful?"}
+    required{"Must one item exist?"}
+    retained[[Retained prefix]]
+    refusal[[Typed refusal]]
 
-`Bounded` is the ordinary list.
-`NonEmpty` is the list whose first item is a fact rather than a lookup, so `first()` hands back a `&T` and no caller writes a branch for a case that cannot happen.
-`Capped` is the shape of a report body: everything that fit, plus an honest count of what did not.
+    offered --> bounded
+    offered --> required
+    offered --> retained
+    bounded -->|"yes, within N"| B["Bounded&lt;T, N&gt;"]
+    bounded -->|"more than N"| refusal
+    required -->|"one through N"| NE["NonEmpty&lt;T, N&gt;"]
+    required -->|"zero or more than N"| refusal
+    retained --> C["Capped&lt;T, N&gt;"]
+    C --> posture{"What happened?"}
+    posture --> complete[Complete]
+    posture --> truncated["Truncated { omitted }"]
 
-## The ceiling is a number
+    classDef value fill:#d9f3ff,stroke:#087e8b,color:#102a43
+    classDef decision fill:#fff2cc,stroke:#c27c0e,color:#3d2b00
+    classDef refused fill:#ffe0e0,stroke:#b42318,color:#4a1010
+    class B,NE,C,offered,retained value
+    class bounded,required,posture decision
+    class refusal refused
+```
 
-`N` is a plain const-generic parameter and the limit behind it is a plain constant on the home that owns the thing being bounded — `pub const REPAIR_LIMIT: usize = 8;` written beside the repairs it governs, and spelled into the type as `Bounded<Repair, REPAIR_LIMIT>`.
+## Refusal and capping answer different questions
 
-There is no limit trait, no family, no magnitude, no authority, and no profile that admits one.
-A ceiling belongs to whoever declared the collection, at the seat where a reader is already looking.
+[`Bounded::new`](Bounded::new) and [`NonEmpty::new`](NonEmpty::new) admit the complete offering or return a typed refusal.
 
-## Refusing and capping are different questions
+[`Overflow`] carries the ceiling and the offered count.
+[`NonEmptyError`] distinguishes an absent required item from an offering wider than its ceiling.
 
-`Bounded::new` and `NonEmpty::new` refuse.
-Too many items comes back as an `Overflow` carrying both numbers — what fits, and what was offered — and the caller decides what that means.
+[`Capped::first_n`](Capped::first_n) deliberately keeps the prefix that fits and records the exact omitted count as [`Capping`].
+The caller never supplies that capping posture.
 
-`Capped::first_n` does not refuse.
-It keeps what fits and writes down how many it dropped, because a report that would rather say nothing than say the first eight of nine issues is not a report.
-`Capping` is that record — `Complete`, or `Truncated { omitted }` — and it is derived from the items themselves, never supplied by the caller.
+## Construction and reading
 
-## What is not here
+[`Bounded`] may begin empty and may grow only through [`Bounded::try_push`], which refuses before changing the held sequence when the next item would exceed the ceiling.
+[`Bounded::from_array`] settles a fixed offering's fit at compile time.
 
-No `push`, no `iter_mut`, no `Deref`, no `From<Vec<T>>`.
+[`NonEmpty`] stores its first item separately, so [`NonEmpty::first`] is total and no empty branch exists for a reader to write.
+[`Capped`] can be constructed only from a lawful non-empty collection or by the prefix-capping road.
 
-A bounded list is built once, through a constructor that establishes its bound, and read from then on.
-That is the whole reason the bound is structural rather than remembered: there is no second road in.
+There is no unchecked `Vec` conversion, mutable iterator, or dereference escape hatch.
+
+## Ownership boundary
+
+This home owns cardinality shape, retained order, capping posture, and construction refusals.
+It does not own a canonical byte encoding for arbitrary `T`.
+Each semantic holder that derives identity or bytes from one of these collections owns that encoding and consumes the public ordered readers.

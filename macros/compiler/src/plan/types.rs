@@ -131,7 +131,7 @@ pub struct DigestContract {
 pub struct PlannedOutput {
     /// What this member is, independently of any bytes.
     pub semantic_key: Identity<identity::GeneratedUnit>,
-    /// Where it came from — a walk back to authored material, non-empty by its own shape.
+    /// The non-empty derivation trail this output carries.
     pub origin: OriginTrail,
     /// The profile expected to render it.
     pub expected_profile: Profile,

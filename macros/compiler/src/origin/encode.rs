@@ -1,8 +1,3 @@
-//! The canonical bytes every value here contributes to a transcript.
-//!
-//! Written through the one length framing the identity home owns, and over the public readers alone, so an encoding can never commit to more than a reader is shown.
-//! A count is written ahead of its members, which is what keeps two differently split walks from encoding alike.
-
 use super::{DecisionTrace, Nonclaim, OriginEdge, OriginTrail, TraceDecision, TraceEntry};
 use crate::identity::{encode_bytes, encode_length};
 
@@ -27,6 +22,7 @@ impl OriginTrail {
 
 impl TraceDecision {
     /// Appends this decision's canonical bytes: the discriminant, then the cited fact where one was cited.
+    /// [`TraceDecision::NotRun`] writes its discriminant followed by an empty framed citation, so every decision keeps one unambiguous citation seat.
     pub fn encode_into(&self, into: &mut Vec<u8>) {
         into.push(self.slot());
         match self {

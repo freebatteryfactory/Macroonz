@@ -2,45 +2,27 @@
 
 Adversity you schedule, not adversity the harness invents.
 
-A fault here is a value you wrote: some behavior of yours, joined to the postcondition you promise still holds when that behavior refuses.
-The harness never calls it and never looks inside it.
-What the harness owns is the placement — which of your adapters sits at which command, under which named schedule, and whether that schedule is coherent enough to be worth running.
+A fault adapter joins behavior the owner supplies to the postcondition the owner expects that behavior to preserve.
+The harness keeps both values opaque.
 
-## The road
+## Boundary
 
-Place adapters at zero-based positions, name the schedule, gather schedules into a campaign, select one by name, and inject it into an ordinary sequence of your own commands.
+A schedule places adapters at positions in a command sequence.
+A campaign preserves authored schedule order while admitting only a non-vacuous, unambiguous choice among them.
+Selection borrows the schedule held by that campaign, so a selection cannot relabel or outlive its source.
 
-```text
-let control = FaultSchedule::declared(schedule_name("quiet-control")?, Vec::new());
-let hostile = FaultSchedule::declared(
-    schedule_name("capacity-at-the-second-write")?,
-    vec![ScheduledFault::at(
-        SequencePosition::at(1),
-        FaultAdapter::declared(WriteFault::Capacity, WritePostcondition::StateUnchanged),
-    )],
-);
-let campaign = FaultCampaign::declared(vec![control, hostile])?;
-let selected = campaign.select(schedule_name("capacity-at-the-second-write")?)?;
-let injected = inject(&selected, commands())?;
-```
+Injection resolves every scheduled position before it clones an adapter.
+A refused placement therefore leaves no partially injected history, while an admitted placement preserves command order and the authored order of adapters stacked at one position.
 
-Back comes your sequence, each command carrying the adapters scheduled at its position, in the order you wrote them.
-Running them is yours.
+## Composition
 
-## What it refuses
+The injected sequence is ordinary typed input for another harness road.
+Interleave can schedule its commands, properties can judge the resulting history, and runner can record the earned conclusion without any of those homes acquiring fault-placement authority.
 
-- A campaign with no schedule, and a campaign whose schedules are all empty controls: each declares pressure and applies none.
-- Two schedules under one name, which would leave a selection with two answers.
-- A name the campaign never declared.
-- A position past the end of the sequence, refused before a single adapter is cloned, so a schedule is never half-injected.
+An empty schedule may stand beside an adverse schedule as its comparison control.
+Running adapters, interpreting their behavior, and deciding whether a promised postcondition held remain the owner's work.
 
-An empty schedule beside a hostile one is not a refusal.
-That is the control you compare against.
+## Evidence ceiling
 
-## What it does not do
-
-It defines no port trait, keeps no registry, installs no hook, executes no adapter, and reaches no verdict.
-An injected sequence is a history; what your behavior did with it, and whether your postcondition survived, is read on the harness's ordinary `properties` and `runner` roads.
-
-Out-of-memory needs no allocator hook here.
-An adapter that refuses at its own declared capacity is that experiment, written in safe Rust.
+This home proves placement coherence and all-or-nothing injection.
+It defines no subject protocol, installs no hook, executes no adapter, observes no resource, and reaches no verdict.

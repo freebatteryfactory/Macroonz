@@ -1,0 +1,14 @@
+error[E0599]: no associated function or constant named `declared` found for struct `DeclaredCargo` in the current scope
+ --> tests/compile_refusals/compile-fail/declared-cargo-cannot-be-minted-without-source-parentage.rs:9:20
+  |
+9 |     DeclaredCargo::declared(matched, stamped)
+  |                    ^^^^^^^^ associated function or constant not found in `DeclaredCargo`
+  |
+note: if you're trying to build a new `DeclaredCargo`, consider using `support::assembly::types::guard::<impl DeclaredCargo>::stamped_from` which returns `Result<DeclaredCargo, AssemblyError>`
+ --> src/support/assembly/type_guard.rs
+  |
+  | /     pub fn stamped_from<K: Kind>(
+  | |         expansion: &Expansion<K>,
+  | |         matched: GeneratedTree,
+  | |     ) -> Result<Self, AssemblyError> {
+  | |____________________________________^

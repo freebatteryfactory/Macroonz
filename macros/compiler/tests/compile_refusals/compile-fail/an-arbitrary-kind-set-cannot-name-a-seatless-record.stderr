@@ -1,0 +1,11 @@
+error[E0277]: the trait bound `(): DispositionRecord` is not satisfied
+ --> tests/compile_refusals/compile-fail/an-arbitrary-kind-set-cannot-name-a-seatless-record.rs:9:25
+  |
+9 |     type Dispositions = ();
+  |                         ^^ the trait `DispositionRecord` is not implemented for `()`
+  |
+note: required by a bound in `macroonz_compiler::KindSet::Dispositions`
+ --> src/kind/types.rs
+  |
+  |     type Dispositions: DispositionRecord;
+  |                        ^^^^^^^^^^^^^^^^^ required by this bound in `KindSet::Dispositions`

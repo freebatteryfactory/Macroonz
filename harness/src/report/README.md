@@ -3,73 +3,69 @@
 What a run leaves behind.
 
 A trial executes once and then it is gone.
-What survives are the records this home defines, in two separately earned values: the report — which trial ran, under which revisions of the subject and the check, on which target, what it concluded — and, where a completed reduction earned one, a [`ReplayCapsule`] carrying the smallest reproducing input reached under the declared reducers and budget.
-The two join on one execution key; an ordinary report does not carry the capsule, and never claims what only a reduction established.
+The report preserves which trial ran, the revisions and invocation it stood on, where it was written, and what became of its attempt.
+A replay capsule is separately earned evidence that binds a reduced reproducing input to one recorded execution.
+An ordinary report carries no replay capsule, and neither value claims what only the other established.
 
 Everything here is a value.
 Nothing in this home runs a trial, reads a clock, or touches a file.
-The runner hands it facts; it hands back records that can be compared, counted, and — through the capsule's own road — replayed.
+The runner hands this home facts, and this home returns records that callers may compare, count, retain, or replay through the separately earned road.
 
-## Two rails that never cross
+## Meaning and location
 
-A trial has two names, and they answer different questions.
+A trial has a semantic identity and a source site, and the two answer different questions.
 
-`TrialId` is what the trial **means** — its claim, its subject, its check contract, its population, its profile.
-Move the file, rename the function, reorganize the module: the identity does not change.
+The semantic identity names what the trial means through its declared claim, subject, check, population, and profile.
+Moving or renaming the code that hosts a trial leaves that meaning unchanged.
 
-`TrialSite` is where the trial is **written** — module path, file, line, display name.
-That is what a person filters on and jumps to, and it is deliberately not identity.
+The source site names where the trial was written so a person can filter it and navigate to it.
+A report joins both rails without letting either stand in for the other.
 
-A report joins both.
-A path-spelled name is a site; it is never an identity.
+## Execution standing
 
-## What a key is made of
+An execution key names one execution of one semantic trial under its exact revision, invocation, target, and toolchain standing.
+The target and toolchain are always part of that standing, because evidence reached on one host configuration cannot authorize a cache claim about another.
 
-`ExecutionKey` names one execution rather than one trial: the trial identity, the subject revision, the check revision, the invocation profile, and the target and toolchain — the last unconditionally.
-A cache hit across two targets asserts something nobody verified, and refusing it costs reruns.
-Cost is a price.
-A false claim is not.
+The authored row has a separate revision identity for census and aggregation.
+Editing bookkeeping around a trial moves the row revision without claiming that its executable meaning moved.
 
-`RowRevisionId` is the bookkeeping key beside it.
-Editing a row's tags moves it, aggregation recomputes, and no execution is owed: nothing about what the row runs has changed.
+## Reproduction authority
 
-## What a reproduction may claim
+A report states the subject and check revisions its execution used.
+The weaker revision posture limits both cache eligibility and what a reproduction may claim.
+No caller can strengthen that ceiling by attaching a stronger label beside the recorded revisions.
 
-An attachment binds two revisions — one for the subject, one for the check — and every posture sentence reads over the weaker of the two.
+A replay capsule can be minted only from completed reduction evidence bound to a real refused report.
+It preserves the execution standing, reduced input, failure identity, generation and minimization authority, generated-support schema, and the replay ceiling earned across every participant that actually ran.
+Holding a capsule is therefore holding a bounded reproduction account rather than an unqualified promise of exact replay.
 
-Only a pair of harness-derived revisions can authorize a cache hit.
-A declared or untracked half always executes again; its address still names the historical standing without claiming the harness derived it from canonical material.
+## Complete accounting
 
-- `ExactDerived` is the one posture that earns the phrase "replay exactly".
-- `DeclaredByAuthor` inherits the ceiling of a hand-written declaration and says so.
-- `UnavailableBecauseUntracked` states plainly that reproduction is not exact; the run and its input are still evidence, and no rendering pretends otherwise.
+A run report is stated over the complete table view the invocation stood on, including rows the selection did not name.
+Selection narrows execution and never narrows the denominator.
+That is what makes exercise coverage a computation over recorded evidence instead of a hand count, and what makes a shrinking population visible.
 
-`ReplayCapsule` is the closed shape of a reproduction account, and it has exactly one mint: completed reduction evidence bound to a real refused report.
-No caller assembles its seats by hand.
+A selection that matched nothing is still a complete report.
+The report preserves whether that empty result contradicted the caller's declared expectation or was admitted for a typed reason, and no empty result is described as a passing trial.
 
-## The census
+## Comparison and coverage
 
-A `RunReport` is stated over a denominator — one entry per row of the table the run stood on, selected or not.
-That is what makes claim coverage a computation instead of a hand count, and what makes a shrinking census a visible fact rather than a smaller number nobody noticed.
+Comparison is a pure reading of two retained reports.
+It keeps population movement apart from execution-standing movement, refuses reports whose table postures cannot lawfully be compared, and keeps a missing baseline distinct from an unchanged run.
 
-A run whose selection matched nothing is a complete report, not a missing one.
-`SelectionExpectation::AtLeastOne` is what a caller gets without asking, because a run that exercised nothing is not a run that passed.
-Admitting zero is a declaration made in advance, with a typed reason attached.
+Coverage is a pure reading of one authored report's complete denominator.
+It counts exercise rather than correctness, so a trial that ran and refused is exercised while a selected trial that never ran is not.
 
-A report comparison has a population half and an execution-standing half.
-The population half compares membership, authored-row revision, and denominator; the execution half compares shared trials across subject revision, check revision, and normalized outcome, then compares the runs across case, byte, and time budgets plus the exact target and toolchain pair.
-An empty selection still exposes a budget or target move because those facts live on `RunReport`, not behind the first executed row somebody happened to find.
+Neither reading observes the host or reconstructs facts absent from its input.
 
-## Text from outside
+## Foreign material
 
-A subject's panic payload, a decoder's message, an external tool's output: all of it rides `ForeignText`, bounded at `FOREIGN_TEXT_MAX_BYTES`, marked when it was cut and marked when rendering it loses bytes.
+Text arriving from a subject, decoder, or external tool is bounded and carries whether bytes were cut or cannot render exactly as text.
 It travels one way.
-Nothing here reads it back, matches on it, or decides from it — a finding is a typed value first and prose second.
+Nothing in the harness reads it back to decide an identity, conclusion, or comparison.
 
 ## What this home does not do
 
-It does not run anything; the runner owns execution and hands records here.
-It does not judge; a `TrialConclusion` arrives already reached.
-It does not persist; writing a report somewhere is the caller's.
-It does not read a clock, a target triple, or a toolchain name — those are declared at the invocation and carried, never guessed.
-And it never interprets a `FindingCause`: the family and the local key are the caller's own spelling, stored, hashed into every fingerprint, and handed back unread.
+It does not execute trials, choose selections, judge subjects, persist records, inspect the host, or infer a target, toolchain, revision, or clock reading.
+Those facts arrive through their owning values and remain under the authority that established them.
+It also does not interpret a caller's finding cause; the caller's declared cause spelling is stored and returned unread.

@@ -14,7 +14,7 @@ pub struct IdentityProfileVersion(pub(super) u32);
 /// One kind's declared derivation domain.
 ///
 /// The tag is a segment of the derive-key context, so two kinds over identical preimages never share an address.
-/// Its spelling is lowercase ASCII letters, digits, and `-`, written as a literal by the owning home, so the grammar is a declaration discipline and no road here reads a tag from data.
+/// Its spelling contains only lowercase ASCII letters, digits, and `-`; the declaration refuses every other byte, and no road here reads a tag from data.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DomainTag {
     pub(super) spelling: &'static str,

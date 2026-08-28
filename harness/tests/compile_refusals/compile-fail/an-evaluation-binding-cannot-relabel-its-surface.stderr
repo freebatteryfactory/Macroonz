@@ -7,7 +7,7 @@ error[E0061]: this function takes 3 arguments but 4 arguments were supplied
    |                                         expected `&EvaluationSurface`, found `EvaluationFamilyRef`
    |
 note: associated function defined here
-  --> src/muterprater/type_guard.rs
+  --> src/muterprater/interpretation/type_guard.rs
    |
    |     pub const fn declared(
    |                  ^^^^^^^^

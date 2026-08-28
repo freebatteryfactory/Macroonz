@@ -1,4 +1,4 @@
-//! The diagnostic home's declarations: one diagnostic, the door it is asked through, the typed parts of its one summary line, the registries a refusal reads its vocabulary off, and the trait a refusing step implements.
+//! The diagnostic home's declarations: one diagnostic, the typed parts of its one summary line, the registries a refusal reads its vocabulary off, and the trait a refusing step implements.
 //!
 //! Declarations only.
 //! Every road that reaches a private field lives in `type_guard.rs`, this file's own child, so the seats a caller may not write have exactly one way in.
@@ -7,11 +7,11 @@ use crate::bounded::{Bounded, Capping};
 use crate::identity::{
     Contract, HumanProjection, Identity, OwnerFact, RelatedBody, RelatedIssue, ServiceEntry,
 };
-use crate::request::{CrateBinding, Producer};
 use crate::token::{SourceCoordinate, SpanHandle, SpanResolutionRefusal, SpanTable};
 
 #[path = "type_guard.rs"]
 mod guard;
+pub(crate) use guard::intrinsic_diagnostic;
 
 /// Owner-declared repairs one diagnostic may carry.
 pub const REPAIR_LIMIT: usize = 8;
@@ -35,6 +35,22 @@ pub const RELATED_ISSUE_LIMIT: usize = 64;
 /// One refusal's issue space, named by its declarer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Family(&'static str);
+
+/// One adopter-declared diagnostic vocabulary name.
+///
+/// The spelling is lowercase ASCII kebab-case by construction, so an adopter-defined refusal class or observation cannot publish a name outside the contract both rosters state.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DiagnosticName(&'static str);
+
+/// How declaring one diagnostic vocabulary name refuses.
+#[must_use = "a diagnostic-name refusal states why no kebab-case name was declared"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DiagnosticNameRefusal {
+    /// The declaration supplied no name.
+    Empty,
+    /// The spelling is not lowercase ASCII kebab-case.
+    NotKebabCase,
+}
 
 /// Planning a projection.
 pub const PLANNING_FAMILY: Family = Family::declared("macroonz/planning");
@@ -62,9 +78,6 @@ pub const DECLARATION_FAMILY: Family = Family::declared("macroonz/descriptor-dec
 
 /// The support home's own declaration vocabulary, which is not the descriptor's however alike the two read.
 pub const SUPPORT_DECLARATION_FAMILY: Family = Family::declared("macroonz/support-declaration");
-
-/// Reading a carrier's plan.
-pub const DESCRIPTOR_PLAN_FAMILY: Family = Family::declared("macroonz/descriptor-plan");
 
 /// The trial helper's captured grammar.
 pub const FIRST_HELPER_FAMILY: Family = Family::declared("macroonz/trial-helper");
@@ -126,8 +139,6 @@ pub enum RefusalClass {
     RenderingNotClosed,
     /// The written explanation does not cover its kind's questions.
     ExplanationNotCovered,
-    /// The explanation had no subject to write its seats about.
-    ExplanationNotBound,
     /// A rendering would have passed a declared magnitude.
     MagnitudeNotHeld,
     /// The three values a binding seals do not belong to one expansion.
@@ -141,7 +152,7 @@ pub enum RefusalClass {
     /// The two spellings are the adopter's own, and a line about it reads them exactly as a line about any row above reads that row's.
     Declared {
         /// The stable kebab-case name.
-        name: &'static str,
+        name: DiagnosticName,
         /// The second clause of a composed line about it.
         described: &'static str,
     },
@@ -167,7 +178,7 @@ pub enum Observed {
     /// A difference an adopter declared, for an observation none of the rows above classify.
     Declared {
         /// The stable kebab-case name.
-        name: &'static str,
+        name: DiagnosticName,
         /// How the difference reads in a composed line.
         described: &'static str,
     },
@@ -184,19 +195,6 @@ pub enum RenderedMagnitude {
     RenderedUnits,
     /// The tokens one generated tree may carry at one nesting level.
     GeneratedTokens,
-}
-
-/// The seat one explanation could not bind its subject to.
-///
-/// Named seats rather than one "something was missing": a caller repairing a derivation needs to know whether the PLAN failed to declare the member, the CLOSURE failed to prove its bytes, or the plan cited no owner fact at all, and those are three different repairs.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ExplanationSeat {
-    /// The planned member standing under the role the seat is about.
-    PlannedMember,
-    /// The digest the closure proved over that member's rendered bytes.
-    ProvedDigest,
-    /// The first owner fact the plan declares as an assumption.
-    DeclaredAssumption,
 }
 
 /// What one composed line is a summary OF.
@@ -323,18 +321,6 @@ pub struct Route {
     entry: Identity<ServiceEntry>,
 }
 
-/// The one value that says who is asking.
-///
-/// The two declared names are spellings rather than identities so a door is a `const` a consumer writes down once; the identities they stand for are derived on read, under the declared-name grammar at the two positions this compiler assigns.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Door {
-    prefix: &'static str,
-    grammar: &'static str,
-    entry: &'static str,
-    binding: CrateBinding,
-    producer: Producer,
-}
-
 /// Where one projected refusal sits.
 ///
 /// A refusal about the DECLARATION has nowhere narrower to point, and a line naming a position inside it would send a reader to an arbitrary spot; a refusal about one CLAUSE of an authored attribute has exactly one place, and the reader is sent there.
@@ -376,7 +362,7 @@ struct DiagnosticSeats {
 
 /// How one step of the road says no.
 ///
-/// A step refuses in the vocabulary of the home that owns it and implements this to say how that vocabulary reads; [`Diagnostic::refused`] is the one road from any implementation to a diagnostic.
+/// A step refuses in the vocabulary of the home that owns it and implements this to say how that vocabulary reads; [`Diagnostic::refused`] projects caller-placed refusals, while intrinsically placed refusal types expose their own typed diagnostic road.
 /// The two associated constants are facts about the error's TYPE and not about a call site, for the reason this home's README gives.
 pub trait Refused {
     /// The step of the road this refusal is raised at.
@@ -407,4 +393,12 @@ pub trait Refused {
 
     /// The owner-declared repairs that apply.
     fn repairs(&self) -> Bounded<Repair, REPAIR_LIMIT>;
+}
+
+/// How a crate-owned refusal whose site is intrinsic carries that site into its diagnostic.
+///
+/// The refusal home's private projection implements this trait, so no caller supplies a second placement that can disagree with the refusal's own coordinate.
+pub(crate) trait IntrinsicRefused: Refused {
+    /// The site established by the same act that established the refusal.
+    fn site(&self) -> Site;
 }

@@ -2,20 +2,21 @@
 
 use super::types::CaptureError;
 use crate::identity::encode_bytes;
+use crate::token::encode_token_path;
 
 impl CaptureError {
-    /// This refusal's complete canonical material: which row it is, the stable name of what stopped the read, and — for a refusal about one token — that token's position in reading order.
+    /// This refusal's complete canonical material: which row it is, the stable name of what stopped the read, and — for a refusal about one token — that token's declaration-local path.
     ///
     /// The row's position leads, so two rows whose names happened to coincide still derive two related identities.
-    /// The position is a fact about the declaration rather than about a producer: every producer issues handles in reading order, so two captures of one declaration name the same token by the same number.
+    /// The producer-local span handle is excluded: captures of one declaration may issue different handles when they share a span table, while their declaration-local paths remain one fact.
     #[must_use]
-    pub fn canonical_bytes(self) -> Vec<u8> {
+    pub fn canonical_bytes(&self) -> Vec<u8> {
         let mut material = vec![self.slot()];
         match self {
             Self::Unbounded { bound } => encode_bytes(bound.name().as_bytes(), &mut material),
-            Self::Unread { cause, at } => {
+            Self::Unread { cause, path, at: _ } => {
                 encode_bytes(cause.name().as_bytes(), &mut material);
-                material.extend_from_slice(&at.index().to_be_bytes());
+                encode_token_path(path, &mut material);
             }
         }
         material

@@ -2,7 +2,7 @@
 
 Anything this compiler produces can be held to account, and this is where it answers.
 
-Nine questions are the compiler's own and every kind owes all nine: what you are, which owner required you, which declaration caused you, which profile you were decided under, which output identity and digest you are, which assumptions you rest on, what invalidates you, what happened to every related kind, and what repairs a refusal.
+The compiler's universal questions ask what an output is, who required it, what caused and qualified it, what was emitted, what it depends on, what invalidates it, what happened to related work, and what repairs a refusal.
 A kind's own questions are a second roster answered beside that one.
 Nothing narrows the first roster, so no kind can owe less by declaring less.
 
@@ -21,7 +21,7 @@ It never said WHOSE expansion those answers were about — and a kind is not an 
 A binding handed such a view would get plan A, closure A, and a complete, well-formed, correct-looking account of something else.
 
 So a view carries the parentage it was answered over, and it is not supplied: the constructor is handed the actual plan and the actual proof and reads both identities off them.
-A `Closure<K>` is reachable only by proving a rendering against a plan, so a caller standing at that road has done the proving or has nothing to hand in.
+A closure is reachable only by proving a rendering against a plan, so a caller standing at that road has done the proving or has nothing to hand in.
 The view then mints its own identity over the plan, the closure, and the canonical answers, so a binding has three names to compare and one to commit to.
 
 ## Identities, not prose
@@ -37,15 +37,5 @@ No prose enters a preimage, and nothing reads a line back.
 It answers nothing itself.
 
 The compiler does not know which owner required a projection, which facts it rests on, or what repairs a refusal — those are the caller's, and a compiler that invented them would be explaining a decision nobody made.
-It states the questions, checks the coverage, fixes the order, and names the result.
-
-## The seats
-
-`types.rs` declares, and its own child `type_guard.rs` holds every road that reaches a private field: the refusal's body, and the completion where the parentage is taken and the identity minted.
-
-`establish.rs` is the coverage pass, reaching no private field because it reads each answer's question through the same road any caller has.
-`encode.rs` writes the canonical bytes an explanation's identity is derived over, each typed value through the spelling its own home declares.
-`project.rs` renders one answer for a person, exhaustively and from static literals.
-`type_contract.rs` states the rosters' constant tables and the contracts a coverage refusal stands under.
-
-A profile's canonical bytes are not spelled here: `Profile::encode_into` is seated in `identity/` beside the type, and this home calls it like every other identity home does — one spelling, so a lawful grammar edit moves every identity family at once.
+It owns the universal accountability vocabulary, complete coverage, canonical answer order, the view's parentage and identity, and the human projection derived from each typed answer.
+Exact roster rows, encodings, bounds, and refusal contracts live on the public items that callers use.

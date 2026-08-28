@@ -339,6 +339,7 @@ fn invocation() -> Invocation {
     )
 }
 
+#[test]
 fn invalid_positions_refuse_before_adapters_are_cloned() -> Result<(), FaultRoadFailure> {
     let clone_calls = Rc::new(Cell::new(0u32));
     let validation_order = FaultCampaign::declared(vec![FaultSchedule::declared(
@@ -390,19 +391,29 @@ fn selected_faults_reach_temporal_evidence_and_the_ordinary_report() -> Result<(
 }
 
 #[test]
-fn campaign_and_injection_refuse_vacuity_ambiguity_and_dropped_positions()
--> Result<(), FaultRoadFailure> {
+fn a_campaign_refuses_vacuous_pressure() -> Result<(), FaultRoadFailure> {
     assert_eq!(
         FaultCampaign::<WriteFault, WritePostcondition>::declared(Vec::new()),
         Err(FaultCampaignRefusal::NoSchedule)
     );
-    let empty_name = schedule_name("empty-control")?;
     assert_eq!(
         FaultCampaign::declared(vec![
-            FaultSchedule::<WriteFault, WritePostcondition>::declared(empty_name, Vec::new(),)
+            FaultSchedule::<WriteFault, WritePostcondition>::declared(
+                schedule_name("empty-control-one")?,
+                Vec::new(),
+            ),
+            FaultSchedule::<WriteFault, WritePostcondition>::declared(
+                schedule_name("empty-control-two")?,
+                Vec::new(),
+            ),
         ]),
         Err(FaultCampaignRefusal::NoFaultDeclared)
     );
+    Ok(())
+}
+
+#[test]
+fn campaign_and_selection_names_remain_unambiguous() -> Result<(), FaultRoadFailure> {
     let adapter = FaultAdapter::declared(WriteFault::Capacity, WritePostcondition::StateUnchanged);
     let first_same = FaultSchedule::declared(
         schedule_name("same")?,
@@ -424,7 +435,6 @@ fn campaign_and_injection_refuse_vacuity_ambiguity_and_dropped_positions()
             "same"
         )?))
     );
-
     let campaign = campaign()?;
     assert_eq!(
         campaign.select(schedule_name("absent")?),
@@ -432,6 +442,37 @@ fn campaign_and_injection_refuse_vacuity_ambiguity_and_dropped_positions()
             "absent"
         )?))
     );
+    Ok(())
+}
+
+#[test]
+fn injection_accepts_boundary_positions_and_refuses_the_first_outside_position()
+-> Result<(), FaultRoadFailure> {
+    let boundaries = FaultCampaign::declared(vec![FaultSchedule::declared(
+        schedule_name("boundaries")?,
+        vec![
+            ScheduledFault::at(
+                SequencePosition::at(0u32),
+                FaultAdapter::declared(WriteFault::Capacity, WritePostcondition::StateUnchanged),
+            ),
+            ScheduledFault::at(
+                SequencePosition::at(1u32),
+                FaultAdapter::declared(WriteFault::Poison, WritePostcondition::StateUnchanged),
+            ),
+        ],
+    )])?;
+    let boundaries = boundaries.select(schedule_name("boundaries")?)?;
+    let injected = inject(&boundaries, commands())?;
+    assert_eq!(
+        injected
+            .commands()
+            .iter()
+            .map(|command| command.faults().len())
+            .collect::<Vec<_>>(),
+        vec![1usize, 1usize]
+    );
+
+    let adapter = FaultAdapter::declared(WriteFault::Capacity, WritePostcondition::StateUnchanged);
     let outside = FaultCampaign::declared(vec![FaultSchedule::declared(
         schedule_name("outside")?,
         vec![ScheduledFault::at(SequencePosition::at(2u32), adapter)],
@@ -444,12 +485,42 @@ fn campaign_and_injection_refuse_vacuity_ambiguity_and_dropped_positions()
             commands: commands().len(),
         })
     );
+    let first = FaultCampaign::declared(vec![FaultSchedule::declared(
+        schedule_name("first-position-in-empty-sequence")?,
+        vec![ScheduledFault::at(
+            SequencePosition::at(0u32),
+            FaultAdapter::declared(WriteFault::Capacity, WritePostcondition::StateUnchanged),
+        )],
+    )])?;
+    let first = first.select(schedule_name("first-position-in-empty-sequence")?)?;
+    assert_eq!(
+        inject(&first, Vec::<WriteCommand>::new()),
+        Err(FaultInjectionRefusal::PositionOutsideSequence {
+            position: SequencePosition::at(0u32),
+            commands: 0usize,
+        })
+    );
+    Ok(())
+}
 
-    invalid_positions_refuse_before_adapters_are_cloned()?;
-
-    let stacked = FaultCampaign::declared(vec![FaultSchedule::declared(
-        schedule_name("stacked")?,
+#[test]
+fn authored_schedule_command_and_adapter_order_survive_injection() -> Result<(), FaultRoadFailure> {
+    let first_name = schedule_name("z-first-authored")?;
+    let second_name = schedule_name("a-second-authored")?;
+    let first = FaultSchedule::declared(
+        first_name,
+        vec![ScheduledFault::at(
+            SequencePosition::at(1u32),
+            FaultAdapter::declared(WriteFault::Capacity, WritePostcondition::StateUnchanged),
+        )],
+    );
+    let second = FaultSchedule::declared(
+        second_name,
         vec![
+            ScheduledFault::at(
+                SequencePosition::at(1u32),
+                FaultAdapter::declared(WriteFault::Poison, WritePostcondition::StateUnchanged),
+            ),
             ScheduledFault::at(
                 SequencePosition::at(0u32),
                 FaultAdapter::declared(WriteFault::Capacity, WritePostcondition::StateUnchanged),
@@ -459,12 +530,35 @@ fn campaign_and_injection_refuse_vacuity_ambiguity_and_dropped_positions()
                 FaultAdapter::declared(WriteFault::Poison, WritePostcondition::StateUnchanged),
             ),
         ],
-    )])?;
-    let selected = stacked.select(schedule_name("stacked")?)?;
-    let injected = inject(&selected, vec![WriteCommand(1u8)])?;
+    );
+    let campaign = FaultCampaign::declared(vec![first, second])?;
+    assert_eq!(
+        campaign
+            .schedules()
+            .iter()
+            .map(FaultSchedule::name)
+            .collect::<Vec<_>>(),
+        vec![first_name, second_name]
+    );
+
+    let selected = campaign.select(second_name)?;
+    let injected = inject(&selected, commands())?;
+    assert_eq!(injected.schedule(), second_name);
+    assert_eq!(
+        injected
+            .commands()
+            .iter()
+            .map(|command| command.command().0)
+            .collect::<Vec<_>>(),
+        vec![1u8, 2u8]
+    );
     let first_command = injected
         .commands()
         .first()
+        .ok_or(FaultRoadFailure::MissingReport)?;
+    let second_command = injected
+        .commands()
+        .get(1usize)
         .ok_or(FaultRoadFailure::MissingReport)?;
     assert_eq!(
         first_command
@@ -474,6 +568,20 @@ fn campaign_and_injection_refuse_vacuity_ambiguity_and_dropped_positions()
             .collect::<Vec<_>>(),
         vec![WriteFault::Capacity, WriteFault::Poison]
     );
-    assert_eq!(injected.fault_count(), first_command.faults().len());
+    assert_eq!(
+        second_command
+            .faults()
+            .iter()
+            .map(|fault| *fault.behavior())
+            .collect::<Vec<_>>(),
+        vec![WriteFault::Poison]
+    );
+    assert!(injected.commands().iter().all(|command| {
+        command
+            .faults()
+            .iter()
+            .all(|fault| fault.postcondition() == &WritePostcondition::StateUnchanged)
+    }));
+    assert_eq!(injected.fault_count(), 3usize);
     Ok(())
 }

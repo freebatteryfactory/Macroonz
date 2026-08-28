@@ -1,6 +1,9 @@
-//! The canonical bytes one rendering refusal is.
+//! The canonical bytes one rendering refusal exposes.
 //!
 //! The row's position rides ahead of the material it governs, and the material is framed through the identity home's one framing, so two rows carrying the same counts never encode alike.
+//!
+//! Rendering refusals enumerate no related issues today, so a diagnostic derives no related identity from these bytes.
+//! They remain the refusal's canonical machine projection, independent of the human sentence projected from it.
 //!
 //! A rendered unit has no whole-value encoding here, and the absence is the no-double-entry law: what a unit IS reaches a preimage through its own identity and its digest, both derived over the tree's bytes at full width, and what it ANSWERS TO reaches one through the planned member it reconstructs, which the plan home already spells.
 
@@ -8,7 +11,7 @@ use super::RenderError;
 use crate::identity::encode_bytes;
 
 impl RenderError {
-    /// This refusal's canonical bytes on their own, for the related identity a diagnostic derives over it.
+    /// This refusal's canonical bytes on their own.
     #[must_use]
     pub fn canonical_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
