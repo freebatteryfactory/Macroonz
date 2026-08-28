@@ -11,6 +11,7 @@ No ignored warehouse, custom filesystem sealer, compiled output, raw profile, or
 - The source base was `fdc8691f56eb1134c54b357344d169636ff35c1b` on `codex/macroonz-repository-completion`.
 - Qualification executed against the complete source snapshot now recorded by `b5d3a5b9b482e48a75bb9d0a7f562f5ba6c33a0f`.
 - That source commit and its push occurred externally while qualification was running, so this receipt is retained by a later local evidence commit rather than folded into the externally created commit.
+- Local commit `b83922d6eb51873fabc38599b8c9537e9a2600ff` makes the successful facade example remove its exact scratch run after the qualification audit found accumulated example output.
 - The product graph remained the four existing packages plus the compiler-required narrow proc-macro test fixture.
 - Stable Rust 1.98 and its matching LLVM tools were the only coverage toolchain.
 - No Frida, LibAFL, TinyInst, native instrumentation dependency, nightly toolchain, unsafe source, lint escape, feature, or qualification Cargo package entered the tree.
@@ -39,6 +40,7 @@ No ignored warehouse, custom filesystem sealer, compiled output, raw profile, or
 - `RUSTDOCFLAGS=-Dwarnings cargo +1.98.0 doc -j1 --workspace --all-features --no-deps` passed.
 - `cargo +1.98.0 check -j1 --workspace --all-features --target wasm32-unknown-unknown` passed.
 - `cargo +1.98.0 run -j1 --example rustc_coverage --features harness` passed.
+- The facade example passed again after its exact successful-run cleanup was added and created no new retained scratch directory.
 - The focused `fuzz_compose` target passed 11 of 11 tests after the final cleanup repair.
 
 ## WSL-native qualification
@@ -48,6 +50,7 @@ No ignored warehouse, custom filesystem sealer, compiled output, raw profile, or
 - The host compiler was Rust 1.98.0 for `x86_64-unknown-linux-gnu` with LLVM 22.1.8.
 - The focused `fuzz_compose` target passed 11 of 11 tests.
 - The root facade `rustc_coverage` example passed.
+- The root facade example passed again with successful-run cleanup active.
 - Locked default-full, harness-only, diet, and renamed-dependency path adopters passed from Linux-filesystem scratch projects.
 - This is WSL-native evidence and is not a physical-Linux, cloud-Linux, macOS, or ARM receipt.
 
@@ -64,4 +67,6 @@ No ignored warehouse, custom filesystem sealer, compiled output, raw profile, or
 - Physical Linux, cloud Linux, macOS, and ARM64 remain unexecuted.
 - Stable repository line or region coverage, targeted mutation, long schedule, and performance campaigns remain separate Wave F evidence planes.
 - GitHub governance, hosted CI, merge, publication, attestation, and registry-delivery work remain at their explicit human boundaries.
-- Transient Windows and WSL build trees remain disposable after a local evidence commit retains this receipt and the source/tests retain every meaningful finding.
+- The exact Linux-filesystem WSL qualification checkout was removed after its retained observations were recorded.
+- Host policy blocked direct recursive deletion of the exact Windows scratch directories, so they were moved recoverably out of the repository to `C:\Users\eayou\Downloads\macroonz-wave-f-scratch-20260827`.
+- The recoverable Windows scratch archive is disposable and has no evidence authority.
