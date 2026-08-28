@@ -55,10 +55,7 @@ A magnitude is a fact about the whole declaration and no one token overran it, s
 
 A caller that does hold a door projects it through `Diagnostic::refused` instead, under the placement `AtToken { token, spans: &SpanTable::ProducerHeld }` — which is the posture this host stands in, and the reason that arm exists.
 
-## The seats
+## Ownership
 
-`types.rs` declares the span custody, the capture refusal, and what a value answers to be emitted.
-
-Its own child `type_guard.rs` holds every road that reaches the custody's private seat.
-`type_contract.rs` states the refusal's row position and the contracts it stands under, and implements emission for an expansion.
-`capture.rs`, `emit.rs`, and `place.rs` own the conversions; `expand.rs` is the whole road one entry point is; `encode.rs` writes the bytes one refused capture is named by.
+This home owns only compiler-token capture, span custody, one compiler call, expansion emission, and diagnostic placement, together with the ordinary capture refusal those operations can establish before a door is known.
+Token structure and magnitudes, declaration grammar, semantic refusals, rendering, and diagnostic wording remain with their compiler owners.

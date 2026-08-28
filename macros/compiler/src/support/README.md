@@ -4,11 +4,11 @@ A declaration expands where it stands, while some of its generated material belo
 Compiling that material in the declaring crate as well as in the target would erase the boundary the declaration asked for.
 This home owns the exported carrier that preserves that boundary.
 
-## Private owners
+## Responsibilities
 
 The parent retains only declaration and schema-pin vocabulary shared across the crossing.
-The private dependency graph is `carrier -> assembly -> cargo`.
-Cargo owns material, promotion, and axes; assembly owns the checked join; carrier owns rendering and delivery.
+Carried material, its promotion, and its axes remain distinct from the checked join that assembles them and from the carrier that renders and delivers the result.
+That separation prevents rendering machinery from inventing cargo and prevents cargo from bypassing the relationships the join establishes.
 
 ## The boundary
 

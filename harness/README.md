@@ -78,6 +78,9 @@ flowchart LR
 | `clock/` | A clock the harness reads but never owns. Time is an input. |
 | `corpus/` | Warm starts from content-addressed seed packs. |
 | `fuzz/` | Thin safe-Rust composition over stable rustc coverage instrumentation and LLVM tools derived from that exact compiler: active informed readiness, root-independent coverage identity, deterministic neighboring inputs, novelty retention, safe isolated execution, and interesting-byte handoff into reduction and replay. |
+| `interleave/` | Deterministic exploration of how declared strands can merge, treating the schedule as generated input and retaining the exact order behind each reading. |
+| `network/` | A deterministic message-passing simulation over caller-declared topology, delivery, and fault facts, whose command-shaped deliveries can enter interleaving exploration. |
+| `preemption/` | Feature-gated instruction-level concurrency exploration through a target-qualified backend, with typed unavailability wherever that backend cannot lawfully run. |
 | `report/` | What a run leaves behind: trial identities, revision identities, execution keys, fingerprints, replay capsules, coverage, comparison. |
 | `oracle/` | An independent second opinion where self-agreement would be vacuous: golden vectors, an independent transcript, a structural read of generated source, a compiled read-back. |
 | `muterprater/` | Mutation pressure: which damages a subject may suffer, pressing them, and refusing to let a run claim more than its evidence affords. Four evidence roads stay physically distinct. |

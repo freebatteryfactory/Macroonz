@@ -45,7 +45,7 @@ No ignored warehouse, custom filesystem sealer, compiled output, raw profile, or
 
 ## WSL-native qualification
 
-- The qualified WSL run used a checkout on the invoking user's Linux-native home filesystem rather than the Windows checkout mounted under `/mnt/c`.
+- The qualified WSL run used a checkout on the invoking user's Linux-native home filesystem rather than the Windows checkout exposed through WSL.
 - Its Cargo target was the checkout-local `target/qualification/wave-f-rustc-fuzz` directory on that Linux filesystem.
 - The host compiler was Rust 1.98.0 for `x86_64-unknown-linux-gnu` with LLVM 22.1.8.
 - The focused `fuzz_compose` target passed 11 of 11 tests.

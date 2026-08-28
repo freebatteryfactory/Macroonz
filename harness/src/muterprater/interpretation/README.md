@@ -2,8 +2,8 @@
 
 Interpretation owns production and evaluation call types and bindings, observations, evaluation pairs and their standing, mutation witnesses, no-mutation results and parity, interpreted trust and availability, interpreted mutation evidence, execution refusals, and the substrate names those values require.
 
-The private noun home and the public verb are distinct: this home contains an `interpret` operation module and defines no public `muterprater::interpretation` ontology.
-The home door presents the owned types for the parent's existing `muterprater::*` surface, while its `interpret` module is the verb door the parent can expose at `muterprater::interpret`.
+The private noun home and the public verb are distinct: this home defines no public `muterprater::interpretation` ontology.
+Its values remain on the existing `muterprater::*` surface, while `muterprater::interpret` is the narrow public operation over them.
 
 ## Dependencies
 

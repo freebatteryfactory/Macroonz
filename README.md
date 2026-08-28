@@ -182,17 +182,8 @@ On every other target, including Wasm, the same harness result plane remains ava
 ## Working here
 
 [`AGENTS.md`](AGENTS.md) is the working law for anyone — person, model, or agent — who edits this repository, and it owns what enforcement means here.
-The wall it names, run locally:
-
-```sh
-cargo check  --workspace --all-targets --all-features
-cargo clippy --workspace --all-targets --all-features
-cargo nextest run --workspace --all-features
-cargo fmt --all -- --check
-cargo deny --workspace check
-```
-
-The wall runs with every feature on, so the optional homes — the target-qualified Loom-backed `preemption` exploration among them — are exercised together.
+[`CONTRIBUTING.md`](CONTRIBUTING.md#local-wall) owns the exact local wall rather than duplicating a second command surface here.
+That wall exercises every feature together, including the target-qualified Loom-backed `preemption` exploration, and crosses the supported Wasm posture separately.
 The pinned stable Rust 1.98 toolchain also installs `llvm-tools-preview`, whose matching `llvm-profdata` and `llvm-cov` binaries read profiles for the safe-Rust fuzz composition road.
 
 ---

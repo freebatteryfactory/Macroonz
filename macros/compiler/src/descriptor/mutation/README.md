@@ -6,9 +6,12 @@ The module carries three things: the policy the surface is lowered under, the si
 
 ## Every fact here is the declaration's
 
-An owner fact is a name the consumer declares. An operator family is a slug the consumer declares. An alternative is DATA: the semantic bytes that identify the operation, and the value it means.
+An owner fact is a name the consumer declares.
+An operator family is a slug the consumer declares.
+An alternative is DATA: the semantic bytes that identify the operation, and the value it means.
 
-Nothing here holds a roster of facts that exist or families that can be applied, and nothing in this vocabulary invents an alternative. A producer that computed pressure from what a declaration MEANS would be a producer that knew the thing it does not know; the declared-order door below computes its alternatives from the declaration's own order, and from nothing beside it.
+Nothing here holds a roster of facts that exist or families that can be applied, and nothing in this vocabulary invents an alternative.
+A producer that computed pressure from what a declaration MEANS would be a producer that knew the thing it does not know; the declared-order door below computes its alternatives from the declaration's own order, and from nothing beside it.
 
 What this home checks is shape: a mapping is one fact and one claim, a permission is one claim and a non-empty roster of families, two alternatives never carry one operation, and every roster stands inside its declared magnitude.
 
@@ -33,22 +36,19 @@ A door that does know its declaration's semantics â€” an adopter's own derive â€
 
 Each alternative carries both its operation bytes and the tokens of the value it means.
 
-A rendering that carried the meaning without the bytes would emit a value nothing could select. One that carried the bytes without the meaning would select a value nothing renders. One type, both seats required, and neither case is writable.
+A rendering that carried the meaning without the bytes would emit a value nothing could select.
+One that carried the bytes without the meaning would select a value nothing renders.
+One type, both seats required, and neither case is writable.
 
 ## An unmapped site is still a site
 
-Where the policy maps the site's owner fact to a claim, the rendered discovery carries that claim. Where it does not, the discovery carries the unmapped posture and says so.
+Where the policy maps the site's owner fact to a claim, the rendered discovery carries that claim.
+Where it does not, the discovery carries the unmapped posture and says so.
 
-Neither is a refusal here. Whether an unmapped discovery may become executable is the harness's ruling, made where the lowering is admitted, and a producer that decided it would be a second authority.
+Neither is a refusal here.
+Whether an unmapped discovery may become executable is the harness's ruling, made where the lowering is admitted, and a producer that decided it would be a second authority.
 
-## The seats
+## Ownership
 
-`types.rs` declares the kind, its one seat, and the policy and site vocabulary; `type_guard.rs` is its own child and holds every road that reaches a private field.
-
-`type_contract.rs` states what the kind is and where its unit lands.
-
-`capture.rs` reads one helper body into the declaration.
-
-`complete.rs` holds the declared-order door that completes one from the item it sits on.
-
-`render.rs` writes the tokens.
+This home owns the mutation declaration shape, the structural declared-order completion, the carried policy and site material, the deferred projection, and every refusal required to establish them.
+The consumer owns the meaning of facts, claims, operators, alternatives, and evaluation; the harness owns whether a rendered discovery becomes executable evidence.

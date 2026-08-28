@@ -44,7 +44,7 @@ The unviable mutations were generated replacements that could not construct the 
 - The iteration caught all three, with zero misses and zero timeouts.
 - The combined 44-mutant campaign therefore has no surviving viable mutation in its declared denominator.
 - Raw mutant copies, logs, and diffs remained disposable beneath `target/qualification/wave-f-fuzz-mutants-20260828` until this receipt and the owning regressions were ready to commit.
-- The host blocked direct recursive deletion and Cargo refused to clean a non-Cargo directory without `CACHEDIR.TAG`, so the exact campaign directory was moved recoverably out of the repository to the invoking user's Downloads directory as `macroonz-disposable-wave-f-fuzz-mutants-20260828`.
+- The host blocked direct recursive deletion and Cargo refused to clean a non-Cargo directory without `CACHEDIR.TAG`, so the exact campaign directory was moved recoverably out of the repository to an external archive named `macroonz-disposable-wave-f-fuzz-mutants-20260828`.
 - That moved scratch has no evidence authority, and the live repository retains no task-created mutant directory.
 
 ## Remaining boundaries

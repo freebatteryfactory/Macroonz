@@ -19,9 +19,11 @@ A stamped seat lands differently from an opaque one because it is a different ma
 
 ## Nothing here is a constant a door cannot change
 
-The helper attribute each grammar reads is a [`Grammar`] the caller declares, not a word baked in. A door registers the attribute it wants and hands the same value to the reading, so a refusal names what an author actually typed.
+The helper attribute each grammar reads is a [`Grammar`] the caller declares, not a word baked in.
+A door registers the attribute it wants and hands the same value to the reading, so a refusal names what an author actually typed.
 
-The producer's own act — the namespace it spells its facts under, the producer that emitted a table, and the door a declaration came through — is an [`Emitter`] the caller declares. A rendering composes those three into every row's origin and every table's provenance, and no authored declaration has a seat it could sign one with.
+The producer's own act — the namespace it spells its facts under, the producer that emitted a table, and the door a declaration came through — is an [`Emitter`] the caller declares.
+A rendering composes those three into every row's origin and every table's provenance, and no authored declaration has a seat it could sign one with.
 
 ## What crosses, and what does not
 
@@ -49,11 +51,13 @@ A callable living in the consumer's own target needs no binding at all: it arriv
 [`Name`], [`SupportName`], [`ModuleName`], [`TypeName`], [`FunctionName`], and [`DirectBinding`] are what a declaration's values are.
 Every one of them refuses at construction, so a name that names nothing and a spelling a consumer's compiler would read as something else are values nobody can hold.
 
-[`DeclarationError`] is how they refuse: seven shapes over one [`Seat`] roster, because what refuses is the SHAPE of the disagreement and which seat it was about is the other half of the same sentence. A bounded seat admitted later is one row on that roster rather than three rows of a refusal.
+[`DeclarationError`] is how they refuse: seven shapes over one [`Seat`] roster, because what refuses is the SHAPE of the disagreement and which seat it was about is the other half of the same sentence.
+A bounded seat admitted later is one row on that roster rather than three rows of a refusal.
 
 ## Three helper readings, told apart by position
 
-A declaration may carry three helper bodies — trial, bench, mutation — and they are separated by the position each reading stands at, never by three roles. The families their diagnostics derive in are separated the same way, which is why each grammar's refusal is its own type: a diagnostic's family tag is a fact about the type, and one type for several readings would derive one related identity for unrelated observations.
+A declaration may carry three helper bodies — trial, bench, mutation — and they are separated by the position each reading stands at, never by three roles.
+The families their diagnostics derive in are separated the same way, which is why each grammar's refusal is its own type: a diagnostic's family tag is a fact about the type, and one type for several readings would derive one related identity for unrelated observations.
 
 ## Composition
 
@@ -65,13 +69,8 @@ A composition is structurally non-empty and duplicate-free, because a compositio
 Absence and magnitude refuse before duplicates are explored, so pairwise work ranges only over an admitted provider set.
 Every refusal carries its complete finding set and cites the descriptor meaning that repairs the disagreement.
 
-## The homes
+## Ownership
 
-`vocabulary/` is what the harness publishes, in two tables.
-
-`trial/`, `bench/`, and `mutation/` are the three carrier kinds, each with its own grammar, its own guard, and its own rendering.
-`shadow/`, `network/`, and `concurrency/` are the three direct kinds: the shadow roster's two-faced imports, the network topology's builder module, and the exploration rows' generic functions, each emitted as ordinary Rust where the declaration stands.
-
-`door/` is the roads a generic entry walks, one per grammar: a captured body in, the sealed expansion out — a carrier with its axes composed from what each kind's own terminal proved for the three carrier kinds, and direct declaration-site items for the three direct ones.
-
-`types.rs` holds what the kinds share; `type_guard.rs` is its own child and holds every road that reaches a private field; `type_contract.rs` states how a refusal reads; `binding.rs` reads the direct declarations' physical paths; `composition.rs` is the duplicate scan; `emitting.rs` is the one seat the direct renders spell a generated item through.
+The shared descriptor vocabulary owns author-spelled names, physical bindings, provider composition, and the refusal shapes common to these declarations.
+Each kind owns its own grammar, informed declaration, output shape, and rendering, while each door owns the complete crossing from captured input to one sealed expansion.
+The harness owns the constructor meanings these projections address, and the proc host owns only the compiler-facing act of carrying them.

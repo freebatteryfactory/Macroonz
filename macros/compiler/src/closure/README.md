@@ -42,10 +42,7 @@ Closure issues are independent and co-establishable, so a refusal carries every 
 A body that fills its bound keeps what fits and counts the rest, which is a different statement from "no further disagreements exist".
 The refusal is an ordinary error: it prints, it is a `core::error::Error`, and it projects into a diagnostic through the one contract every refusing step implements.
 
-## The seats
+## Ownership
 
-`types.rs` declares, and its own child `type_guard.rs` holds every road that reaches a private field — the join, the partitioning, and the proof itself.
-
-`prove.rs` is the per-seat pass and the readings it takes over a rendering.
-`encode.rs` writes the canonical bytes the proof's transcript is taken over, and the bytes one issue is.
-`type_contract.rs` states the issue roster's tables and the two contracts a closure refusal stands under.
+This home owns the closure issues, the independent reading of rendered units, the reconstructed membership, the partition by declared delivery, the exact joined bytes, and the identity and diagnostic contracts over those facts.
+It does not own rendering policy, delivery vehicles, target invocation, or publication; a closure proves only the material it reconstructed and retained.

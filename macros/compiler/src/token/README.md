@@ -56,7 +56,7 @@ The private generation home's composers are the rest of what a renderer needs: p
 A renderer states what it means and never assembles punctuation by hand.
 
 The written roster grows only at its end.
-Each arm's slot lives in `encode.rs`, a slot is a byte of the tree's canonical bytes, and those bytes are what a rendered unit's identity is derived over.
+Each arm's stable slot is one byte of the tree's canonical encoding, and those bytes are what a rendered unit's identity is derived over.
 An ordinary identifier and a raw identifier occupy distinct rows, while every pre-existing row keeps its occupied slot.
 
 ## What it is not
