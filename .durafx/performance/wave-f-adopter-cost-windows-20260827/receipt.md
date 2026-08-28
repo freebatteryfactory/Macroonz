@@ -42,3 +42,9 @@ It is not a portable performance baseline, a package-archive result, or a claim 
 - The default-full and diet-lite source specimens are intentionally identical so their dependency declarations, rather than their Rust expressions, distinguish the two harness-bearing postures.
 - Package-only, registry, physical-Linux, hosted-Linux, macOS, ARM64, peak-memory, and publication observations remain separate planes.
 - Raw build output and the scratch adopters remain disposable and have no evidence authority once this receipt is committed.
+
+## Cleanup
+
+- After this receipt was committed, Cargo removed 165.6 MiB from `target/q/pf`, 109.5 MiB from `target/q/pl`, and 73.9 MiB from `target/q/pd`.
+- The validated exact scratch-adopter source tree was moved recoverably out of the repository to `C:\Users\eayou\Downloads\macroonz-night-scratch-20260827\wave-f-adopter-cost-windows-20260827` because host policy blocked a direct recursive deletion.
+- None of the five live repository scratch paths remains, and the recoverable archive has no evidence authority.

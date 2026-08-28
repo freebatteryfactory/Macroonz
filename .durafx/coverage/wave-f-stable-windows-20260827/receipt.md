@@ -58,3 +58,9 @@ The raw profile, instrumented objects, test executables, and exported summary re
 - Proc-macro, child-`rustc`, generated-package, compile-refusal, and opt-in long-campaign observations retain their separate evidence boundaries even when their parent tests contribute executed lines.
 - Physical Linux, cloud Linux, macOS, ARM64, hosted, mutation, publication, attestation, and registry planes remain unexecuted here.
 - The exported summary is a radar for bounded observer work rather than deletion or topology authority.
+
+## Cleanup
+
+- After the post-observer receipt was committed, Cargo refused to clean `target/q/c2/t` because that coverage layout carried no valid `CACHEDIR.TAG`, and host policy blocked a direct recursive deletion.
+- The validated exact `target/q/c2` tree was moved recoverably out of the repository to `C:\Users\eayou\Downloads\macroonz-night-scratch-20260827\c2`.
+- The live repository coverage path no longer exists, and the recoverable archive remains disposable with no evidence authority.
