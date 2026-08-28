@@ -98,6 +98,7 @@ fn main() -> Result<(), ExampleFailure> {
 
     retain_seed_pack(&first, &second)?;
     reduce_and_replay(&second)?;
+    std::fs::remove_dir_all(run).map_err(failure)?;
     Ok(())
 }
 
