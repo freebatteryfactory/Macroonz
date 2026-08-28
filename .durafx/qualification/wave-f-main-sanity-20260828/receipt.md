@@ -9,6 +9,7 @@ It does not activate hosted CI, governance, publication, or another host plane.
 - Sanity branch: `codex/macroonz-sanity`.
 - Merged-main base: `b7ce052b3e07455bd15512f0bd8f1fe948988f2f`.
 - Repository-specification correction: `44c5e16fb78f428c6b341a2979318de005517906`.
+- Swap-pair scratch cleanup correction: `45da78edd8f44e8502c33fecd758b6b748ad386a`.
 - The merge has exactly the parents `755e4d8fec6a16391b768bbf35e461404296fbfd` and `773544e10b966c182d722c3aeddca960cdac8040`.
 - The merge tree is byte-identical to the second parent's tree, so the merge introduced no manual resolution content.
 - The complete `report` home and Muterprater home remain unchanged from accepted snapshot `8c184279189b83e5a94d0cba3108ac561227bd87`.
@@ -63,6 +64,7 @@ It does not activate hosted CI, governance, publication, or another host plane.
 - Locked serial rustdoc passed with warnings denied.
 - Locked serial `wasm32-unknown-unknown` checking passed with every feature enabled.
 - The facade `rustc_coverage` example compiled and executed successfully.
+- The complete wall was rerun after the swap-pair scratch correction, and its generated refusal scratch was absent after the final 423-test run.
 
 ## Package and adopter observations
 
@@ -89,6 +91,12 @@ It does not activate hosted CI, governance, publication, or another host plane.
 - Guarded Cargo cleanup then removed 695 package files totaling 264.3 MiB and 1,325 adopter files totaling 790.7 MiB.
 - Direct existence checks confirmed that both exact task-created directories are absent.
 - Neither scratch directory retains evidence authority after the observations above are retained here.
+- The initial full wall also exposed 669 files and 243,741,834 bytes left by the generated swap-pair refusal target at `target/qualification/depot-swap-refusals`.
+- Guarded cleanup removed that exact retained tree, and the test now removes its claimed run on success or failure while preserving both the primary and cleanup causes if both refuse.
+- The focused two-test refusal target, strict focused Clippy, and the final complete 423-test wall all passed after that correction.
+- Direct existence checks after both focused and cumulative execution confirmed that `target/qualification/depot-swap-refusals` is absent.
+- One pre-existing empty leaf remains at `target/qualification/wave-f-mermaid-shots-20260827/pw` because a live Windows directory handle refused its removal.
+- That empty leaf contains no file, observation, or evidence authority and is not the separately sealed hosted Mermaid browser workspace.
 
 ## Remaining planes
 
