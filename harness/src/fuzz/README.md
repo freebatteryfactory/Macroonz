@@ -30,6 +30,9 @@ The ordinary [`crate::generate`] owner remains responsible for deterministic can
 
 ```mermaid
 flowchart LR
+    accTitle: Rustc coverage feedback road
+    accDescr: Generated candidate bytes run through an instrumented Rust target and matching LLVM tools, after which coverage novelty either discards the candidate or retains it for corpus, reduction, and replay use.
+
     PLAN["generate plan"] --> BYTES["candidate bytes"]
     BYTES --> TARGET["instrumented Rust target"]
     TARGET --> RAW["per-case .profraw"]

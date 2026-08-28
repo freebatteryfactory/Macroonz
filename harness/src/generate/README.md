@@ -6,6 +6,9 @@ This parent composes those owners and preserves their established public roads w
 
 ```mermaid
 flowchart LR
+    accTitle: Generation and reduction composition
+    accDescr: Declared search material becomes a complete generation census, while a separately recorded failure enters fingerprint-preserving reduction and may earn a bounded replay capsule.
+
     plan[/Declared search/]
     source[(Seekable byte stream)]
 

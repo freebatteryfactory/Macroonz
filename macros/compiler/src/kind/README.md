@@ -7,6 +7,9 @@ It never enumerates the kinds that exist, never registers one, and holds no list
 
 ```mermaid
 flowchart LR
+    accTitle: Kind vocabulary and complete accounting
+    accDescr: A kind supplies canonical content, roles, and questions, while a kind set and caller disposition record must form a complete witness before an expansion can be accounted.
+
     K["Kind<br/>what one request produces"]
     C["Canonical content<br/>what the renderer may read"]
     R["Role<br/>which seat a unit fills"]

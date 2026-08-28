@@ -7,6 +7,9 @@ The semantic home holding a bounded collection owns the meaning of that ceiling 
 
 ```mermaid
 flowchart LR
+    accTitle: Bounded collection construction
+    accDescr: Complete offerings either become bounded or required nonempty collections or receive typed refusals, while prefix capping retains what fits and records any omission.
+
     offered[[Offered items]]
     bounded{"May empty be lawful?"}
     required{"Must one item exist?"}

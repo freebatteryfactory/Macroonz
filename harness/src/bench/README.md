@@ -16,6 +16,9 @@ The executable attachment supplies the measured callable, the planted-worse call
 
 ```mermaid
 flowchart LR
+    accTitle: Benchmark qualification road
+    accDescr: A declared benchmark must pass target, toolchain, correctness, planted-control, measured-work, and post-measurement qualification before it yields a qualified reading.
+
     declared["Declared row<br/>identity + budgets"] --> admitted{"Target and toolchain<br/>agree?"}
     admitted -- no --> no_run["No caller code runs"]
     admitted -- yes --> preflight{"Correctness<br/>preflight passes?"}

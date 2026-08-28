@@ -56,6 +56,9 @@ The harness stores your names, hashes your names, and never reads inside them.
 
 ```mermaid
 flowchart LR
+    accTitle: Harness evidence composition
+    accDescr: Descriptor, generation, and scheduled adversity enter the runner, whose report can feed mutation, oracle, and benchmark evidence roads.
+
     D["descriptor<br/>a row says what it claims"] --> S["runner<br/>select · bind · execute"]
     G["generate<br/>inputs from a seed"] --> S
     F["fault · clock<br/>adversity on schedule"] --> S

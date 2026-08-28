@@ -14,6 +14,9 @@ Material is the byte-string input from which that canonical choice string is int
 
 ```mermaid
 flowchart LR
+    accTitle: Interleaving exploration road
+    accDescr: Declared strands, bounds, lineage, and transition meaning select exhaustive or sampled schedules, whose histories yield bounded standing or a replayable counterexample.
+
     subgraph authority[Declared authority]
         strands[Strand set<br/>named program orders]
         bound[Exploration bound<br/>exhaustive ceiling + samples]

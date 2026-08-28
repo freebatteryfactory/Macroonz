@@ -27,6 +27,9 @@ The last arm says so with the compiler's own refusal rather than guessing a scop
 
 ```mermaid
 flowchart LR
+    accTitle: Visibility transport across a seated module
+    accDescr: Explicit visibility spellings map to their equivalent reach one module deeper, while an opaque forwarded visibility fragment receives a compile-time refusal.
+
     site["site coordinate"] -->|"private or pub(self)"| enclosing["pub(super) in the seated module"]
     site -->|"pub(super)"| ancestor["pub(in super::super) in the seated module"]
     site -->|"pub(crate)"| crateVis["pub(crate), unchanged"]

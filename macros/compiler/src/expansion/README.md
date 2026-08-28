@@ -12,6 +12,9 @@ Only after they agree does the home derive the identity of the whole expansion.
 
 ```mermaid
 flowchart LR
+    accTitle: Expansion binding and delivery
+    accDescr: A plan, closure, and explanation bind only when their parent identities agree, after which the sealed expansion exposes proved build deliveries and addressed publication units.
+
     P["Plan<br/>what will exist"]
     C["Closure<br/>what the rendering proved"]
     E["Explanation<br/>what the decisions mean"]

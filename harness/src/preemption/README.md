@@ -10,6 +10,9 @@ The model remains the adopter's Rust, written against the backend's shadow vocab
 
 ```mermaid
 flowchart LR
+    accTitle: Preemption backend result road
+    accDescr: A typed model and declared bounds enter target-qualified scheduling, which reports unavailable or incomplete infrastructure separately from completed held or model-broke verdicts.
+
     classDef input fill:#fff4d6,stroke:#9a6700,color:#3d2b00
     classDef backend fill:#e8f1ff,stroke:#3465a4,color:#102a43
     classDef held fill:#e6f4ea,stroke:#26864a,color:#123d22

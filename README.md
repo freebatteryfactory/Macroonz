@@ -44,6 +44,9 @@ One storefront opens onto the oven, the hand that loads it, and the taste tester
 
 ```mermaid
 flowchart LR
+    accTitle: Macroonz package dependencies
+    accDescr: The macroonz facade depends on the compiler and procedural macro crates, the procedural macro crate also depends on the compiler, and the optional harness feature adds the harness crate.
+
     YOU["your crate"] --> F["macroonz"]
     F --> C["macroonz-compiler"]
     F --> PROC["macroonz-macros"]
@@ -102,6 +105,9 @@ Each step hands the next a value it cannot forge.
 
 ```mermaid
 flowchart LR
+    accTitle: Compiler request road
+    accDescr: Every request proceeds from account through intent, context, plan, render, close, explain, and bind in that order.
+
     A["1 · account"] --> I["2 · intent"] --> X["3 · context"] --> P["4 · plan"]
     P --> R["5 · render"] --> CL["6 · close"] --> E["7 · explain"] --> B["8 · bind"]
 ```

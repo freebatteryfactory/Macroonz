@@ -5,6 +5,9 @@ It receives the complete authored world, a declared selection over that world, a
 
 ```mermaid
 flowchart LR
+    accTitle: Runner assembly roads
+    accDescr: The authored world and selection admit either in-process execution or a host observation, and both roads join invocation facts in one shared complete report assembler.
+
     world[(Complete authored world)]
     selection{{Declared selection}}
     invocation[/Invocation facts/]
@@ -55,6 +58,9 @@ Every report accounts for every row, recording either a selected attempt or the 
 
 ```mermaid
 flowchart TD
+    accTitle: Complete table accounting
+    accDescr: Every authored row occupies one census seat containing either its selected attempt or the declared reason it was not selected.
+
     row[One authored row]
     selected{Selection admits it?}
     attempt[Record one run attempt]
