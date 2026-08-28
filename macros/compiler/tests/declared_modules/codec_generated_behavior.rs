@@ -3,7 +3,7 @@
 use macroonz_compiler::codec::{
     AssemblyPosture, Cardinality, CodecAssembly, CodecContent, CodecDirection, CodecIssue,
     CodecMember, CodecMemberShape, CodecPlacement, CodecShape, CodecTypePath, MEMBER_CONTRACT,
-    MemberContract, PathRooting, codec_surface,
+    MemberContract, ModuleSpelling, PathRooting, codec_surface,
 };
 use macroonz_compiler::{Bounded, CanonicalContent};
 use std::path::PathBuf;
@@ -583,6 +583,38 @@ fn generated_codec_rust_compiles_executes_and_refuses_hostile_bytes() -> Result<
         .inspected();
     let mut source = String::from(SPECIMEN_DECLARATIONS);
     source.push_str(&surface);
+    source.push_str(SPECIMEN_ASSERTIONS);
+    compile_and_run(&source)
+}
+
+/// Claim: published-module placement wraps the complete codec surface in one public module that imports its parent scope and remains executable.
+///
+/// Population: the same representative checked-assembly surface used by the generated-behavior crossing, moved from the declaration site into one named module.
+/// Hostile control: the source assertions stand outside the generated module, so compilation or execution fails if the wrapper drops parent-scope access, module visibility, the generated refusal, or either codec road.
+/// Denominator: the public `CodecPlacement::PublishedModule` route through `codec_surface` and Rust 1.98 compilation.
+/// Evidence ceiling: this establishes one module spelling and one representative owner, not arbitrary surrounding imports or nested landing modules.
+#[test]
+fn published_module_placement_compiles_and_executes_from_its_parent_scope() -> Result<(), String> {
+    let mut content = codec_content(CodecDirection::RoundTrip)?;
+    content.placement = CodecPlacement::PublishedModule {
+        spelling: ModuleSpelling::spelled("demo_codec").map_err(|refusal| refusal.to_string())?,
+    };
+    let surface = codec_surface(&content)
+        .map_err(|refusal| refusal.to_string())?
+        .inspected();
+    for spelling in [
+        "pub mod demo_codec",
+        "use super :: *",
+        "The canonical encode and decode roads",
+        "pub enum DemoRefusal",
+        "impl Demo",
+    ] {
+        assert!(surface.contains(spelling), "the wrapper omits {spelling}");
+    }
+
+    let mut source = String::from(SPECIMEN_DECLARATIONS);
+    source.push_str(&surface);
+    source.push_str("use demo_codec::DemoRefusal;");
     source.push_str(SPECIMEN_ASSERTIONS);
     compile_and_run(&source)
 }

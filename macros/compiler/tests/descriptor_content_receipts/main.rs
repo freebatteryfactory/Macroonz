@@ -4,10 +4,12 @@
 //! The reversal changes only authored order, so an encoder that sorted a roster would fail beside the exact receipts rather than appearing equivalent.
 
 use macroonz_compiler::descriptor::{
-    CaptureIssue, DeclarationError, Grammar, Seat, bench, concurrency, mutation, network, shadow,
-    trial,
+    CaptureIssue, Composition, CompositionIssue, DeclarationError, Grammar, PROVIDER_LIMIT,
+    Provider, Seat, bench, concurrency, mutation, network, shadow, trial,
 };
-use macroonz_compiler::{CanonicalContent, CapturedInput, SpanHandle, TextCapture};
+use macroonz_compiler::{
+    CanonicalContent, Capping, CapturedInput, OwnerFact, OwnerIdentity, SpanHandle, TextCapture,
+};
 
 const TRIAL_BODY: &str = r#"
     support = greet_support,
@@ -318,5 +320,96 @@ fn declared_order_completion_counts_emitted_alternatives_at_its_limit() -> Resul
             },
         }
     );
+    Ok(())
+}
+
+fn provider(subject: &'static str, discriminator: u8) -> Provider {
+    Provider {
+        identity: OwnerIdentity {
+            subject,
+            bytes: [discriminator; 32],
+        },
+        home: OwnerFact {
+            home: "descriptor-fixture",
+            name: "provider-is-owned",
+        },
+        composes: "fixture-kind",
+    }
+}
+
+/// Claim: a descriptor composition retains every uniquely identified provider in declared order and reports each doubled identity once at its first occurrence.
+/// Subject: the public `Composition::declared`, `providers`, and `CompositionError` roads.
+/// Population: two lawful providers followed by repeated occurrences of both identities.
+/// Hostile control: each identity appears more than twice, so a pairwise scan that reports every collision or reports the later occurrence disagrees with the exact issue roster.
+/// Denominator: the complete public duplicate-scan route over this declared provider roster.
+/// Evidence ceiling: this establishes identity-keyed duplicate behavior for two providers, not empty input.
+#[test]
+fn descriptor_composition_reports_each_doubled_provider_once() -> Result<(), ()> {
+    let first = provider("lane/first-provider", 1);
+    let second = provider("lane/second-provider", 2);
+    let first_again = Provider {
+        identity: first.identity,
+        home: OwnerFact {
+            home: "another-fixture",
+            name: "same-provider-identity",
+        },
+        composes: "another-kind",
+    };
+    let second_again = Provider {
+        identity: second.identity,
+        home: OwnerFact {
+            home: "another-fixture",
+            name: "same-provider-identity",
+        },
+        composes: "another-kind",
+    };
+    let composition = Composition::declared(vec![first, second]).map_err(|_| ())?;
+    assert_eq!(composition.first(), &first);
+    assert_eq!(
+        composition.providers().iter().copied().collect::<Vec<_>>(),
+        vec![first, second]
+    );
+
+    let refusal = Composition::declared(vec![first, second, first_again, second_again, first])
+        .err()
+        .ok_or(())?;
+    assert_eq!(
+        refusal.issues().iter().copied().collect::<Vec<_>>(),
+        vec![
+            CompositionIssue::ProviderDoubled {
+                provider: first.identity,
+            },
+            CompositionIssue::ProviderDoubled {
+                provider: second.identity,
+            },
+        ]
+    );
+    assert_eq!(refusal.capping(), Capping::Complete);
+    Ok(())
+}
+
+/// Claim: a duplicate-free composition beyond its declared provider magnitude refuses with the exact bound and offered count.
+/// Subject: the public `Composition::declared` bound crossing.
+/// Population: one more distinct provider identity than `PROVIDER_LIMIT` admits.
+/// Hostile control: every identity differs, so the duplicate scan cannot mask the magnitude refusal.
+/// Denominator: both sides of the provider-list upper bound, paired with the lawful two-provider control above.
+/// Evidence ceiling: this establishes upper-bound accounting, not empty input.
+#[test]
+fn descriptor_composition_reports_its_provider_magnitude() -> Result<(), ()> {
+    let providers = (0..=PROVIDER_LIMIT)
+        .map(|position| {
+            let discriminator = u8::try_from(position).unwrap_or(u8::MAX);
+            provider("lane/bounded-provider", discriminator)
+        })
+        .collect();
+    let refusal = Composition::declared(providers).err().ok_or(())?;
+    assert_eq!(
+        refusal.first_issue(),
+        &CompositionIssue::ProvidersUnbounded {
+            bound: u64::try_from(PROVIDER_LIMIT).unwrap_or(u64::MAX),
+            observed: u64::try_from(PROVIDER_LIMIT.saturating_add(1)).unwrap_or(u64::MAX),
+        }
+    );
+    assert_eq!(refusal.capping(), Capping::Complete);
     Ok(())
 }

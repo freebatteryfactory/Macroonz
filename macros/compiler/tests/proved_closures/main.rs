@@ -14,12 +14,14 @@ use macroonz_compiler::support::{
     ProvedCargo, SupportAssembly, SupportAxes,
 };
 use macroonz_compiler::{
-    BindError, Bounded, CanonicalContent, Closure, ClosureIssue, CrateBinding, Destination,
-    Disposition, Door, Expansion, GeneratedToken, GeneratedTree, InvalidationTrigger, Kind,
-    Membership, NoQuestions, Observed, Overflow, OwnerFact, OwnerIdentity, PartitionCargo, Phase,
-    Plan, PlanDecisions, Producer, RefusalClass, Refused, RenderedProjection, RenderedUnit,
-    Request, Role, TextCapture, UNIVERSAL_QUESTION_COUNT, encode_bytes,
+    BindError, Bounded, CanonicalContent, Capping, Closure, ClosureError, ClosureIssue,
+    CrateBinding, Destination, Disposition, Door, Expansion, GeneratedToken, GeneratedTree,
+    InvalidationTrigger, Kind, LineBody, Membership, NoQuestions, Observed, Overflow, OwnerFact,
+    OwnerIdentity, PartitionCargo, Phase, Plan, PlanDecisions, Producer, RefusalClass, Refused,
+    RenderedProjection, RenderedUnit, Request, Role, TextCapture, UNIVERSAL_QUESTION_COUNT,
+    encode_bytes,
 };
+use std::collections::BTreeSet;
 
 /// The kind this lane renders: two seats, delivered to two different builds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -220,6 +222,208 @@ fn the_lawful_road_binds_every_required_seat() -> Result<(), ()> {
     assert_eq!(bound.explain().seats(), UNIVERSAL_QUESTION_COUNT);
     assert_eq!(bound.closure().plan(), bound.plan().identity());
     Ok(())
+}
+
+/// One externally observed closure-issue contract.
+#[derive(Clone, Copy)]
+struct ClosureContract {
+    issue: ClosureIssue<Seat>,
+    slot: u8,
+    role: Option<Seat>,
+    observed: Observed,
+    class: RefusalClass,
+    line: &'static str,
+}
+
+/// Observe every public answer and the canonical material carried by a set of closure issues.
+fn observe_closure_contracts(rows: &[ClosureContract]) {
+    let mut encodings = BTreeSet::new();
+    for contract in rows {
+        assert_eq!(contract.issue.slot(), contract.slot);
+        assert_eq!(contract.issue.role(), contract.role);
+        assert_eq!(contract.issue.observed(), contract.observed);
+        assert_eq!(contract.issue.class(), contract.class);
+        assert_eq!(contract.issue.to_string(), contract.line);
+        assert!(encodings.insert(contract.issue.canonical_bytes()));
+    }
+    assert_eq!(encodings.len(), rows.len());
+}
+
+/// Every direct planned-versus-rendered issue exposes one complete public contract.
+///
+/// These rows cover the answers an outside diagnostic and evidence consumer relies on when one rendered seat disagrees with its plan.
+#[test]
+fn every_direct_closure_issue_exposes_one_complete_public_contract() {
+    observe_closure_contracts(&[
+        ClosureContract {
+            issue: ClosureIssue::MemberMissing { role: Seat::Head },
+            slot: 0,
+            role: Some(Seat::Head),
+            observed: Observed::SeatAbsent,
+            class: RefusalClass::RenderingNotClosed,
+            line: "the plan declares a member at head and nothing rendered one",
+        },
+        ClosureContract {
+            issue: ClosureIssue::MemberUnplanned { role: Seat::Tail },
+            slot: 1,
+            role: Some(Seat::Tail),
+            observed: Observed::ContractDisagreement,
+            class: RefusalClass::RenderingNotClosed,
+            line: "a unit was rendered at tail and the plan declares none",
+        },
+        ClosureContract {
+            issue: ClosureIssue::MemberDuplicated {
+                role: Seat::Head,
+                observed: 2,
+            },
+            slot: 2,
+            role: Some(Seat::Head),
+            observed: Observed::ContractDisagreement,
+            class: RefusalClass::RenderingNotClosed,
+            line: "2 units were rendered at head",
+        },
+        ClosureContract {
+            issue: ClosureIssue::OriginOrphan { role: Seat::Tail },
+            slot: 3,
+            role: Some(Seat::Tail),
+            observed: Observed::OriginAbsent,
+            class: RefusalClass::RenderingNotClosed,
+            line: "the unit at tail walks back to an origin the plan did not declare",
+        },
+        ClosureContract {
+            issue: ClosureIssue::DigestMismatch { role: Seat::Head },
+            slot: 4,
+            role: Some(Seat::Head),
+            observed: Observed::IdentityDisagreement,
+            class: RefusalClass::RenderingNotClosed,
+            line: "the digest at head is not the digest of the bytes that unit rendered",
+        },
+        ClosureContract {
+            issue: ClosureIssue::SemanticKeyMismatch { role: Seat::Tail },
+            slot: 5,
+            role: Some(Seat::Tail),
+            observed: Observed::IdentityDisagreement,
+            class: RefusalClass::RenderingNotClosed,
+            line: "the unit at tail answers to a semantic key the plan declared elsewhere",
+        },
+        ClosureContract {
+            issue: ClosureIssue::MaterializationMismatch { role: Seat::Head },
+            slot: 6,
+            role: Some(Seat::Head),
+            observed: Observed::ProfileDisagreement,
+            class: RefusalClass::RenderingNotClosed,
+            line: "the unit at head names a profile or an address the plan did not declare",
+        },
+    ]);
+}
+
+/// Every whole-membership or delivery issue exposes one complete public contract.
+///
+/// These rows cover the same outside answers where the disagreement is about the rebuilt set, a bounded delivery, or a publication address.
+#[test]
+fn every_whole_closure_issue_exposes_one_complete_public_contract() {
+    let address = OwnerIdentity {
+        subject: "lane.artifact",
+        bytes: [7u8; 32],
+    };
+    observe_closure_contracts(&[
+        ClosureContract {
+            issue: ClosureIssue::MemberPlannedTwice {
+                role: Seat::Tail,
+                observed: 2,
+            },
+            slot: 7,
+            role: Some(Seat::Tail),
+            observed: Observed::ContractDisagreement,
+            class: RefusalClass::RenderingNotClosed,
+            line: "the plan itself declares 2 members at tail",
+        },
+        ClosureContract {
+            issue: ClosureIssue::MembershipDisagreement { role: Seat::Head },
+            slot: 8,
+            role: Some(Seat::Head),
+            observed: Observed::ContractDisagreement,
+            class: RefusalClass::RenderingNotClosed,
+            line: "the rebuilt membership and the planned one are not the same set at head",
+        },
+        ClosureContract {
+            issue: ClosureIssue::ReconstructionEmpty,
+            slot: 9,
+            role: None,
+            observed: Observed::SeatAbsent,
+            class: RefusalClass::RenderingNotClosed,
+            line: "the rebuild produced no member at all",
+        },
+        ClosureContract {
+            issue: ClosureIssue::ReconstructionUndeclarable { observed: 33 },
+            slot: 10,
+            role: None,
+            observed: Observed::BoundExceeded,
+            class: RefusalClass::MagnitudeNotHeld,
+            line: "the 33 rebuilt members will not declare as a complete output set",
+        },
+        ClosureContract {
+            issue: ClosureIssue::JoinedTreeUnbounded {
+                destination: Destination::TestCarrier,
+            },
+            slot: 11,
+            role: None,
+            observed: Observed::BoundExceeded,
+            class: RefusalClass::MagnitudeNotHeld,
+            line: "the tokens joined for test-carrier outgrow the declared magnitude",
+        },
+        ClosureContract {
+            issue: ClosureIssue::ArtifactAddressDoubled {
+                role: Seat::Tail,
+                address,
+            },
+            slot: 12,
+            role: Some(Seat::Tail),
+            observed: Observed::ContractDisagreement,
+            class: RefusalClass::RenderingNotClosed,
+            line: "the artifact at tail stands at an address under lane.artifact already taken",
+        },
+        ClosureContract {
+            issue: ClosureIssue::ArtifactAddressAbsent { role: Seat::Head },
+            slot: 13,
+            role: Some(Seat::Head),
+            observed: Observed::SeatAbsent,
+            class: RefusalClass::RenderingNotClosed,
+            line: "the unit at head is delivered to an address and the plan names none",
+        },
+    ]);
+}
+
+/// A closure refusal projects its primary issue once and carries each further issue as related identity material.
+#[test]
+fn a_closure_refusal_projects_its_complete_diagnostic_contract() {
+    let first = ClosureIssue::MemberMissing { role: Seat::Head };
+    let related = ClosureIssue::DigestMismatch { role: Seat::Tail };
+    let refusal = ClosureError::over(first, vec![related]);
+
+    assert_eq!(
+        refusal.to_string(),
+        "the plan declares a member at head and nothing rendered one, and 1 further issues"
+    );
+    assert_eq!(Refused::class(&refusal), RefusalClass::RenderingNotClosed);
+    assert_eq!(Refused::first(&refusal), first.to_string());
+    assert_eq!(Refused::observed(&refusal), Observed::SeatAbsent);
+    assert_eq!(
+        Refused::body(&refusal),
+        LineBody::Body {
+            further: 1,
+            capping: Capping::Complete,
+        }
+    );
+    assert_eq!(Refused::related(&refusal), [related.canonical_bytes()]);
+    assert!(Refused::repairs(&refusal).is_empty());
+
+    let magnitude: ClosureError<Seat> = ClosureError::of(ClosureIssue::JoinedTreeUnbounded {
+        destination: Destination::BenchCarrier,
+    });
+    assert_eq!(Refused::class(&magnitude), RefusalClass::MagnitudeNotHeld);
+    assert_eq!(Refused::body(&magnitude), LineBody::SingleCause);
+    assert!(Refused::related(&magnitude).is_empty());
 }
 
 /// Each delivery carries what its own seats declared, and a delivery nothing was planned into says so.

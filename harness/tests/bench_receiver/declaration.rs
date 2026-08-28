@@ -1,12 +1,14 @@
-//! Claim: declaration guards and the independent row transcript preserve one exact benchmark identity algebra.
-//! Subject: public row, attachment, binding, and table constructors.
-//! Population: lawful fixture declarations and each real vacuity, duplicate, or relationship mismatch.
-//! Reversal: every constructor is challenged with the invalid state its type is meant to withhold.
-//! Denominator: the complete declaration and binding boundary exposed by this receiver.
+//! Claim: declaration guards, stamped-refusal composition, and the independent row transcript preserve one exact benchmark identity algebra.
+//! Subject: public row, attachment, binding, and table constructors, plus their common stamped-refusal family.
+//! Population: lawful fixture declarations, each real vacuity, duplicate, or relationship mismatch, and every source refusal the stamped family carries.
+//! Reversal: every constructor is challenged with the invalid state its type is meant to withhold, and every source refusal is converted into its exact stamped arm.
+//! Denominator: the complete declaration and binding boundary exposed by this receiver, including all nine public stamped-refusal conversions.
 //! Evidence ceiling: public construction and identity bytes only, not host execution or performance.
-//! Retained regression: changed refusal priority, accepted vacuity, duplicate identity, or row-key preimage drift.
+//! Retained regression: changed refusal priority, flattened refusal cause, accepted vacuity, duplicate identity, or row-key preimage drift.
 
 use super::{fixture, support::*};
+use macroonz_harness::bench::BenchRowRefusal;
+use macroonz_harness::descriptor::{EncodeRefusal, TrialTableRefusal};
 
 #[test]
 fn row_key_matches_an_independent_eight_fact_transcript() -> Result<(), BenchRoadFailure> {
@@ -78,6 +80,63 @@ fn declaration_boundaries_refuse_vacuity_and_duplicates() -> Result<(), BenchRoa
             duplicate: 1,
         }) if repeated == observation
     ));
+    Ok(())
+}
+
+#[test]
+fn stamp_refusal_conversions_keep_each_constructor_cause_whole() -> Result<(), BenchRoadFailure> {
+    let name = NameRefusal::EmptyNamespace;
+    assert_eq!(BenchStampRefusal::from(name), BenchStampRefusal::Name(name));
+
+    let axis = InputSizeAxisRefusal::TooShort { found: 1usize };
+    assert_eq!(
+        BenchStampRefusal::from(axis),
+        BenchStampRefusal::InputSizeAxis(axis)
+    );
+
+    let budgets = DeclaredBudgetsRefusal::NoSamples;
+    assert_eq!(
+        BenchStampRefusal::from(budgets),
+        BenchStampRefusal::Budgets(budgets)
+    );
+
+    let formula = WorkFormulaRefusal::Empty;
+    assert_eq!(
+        BenchStampRefusal::from(formula),
+        BenchStampRefusal::WorkFormula(formula)
+    );
+
+    let row = BenchRowRefusal::Encoding(EncodeRefusal::LengthPastEncodingWidth);
+    assert_eq!(BenchStampRefusal::from(row), BenchStampRefusal::Row(row));
+
+    let attachment = BenchAttachmentRefusal::NoObservation;
+    assert_eq!(
+        BenchStampRefusal::from(attachment),
+        BenchStampRefusal::Attachment(attachment)
+    );
+
+    let row_workload = WorkloadRef::named(OWNER, "stamp-row-workload")?;
+    let attachment_workload = WorkloadRef::named(OWNER, "stamp-attachment-workload")?;
+    let binding = BenchBindingRefusal::Workload {
+        row: row_workload,
+        attachment: attachment_workload,
+    };
+    assert_eq!(
+        BenchStampRefusal::from(binding.clone()),
+        BenchStampRefusal::Binding(binding)
+    );
+
+    let preflight = TrialTableRefusal::NameNotParsed(NameRefusal::EmptyStem);
+    assert_eq!(
+        BenchStampRefusal::from(preflight),
+        BenchStampRefusal::Preflight(preflight)
+    );
+
+    let table = BenchTableRefusal::Empty;
+    assert_eq!(
+        BenchStampRefusal::from(table),
+        BenchStampRefusal::Table(table)
+    );
     Ok(())
 }
 
