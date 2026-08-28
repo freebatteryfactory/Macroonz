@@ -61,7 +61,10 @@ A declaration may carry three helper bodies — trial, bench, mutation — and t
 
 It is a declaration and not an inventory: naming, in one place, exactly which providers compose is a statement somebody made and can be held to, while an unchecked list is right when it is written and refuses nothing when it stops being right.
 
-Duplicate-free by construction — the scan runs before the value exists — and structurally non-empty, because a composition with no provider is not a composition, it is silence.
+The ordinary declaration road accepts the caller's natural `Vec`, then informs it as the private non-empty bounded provider roster before the duplicate scan runs.
+Absence and magnitude therefore speak through the same [`DeclarationError`] and [`Seat::Provider`] vocabulary as every other descriptor declaration, and arbitrarily large input never reaches the pairwise scan.
+The total one-provider road needs no fallible container ceremony, while both roads produce the same private [`Composition`] shape.
+Duplicate-free by construction — the bounded scan runs before the value exists — and structurally non-empty, because a composition with no provider is not a composition, it is silence.
 
 ## The homes
 

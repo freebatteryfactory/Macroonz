@@ -295,17 +295,15 @@ pub enum CompositionIssue {
         /// The doubled provider.
         provider: OwnerIdentity,
     },
-    /// The provider seat outran its declared magnitude.
-    ProvidersUnbounded {
-        /// The declared magnitude.
-        bound: u64,
-        /// How many were declared.
-        observed: u64,
+    /// The shared declaration vocabulary refused the provider seat.
+    Declaration {
+        /// The vocabulary's own refusal.
+        refusal: DeclarationError,
     },
 }
 
-/// How one composition refused, with every issue the scan established.
-#[must_use = "a composition refusal carries every issue the duplicate scan established"]
+/// How one composition refused, with the complete admitted declaration finding or every bounded duplicate finding.
+#[must_use = "a composition refusal carries the issues its declaration pass established"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CompositionError {
     body: Capped<CompositionIssue, COMPOSITION_ISSUE_LIMIT>,

@@ -8,8 +8,22 @@ use macroonz_compiler::descriptor::{
     Provider, Seat, bench, concurrency, mutation, network, shadow, trial,
 };
 use macroonz_compiler::{
-    CanonicalContent, Capping, CapturedInput, OwnerFact, OwnerIdentity, SpanHandle, TextCapture,
+    CanonicalContent, Capping, CapturedInput, CrateBinding, Diagnostic, Door, LineBody, Observed,
+    OwnerFact, OwnerIdentity, Phase, Placement, Producer, RefusalClass, Refused, Site, SpanHandle,
+    TextCapture,
 };
+
+/// The public door that places composition refusals for this external lane.
+const COMPOSITION_DOOR: Door = Door::declared(
+    "lane",
+    "lane.descriptor-composition.grammar",
+    "lane::descriptor_composition",
+    CrateBinding::declared("macroonz"),
+    Producer {
+        namespace: "lane",
+        name: "descriptor-content-receipts",
+    },
+);
 
 const TRIAL_BODY: &str = r#"
     support = greet_support,
@@ -337,12 +351,76 @@ fn provider(subject: &'static str, discriminator: u8) -> Provider {
     }
 }
 
+/// One declared provider roster with distinct identities.
+fn providers(count: usize) -> Vec<Provider> {
+    (0..count)
+        .map(|position| {
+            let discriminator = u8::try_from(position).unwrap_or(u8::MAX);
+            provider("lane/bounded-provider", discriminator)
+        })
+        .collect()
+}
+
+/// Claim: the total one-provider road and the ergonomic dynamic road establish the same private non-empty composition shape.
+/// Subject: the public `Composition::of_one`, `Composition::declared`, and provider-reading roads.
+/// Population: one provider presented once through each constructor.
+/// Hostile control: the separate empty-input lane below proves the dynamic road remains fallible where the total road cannot be.
+/// Denominator: both public composition constructors.
+/// Evidence ceiling: this establishes their one-provider equivalence, not arbitrary roster equivalence.
+/// Retained-regression policy: either road changing the retained provider requires an explicit composition-construction ruling.
+#[test]
+fn one_provider_needs_no_bounded_container_ceremony() -> Result<(), ()> {
+    let sole = provider("lane/sole-provider", 1);
+    let direct = Composition::of_one(sole);
+    let dynamic = Composition::declared(vec![sole]).map_err(|_| ())?;
+    assert_eq!(direct, dynamic);
+    assert_eq!(direct.first(), &sole);
+    assert_eq!(direct.providers().count(), 1usize);
+    Ok(())
+}
+
+/// Claim: an empty dynamic provider roster refuses through the descriptor home's existing provider-seat declaration vocabulary and projects through the ordinary diagnostic road.
+/// Subject: `Composition::declared`, `CompositionIssue`, `Refused`, and `Diagnostic::refused`.
+/// Population: the sole empty provider roster.
+/// Hostile control: the magnitude and duplicate lanes below establish distinct observations and canonical material.
+/// Denominator: the complete empty-input boundary.
+/// Evidence ceiling: this proves the typed refusal and projection, not a library-owned stderr side effect.
+/// Retained-regression policy: changing the seat, class, observation, phase, placement, or prose requires an explicit public diagnostic ruling.
+#[test]
+fn empty_composition_refuses_as_an_absent_provider() -> Result<(), ()> {
+    let refusal = Composition::declared(Vec::new()).err().ok_or(())?;
+    let expected = CompositionIssue::Declaration {
+        refusal: DeclarationError::Absent {
+            seat: Seat::Provider,
+        },
+    };
+    assert_eq!(refusal.first_issue(), &expected);
+    assert_eq!(refusal.to_string(), "the declaration states no provider");
+    assert_eq!(Refused::class(&refusal), RefusalClass::CarrierNotDeclared);
+    assert_eq!(Refused::observed(&refusal), Observed::SeatAbsent);
+    assert_eq!(Refused::body(&refusal), LineBody::SingleCause);
+    assert!(Refused::related(&refusal).is_empty());
+
+    let diagnostic = Diagnostic::refused(&refusal, &COMPOSITION_DOOR, &Placement::WholeDeclaration);
+    assert_eq!(diagnostic.phase(), Phase::Capture);
+    assert_eq!(diagnostic.observed(), Observed::SeatAbsent);
+    assert_eq!(diagnostic.site(), Site::WholeDeclaration);
+    assert!(
+        diagnostic
+            .summary()
+            .contains("the declaration states no provider")
+    );
+    assert!(diagnostic.related().carried().is_empty());
+    assert_eq!(diagnostic.repairs().len(), 1usize);
+    Ok(())
+}
+
 /// Claim: a descriptor composition retains every uniquely identified provider in declared order and reports each doubled identity once at its first occurrence.
 /// Subject: the public `Composition::declared`, `providers`, and `CompositionError` roads.
 /// Population: two lawful providers followed by repeated occurrences of both identities.
 /// Hostile control: each identity appears more than twice, so a pairwise scan that reports every collision or reports the later occurrence disagrees with the exact issue roster.
 /// Denominator: the complete public duplicate-scan route over this declared provider roster.
-/// Evidence ceiling: this establishes identity-keyed duplicate behavior for two providers, not empty input.
+/// Evidence ceiling: this establishes identity-keyed duplicate behavior for two providers; the empty and magnitude boundaries have their own lanes below.
 #[test]
 fn descriptor_composition_reports_each_doubled_provider_once() -> Result<(), ()> {
     let first = provider("lane/first-provider", 1);
@@ -385,31 +463,127 @@ fn descriptor_composition_reports_each_doubled_provider_once() -> Result<(), ()>
         ]
     );
     assert_eq!(refusal.capping(), Capping::Complete);
+    assert_eq!(Refused::class(&refusal), RefusalClass::CarrierNotDeclared);
+    assert_eq!(Refused::observed(&refusal), Observed::IdentityDisagreement);
+    assert_eq!(
+        Refused::body(&refusal),
+        LineBody::Body {
+            further: 1,
+            capping: Capping::Complete,
+        }
+    );
+    let related = Refused::related(&refusal);
+    let [second_issue_bytes] = related.as_slice() else {
+        return Err(());
+    };
+    assert_ne!(refusal.first_issue().canonical_bytes(), *second_issue_bytes);
+    assert!(Refused::repairs(&refusal).is_empty());
     Ok(())
 }
 
-/// Claim: a duplicate-free composition beyond its declared provider magnitude refuses with the exact bound and offered count.
+/// Claim: the exact provider ceiling is admitted and one further provider refuses through the shared declaration vocabulary with the exact bound and offered count.
 /// Subject: the public `Composition::declared` bound crossing.
-/// Population: one more distinct provider identity than `PROVIDER_LIMIT` admits.
+/// Population: exactly `PROVIDER_LIMIT` distinct identities and one more distinct identity.
 /// Hostile control: every identity differs, so the duplicate scan cannot mask the magnitude refusal.
-/// Denominator: both sides of the provider-list upper bound, paired with the lawful two-provider control above.
+/// Denominator: both sides of the provider-list upper bound.
 /// Evidence ceiling: this establishes upper-bound accounting, not empty input.
 #[test]
 fn descriptor_composition_reports_its_provider_magnitude() -> Result<(), ()> {
-    let providers = (0..=PROVIDER_LIMIT)
-        .map(|position| {
-            let discriminator = u8::try_from(position).unwrap_or(u8::MAX);
-            provider("lane/bounded-provider", discriminator)
-        })
-        .collect();
-    let refusal = Composition::declared(providers).err().ok_or(())?;
+    let lawful = Composition::declared(providers(PROVIDER_LIMIT)).map_err(|_| ())?;
+    assert_eq!(lawful.providers().count(), PROVIDER_LIMIT);
+
+    let refusal = Composition::declared(providers(PROVIDER_LIMIT.saturating_add(1)))
+        .err()
+        .ok_or(())?;
     assert_eq!(
         refusal.first_issue(),
-        &CompositionIssue::ProvidersUnbounded {
-            bound: u64::try_from(PROVIDER_LIMIT).unwrap_or(u64::MAX),
-            observed: u64::try_from(PROVIDER_LIMIT.saturating_add(1)).unwrap_or(u64::MAX),
+        &CompositionIssue::Declaration {
+            refusal: DeclarationError::Unbounded {
+                seat: Seat::Provider,
+                bound: u64::try_from(PROVIDER_LIMIT).unwrap_or(u64::MAX),
+                observed: u64::try_from(PROVIDER_LIMIT.saturating_add(1)).unwrap_or(u64::MAX),
+            },
         }
     );
     assert_eq!(refusal.capping(), Capping::Complete);
+    assert_eq!(Refused::observed(&refusal), Observed::BoundExceeded);
     Ok(())
+}
+
+/// Claim: provider magnitude is settled before duplicate exploration, so the pairwise scan receives only the bounded informed roster.
+/// Subject: the operation order inside `Composition::declared`.
+/// Population: `PROVIDER_LIMIT` distinct providers followed by one duplicate of the first.
+/// Hostile control: duplicate-first processing would report the repeated identity instead of the provider-seat overrun.
+/// Denominator: the one input where magnitude and duplication are simultaneously false.
+/// Evidence ceiling: this establishes refusal precedence and bounded duplicate work, not the scan's asymptotic complexity in isolation.
+/// Retained-regression policy: reversing the refusal order requires an explicit work-bound and diagnostic ruling.
+#[test]
+fn composition_settles_magnitude_before_duplicate_work() -> Result<(), ()> {
+    let mut declared = providers(PROVIDER_LIMIT);
+    let repeated = declared.first().copied().ok_or(())?;
+    declared.push(repeated);
+    let refusal = Composition::declared(declared).err().ok_or(())?;
+    assert_eq!(
+        refusal.first_issue(),
+        &CompositionIssue::Declaration {
+            refusal: DeclarationError::Unbounded {
+                seat: Seat::Provider,
+                bound: u64::try_from(PROVIDER_LIMIT).unwrap_or(u64::MAX),
+                observed: u64::try_from(PROVIDER_LIMIT.saturating_add(1)).unwrap_or(u64::MAX),
+            },
+        }
+    );
+    Ok(())
+}
+
+/// Claim: absence, magnitude, and each doubled identity have distinct canonical issue material.
+/// Subject: `CompositionIssue::canonical_bytes`.
+/// Population: one absent provider seat, one overrun provider seat, and two doubled provider identities.
+/// Hostile control: all four share one refusal family, so family separation cannot rescue a byte collision.
+/// Denominator: every current composition issue shape and two values of its identity-bearing shape.
+/// Evidence ceiling: this establishes separation for the current roster, not cryptographic collision resistance.
+/// Retained-regression policy: a collision or changed shape requires an explicit canonical-byte ruling.
+#[test]
+fn composition_issue_bytes_retain_shape_and_identity() {
+    assert_eq!(
+        CompositionIssue::ProviderDoubled {
+            provider: provider("lane/first-provider", 1).identity,
+        }
+        .slot(),
+        0
+    );
+    assert_eq!(
+        CompositionIssue::Declaration {
+            refusal: DeclarationError::Absent {
+                seat: Seat::Provider,
+            },
+        }
+        .slot(),
+        1
+    );
+    let bytes = std::collections::BTreeSet::from([
+        CompositionIssue::Declaration {
+            refusal: DeclarationError::Absent {
+                seat: Seat::Provider,
+            },
+        }
+        .canonical_bytes(),
+        CompositionIssue::Declaration {
+            refusal: DeclarationError::Unbounded {
+                seat: Seat::Provider,
+                bound: 64,
+                observed: 65,
+            },
+        }
+        .canonical_bytes(),
+        CompositionIssue::ProviderDoubled {
+            provider: provider("lane/first-provider", 1).identity,
+        }
+        .canonical_bytes(),
+        CompositionIssue::ProviderDoubled {
+            provider: provider("lane/second-provider", 2).identity,
+        }
+        .canonical_bytes(),
+    ]);
+    assert_eq!(bytes.len(), 4usize);
 }

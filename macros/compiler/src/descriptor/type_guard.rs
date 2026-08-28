@@ -11,7 +11,7 @@ use super::{
     CompositionIssue, DeclarationError, DirectBinding, FunctionName, Grammar, HelperRefusal,
     ModuleName, Name, PATH_SEGMENT_LIMIT, PROVIDER_LIMIT, Provider, Seat, SupportName, TypeName,
 };
-use crate::bounded::{Capped, Capping, NonEmpty};
+use crate::bounded::{Capped, Capping, NonEmpty, NonEmptyError};
 use crate::token::SpanHandle;
 
 impl Grammar {
@@ -192,7 +192,7 @@ impl HelperRefusal {
 impl CompositionError {
     /// The refusal one established issue list amounts to, or nothing where the list is empty.
     #[must_use]
-    pub fn established(issues: Vec<CompositionIssue>) -> Option<Self> {
+    fn established(issues: Vec<CompositionIssue>) -> Option<Self> {
         let mut walk = issues.into_iter();
         let first = walk.next()?;
         Some(Self {
@@ -200,13 +200,10 @@ impl CompositionError {
         })
     }
 
-    /// The refusal one overrun provider set amounts to.
-    pub fn bounded(bound: usize, observed: usize) -> Self {
+    /// The refusal one declaration issue amounts to.
+    const fn one(issue: CompositionIssue) -> Self {
         Self {
-            body: Capped::all(NonEmpty::one(CompositionIssue::ProvidersUnbounded {
-                bound: u64::try_from(bound).unwrap_or(u64::MAX),
-                observed: u64::try_from(observed).unwrap_or(u64::MAX),
-            })),
+            body: Capped::all(NonEmpty::one(issue)),
         }
     }
 
@@ -230,23 +227,40 @@ impl CompositionError {
 }
 
 impl Composition {
+    /// One complete composition from its sole provider.
+    #[must_use]
+    pub const fn of_one(provider: Provider) -> Self {
+        Self {
+            providers: NonEmpty::one(provider),
+        }
+    }
+
     /// Declare the complete provider set.
     ///
+    /// The ordinary caller supplies its natural `Vec`; this guard turns it into the private non-empty bounded representation before any duplicate work begins.
     /// Duplicates are refused rather than deduplicated: silently keeping one of two entries is how a composition stops matching the providers that exist.
     ///
     /// # Errors
     ///
-    /// Returns [`CompositionError`] naming every provider identity declared more than once, and the provider seat where the set outgrows [`PROVIDER_LIMIT`].
+    /// Returns [`CompositionError`] carrying [`DeclarationError::Absent`] where no provider was supplied, [`DeclarationError::Unbounded`] where the provider set outgrows [`PROVIDER_LIMIT`], then every provider identity declared more than once after the roster is admitted.
     pub fn declared(providers: Vec<Provider>) -> Result<Self, CompositionError> {
-        if let Some(refusal) = CompositionError::established(doubled_providers(&providers)) {
+        let admitted = NonEmpty::new(providers).map_err(|refusal| {
+            let refusal = match refusal {
+                NonEmptyError::Empty(_) => DeclarationError::Absent {
+                    seat: Seat::Provider,
+                },
+                NonEmptyError::Overflow(overflow) => {
+                    DeclarationError::unbounded(Seat::Provider, overflow.capacity, overflow.offered)
+                }
+            };
+            CompositionError::one(CompositionIssue::Declaration { refusal })
+        })?;
+        if let Some(refusal) = CompositionError::established(doubled_providers(&admitted)) {
             return Err(refusal);
         }
-        let offered = providers.len();
-        NonEmpty::new(providers)
-            .map(|admitted| Self {
-                providers: admitted,
-            })
-            .map_err(|_| CompositionError::bounded(PROVIDER_LIMIT, offered))
+        Ok(Self {
+            providers: admitted,
+        })
     }
 
     /// The first declared provider; structurally there is one.
