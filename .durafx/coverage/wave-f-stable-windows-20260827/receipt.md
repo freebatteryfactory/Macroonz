@@ -26,6 +26,23 @@ The raw profile, instrumented objects, test executables, and exported summary re
 - Stable branch and MC/DC reporting each returned a zero-member denominator, so no branch or condition percentage is claimed.
 - The disposable JSON summary was 114,120 bytes with SHA-256 `FB49188274E3E8B74951287774094A5FC604192F1C3EED563E764C39C84E767C`.
 
+## Post-observer census
+
+- A second stable census executed the clean tracked snapshot `fb1307bc5a2216a9ed77aea20646ffab75d6486d`, including the observer source committed at `53cc0df59cdce64aa524051c96888746e5a801b7`.
+- `cargo +1.98.0 llvm-cov nextest -j1 --workspace --all-features --locked --no-fail-fast --json --summary-only --output-path C:\Users\eayou\code_dir\Macroonz\target\q\c2\summary.json` completed successfully with `CARGO_TARGET_DIR=C:\Users\eayou\code_dir\Macroonz\target\q\c2\t`.
+- The second ordinary nextest denominator passed 411 of 411 tests across 60 binaries, while nine intentional child or ignored tests remained outside direct nextest enumeration.
+- Function coverage rose to 2,915 of 3,366, or 86.60130718954248 percent.
+- Line coverage rose to 21,487 of 24,747, or 86.82668606295712 percent.
+- Region coverage rose to 29,455 of 34,454, or 85.49079932663841 percent.
+- Instantiation coverage rose to 5,710 of 13,350, or 42.77153558052434 percent.
+- Stable branch and MC/DC reporting again returned a zero-member denominator, so no branch or condition percentage is claimed.
+- The second disposable JSON summary was 114,317 bytes with SHA-256 `17F0F603ED298EC53CCA560A44DC37BDB1A0F7665149C89DA2BACF0AB90D0570`.
+- The new external observers moved `harness/src/bench/type_contract.rs` to 9 of 9 functions and 27 of 27 lines, `macros/compiler/src/explanation/project.rs` to 1 of 1 function and 13 of 13 lines, and `macros/compiler/src/descriptor/composition.rs` to 3 of 3 functions and 20 of 20 lines.
+- The new support observers moved `macros/compiler/src/support/encode.rs` to 2 of 2 functions and 8 of 8 lines and `macros/compiler/src/support/type_contract.rs` to 9 of 9 functions and 42 of 42 lines.
+- The closure contract observer moved `macros/compiler/src/closure/type_contract.rs` to 12 of 12 functions and 157 of 159 lines, so the file is strongly observed but not represented as wholly line-covered.
+- The published-module codec crossing increased observation of `macros/compiler/src/codec/render.rs`, which remains partially covered at 1 of 2 functions and 21 of 31 lines.
+- Coverage remains a routing radar rather than topology or deletion authority.
+
 ## Windows path observation
 
 - The first run used the longer exact target `target/qualification/wave-f-stable-coverage-windows-20260827`.
