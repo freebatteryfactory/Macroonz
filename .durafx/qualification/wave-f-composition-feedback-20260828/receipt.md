@@ -57,7 +57,9 @@ This Git-tracked receipt records the complete local Windows qualification of the
 - Zero mutants timed out.
 - The exact disposable campaign path contains 91 files and 2,642,629 bytes before cleanup.
 - The exact disposable path is `target/qualification/wave-f-composition-polish-mutants-20260828`.
-- Cleanup is pending until this retained receipt is committed.
+- After this receipt was committed, the exact validated path was removed with Cargo's cache-directory guard.
+- Cleanup removed 93 files totaling 2.5 MiB, including the temporary cache tag required for guarded cleanup.
+- A direct existence check confirmed that the exact disposable path no longer exists.
 
 ## Boundary
 
