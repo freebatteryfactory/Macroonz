@@ -81,12 +81,14 @@ It does not activate hosted CI, governance, publication, or another host plane.
 - Disposable path adopters generated locked offline graphs, compiled, and executed successfully in default-full, diet-lite, diet, and renamed-dependency postures.
 - The first disposable adopter preflight refused because a nested scratch project had not declared its own workspace boundary; adding the empty scratch-only workspace table repaired that test topology without changing product source.
 
-## Scratch custody before cleanup
+## Scratch custody and cleanup
 
-- The compiler-package scratch is `target/qualification/wave-f-main-sanity-package-20260828` with 695 files and 277,163,108 bytes.
-- The adopter scratch is `target/qualification/wave-f-main-sanity-adopters-20260828` with 1,323 files and 829,120,632 bytes.
-- These exact task-created directories remain until this receipt is committed.
-- Neither scratch directory has evidence authority after the observations above are retained here.
+- Before cleanup, the compiler-package scratch at `target/qualification/wave-f-main-sanity-package-20260828` contained 695 files and 277,163,108 bytes.
+- Before its disposal tag was added, the adopter scratch at `target/qualification/wave-f-main-sanity-adopters-20260828` contained 1,323 files and 829,120,632 bytes.
+- Both exact task-created directories remained until this receipt was committed.
+- Guarded Cargo cleanup then removed 695 package files totaling 264.3 MiB and 1,325 adopter files totaling 790.7 MiB.
+- Direct existence checks confirmed that both exact task-created directories are absent.
+- Neither scratch directory retains evidence authority after the observations above are retained here.
 
 ## Remaining planes
 
