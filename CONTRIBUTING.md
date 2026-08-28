@@ -30,7 +30,7 @@ Keep the evidence and the unproven planes in the same report as the change.
 
 ## Hosted pulse
 
-The manual [hosted qualification](.github/README.md) observes the committed wall on declared cloud hosts after the local wall is green.
+The manual [hosted qualification](.github/workflows/README.md) observes the committed wall on declared cloud hosts after the local wall is green.
 It reports host and architecture evidence without replacing local enforcement or human acceptance.
 
 ## Git boundaries
