@@ -54,6 +54,10 @@ pub fn greet(input: TokenStream) -> TokenStream {
 }
 ```
 
+`Greeting`, `GREET_DOOR`, and `impl_tokens` in this proc-host sketch are adopter-owned placeholders.
+The package ships a complete one-unit callable compiler at `examples/callable_compiler.rs` using their minimal equivalents; run `cargo run -p macroonz-compiler --example callable_compiler` from the workspace root.
+That example executes `Request::over(...).render(...)`, not `host::expand` or a proc-macro host crossing.
+
 `Greeting::read` is yours.
 The compiler hands you typed token trees with spans and never parses your attribute for you, because the moment it did, it would own your grammar.
 
