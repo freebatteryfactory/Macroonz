@@ -127,7 +127,7 @@ fn external_compilation_contracts_enter_derived_runner_standing() -> Result<(), 
 
         let observations = SUBJECTS
             .iter()
-            .map(|subject| observe(&scratch, subject))
+            .map(|subject| observe(&scratch, &host, subject))
             .collect::<Result<Vec<_>, _>>()?;
         let cases = admission_cases(&observations)?;
         admit(&cases, &host)
@@ -242,9 +242,13 @@ fn mismatch_verdicts(
     Ok((wrong_code_verdict, wrong_span_verdict))
 }
 
-fn observe(scratch: &scratch::Scratch, subject: &Subject) -> Result<ObservedCompilation, String> {
+fn observe(
+    scratch: &scratch::Scratch,
+    host: &scratch::HostFacts,
+    subject: &Subject,
+) -> Result<ObservedCompilation, String> {
     let output = scratch
-        .check(subject.stem)
+        .check(subject.stem, host)
         .map_err(|failure| format!("{} was not runnable: {failure:?}", subject.stem))?;
     let locus = RelativeSourcePath::informed(&format!("src/bin/{}", subject.file_name))
         .map_err(|refusal| format!("{} locus was refused: {refusal:?}", subject.stem))?;

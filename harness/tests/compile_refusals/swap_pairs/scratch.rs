@@ -142,7 +142,7 @@ impl Scratch {
         }
     }
 
-    pub(crate) fn check(&self, bin_name: &str) -> Result<Output, HostFailure> {
+    pub(crate) fn check(&self, bin_name: &str, host: &HostFacts) -> Result<Output, HostFailure> {
         Command::new("cargo")
             .arg("+1.98.0")
             .arg("check")
@@ -150,6 +150,8 @@ impl Scratch {
             .arg(&self.manifest)
             .arg("--bin")
             .arg(bin_name)
+            .arg("--target")
+            .arg(host.target())
             .arg("--target-dir")
             .arg(&self.target)
             .arg("--locked")

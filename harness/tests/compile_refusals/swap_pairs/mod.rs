@@ -20,13 +20,13 @@ fn every_swap_pair_is_observed_in_its_declared_direction() -> Result<(), String>
             challenges.push(challenge);
         }
 
-        scratch
+        let host = scratch
             .generate_lockfile()
             .map_err(|failure| format!("scratch lock generation was not runnable: {failure:?}"))?;
 
         for challenge in &challenges {
             let lawful = scratch
-                .check(&challenge.lawful.bin_name)
+                .check(&challenge.lawful.bin_name, &host)
                 .map_err(|failure| format!("lawful control was not runnable: {failure:?}"))?;
             diagnostic::require_compilation(
                 &lawful,
@@ -36,7 +36,7 @@ fn every_swap_pair_is_observed_in_its_declared_direction() -> Result<(), String>
             )?;
 
             let hostile = scratch
-                .check(&challenge.hostile.bin_name)
+                .check(&challenge.hostile.bin_name, &host)
                 .map_err(|failure| format!("hostile control was not runnable: {failure:?}"))?;
             diagnostic::require_compilation(
                 &hostile,
