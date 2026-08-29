@@ -207,6 +207,12 @@ fn exact_compilation_values_refuse_noncanonical_error_codes_and_source_coordinat
         RustcErrorCode::informed("EABCD"),
         Err(RustcErrorCodeRefusal::Grammar)
     );
+    for spelling in ["EA234", "E1B34", "E12C4", "E123D"] {
+        assert_eq!(
+            RustcErrorCode::informed(spelling),
+            Err(RustcErrorCodeRefusal::Grammar)
+        );
+    }
     assert_eq!(
         RelativeSourcePath::informed(""),
         Err(RelativeSourcePathRefusal::Empty)
