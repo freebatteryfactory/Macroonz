@@ -25,8 +25,6 @@ use macroonz_harness::runner::{
 };
 
 const OWNER: &str = "compile-contract-holder";
-const TARGET: &str = "x86_64-pc-windows-msvc";
-const TOOLCHAIN: &str = "rustc-1.98.0";
 const HANDWRITTEN_LAWFUL: &str = concat!(
     "fn require(_: u8) {}\n",
     "\n",
@@ -123,7 +121,7 @@ fn external_compilation_contracts_enter_derived_runner_standing() -> Result<(), 
         for subject in &SUBJECTS {
             scratch.write_source(subject.file_name, subject.source)?;
         }
-        scratch.generate_lockfile().map_err(|failure| {
+        let host = scratch.generate_lockfile().map_err(|failure| {
             format!("compile-contract lock generation was not runnable: {failure:?}")
         })?;
 
@@ -132,7 +130,7 @@ fn external_compilation_contracts_enter_derived_runner_standing() -> Result<(), 
             .map(|subject| observe(&scratch, subject))
             .collect::<Result<Vec<_>, _>>()?;
         let cases = admission_cases(&observations)?;
-        admit(&cases)
+        admit(&cases, &host)
     })();
     scratch.finish(outcome)
 }
@@ -296,7 +294,7 @@ fn retained_check(_: &Invocation) -> TrialConclusion {
     TrialConclusion::Passed
 }
 
-fn admit(cases: &[AdmissionCase]) -> Result<(), String> {
+fn admit(cases: &[AdmissionCase], host: &scratch::HostFacts) -> Result<(), String> {
     let check_material = [
         include_bytes!("mod.rs").as_slice(),
         include_bytes!("../swap_pairs/diagnostic.rs").as_slice(),
@@ -304,7 +302,7 @@ fn admit(cases: &[AdmissionCase]) -> Result<(), String> {
     ]
     .concat();
     let check_revision = RevisionBinding::derived(DerivedRevision::from_material(&check_material));
-    let invocation = invocation();
+    let invocation = invocation(host);
     let mut bindings = Vec::with_capacity(cases.len());
     let mut records = Vec::with_capacity(cases.len());
 
@@ -319,7 +317,7 @@ fn admit(cases: &[AdmissionCase]) -> Result<(), String> {
         );
         let admitted = record_one(&binding, &invocation, record.clone())
             .map_err(|refusal| format!("record_one refused {}: {refusal:?}", case.stem))?;
-        assert_report(&admitted, case, subject_revision, check_revision)?;
+        assert_report(&admitted, case, subject_revision, check_revision, host)?;
         bindings.push(binding);
         records.push(record);
     }
@@ -356,7 +354,7 @@ fn admit(cases: &[AdmissionCase]) -> Result<(), String> {
             .disposition()
             .report()
             .ok_or_else(|| format!("{} was not selected", case.stem))?;
-        assert_report(admitted, case, subject_revision, check_revision)?;
+        assert_report(admitted, case, subject_revision, check_revision, host)?;
     }
     Ok(())
 }
@@ -407,7 +405,7 @@ fn binding(
     .map_err(|refusal| format!("binding was refused: {refusal:?}"))
 }
 
-fn invocation() -> Invocation {
+fn invocation(host: &scratch::HostFacts) -> Invocation {
     Invocation::declared(
         InvocationProfile::declared(
             CaseBudget::declared(1u32),
@@ -415,8 +413,8 @@ fn invocation() -> Invocation {
             TimeBudget::declared(60_000_000_000u64),
         ),
         TargetBinding::bound(
-            TargetTriple::declared(TARGET),
-            ToolchainIdentity::declared(TOOLCHAIN),
+            TargetTriple::declared(host.target()),
+            ToolchainIdentity::declared(host.toolchain()),
         ),
         TrialSite::located(
             module_path!(),
@@ -433,11 +431,12 @@ fn assert_report(
     case: &AdmissionCase,
     subject_revision: RevisionBinding,
     check_revision: RevisionBinding,
+    host: &scratch::HostFacts,
 ) -> Result<(), String> {
     let standing = report.standing();
     let key = standing.key();
-    assert_eq!(key.target().target().spelling(), TARGET);
-    assert_eq!(key.target().toolchain().spelling(), TOOLCHAIN);
+    assert_eq!(key.target().target().spelling(), host.target());
+    assert_eq!(key.target().toolchain().spelling(), host.toolchain());
     assert_eq!(
         key.subject(),
         SubjectRevisionId::of_binding(subject_revision)
