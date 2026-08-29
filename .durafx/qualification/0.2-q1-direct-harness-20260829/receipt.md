@@ -51,5 +51,119 @@ Can a hand-written adopter target use the published harness batteries to state a
 
 ## Custody boundary
 
-The source hashes above preserve the exact small specimen needed to audit the result.
-The scratch project and its build products remain disposable and may be removed only after this receipt is committed and verified.
+The exact authored specimen is retained below in this one readable receipt rather than as a tracked qualification package.
+The lockfile hash above records the resolved graph; every non-root dependency is an immutable registry package named by that lockfile and the published package checksum recorded by Q0.
+The scratch project and its build products remain disposable and may be removed after this receipt is committed and verified.
+
+### `Cargo.toml`
+
+```toml
+[package]
+name = "macroonz-direct-harness-census"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.98.0"
+publish = false
+
+[dev-dependencies]
+macroonz-harness = "=0.1.0"
+
+[lints.rust]
+unsafe_code = "forbid"
+warnings = "deny"
+
+[workspace]
+```
+
+### `rust-toolchain.toml`
+
+```toml
+[toolchain]
+channel = "1.98.0"
+profile = "minimal"
+components = ["rustfmt", "clippy"]
+```
+
+### `src/lib.rs`
+
+```rust
+//! Ordinary handwritten source used by the direct-harness census.
+
+/// One neutral state.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct State(pub u8);
+
+/// One neutral input.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Input(pub u8);
+
+/// The opening state.
+#[must_use]
+pub const fn opening() -> State {
+    State(0u8)
+}
+
+/// Apply one input.
+#[must_use]
+pub const fn apply(state: &State, input: &Input) -> State {
+    State(state.0.saturating_add(input.0))
+}
+```
+
+### `tests/temporal.rs`
+
+```rust
+//! A direct harness journey over handwritten source and no procedural macro.
+
+use macroonz_direct_harness_census::{Input, State, apply, opening};
+use macroonz_harness::properties::{
+    ContractRefusal, Holding, TemporalClaim, TemporalDemand, TransitionContract, holds_over_history,
+};
+use macroonz_harness::report::{FailureClass, FindingCause, TrialConclusion};
+
+const BOUND_CAUSE: FindingCause = FindingCause::named("census", "state-remains-bounded");
+
+fn bounded(state: &State) -> Holding {
+    if state.0 <= 3u8 {
+        Holding::Holds
+    } else {
+        Holding::Fails
+    }
+}
+
+fn bounded_contract() -> Result<TransitionContract<State, Input>, ContractRefusal> {
+    TransitionContract::declared(
+        opening,
+        apply,
+        vec![TemporalClaim::declared(
+            BOUND_CAUSE,
+            TemporalDemand::Always(bounded),
+        )],
+    )
+}
+
+#[test]
+fn handwritten_source_is_a_complete_harness_subject() -> Result<(), ContractRefusal> {
+    let contract = bounded_contract()?;
+
+    assert_eq!(
+        holds_over_history(&contract, &[Input(1u8), Input(2u8)]),
+        TrialConclusion::Passed
+    );
+
+    let TrialConclusion::Refused(finding) = holds_over_history(&contract, &[Input(4u8)]) else {
+        panic!("the hostile history should break the declared bound");
+    };
+    assert_eq!(finding.class(), FailureClass::PropertyDisagreement);
+    assert_eq!(finding.cause(), BOUND_CAUSE);
+    Ok(())
+}
+
+#[test]
+fn claim_free_contract_is_refused_before_a_vacuous_pass() {
+    assert!(matches!(
+        TransitionContract::<State, Input>::declared(opening, apply, Vec::new()),
+        Err(ContractRefusal::NoClaimDeclared)
+    ));
+}
+```
