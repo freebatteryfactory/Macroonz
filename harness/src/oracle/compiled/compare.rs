@@ -1,4 +1,4 @@
-//! The compiled read-back: what an artifact does once a compiler has accepted it, against what a caller declared it would do.
+//! Compiler-resolved observations against what a caller declared.
 //!
 //! # The claim no other lane can make
 //!

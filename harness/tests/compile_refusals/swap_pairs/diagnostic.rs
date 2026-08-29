@@ -271,6 +271,7 @@ fn reject_ambiguous_physical_relative(offered: &Path) -> Result<(), DiagnosticRe
 
 const E0308_AT_LOCUS: &[u8] = br#"{"reason":"compiler-message","message":{"level":"error","code":{"code":"E0308"},"spans":[{"file_name":"src/main.rs","line_start":1,"line_end":1,"column_start":1,"column_end":2,"is_primary":true}]}}"#;
 const E0277_AT_LOCUS: &[u8] = br#"{"reason":"compiler-message","message":{"level":"error","code":{"code":"E0277"},"spans":[{"file_name":"src/main.rs","line_start":1,"line_end":1,"column_start":1,"column_end":2,"is_primary":true}]}}"#;
+const CODELESS_AT_LOCUS: &[u8] = br#"{"reason":"compiler-message","message":{"level":"error","code":null,"spans":[{"file_name":"src/main.rs","line_start":1,"line_end":1,"column_start":1,"column_end":2,"is_primary":true}]}}"#;
 const NO_PRIMARY: &[u8] =
     br#"{"reason":"compiler-message","message":{"level":"error","code":null,"spans":[]}}"#;
 const TWO_PRIMARY: &[u8] = br#"{"reason":"compiler-message","message":{"level":"error","code":{"code":"E0308"},"spans":[{"file_name":"src/main.rs","line_start":1,"line_end":1,"column_start":1,"column_end":2,"is_primary":true},{"file_name":"src/main.rs","line_start":1,"line_end":1,"column_start":3,"column_end":4,"is_primary":true}]}}"#;
@@ -354,6 +355,12 @@ fn zero_multiple_and_ambiguous_anchors_refuse_observation_establishment() -> Res
         observed_refusal(NO_PRIMARY, &root, &locus),
         Err(DiagnosticReadFailure::Observation(
             ObservationRefusal::NoRelevantDiagnostic,
+        ))
+    );
+    assert_eq!(
+        observed_refusal(CODELESS_AT_LOCUS, &root, &locus),
+        Err(DiagnosticReadFailure::Observation(
+            ObservationRefusal::MissingCode,
         ))
     );
     let repeated = [E0308_AT_LOCUS, b"\n", E0308_AT_LOCUS].concat();

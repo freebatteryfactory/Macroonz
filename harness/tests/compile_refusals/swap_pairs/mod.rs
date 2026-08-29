@@ -31,7 +31,7 @@ fn every_swap_pair_is_observed_in_its_declared_direction() -> Result<(), String>
             diagnostic::require_compilation(
                 &lawful,
                 scratch.root(),
-                challenge.lawful.expected.primary().source(),
+                challenge.lawful.locus.source(),
                 &macroonz_harness::oracle::DeclaredCompilation::compiles(),
             )?;
 
@@ -41,9 +41,9 @@ fn every_swap_pair_is_observed_in_its_declared_direction() -> Result<(), String>
             diagnostic::require_compilation(
                 &hostile,
                 scratch.root(),
-                challenge.hostile.expected.primary().source(),
+                challenge.hostile.locus.source(),
                 &macroonz_harness::oracle::DeclaredCompilation::refuses(
-                    challenge.hostile.expected.clone(),
+                    challenge.expected_hostile_refusal.clone(),
                 ),
             )
             .map_err(|failure| {

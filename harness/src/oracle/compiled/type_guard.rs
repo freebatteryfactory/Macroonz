@@ -1,4 +1,4 @@
-//! The invariant nucleus for a declared compiled member roster.
+//! The invariant nucleus for compiler-resolved declarations and observations.
 
 use super::{
     DeclaredCompilation, DeclaredReadBack, DeclaredReadBackRoster, DeclaredReadBackRosterRefusal,

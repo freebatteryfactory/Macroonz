@@ -1,4 +1,4 @@
-//! The compiled read-back declaration, observation, and verdict vocabulary.
+//! The compiler-resolved declaration, observation, and verdict vocabulary.
 
 #[path = "type_guard.rs"]
 mod guard;

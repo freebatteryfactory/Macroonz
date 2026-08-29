@@ -1,4 +1,4 @@
-//! The compiled read-back verdict's report conclusion.
+//! The report conclusions for compiler-resolved verdicts.
 
 use super::{CompilationDisagreement, CompilationVerdict, CompiledDisagreement, CompiledVerdict};
 use crate::oracle::ORACLE_CAUSE_FAMILY;

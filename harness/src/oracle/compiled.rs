@@ -1,3 +1,3 @@
-//! The stable compiled read-back operation road.
+//! The stable compiler-resolved comparison road.
 
 pub use super::compiled_owner::{compared, compared_compilation};

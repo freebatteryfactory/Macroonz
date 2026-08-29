@@ -10,7 +10,7 @@ pub(super) struct RenderedSource {
     pub(super) bin_name: String,
     pub(super) file_name: String,
     pub(super) source: String,
-    pub(super) expected: DiagnosticAnchor,
+    pub(super) locus: PrimarySourceSpan,
 }
 
 /// The lawful and hostile sources for one directional row.
@@ -20,18 +20,25 @@ pub(super) struct Challenge {
     pub(super) substitute: &'static str,
     pub(super) lawful: RenderedSource,
     pub(super) hostile: RenderedSource,
+    pub(super) expected_hostile_refusal: DiagnosticAnchor,
 }
 
 impl Challenge {
     pub(super) fn for_pair(ordinal: usize, pair: SwapPair) -> Result<Self, String> {
         let seat_path = public_path(pair.seat)?;
         let substitute_path = public_path(pair.substitute)?;
+        let lawful = render(ordinal, "lawful", seat_path, seat_path, "seat")?;
+        let hostile = render(ordinal, "hostile", seat_path, substitute_path, "substitute")?;
+        let code = RustcErrorCode::informed("E0308")
+            .map_err(|refusal| format!("declared mismatch code was refused: {refusal:?}"))?;
+        let expected_hostile_refusal = DiagnosticAnchor::at(code, hostile.locus.clone());
         Ok(Self {
             ordinal,
             seat: pair.seat,
             substitute: pair.substitute,
-            lawful: render(ordinal, "lawful", seat_path, seat_path, "seat")?,
-            hostile: render(ordinal, "hostile", seat_path, substitute_path, "substitute")?,
+            lawful,
+            hostile,
+            expected_hostile_refusal,
         })
     }
 }
@@ -98,13 +105,10 @@ fn render(
     .map_err(|refusal| format!("rendered end position was refused: {refusal:?}"))?;
     let primary = PrimarySourceSpan::informed(relative, start, end)
         .map_err(|refusal| format!("rendered primary span was refused: {refusal:?}"))?;
-    let code = RustcErrorCode::informed("E0308")
-        .map_err(|refusal| format!("declared mismatch code was refused: {refusal:?}"))?;
-
     Ok(RenderedSource {
         bin_name,
         file_name,
         source,
-        expected: DiagnosticAnchor::at(code, primary),
+        locus: primary,
     })
 }

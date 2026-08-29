@@ -228,6 +228,10 @@ fn exact_compilation_values_refuse_noncanonical_source_coordinates()
         Err(RelativeSourcePathRefusal::NonNormalSegment { at: 1usize })
     );
     assert_eq!(
+        RelativeSourcePath::informed("src/./main.rs"),
+        Err(RelativeSourcePathRefusal::NonNormalSegment { at: 1usize })
+    );
+    assert_eq!(
         RelativeSourcePath::informed("src//main.rs"),
         Err(RelativeSourcePathRefusal::NonNormalSegment { at: 1usize })
     );
@@ -247,6 +251,13 @@ fn exact_compilation_values_refuse_noncanonical_source_coordinates()
         PrimarySourceSpan::informed(source.clone(), later, earlier),
         Err(PrimarySourceSpanRefusal::Reversed)
     );
+    let later_column = SourcePosition::informed(2u64, 2u64)?;
+    assert_eq!(
+        PrimarySourceSpan::informed(source.clone(), later_column, later),
+        Err(PrimarySourceSpanRefusal::Reversed)
+    );
+    let later_line = SourcePosition::informed(3u64, 1u64)?;
+    assert!(PrimarySourceSpan::informed(source.clone(), later_column, later_line).is_ok());
     assert!(PrimarySourceSpan::informed(source, earlier, earlier).is_ok());
     Ok(())
 }
