@@ -197,6 +197,34 @@ fn exact_compilation_distinguishes_acceptance_code_and_primary_span()
 }
 
 #[test]
+fn exact_compilation_values_preserve_their_informed_parts() -> Result<(), CompiledRoadFailure> {
+    let code = RustcErrorCode::informed("E0308")?;
+    let source = RelativeSourcePath::informed("src/main.rs")?;
+    let start = SourcePosition::informed(12u64, 9u64)?;
+    let end = SourcePosition::informed(12u64, 10u64)?;
+    let primary = PrimarySourceSpan::informed(source.clone(), start, end)?;
+    let diagnostic = DiagnosticAnchor::at(code.clone(), primary.clone());
+
+    assert_eq!(code.spelling(), "E0308");
+    assert_eq!(source.spelling(), "src/main.rs");
+    assert_eq!(start.line(), 12u64);
+    assert_eq!(start.column(), 9u64);
+    assert_eq!(primary.source(), &source);
+    assert_eq!(primary.start(), start);
+    assert_eq!(primary.end(), end);
+    assert_eq!(diagnostic.code(), &code);
+    assert_eq!(diagnostic.primary(), &primary);
+
+    let declared_refusal = DeclaredCompilation::refuses(diagnostic.clone());
+    assert_eq!(declared_refusal.refusal(), Some(&diagnostic));
+    assert_eq!(DeclaredCompilation::compiles().refusal(), None);
+    let observed_refusal = ObservedCompilation::refused(diagnostic.clone());
+    assert_eq!(observed_refusal.refusal(), Some(&diagnostic));
+    assert_eq!(ObservedCompilation::compiled().refusal(), None);
+    Ok(())
+}
+
+#[test]
 fn exact_compilation_values_refuse_noncanonical_error_codes_and_source_coordinates()
 -> Result<(), CompiledRoadFailure> {
     assert_eq!(
