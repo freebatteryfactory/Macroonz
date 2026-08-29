@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) enum HostFailure {
+pub(crate) enum HostFailure {
     NotRun {
         reason: SkipReason,
         detail: ForeignText,
@@ -19,7 +19,7 @@ pub(super) enum HostFailure {
 }
 
 /// One atomically claimed qualification run.
-pub(super) struct Scratch {
+pub(crate) struct Scratch {
     qualification: PathBuf,
     root: PathBuf,
     manifest: PathBuf,
@@ -27,7 +27,7 @@ pub(super) struct Scratch {
 }
 
 impl Scratch {
-    pub(super) fn claimed() -> Result<Self, String> {
+    pub(crate) fn claimed() -> Result<Self, String> {
         let qualification = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("..")
             .join("target")
@@ -73,6 +73,7 @@ impl Scratch {
                 "publish = false\n\n",
                 "[dependencies]\n",
                 "macroonz-harness = { path = \"../../../../harness\", default-features = false }\n\n",
+                "bakery = { package = \"macroonz\", path = \"../../../..\", default-features = false, features = [\"harness\"] }\n\n",
                 "[workspace]\n",
             ),
         )
@@ -86,16 +87,20 @@ impl Scratch {
     }
 
     pub(super) fn write(&self, rendered: &RenderedSource) -> Result<(), String> {
-        let path = self.root.join("src").join("bin").join(&rendered.file_name);
-        fs::write(&path, &rendered.source)
+        self.write_source(&rendered.file_name, &rendered.source)
+    }
+
+    pub(crate) fn write_source(&self, file_name: &str, source: &str) -> Result<(), String> {
+        let path = self.root.join("src").join("bin").join(file_name);
+        fs::write(&path, source)
             .map_err(|error| format!("could not write {}: {error}", path.display()))
     }
 
-    pub(super) fn root(&self) -> &Path {
+    pub(crate) fn root(&self) -> &Path {
         &self.root
     }
 
-    pub(super) fn generate_lockfile(&self) -> Result<(), HostFailure> {
+    pub(crate) fn generate_lockfile(&self) -> Result<(), HostFailure> {
         self.require_toolchain()?;
         let output = Command::new("cargo")
             .arg("+1.98.0")
@@ -121,7 +126,7 @@ impl Scratch {
         }
     }
 
-    pub(super) fn check(&self, bin_name: &str) -> Result<Output, HostFailure> {
+    pub(crate) fn check(&self, bin_name: &str) -> Result<Output, HostFailure> {
         Command::new("cargo")
             .arg("+1.98.0")
             .arg("check")
@@ -170,7 +175,7 @@ impl Scratch {
         )
     }
 
-    pub(super) fn finish(self, outcome: Result<(), String>) -> Result<(), String> {
+    pub(crate) fn finish(self, outcome: Result<(), String>) -> Result<(), String> {
         let cleanup = fs::remove_dir_all(&self.root)
             .map_err(|error| format!("could not remove {}: {error}", self.root.display()))
             .and_then(|()| match fs::remove_dir(&self.qualification) {

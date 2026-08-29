@@ -1,8 +1,8 @@
 //! Generated compiler challenges over every authored type-separation row.
 
-mod diagnostic;
+pub(super) mod diagnostic;
 mod render;
-mod scratch;
+pub(super) mod scratch;
 
 use macroonz_harness::depot::swap_pairs::SWAP_PAIRS;
 

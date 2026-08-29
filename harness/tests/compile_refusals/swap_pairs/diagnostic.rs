@@ -67,6 +67,22 @@ pub(super) fn require_compilation(
     locus: &RelativeSourcePath,
     declared: &DeclaredCompilation,
 ) -> Result<(), String> {
+    let observed = observed_compilation(output, root, locus)?;
+    let verdict = macroonz_harness::oracle::compiled::compared_compilation(&observed, declared);
+    if verdict == CompilationVerdict::Conforms {
+        return Ok(());
+    }
+    let conclusion = verdict.concluded(FindingLocation::at(file!(), line!()));
+    Err(format!(
+        "compiled-oracle comparison disagreed: {verdict:?}; conclusion: {conclusion:?}"
+    ))
+}
+
+pub(crate) fn observed_compilation(
+    output: &Output,
+    root: &Path,
+    locus: &RelativeSourcePath,
+) -> Result<ObservedCompilation, String> {
     let observed = if output.status.success() {
         ObservedCompilation::compiled()
     } else if output.status.code().is_none() {
@@ -81,14 +97,7 @@ pub(super) fn require_compilation(
         observed_refusal(&output.stdout, root, locus)
             .map_err(|failure| format!("compiler observation was not established: {failure:?}"))?
     };
-    let verdict = macroonz_harness::oracle::compiled::compared_compilation(&observed, declared);
-    if verdict == CompilationVerdict::Conforms {
-        return Ok(());
-    }
-    let conclusion = verdict.concluded(FindingLocation::at(file!(), line!()));
-    Err(format!(
-        "compiled-oracle comparison disagreed: {verdict:?}; conclusion: {conclusion:?}"
-    ))
+    Ok(observed)
 }
 
 fn observed_refusal(
