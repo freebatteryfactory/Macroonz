@@ -20,8 +20,12 @@ mod types;
 mod vector;
 
 pub use compiled_owner::{
-    CompiledDisagreement, CompiledObservation, CompiledVerdict, DeclaredBehavior, DeclaredReadBack,
-    DeclaredReadBackRoster, DeclaredReadBackRosterRefusal, ObservedMember, ObservedValue,
+    CompilationDisagreement, CompilationVerdict, CompiledDisagreement, CompiledObservation,
+    CompiledVerdict, DeclaredBehavior, DeclaredCompilation, DeclaredReadBack,
+    DeclaredReadBackRoster, DeclaredReadBackRosterRefusal, DiagnosticAnchor, ObservedCompilation,
+    ObservedMember, ObservedValue, PrimarySourceSpan, PrimarySourceSpanRefusal, RelativeSourcePath,
+    RelativeSourcePathRefusal, RustcErrorCode, RustcErrorCodeRefusal, SourcePosition,
+    SourcePositionRefusal,
 };
 pub use structural_owner::{
     ArtifactStructure, ConstantReading, DeclaredArtifact, DeclaredImplementation, DeclaredMember,

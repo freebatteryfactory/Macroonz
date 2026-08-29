@@ -1,10 +1,22 @@
 //! Deterministic disposable scratch custody and shell-free Cargo invocation.
 
 use super::render::RenderedSource;
+use macroonz_harness::report::{
+    ForeignText, InfrastructureFailure, InfrastructureFault, SkipReason,
+};
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) enum HostFailure {
+    NotRun {
+        reason: SkipReason,
+        detail: ForeignText,
+    },
+    Infrastructure(InfrastructureFailure),
+}
 
 /// One atomically claimed qualification run.
 pub(super) struct Scratch {
@@ -79,7 +91,12 @@ impl Scratch {
             .map_err(|error| format!("could not write {}: {error}", path.display()))
     }
 
-    pub(super) fn generate_lockfile(&self) -> Result<(), String> {
+    pub(super) fn root(&self) -> &Path {
+        &self.root
+    }
+
+    pub(super) fn generate_lockfile(&self) -> Result<(), HostFailure> {
+        self.require_toolchain()?;
         let output = Command::new("cargo")
             .arg("+1.98.0")
             .arg("generate-lockfile")
@@ -88,15 +105,23 @@ impl Scratch {
             .arg("--offline")
             .current_dir(&self.root)
             .output()
-            .map_err(|error| format!("could not launch Cargo lock generation: {error}"))?;
+            .map_err(|error| {
+                infrastructure(
+                    InfrastructureFault::BackendInitializationFailed,
+                    &format!("could not launch Cargo lock generation: {error}"),
+                )
+            })?;
         if output.status.success() {
             Ok(())
         } else {
-            Err(failed_command("scratch lock generation", &output))
+            Err(infrastructure(
+                InfrastructureFault::BackendInitializationFailed,
+                &failed_command("scratch lock generation", &output),
+            ))
         }
     }
 
-    pub(super) fn check(&self, bin_name: &str) -> Result<Output, String> {
+    pub(super) fn check(&self, bin_name: &str) -> Result<Output, HostFailure> {
         Command::new("cargo")
             .arg("+1.98.0")
             .arg("check")
@@ -114,7 +139,35 @@ impl Scratch {
             .arg("json")
             .current_dir(&self.root)
             .output()
-            .map_err(|error| format!("could not launch Cargo for {bin_name}: {error}"))
+            .map_err(|error| {
+                infrastructure(
+                    InfrastructureFault::BackendInitializationFailed,
+                    &format!("could not launch Cargo for {bin_name}: {error}"),
+                )
+            })
+    }
+
+    fn require_toolchain(&self) -> Result<(), HostFailure> {
+        let output = Command::new("cargo")
+            .arg("+1.98.0")
+            .arg("--version")
+            .current_dir(&self.root)
+            .output()
+            .map_err(|error| {
+                infrastructure(
+                    InfrastructureFault::BackendInitializationFailed,
+                    &format!("could not launch Cargo toolchain preflight: {error}"),
+                )
+            })?;
+        let availability = if output.status.success() {
+            ToolchainAvailability::Available
+        } else {
+            ToolchainAvailability::Unavailable
+        };
+        classify_toolchain(
+            availability,
+            &failed_command("toolchain preflight", &output),
+        )
     }
 
     pub(super) fn finish(self, outcome: Result<(), String>) -> Result<(), String> {
@@ -143,6 +196,53 @@ impl Scratch {
             )),
         }
     }
+}
+
+#[derive(Clone, Copy)]
+enum ToolchainAvailability {
+    Available,
+    Unavailable,
+}
+
+fn classify_toolchain(
+    availability: ToolchainAvailability,
+    detail: &str,
+) -> Result<(), HostFailure> {
+    match availability {
+        ToolchainAvailability::Available => Ok(()),
+        ToolchainAvailability::Unavailable => Err(HostFailure::NotRun {
+            reason: SkipReason::PrerequisiteAbsent,
+            detail: ForeignText::admitted(detail.as_bytes()),
+        }),
+    }
+}
+
+fn infrastructure(fault: InfrastructureFault, detail: &str) -> HostFailure {
+    HostFailure::Infrastructure(InfrastructureFailure::recorded(
+        fault,
+        Some(ForeignText::admitted(detail.as_bytes())),
+    ))
+}
+
+#[test]
+fn unavailable_toolchain_and_spawn_failure_keep_distinct_host_standing() {
+    let unavailable = classify_toolchain(ToolchainAvailability::Unavailable, "toolchain missing");
+    assert!(matches!(
+        unavailable,
+        Err(HostFailure::NotRun {
+            reason: SkipReason::PrerequisiteAbsent,
+            detail: _,
+        })
+    ));
+    let spawn = infrastructure(
+        InfrastructureFault::BackendInitializationFailed,
+        "spawn refused",
+    );
+    assert!(matches!(
+        spawn,
+        HostFailure::Infrastructure(ref failure)
+            if failure.fault() == InfrastructureFault::BackendInitializationFailed
+    ));
 }
 
 pub(super) fn failed_command(context: &str, output: &Output) -> String {

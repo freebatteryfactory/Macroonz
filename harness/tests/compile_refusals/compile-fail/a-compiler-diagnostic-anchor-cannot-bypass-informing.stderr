@@ -1,0 +1,32 @@
+error[E0451]: fields `source`, `start` and `end` of struct `PrimarySourceSpan` are private
+  --> tests/compile_refusals/compile-fail/a-compiler-diagnostic-anchor-cannot-bypass-informing.rs:15:39
+   |
+15 |     let primary = PrimarySourceSpan { source, start, end };
+   |                                       ^^^^^^  ^^^^^  ^^^ private field
+   |                                       |       |
+   |                                       |       private field
+   |                                       private field
+
+error[E0451]: fields `code` and `primary` of struct `DiagnosticAnchor` are private
+  --> tests/compile_refusals/compile-fail/a-compiler-diagnostic-anchor-cannot-bypass-informing.rs:16:32
+   |
+16 |     let _ = DiagnosticAnchor { code, primary };
+   |                                ^^^^  ^^^^^^^ private field
+   |                                |
+   |                                private field
+
+error[E0451]: field `refusal` of struct `DeclaredCompilation` is private
+  --> tests/compile_refusals/compile-fail/a-compiler-diagnostic-anchor-cannot-bypass-informing.rs:18:9
+   |
+17 |     let _ = DeclaredCompilation {
+   |             ------------------- in this type
+18 |         refusal: Some(anchor.clone()),
+   |         ^^^^^^^ private field
+
+error[E0451]: field `refusal` of struct `ObservedCompilation` is private
+  --> tests/compile_refusals/compile-fail/a-compiler-diagnostic-anchor-cannot-bypass-informing.rs:21:9
+   |
+20 |     let _ = ObservedCompilation {
+   |             ------------------- in this type
+21 |         refusal: Some(anchor),
+   |         ^^^^^^^ private field

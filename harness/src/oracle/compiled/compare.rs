@@ -16,9 +16,42 @@
 //! The artifact under judgement is one a producer rendered, and any damage in it was applied by the harness, so a compiler handed a damaged artifact is not being asked to agree with the thing that rendered it.
 
 use super::{
-    CompiledDisagreement, CompiledObservation, CompiledVerdict, DeclaredBehavior, DeclaredReadBack,
+    CompilationDisagreement, CompilationVerdict, CompiledDisagreement, CompiledObservation,
+    CompiledVerdict, DeclaredBehavior, DeclaredCompilation, DeclaredReadBack, ObservedCompilation,
     ObservedMember,
 };
+
+/// Compare one caller-stated exact compilation observation against its independent declaration.
+///
+/// The code is compared before the primary span, so one verdict names one disagreement while both coordinates remain independently observable under separate controls.
+pub fn compared_compilation(
+    observed: &ObservedCompilation,
+    declared: &DeclaredCompilation,
+) -> CompilationVerdict {
+    match (observed.refusal(), declared.refusal()) {
+        (None, Some(_)) => {
+            CompilationVerdict::Deviates(CompilationDisagreement::AcceptedWhereRefusalDeclared)
+        }
+        (Some(anchor), None) => {
+            CompilationVerdict::Deviates(CompilationDisagreement::RefusedWhereAcceptanceDeclared {
+                observed: anchor.clone(),
+            })
+        }
+        (Some(observed), Some(expected)) if observed.code() != expected.code() => {
+            CompilationVerdict::Deviates(CompilationDisagreement::ErrorCode {
+                expected: expected.code().clone(),
+                observed: observed.code().clone(),
+            })
+        }
+        (Some(observed), Some(expected)) if observed.primary() != expected.primary() => {
+            CompilationVerdict::Deviates(CompilationDisagreement::PrimarySpan {
+                expected: expected.primary().clone(),
+                observed: observed.primary().clone(),
+            })
+        }
+        (None, None) | (Some(_), Some(_)) => CompilationVerdict::Conforms,
+    }
+}
 
 /// Compare one caller-stated compiled observation against its declared behavior.
 ///

@@ -1,21 +1,16 @@
 //! Closed public-path mapping and deterministic source rendering for type-separation challenges.
 
 use macroonz_harness::depot::types::SwapPair;
+use macroonz_harness::oracle::{
+    DiagnosticAnchor, PrimarySourceSpan, RelativeSourcePath, RustcErrorCode, SourcePosition,
+};
 
 /// One rendered compiler input.
 pub(super) struct RenderedSource {
     pub(super) bin_name: String,
     pub(super) file_name: String,
     pub(super) source: String,
-    pub(super) primary: PrimarySpan,
-}
-
-/// The source coordinate the hostile substitution is expected to occupy.
-pub(super) struct PrimarySpan {
-    pub(super) file_name: String,
-    pub(super) line: u64,
-    pub(super) column_start: u64,
-    pub(super) column_end: u64,
+    pub(super) expected: DiagnosticAnchor,
 }
 
 /// The lawful and hostile sources for one directional row.
@@ -87,17 +82,29 @@ fn render(
     ];
     let source = lines.join("\n") + "\n";
 
+    let relative = RelativeSourcePath::informed(&format!("src/bin/{file_name}"))
+        .map_err(|refusal| format!("rendered source path was refused: {refusal:?}"))?;
+    let start = SourcePosition::informed(
+        4u64,
+        u64::try_from(column_start)
+            .map_err(|error| format!("rendered start column does not fit u64: {error}"))?,
+    )
+    .map_err(|refusal| format!("rendered start position was refused: {refusal:?}"))?;
+    let end = SourcePosition::informed(
+        4u64,
+        u64::try_from(column_end)
+            .map_err(|error| format!("rendered end column does not fit u64: {error}"))?,
+    )
+    .map_err(|refusal| format!("rendered end position was refused: {refusal:?}"))?;
+    let primary = PrimarySourceSpan::informed(relative, start, end)
+        .map_err(|refusal| format!("rendered primary span was refused: {refusal:?}"))?;
+    let code = RustcErrorCode::informed("E0308")
+        .map_err(|refusal| format!("declared mismatch code was refused: {refusal:?}"))?;
+
     Ok(RenderedSource {
         bin_name,
-        file_name: file_name.clone(),
+        file_name,
         source,
-        primary: PrimarySpan {
-            file_name,
-            line: 4,
-            column_start: u64::try_from(column_start)
-                .map_err(|error| format!("rendered column does not fit u64: {error}"))?,
-            column_end: u64::try_from(column_end)
-                .map_err(|error| format!("rendered column does not fit u64: {error}"))?,
-        },
+        expected: DiagnosticAnchor::at(code, primary),
     })
 }
