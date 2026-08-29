@@ -8,13 +8,213 @@ use super::support::{
     compiled_family, compiled_owner, compiled_reading, current_custody,
     historical_compiled_artifact, historical_source_revision, source_revision,
 };
+use macroonz_harness::descriptor::ClaimRef;
 use macroonz_harness::muterprater::wrap::{read_artifact, read_output};
 use macroonz_harness::muterprater::{
     AdapterQualification, AnnouncedRoster, ArtifactCustodyRefusal, ArtifactManifestRefusal,
-    BackendVersion, BackendVersionPosture, CompiledSuiteArtifactCustody,
-    CompiledSuiteArtifactStanding, CompiledSuitePressure, GrammarStanding, MutationSourceRevision,
-    QualificationRefusal, ReadingSource, SuitePressureRefusal, WrappedBackend,
+    BackendCommand, BackendVersion, BackendVersionPosture, CompiledSuiteArtifactCustody,
+    CompiledSuiteArtifactStanding, CompiledSuitePressure, GrammarStanding,
+    MutationBackendInvocation, MutationSourceRevision, MutationVerdict, OperatorFamilyRef,
+    QualificationRefusal, ReadingSource, SourceCoordinate, SuitePressureRefusal, WrappedBackend,
 };
+use macroonz_harness::report::{TargetBinding, TargetTriple, ToolchainIdentity};
+
+const COMPILE_CONTRACT_CONSOLE: &str =
+    include_str!("compile-contract-pressure-artifact/cargo-mutants-27.0.0-console.txt");
+const COMPILE_CONTRACT_COMPARE_SOURCE: &[u8] =
+    include_bytes!("compile-contract-pressure-artifact/compare.rs");
+const COMPILE_CONTRACT_CONCLUDE_SOURCE: &[u8] =
+    include_bytes!("compile-contract-pressure-artifact/conclude.rs");
+const COMPILE_CONTRACT_GUARD_SOURCE: &[u8] =
+    include_bytes!("compile-contract-pressure-artifact/type_guard.rs");
+const CURRENT_COMPILE_CONTRACT_COMPARE_SOURCE: &[u8] =
+    include_bytes!("../../src/oracle/compiled/compare.rs");
+const CURRENT_COMPILE_CONTRACT_CONCLUDE_SOURCE: &[u8] =
+    include_bytes!("../../src/oracle/compiled/conclude.rs");
+const CURRENT_COMPILE_CONTRACT_GUARD_SOURCE: &[u8] =
+    include_bytes!("../../src/oracle/compiled/type_guard.rs");
+const COMPILE_CONTRACT_COMPARE_FILE: &str = "harness/src/oracle/compiled/compare.rs";
+const COMPILE_CONTRACT_CONCLUDE_FILE: &str = "harness/src/oracle/compiled/conclude.rs";
+const COMPILE_CONTRACT_GUARD_FILE: &str = "harness/src/oracle/compiled/type_guard.rs";
+const COMPILE_CONTRACT_COMMAND: &[&str] = &[
+    "+1.98.0",
+    "mutants",
+    "--no-config",
+    "-p",
+    "macroonz-harness",
+    "--file",
+    COMPILE_CONTRACT_COMPARE_FILE,
+    "--file",
+    COMPILE_CONTRACT_CONCLUDE_FILE,
+    "--file",
+    COMPILE_CONTRACT_GUARD_FILE,
+    "--re",
+    "(compared_compilation|compilation_cause|CompilationVerdict::concluded|RustcErrorCode::|RelativeSourcePath::|SourcePosition::|PrimarySourceSpan::|DiagnosticAnchor::|DeclaredCompilation::|ObservedCompilation::|has_windows_prefix)",
+    "--test-tool",
+    "cargo",
+    "--baseline",
+    "run",
+    "--jobs",
+    "1",
+    "--jobserver-tasks",
+    "1",
+    "--no-shuffle",
+    "--caught",
+    "--unviable",
+    "--no-times",
+    "--colors",
+    "never",
+    "--annotations",
+    "none",
+    "--timeout",
+    "300",
+    "--build-timeout",
+    "300",
+    "--output",
+    "target/qualification/0.2-a-compile-contract-mutation-20260829/final-3",
+    "--",
+    "--locked",
+    "--offline",
+    "--test",
+    "vector_oracle",
+    "--test",
+    "compile_refusals",
+    "compilation",
+    "--",
+    "--test-threads=1",
+];
+
+fn compile_contract_owner(_: &SourceCoordinate) -> Option<ClaimRef> {
+    None
+}
+
+fn compile_contract_family(_: &SourceCoordinate, _: &[u8]) -> Option<OperatorFamilyRef> {
+    None
+}
+
+fn compile_contract_source(
+    file: &str,
+    bytes: &[u8],
+) -> Result<MutationSourceRevision, MutationRoadFailure> {
+    MutationSourceRevision::from_content(file, bytes).map_err(|_| MutationRoadFailure::Name)
+}
+
+fn compile_contract_sources(
+    compare: &[u8],
+    conclude: &[u8],
+    guard: &[u8],
+) -> Result<Vec<MutationSourceRevision>, MutationRoadFailure> {
+    Ok(vec![
+        compile_contract_source(COMPILE_CONTRACT_COMPARE_FILE, compare)?,
+        compile_contract_source(COMPILE_CONTRACT_CONCLUDE_FILE, conclude)?,
+        compile_contract_source(COMPILE_CONTRACT_GUARD_FILE, guard)?,
+    ])
+}
+
+fn compile_contract_invocation(
+    version: BackendVersion,
+) -> Result<MutationBackendInvocation, MutationRoadFailure> {
+    let command = BackendCommand::declared("cargo", COMPILE_CONTRACT_COMMAND)
+        .map_err(|_| MutationRoadFailure::Name)?;
+    Ok(MutationBackendInvocation::declared(
+        WrappedBackend::CargoMutants,
+        version,
+        command,
+        TargetBinding::bound(
+            TargetTriple::declared(BACKEND_TARGET),
+            ToolchainIdentity::declared(BACKEND_TOOLCHAIN),
+        ),
+    ))
+}
+
+/// Claim: the exact compile-contract campaign carries complete current-source custody and demonstrates generic compiled-suite pressure without inventing mutation ownership.
+///
+/// Subject: the persisted Cargo Mutants console, invocation, three mutated source files, adapter profile, and current-source join.
+/// Population: all 49 selected mutants, divided into 28 backend-reported kills and 21 unviable rows.
+/// Hostile control: every target remains owner-unmapped and outside the operator bank because this campaign tests compiler-contract sensitivity rather than Muterprater policy.
+/// Denominator: the complete announced roster, parsed report roster, source roster, command, target, toolchain, grammar, and current source bytes.
+/// Evidence ceiling: this establishes stable Windows compiled-suite pressure under backend-reported witness rejection; it does not establish activation, equivalence, another host, or general mutation adequacy.
+/// Retained regression: a surviving selected mutant, stale source copy, incomplete roster, changed invocation, or widened ownership claim remains a permanent regression.
+#[test]
+fn compile_contract_pressure_is_complete_current_and_unmapped() -> Result<(), MutationRoadFailure> {
+    assert_eq!(
+        COMPILE_CONTRACT_COMPARE_SOURCE,
+        CURRENT_COMPILE_CONTRACT_COMPARE_SOURCE
+    );
+    assert_eq!(
+        COMPILE_CONTRACT_CONCLUDE_SOURCE,
+        CURRENT_COMPILE_CONTRACT_CONCLUDE_SOURCE
+    );
+    assert_eq!(
+        COMPILE_CONTRACT_GUARD_SOURCE,
+        CURRENT_COMPILE_CONTRACT_GUARD_SOURCE
+    );
+
+    let version = BackendVersion::stated(BACKEND_VERSION).map_err(|_| MutationRoadFailure::Name)?;
+    let manifest = read_artifact(
+        COMPILE_CONTRACT_CONSOLE,
+        compile_contract_invocation(version.clone())?,
+        compile_contract_sources(
+            COMPILE_CONTRACT_COMPARE_SOURCE,
+            COMPILE_CONTRACT_CONCLUDE_SOURCE,
+            COMPILE_CONTRACT_GUARD_SOURCE,
+        )?,
+        compile_contract_owner,
+        compile_contract_family,
+    )?;
+    assert_eq!(manifest.invocation().command().executable(), "cargo");
+    assert_eq!(
+        manifest.invocation().command().arguments(),
+        COMPILE_CONTRACT_COMMAND
+    );
+    assert_eq!(
+        manifest.invocation().target().target().spelling(),
+        BACKEND_TARGET
+    );
+    assert_eq!(
+        manifest.invocation().target().toolchain().spelling(),
+        BACKEND_TOOLCHAIN
+    );
+    assert_eq!(manifest.reading().announced(), AnnouncedRoster::Stated(49));
+    assert_eq!(manifest.reading().run().reports().len(), 49usize);
+    assert_eq!(manifest.reading().run().kills().count(), 28usize);
+    assert_eq!(manifest.reading().run().non_kills().count(), 21usize);
+    assert_eq!(manifest.reading().run().survivors().count(), 0usize);
+    assert!(
+        manifest
+            .reading()
+            .run()
+            .reports()
+            .iter()
+            .all(|report| report.target().owning_claim().is_none())
+    );
+    let [summary] = manifest.reading().unparsed() else {
+        return Err(MutationRoadFailure::MissingAlternative);
+    };
+    assert_eq!(summary.ordinal(), 51usize);
+    assert_eq!(
+        summary.text().bytes(),
+        b"49 mutants tested: 28 caught, 21 unviable"
+    );
+
+    let current_sources = compile_contract_sources(
+        CURRENT_COMPILE_CONTRACT_COMPARE_SOURCE,
+        CURRENT_COMPILE_CONTRACT_CONCLUDE_SOURCE,
+        CURRENT_COMPILE_CONTRACT_GUARD_SOURCE,
+    )?;
+    assert_eq!(manifest.sources(), current_sources);
+    let qualification =
+        AdapterQualification::of(manifest.reading(), GrammarStanding::Checked(version))?;
+    let custody = CompiledSuiteArtifactCustody::current(manifest, current_sources)?;
+    let pressure = CompiledSuitePressure::demonstrated(
+        CompiledSuiteArtifactStanding::Reported(&custody),
+        &qualification,
+    )?;
+    assert_eq!(pressure.qualification(), &qualification);
+    assert_eq!(pressure.custody(), &custody);
+    assert_eq!(pressure.kill().verdict(), MutationVerdict::Killed);
+    Ok(())
+}
 
 /// Claim: the prior compiled-pressure receipt remains exact historical evidence and cannot join to the moved current source coordinate.
 ///

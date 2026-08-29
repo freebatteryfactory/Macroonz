@@ -1,0 +1,52 @@
+Found 49 mutants to test
+ok       Unmutated baseline
+unviable harness/src/oracle/compiled/compare.rs:31:5: replace compared_compilation -> CompilationVerdict with Default::default()
+caught   harness/src/oracle/compiled/compare.rs:40:45: replace match guard observed.code() != expected.code() with true in compared_compilation
+caught   harness/src/oracle/compiled/compare.rs:40:45: replace match guard observed.code() != expected.code() with false in compared_compilation
+caught   harness/src/oracle/compiled/compare.rs:46:45: replace match guard observed.primary() != expected.primary() with true in compared_compilation
+caught   harness/src/oracle/compiled/compare.rs:46:45: replace match guard observed.primary() != expected.primary() with false in compared_compilation
+caught   harness/src/oracle/compiled/compare.rs:40:61: replace != with == in compared_compilation
+caught   harness/src/oracle/compiled/compare.rs:46:64: replace != with == in compared_compilation
+unviable harness/src/oracle/compiled/conclude.rs:42:5: replace compilation_cause -> FindingCause with Default::default()
+unviable harness/src/oracle/compiled/conclude.rs:59:9: replace CompilationVerdict::concluded -> TrialConclusion with Default::default()
+unviable harness/src/oracle/compiled/type_guard.rs:17:9: replace RustcErrorCode::informed -> Result<Self, RustcErrorCodeRefusal> with Ok(Default::default())
+caught   harness/src/oracle/compiled/type_guard.rs:19:20: replace match guard first.is_ascii_digit() && second.is_ascii_digit() && third.is_ascii_digit() && fourth.is_ascii_digit() with true in RustcErrorCode::informed
+caught   harness/src/oracle/compiled/type_guard.rs:19:20: replace match guard first.is_ascii_digit() && second.is_ascii_digit() && third.is_ascii_digit() && fourth.is_ascii_digit() with false in RustcErrorCode::informed
+caught   harness/src/oracle/compiled/type_guard.rs:22:21: replace && with || in RustcErrorCode::informed
+caught   harness/src/oracle/compiled/type_guard.rs:21:21: replace && with || in RustcErrorCode::informed
+caught   harness/src/oracle/compiled/type_guard.rs:20:21: replace && with || in RustcErrorCode::informed
+caught   harness/src/oracle/compiled/type_guard.rs:33:9: replace RustcErrorCode::spelling -> &str with ""
+caught   harness/src/oracle/compiled/type_guard.rs:33:9: replace RustcErrorCode::spelling -> &str with "xyzzy"
+unviable harness/src/oracle/compiled/type_guard.rs:44:9: replace RelativeSourcePath::informed -> Result<Self, RelativeSourcePathRefusal> with Ok(Default::default())
+caught   harness/src/oracle/compiled/type_guard.rs:47:38: replace || with && in RelativeSourcePath::informed
+caught   harness/src/oracle/compiled/type_guard.rs:54:35: replace || with && in RelativeSourcePath::informed
+caught   harness/src/oracle/compiled/type_guard.rs:64:9: replace RelativeSourcePath::spelling -> &str with ""
+caught   harness/src/oracle/compiled/type_guard.rs:64:9: replace RelativeSourcePath::spelling -> &str with "xyzzy"
+unviable harness/src/oracle/compiled/type_guard.rs:75:9: replace SourcePosition::informed -> Result<Self, SourcePositionRefusal> with Ok(Default::default())
+caught   harness/src/oracle/compiled/type_guard.rs:75:17: replace == with != in SourcePosition::informed
+caught   harness/src/oracle/compiled/type_guard.rs:78:19: replace == with != in SourcePosition::informed
+caught   harness/src/oracle/compiled/type_guard.rs:87:9: replace SourcePosition::line -> u64 with 0
+caught   harness/src/oracle/compiled/type_guard.rs:87:9: replace SourcePosition::line -> u64 with 1
+caught   harness/src/oracle/compiled/type_guard.rs:93:9: replace SourcePosition::column -> u64 with 0
+caught   harness/src/oracle/compiled/type_guard.rs:93:9: replace SourcePosition::column -> u64 with 1
+unviable harness/src/oracle/compiled/type_guard.rs:111:9: replace PrimarySourceSpan::informed -> Result<Self, PrimarySourceSpanRefusal> with Ok(Default::default())
+caught   harness/src/oracle/compiled/type_guard.rs:111:16: replace < with == in PrimarySourceSpan::informed
+caught   harness/src/oracle/compiled/type_guard.rs:111:16: replace < with > in PrimarySourceSpan::informed
+caught   harness/src/oracle/compiled/type_guard.rs:111:16: replace < with <= in PrimarySourceSpan::informed
+unviable harness/src/oracle/compiled/type_guard.rs:119:9: replace PrimarySourceSpan::source -> &RelativeSourcePath with Box::leak(Box::new(Default::default()))
+unviable harness/src/oracle/compiled/type_guard.rs:124:9: replace PrimarySourceSpan::start -> SourcePosition with Default::default()
+unviable harness/src/oracle/compiled/type_guard.rs:129:9: replace PrimarySourceSpan::end -> SourcePosition with Default::default()
+unviable harness/src/oracle/compiled/type_guard.rs:136:9: replace DiagnosticAnchor::at -> Self with Default::default()
+unviable harness/src/oracle/compiled/type_guard.rs:141:9: replace DiagnosticAnchor::code -> &RustcErrorCode with Box::leak(Box::new(Default::default()))
+unviable harness/src/oracle/compiled/type_guard.rs:146:9: replace DiagnosticAnchor::primary -> &PrimarySourceSpan with Box::leak(Box::new(Default::default()))
+unviable harness/src/oracle/compiled/type_guard.rs:153:9: replace DeclaredCompilation::compiles -> Self with Default::default()
+unviable harness/src/oracle/compiled/type_guard.rs:158:9: replace DeclaredCompilation::refuses -> Self with Default::default()
+caught   harness/src/oracle/compiled/type_guard.rs:166:9: replace DeclaredCompilation::refusal -> Option<&DiagnosticAnchor> with None
+unviable harness/src/oracle/compiled/type_guard.rs:166:9: replace DeclaredCompilation::refusal -> Option<&DiagnosticAnchor> with Some(Box::leak(Box::new(Default::default())))
+unviable harness/src/oracle/compiled/type_guard.rs:173:9: replace ObservedCompilation::compiled -> Self with Default::default()
+unviable harness/src/oracle/compiled/type_guard.rs:178:9: replace ObservedCompilation::refused -> Self with Default::default()
+caught   harness/src/oracle/compiled/type_guard.rs:186:9: replace ObservedCompilation::refusal -> Option<&DiagnosticAnchor> with None
+unviable harness/src/oracle/compiled/type_guard.rs:186:9: replace ObservedCompilation::refusal -> Option<&DiagnosticAnchor> with Some(Box::leak(Box::new(Default::default())))
+unviable harness/src/oracle/compiled/type_guard.rs:191:5: replace has_windows_prefix -> bool with true
+unviable harness/src/oracle/compiled/type_guard.rs:191:5: replace has_windows_prefix -> bool with false
+49 mutants tested: 28 caught, 21 unviable
