@@ -197,10 +197,14 @@ fn exact_compilation_distinguishes_acceptance_code_and_primary_span()
 }
 
 #[test]
-fn exact_compilation_values_refuse_noncanonical_source_coordinates()
+fn exact_compilation_values_refuse_noncanonical_error_codes_and_source_coordinates()
 -> Result<(), CompiledRoadFailure> {
     assert_eq!(
         RustcErrorCode::informed("E308"),
+        Err(RustcErrorCodeRefusal::Grammar)
+    );
+    assert_eq!(
+        RustcErrorCode::informed("EABCD"),
         Err(RustcErrorCodeRefusal::Grammar)
     );
     assert_eq!(
