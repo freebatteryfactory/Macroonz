@@ -26,12 +26,35 @@ pub struct KeyedRoster<T, K, const N: usize> {
     keys: NonEmpty<K, N>,
 }
 
+/// One payload assignment for every member of a caller-keyed denominator roster.
+///
+/// The denominator and payload rosters share denominator order by construction.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct KeyedRosterAssignment<D, K, P, S, const N: usize> {
+    denominator: KeyedRoster<D, K, N>,
+    payloads: KeyedRoster<P, S, N>,
+}
+
 /// One duplicated key and every declaration position at which it occurred.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DuplicateKey<K, const N: usize> {
     key: K,
     first: usize,
     repeated: NonEmpty<usize, N>,
+}
+
+/// One offered payload whose denominator reference is foreign.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ForeignRosterReference<K> {
+    key: K,
+    offered_position: usize,
+}
+
+/// One denominator member for which no payload was offered.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct UnassignedRosterMember<K> {
+    key: K,
+    denominator_position: usize,
 }
 
 /// A non-empty ordered collection together with its constructor-derived capping posture.
@@ -84,4 +107,21 @@ pub enum KeyedRosterError<K, const N: usize> {
     Overflow(Overflow),
     /// One or more caller-declared keys occurred more than once.
     DuplicateKeys(NonEmpty<DuplicateKey<K, N>, N>),
+}
+
+/// How an offered payload roster refuses exact assignment to a keyed denominator.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum KeyedRosterAssignmentError<K, S, const N: usize> {
+    /// Nothing was offered.
+    Empty(Empty),
+    /// Too much was offered.
+    Overflow(Overflow),
+    /// One or more offered payloads name a key outside the denominator.
+    ForeignReferences(NonEmpty<ForeignRosterReference<K>, N>),
+    /// One or more denominator keys were referenced more than once.
+    DuplicateReferences(NonEmpty<DuplicateKey<K, N>, N>),
+    /// One or more caller-declared payload-seat keys were reused.
+    ReusedPayloadSeats(NonEmpty<DuplicateKey<S, N>, N>),
+    /// One or more denominator members received no payload.
+    MissingMembers(NonEmpty<UnassignedRosterMember<K>, N>),
 }

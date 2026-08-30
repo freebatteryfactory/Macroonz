@@ -3,6 +3,8 @@
 //! The lane asks each constructor at, below, and beyond its ceiling, then pairs every refusal with a lawful control.
 //! It also proves that retained order, capping posture, and error chaining remain readable without reaching any private field.
 
+mod assignment;
+
 use core::error::Error;
 use macroonz_compiler::bounded::{
     Bounded as HomeBounded, Capped as HomeCapped, Capping as HomeCapping,

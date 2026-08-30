@@ -4,8 +4,9 @@
 //! A list longer than its ceiling and a non-empty list with nothing in it are values nobody can build, rather than shapes something downstream has to check for.
 
 use super::{
-    Bounded, Capped, Capping, DuplicateKey, Empty, KeyedRoster, KeyedRosterError, NonEmpty,
-    NonEmptyError, Overflow,
+    Bounded, Capped, Capping, DuplicateKey, Empty, ForeignRosterReference, KeyedRoster,
+    KeyedRosterAssignment, KeyedRosterAssignmentError, KeyedRosterError, NonEmpty, NonEmptyError,
+    Overflow, UnassignedRosterMember,
 };
 use core::borrow::Borrow;
 
@@ -243,21 +244,11 @@ impl<T, K: Eq, const N: usize> KeyedRoster<T, K, N> {
     /// Returns [`Empty`] when nothing is offered, [`Overflow`] when more than `N` items are offered, and [`DuplicateKey`] coordinates for every distinct key that occurs more than once.
     pub fn new(
         members: Vec<T>,
-        mut key_of: impl FnMut(&T) -> K,
+        key_of: impl FnMut(&T) -> K,
     ) -> Result<Self, KeyedRosterError<K, N>> {
         let members = NonEmpty::new(members).map_err(keyed_magnitude_refusal)?;
-        let mut groups = KeyGroups {
-            head: KeyGroup {
-                key: key_of(members.first()),
-                first: 0,
-                repeated: Vec::new(),
-            },
-            tail: Vec::new(),
-        };
-        for (index, member) in members.iter().enumerate().skip(1) {
-            groups.insert(key_of(member), index);
-        }
-        match groups.admit() {
+        let keys = project_keys(&members, key_of);
+        match admit_keys(keys) {
             KeyAdmission::Unique(keys) => Ok(Self { members, keys }),
             KeyAdmission::Duplicated(duplicates) => {
                 Err(KeyedRosterError::DuplicateKeys(duplicates))
@@ -291,6 +282,33 @@ fn keyed_magnitude_refusal<K, const N: usize>(error: NonEmptyError) -> KeyedRost
         NonEmptyError::Empty(empty) => KeyedRosterError::Empty(empty),
         NonEmptyError::Overflow(overflow) => KeyedRosterError::Overflow(overflow),
     }
+}
+
+fn project_keys<T, K, const N: usize>(
+    members: &NonEmpty<T, N>,
+    mut key_of: impl FnMut(&T) -> K,
+) -> NonEmpty<K, N> {
+    let (head, tail) = members.split();
+    NonEmpty {
+        head: key_of(head),
+        tail: tail.iter().map(key_of).collect(),
+    }
+}
+
+fn admit_keys<K: Eq, const N: usize>(keys: NonEmpty<K, N>) -> KeyAdmission<K, N> {
+    let NonEmpty { head, tail } = keys;
+    let mut groups = KeyGroups {
+        head: KeyGroup {
+            key: head,
+            first: 0,
+            repeated: Vec::new(),
+        },
+        tail: Vec::new(),
+    };
+    for (index, key) in tail.into_iter().enumerate() {
+        groups.insert(key, index.saturating_add(1));
+    }
+    groups.admit()
 }
 
 struct KeyGroup<K> {
@@ -375,6 +393,381 @@ fn admitted_group<K, const N: usize>(group: KeyGroup<K>) -> Result<K, DuplicateK
         });
     }
     Ok(key)
+}
+
+impl<D, K, P, S, const N: usize> KeyedRosterAssignment<D, K, P, S, N> {
+    /// The complete caller-keyed denominator retained by this assignment.
+    #[must_use]
+    pub const fn denominator(&self) -> &KeyedRoster<D, K, N> {
+        &self.denominator
+    }
+
+    /// The payload roster aligned with the denominator and keyed by caller-declared seats.
+    #[must_use]
+    pub const fn payloads(&self) -> &KeyedRoster<P, S, N> {
+        &self.payloads
+    }
+
+    /// How many denominator members and aligned payloads are held.
+    #[must_use]
+    pub fn count(&self) -> usize {
+        self.denominator.count()
+    }
+
+    /// The first denominator member and its assigned payload.
+    #[must_use]
+    pub const fn first(&self) -> (&K, &D, &S, &P) {
+        (
+            self.denominator.first_key(),
+            self.denominator.first(),
+            self.payloads.first_key(),
+            self.payloads.first(),
+        )
+    }
+
+    /// Reads every denominator member and aligned payload in denominator order.
+    pub fn indexed(&self) -> impl Iterator<Item = (usize, &K, &D, &S, &P)> {
+        self.denominator
+            .indexed()
+            .zip(self.payloads.keys().zip(self.payloads.members()))
+            .map(|((index, key, member), (seat, payload))| (index, key, member, seat, payload))
+    }
+
+    /// Reads one denominator member and aligned payload at a checked index.
+    #[must_use]
+    pub fn at(&self, index: usize) -> Option<(&K, &D, &S, &P)> {
+        self.denominator
+            .at(index)
+            .zip(self.payloads.at(index))
+            .map(|((key, member), (seat, payload))| (key, member, seat, payload))
+    }
+
+    /// Finds one denominator member and aligned payload through a borrowed key.
+    #[must_use]
+    pub fn get<Q>(&self, sought: &Q) -> Option<(&D, &S, &P)>
+    where
+        K: Borrow<Q>,
+        Q: Eq + ?Sized,
+    {
+        let index = self.denominator.index_of(sought)?;
+        self.at(index)
+            .map(|(_key, member, seat, payload)| (member, seat, payload))
+    }
+}
+
+impl<D, K: Eq, P, S: Eq, const N: usize> KeyedRosterAssignment<D, K, P, S, N> {
+    /// Completes one payload assignment over an existing caller-keyed denominator.
+    ///
+    /// Payload magnitude is settled before either key projection runs.
+    /// Reference membership and uniqueness are settled before payload-seat keys are projected.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KeyedRosterAssignmentError`] with the first structural refusal class reached by the declared construction order.
+    pub fn complete(
+        denominator: KeyedRoster<D, K, N>,
+        payloads: Vec<P>,
+        reference_of: impl FnMut(&P) -> K,
+        seat_of: impl FnMut(&P) -> S,
+    ) -> Result<Self, KeyedRosterAssignmentError<K, S, N>> {
+        let payloads = NonEmpty::new(payloads).map_err(assignment_magnitude_refusal::<K, S, N>)?;
+        let references = project_keys(&payloads, reference_of);
+        let (references, positions) = match admit_references(&denominator, references) {
+            ReferenceAdmission::Lawful { keys, positions } => (keys, positions),
+            ReferenceAdmission::Foreign(foreign) => {
+                return Err(KeyedRosterAssignmentError::ForeignReferences(foreign));
+            }
+        };
+        if let KeyAdmission::Duplicated(duplicates) = admit_keys(references) {
+            return Err(KeyedRosterAssignmentError::DuplicateReferences(duplicates));
+        }
+        let seats = project_keys(&payloads, seat_of);
+        let seats = match admit_keys(seats) {
+            KeyAdmission::Unique(seats) => seats,
+            KeyAdmission::Duplicated(duplicates) => {
+                return Err(KeyedRosterAssignmentError::ReusedPayloadSeats(duplicates));
+            }
+        };
+        let denominator = match settle_completeness(denominator, &positions) {
+            AssignmentCompleteness::Complete(denominator) => denominator,
+            AssignmentCompleteness::Missing(missing) => {
+                return Err(KeyedRosterAssignmentError::MissingMembers(missing));
+            }
+        };
+        let payloads = align_payloads(payloads, seats, positions);
+        Ok(Self {
+            denominator,
+            payloads,
+        })
+    }
+}
+
+impl<K> ForeignRosterReference<K> {
+    /// The denominator key named by the offered payload.
+    #[must_use]
+    pub const fn key(&self) -> &K {
+        &self.key
+    }
+
+    /// The zero-based offered-payload position carrying the foreign reference.
+    #[must_use]
+    pub const fn offered_position(&self) -> usize {
+        self.offered_position
+    }
+}
+
+impl<K> UnassignedRosterMember<K> {
+    /// The denominator key for which no payload was offered.
+    #[must_use]
+    pub const fn key(&self) -> &K {
+        &self.key
+    }
+
+    /// The zero-based denominator position for which no payload was offered.
+    #[must_use]
+    pub const fn denominator_position(&self) -> usize {
+        self.denominator_position
+    }
+}
+
+enum ReferenceAdmission<K, const N: usize> {
+    Lawful {
+        keys: NonEmpty<K, N>,
+        positions: NonEmpty<usize, N>,
+    },
+    Foreign(NonEmpty<ForeignRosterReference<K>, N>),
+}
+
+fn admit_references<D, K: Eq, const N: usize>(
+    denominator: &KeyedRoster<D, K, N>,
+    references: NonEmpty<K, N>,
+) -> ReferenceAdmission<K, N> {
+    let NonEmpty { head, tail } = references;
+    let Some(head_position) = denominator.index_of(&head) else {
+        let foreign_tail = tail
+            .into_iter()
+            .enumerate()
+            .filter_map(|(offset, key)| {
+                denominator
+                    .index_of(&key)
+                    .is_none()
+                    .then_some(ForeignRosterReference {
+                        key,
+                        offered_position: offset.saturating_add(1),
+                    })
+            })
+            .collect();
+        return ReferenceAdmission::Foreign(NonEmpty {
+            head: ForeignRosterReference {
+                key: head,
+                offered_position: 0,
+            },
+            tail: foreign_tail,
+        });
+    };
+    admit_references_after_lawful_head(denominator, head, head_position, tail)
+}
+
+fn admit_references_after_lawful_head<D, K: Eq, const N: usize>(
+    denominator: &KeyedRoster<D, K, N>,
+    head: K,
+    head_position: usize,
+    tail: Vec<K>,
+) -> ReferenceAdmission<K, N> {
+    let mut lawful_keys = Vec::new();
+    let mut lawful_positions = Vec::new();
+    let mut foreign_head = None;
+    let mut foreign_tail = Vec::new();
+    for (offset, key) in tail.into_iter().enumerate() {
+        let offered_position = offset.saturating_add(1);
+        if let Some(position) = denominator.index_of(&key) {
+            lawful_keys.push(key);
+            lawful_positions.push(position);
+        } else {
+            let foreign = ForeignRosterReference {
+                key,
+                offered_position,
+            };
+            if foreign_head.is_none() {
+                foreign_head = Some(foreign);
+            } else {
+                foreign_tail.push(foreign);
+            }
+        }
+    }
+    if let Some(foreign) = foreign_head {
+        ReferenceAdmission::Foreign(NonEmpty {
+            head: foreign,
+            tail: foreign_tail,
+        })
+    } else {
+        ReferenceAdmission::Lawful {
+            keys: NonEmpty {
+                head,
+                tail: lawful_keys,
+            },
+            positions: NonEmpty {
+                head: head_position,
+                tail: lawful_positions,
+            },
+        }
+    }
+}
+
+enum AssignmentCompleteness<D, K, const N: usize> {
+    Complete(KeyedRoster<D, K, N>),
+    Missing(NonEmpty<UnassignedRosterMember<K>, N>),
+}
+
+enum KeyCompleteness<K, const N: usize> {
+    Complete(NonEmpty<K, N>),
+    Missing(NonEmpty<UnassignedRosterMember<K>, N>),
+}
+
+enum AssignmentStanding {
+    Assigned,
+    Missing,
+}
+
+fn settle_completeness<D, K, const N: usize>(
+    denominator: KeyedRoster<D, K, N>,
+    positions: &NonEmpty<usize, N>,
+) -> AssignmentCompleteness<D, K, N> {
+    let KeyedRoster { members, keys } = denominator;
+    let NonEmpty { head, tail } = keys;
+    let first_assigned = positions.iter().any(|position| *position == 0);
+    let mut completeness = if first_assigned {
+        KeyCompleteness::Complete(NonEmpty {
+            head,
+            tail: Vec::new(),
+        })
+    } else {
+        KeyCompleteness::Missing(NonEmpty {
+            head: UnassignedRosterMember {
+                key: head,
+                denominator_position: 0,
+            },
+            tail: Vec::new(),
+        })
+    };
+    for (offset, key) in tail.into_iter().enumerate() {
+        let denominator_position = offset.saturating_add(1);
+        let standing = if positions
+            .iter()
+            .any(|position| *position == denominator_position)
+        {
+            AssignmentStanding::Assigned
+        } else {
+            AssignmentStanding::Missing
+        };
+        completeness = completeness.push(key, denominator_position, standing);
+    }
+    match completeness {
+        KeyCompleteness::Complete(complete_keys) => AssignmentCompleteness::Complete(KeyedRoster {
+            members,
+            keys: complete_keys,
+        }),
+        KeyCompleteness::Missing(missing) => AssignmentCompleteness::Missing(missing),
+    }
+}
+
+impl<K, const N: usize> KeyCompleteness<K, N> {
+    fn push(self, key: K, denominator_position: usize, standing: AssignmentStanding) -> Self {
+        match (self, standing) {
+            (Self::Complete(mut keys), AssignmentStanding::Assigned) => {
+                keys.tail.push(key);
+                Self::Complete(keys)
+            }
+            (Self::Complete(_keys), AssignmentStanding::Missing) => Self::Missing(NonEmpty {
+                head: UnassignedRosterMember {
+                    key,
+                    denominator_position,
+                },
+                tail: Vec::new(),
+            }),
+            (Self::Missing(missing), AssignmentStanding::Assigned) => Self::Missing(missing),
+            (Self::Missing(mut missing), AssignmentStanding::Missing) => {
+                missing.tail.push(UnassignedRosterMember {
+                    key,
+                    denominator_position,
+                });
+                Self::Missing(missing)
+            }
+        }
+    }
+}
+
+struct PendingAssignment<P, S> {
+    denominator_position: usize,
+    payload: P,
+    seat: S,
+}
+
+fn align_payloads<P, S, const N: usize>(
+    payloads: NonEmpty<P, N>,
+    seats: NonEmpty<S, N>,
+    positions: NonEmpty<usize, N>,
+) -> KeyedRoster<P, S, N> {
+    let NonEmpty {
+        head: payload_head,
+        tail: payload_tail,
+    } = payloads;
+    let NonEmpty {
+        head: seat_head,
+        tail: seat_tail,
+    } = seats;
+    let NonEmpty {
+        head: position_head,
+        tail: position_tail,
+    } = positions;
+    let mut head = PendingAssignment {
+        denominator_position: position_head,
+        payload: payload_head,
+        seat: seat_head,
+    };
+    let mut tail = position_tail
+        .into_iter()
+        .zip(payload_tail)
+        .zip(seat_tail)
+        .map(
+            |((denominator_position, payload), seat)| PendingAssignment {
+                denominator_position,
+                payload,
+                seat,
+            },
+        )
+        .collect::<Vec<_>>();
+    for assignment in &mut tail {
+        if assignment.denominator_position < head.denominator_position {
+            core::mem::swap(&mut head, assignment);
+        }
+    }
+    tail.sort_by_key(|assignment| assignment.denominator_position);
+    let mut ordered_payload_tail = Vec::with_capacity(tail.len());
+    let mut ordered_seat_tail = Vec::with_capacity(tail.len());
+    for assignment in tail {
+        ordered_payload_tail.push(assignment.payload);
+        ordered_seat_tail.push(assignment.seat);
+    }
+    KeyedRoster {
+        members: NonEmpty {
+            head: head.payload,
+            tail: ordered_payload_tail,
+        },
+        keys: NonEmpty {
+            head: head.seat,
+            tail: ordered_seat_tail,
+        },
+    }
+}
+
+fn assignment_magnitude_refusal<K, S, const N: usize>(
+    error: NonEmptyError,
+) -> KeyedRosterAssignmentError<K, S, N> {
+    match error {
+        NonEmptyError::Empty(empty) => KeyedRosterAssignmentError::Empty(empty),
+        NonEmptyError::Overflow(overflow) => KeyedRosterAssignmentError::Overflow(overflow),
+    }
 }
 
 impl<T, const N: usize> Capped<T, N> {

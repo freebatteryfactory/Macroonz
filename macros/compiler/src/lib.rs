@@ -28,8 +28,9 @@ pub mod request;
 pub mod host;
 
 pub use bounded::{
-    Bounded, Capped, Capping, DuplicateKey, Empty, KeyedRoster, KeyedRosterError, NonEmpty,
-    NonEmptyError, Overflow,
+    Bounded, Capped, Capping, DuplicateKey, Empty, ForeignRosterReference, KeyedRoster,
+    KeyedRosterAssignment, KeyedRosterAssignmentError, KeyedRosterError, NonEmpty, NonEmptyError,
+    Overflow, UnassignedRosterMember,
 };
 pub use closure::{
     CLOSURE_ISSUE_LIMIT, CarriedTokens, Closure, ClosureError, ClosureIssue, PartitionCargo,

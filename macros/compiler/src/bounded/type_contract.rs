@@ -2,7 +2,7 @@
 //!
 //! A construction refusal here is an ordinary error and nothing more.
 
-use super::{Empty, KeyedRosterError, NonEmptyError, Overflow};
+use super::{Empty, KeyedRosterAssignmentError, KeyedRosterError, NonEmptyError, Overflow};
 use core::error::Error;
 use core::fmt::{self, Display, Formatter};
 
@@ -79,6 +79,59 @@ impl<K: fmt::Debug, const N: usize> Error for KeyedRosterError<K, N> {
             Self::Empty(empty) => Some(empty),
             Self::Overflow(overflow) => Some(overflow),
             Self::DuplicateKeys(_) => None,
+        }
+    }
+}
+
+impl<K, S, const N: usize> Display for KeyedRosterAssignmentError<K, S, N> {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty(empty) => Display::fmt(empty, formatter),
+            Self::Overflow(overflow) => Display::fmt(overflow, formatter),
+            Self::ForeignReferences(foreign) if foreign.count() == 1 => {
+                formatter.write_str("one offered payload references a key outside the denominator")
+            }
+            Self::ForeignReferences(foreign) => write!(
+                formatter,
+                "{} offered payloads reference keys outside the denominator",
+                foreign.count()
+            ),
+            Self::DuplicateReferences(duplicates) if duplicates.count() == 1 => formatter
+                .write_str("one denominator key is referenced by more than one offered payload"),
+            Self::DuplicateReferences(duplicates) => write!(
+                formatter,
+                "{} denominator keys are referenced by more than one offered payload",
+                duplicates.count()
+            ),
+            Self::ReusedPayloadSeats(duplicates) if duplicates.count() == 1 => {
+                formatter.write_str("one caller-declared payload-seat key is used more than once")
+            }
+            Self::ReusedPayloadSeats(duplicates) => write!(
+                formatter,
+                "{} caller-declared payload-seat keys are used more than once",
+                duplicates.count()
+            ),
+            Self::MissingMembers(missing) if missing.count() == 1 => {
+                formatter.write_str("one denominator member has no offered payload")
+            }
+            Self::MissingMembers(missing) => write!(
+                formatter,
+                "{} denominator members have no offered payload",
+                missing.count()
+            ),
+        }
+    }
+}
+
+impl<K: fmt::Debug, S: fmt::Debug, const N: usize> Error for KeyedRosterAssignmentError<K, S, N> {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Empty(empty) => Some(empty),
+            Self::Overflow(overflow) => Some(overflow),
+            Self::ForeignReferences(_)
+            | Self::DuplicateReferences(_)
+            | Self::ReusedPayloadSeats(_)
+            | Self::MissingMembers(_) => None,
         }
     }
 }
