@@ -54,6 +54,7 @@ That is what keeps `b"…"` from being assembled out of a word and a quoted stri
 
 The private generation home's composers are the rest of what a renderer needs: paths, calls, method chains, bindings, constants, functions, attributes, rosters.
 A renderer states what it means and never assembles punctuation by hand.
+The keyed slice projectors walk an informed [`KeyedRoster`](crate::KeyedRoster) or [`KeyedRosterAssignment`](crate::KeyedRosterAssignment) in its structural order while the renderer supplies every row's tokens and the ordinary Rust item surrounding the slice.
 
 The written roster grows only at its end.
 Each arm's stable slot is one byte of the tree's canonical encoding, and those bytes are what a rendered unit's identity is derived over.

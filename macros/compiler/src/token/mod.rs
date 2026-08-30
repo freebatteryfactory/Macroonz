@@ -17,6 +17,7 @@ pub(crate) use generation::segmented_twin_path;
 pub use generation::{
     GENERATED_TOKEN_LIMIT, GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree,
     absolute_path, and_all, attribute, bound_local, bound_path, call, comma, comma_many, constant,
-    documentation, equality, function, group, metavariable, method_call, method_chain,
-    rendered_identifier, rendered_name, result_type, roster, rust_keyword, text_pair, twin_path,
+    documentation, equality, function, group, keyed_assignment_slice, keyed_roster_slice,
+    metavariable, method_call, method_chain, rendered_identifier, rendered_name, result_type,
+    roster, rust_keyword, text_pair, twin_path,
 };
