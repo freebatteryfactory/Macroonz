@@ -19,6 +19,21 @@ pub struct NonEmpty<T, const N: usize> {
     tail: Vec<T>,
 }
 
+/// A non-empty bounded roster whose caller-declared keys are unique.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct KeyedRoster<T, K, const N: usize> {
+    members: NonEmpty<T, N>,
+    keys: NonEmpty<K, N>,
+}
+
+/// One duplicated key and every declaration position at which it occurred.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct DuplicateKey<K, const N: usize> {
+    key: K,
+    first: usize,
+    repeated: NonEmpty<usize, N>,
+}
+
 /// A non-empty ordered collection together with its constructor-derived capping posture.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Capped<T, const N: usize> {
@@ -58,4 +73,15 @@ pub enum NonEmptyError {
     Empty(Empty),
     /// Too much was offered.
     Overflow(Overflow),
+}
+
+/// How construction of a caller-keyed roster refuses.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum KeyedRosterError<K, const N: usize> {
+    /// Nothing was offered.
+    Empty(Empty),
+    /// Too much was offered.
+    Overflow(Overflow),
+    /// One or more caller-declared keys occurred more than once.
+    DuplicateKeys(NonEmpty<DuplicateKey<K, N>, N>),
 }

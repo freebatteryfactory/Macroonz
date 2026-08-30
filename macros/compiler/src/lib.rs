@@ -27,7 +27,10 @@ pub mod request;
 #[cfg(feature = "host")]
 pub mod host;
 
-pub use bounded::{Bounded, Capped, Capping, Empty, NonEmpty, NonEmptyError, Overflow};
+pub use bounded::{
+    Bounded, Capped, Capping, DuplicateKey, Empty, KeyedRoster, KeyedRosterError, NonEmpty,
+    NonEmptyError, Overflow,
+};
 pub use closure::{
     CLOSURE_ISSUE_LIMIT, CarriedTokens, Closure, ClosureError, ClosureIssue, PartitionCargo,
     PartitionedEmission,

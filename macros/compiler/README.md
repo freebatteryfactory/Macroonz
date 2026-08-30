@@ -113,7 +113,7 @@ A request that fails any step is refused whole — there is no partial output.
 
 | Home | Owns |
 | --- | --- |
-| `bounded/` | The compiler's own capped collections: `Bounded`, `NonEmpty`, and `Capped` — a list plus how it was capped. |
+| `bounded/` | The compiler's bounded collection shapes: optional, required, caller-keyed unique, and deliberately prefix-capped. |
 | `identity/` | `Identity<S>`, the `Subject` trait, transcripts, profiles, versions, provenance, and the digest. |
 | `token/` | Captured token trees with spans, the literal reader, the text route, generated tokens, and the Rust-expression helpers every renderer needs. |
 | `kind/` | `Kind`, `CanonicalContent`, `Role`, `Question`, `Answer`, the `kinds!` declaration, and dispositions. |
