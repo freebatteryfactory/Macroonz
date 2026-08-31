@@ -73,18 +73,13 @@ This receipt accepts one bounded local Windows current-package economics account
 - The exact marked target no longer existed after cleanup, and local free space was `4,084,883,456` bytes at that boundary.
 - No broad recursive deletion, cache-tag fabrication, source deletion, or cleanup workaround occurred.
 
-## Retained payload
+## Compact custody
 
-- `source-payload.tar` is a USTAR archive containing forty-five files and sixty-seven members.
-- It contains the complete result and command reconstruction, both repeated readbacks, the complete shape and projection subject sources, the historical cost-sensitivity source and console, and all four exact current package archives.
-- It contains no Cargo target, executable, debug database, personal identity, absolute host path, symlink, reparse point, `build.rs`, unsafe block, unsafe function, foreign block, `#[allow]`, or `#[expect]` attribute.
-- Payload size: `1,262,592` bytes.
-- Payload SHA-256: `37CC1BA799117502EB162622638A9650B05B02F0F47D0DA59815BE0DDC44C7FD`.
-- Two independently created payload archives were byte-identical.
-- Extraction reproduced all forty-five retained file paths, byte counts, and SHA-256 values.
-- All four package archives reproduced their clean current product revision after extraction.
-- Final scratch result SHA-256: `B125F9F700FE8A3D669B8C4B1888771D4E6B80341DA0A47CB17D9364430BD401`.
-- Host-neutral command reconstruction SHA-256: `13418642436B58EEC0C445555487EC8619EBFBF62CBC6035967D5CDB43159F20`.
+- This receipt retains the irreducible typed work, current-package preservation, deterministic readback, and historical exact-coordinate sensitivity observations.
+- The historical source payload was removed during the repository evidence-retention correction because it primarily duplicated current package archives, tracked source, earlier subject laboratories, and reconstruction material.
+- The final scratch result had SHA-256 `B125F9F700FE8A3D669B8C4B1888771D4E6B80341DA0A47CB17D9364430BD401` at observation time.
+- The host-neutral command reconstruction had SHA-256 `13418642436B58EEC0C445555487EC8619EBFBF62CBC6035967D5CDB43159F20` at observation time.
+- Raw package copies, subject laboratories, historical console material, and build outputs remain disposable.
 
 ## Standing and next boundary
 

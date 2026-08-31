@@ -19,7 +19,7 @@ This receipt accepts one bounded local Windows current-source economics account 
 - The accepted structural-adoption payload has SHA-256 `0682911A9A6EB947248764DA6608C8C4ECD9C3B58A818ADA3FC160CACB340AE1`.
 - The Wave H package-candidate payload has SHA-256 `3B073B916F58F601537983B3C325800C52C499E8C638D90FE167352E41480450`.
 - Every retained package archive carries `.cargo_vcs_info.json` revision `73ffa61b8555290deebee2d463f207ba10651036`.
-- The four package archives total `1,018,172` bytes and are retained in the payload so the exact product graph can be reconstructed without a live-worktree fallback.
+- The four package archives total `1,018,172` bytes and were independently verified during the run; Git source and ordinary package choreography reconstruct them without retaining another copy beside this receipt.
 - The scratch economics adapter changed only historical raw-collection field reads to the adopted informed roster and assignment readers.
 
 ## Correctness and typed work
@@ -69,19 +69,14 @@ This receipt accepts one bounded local Windows current-source economics account 
 - Two cleanup attempts over pre-existing targets refused because those directories lacked a valid `CACHEDIR.TAG`; no bypass or broad deletion followed.
 - Raw logs and raw LCOV that contain absolute scratch paths remain disposable and are absent from the tracked payload.
 
-## Retained payload
+## Compact custody
 
-- `source-payload.tar` is a USTAR archive containing sixty-one files and eighty-one members.
-- It contains the complete result and command reconstruction, host-neutral machine observations, repeated readbacks, normalized LCOV, all five safe-Rust helpers, semantic source variants, the complete scratch subject and economics workspace, and the four exact package archives.
-- It contains no Cargo target, executable, debug database, raw absolute-path log, raw absolute-path LCOV, personal identity, absolute host path, symlink, reparse point, `build.rs`, unsafe block, unsafe function, foreign block, `#[allow]`, or `#[expect]` attribute.
-- Payload size: `1,525,760` bytes.
-- Payload SHA-256: `19C59ED277D2DDBEAD41FCE04208CC4CCE3D3B8DF77D808BBF8D8CB119D24FE8`.
-- Two independently created payload archives were byte-identical.
-- Extraction reproduced every retained file hash and all four package revisions independently.
-- Final scratch result SHA-256: `D4A23716C50CBB4F6B407BED31DE31412BE815E2715A4375CE8B60880B12D8A7`.
-- Host-neutral command reconstruction SHA-256: `49CBC5108578D8DA9091210DE280290BDECE0440EFA82A8B167805C099AC231F`.
-- Retained command stream SHA-256: `6CDE292677E58B8E52256CCA577006B462380AD9F0EABCB3E1E3AF9F0C38A941`.
-- Deterministic summary SHA-256: `2736DEF6F6BF02176427CEB5EE6AF26083B3A52C28ACFA3B76329734B8C6D86B`.
+- This receipt retains the irreducible typed work, local host, stable-source-coverage, and exact sensitivity-cost observations.
+- The historical source payload was removed during the repository evidence-retention correction because it primarily duplicated package archives, tracked source, and a reproducibility laboratory.
+- The final scratch result had SHA-256 `D4A23716C50CBB4F6B407BED31DE31412BE815E2715A4375CE8B60880B12D8A7` at observation time.
+- The host-neutral command reconstruction had SHA-256 `49CBC5108578D8DA9091210DE280290BDECE0440EFA82A8B167805C099AC231F` at observation time.
+- The command stream had SHA-256 `6CDE292677E58B8E52256CCA577006B462380AD9F0EABCB3E1E3AF9F0C38A941`, and the deterministic summary had SHA-256 `2736DEF6F6BF02176427CEB5EE6AF26083B3A52C28ACFA3B76329734B8C6D86B`.
+- Raw logs, package copies, source variants, helper programs, and build outputs remain disposable.
 
 ## Standing and next boundary
 

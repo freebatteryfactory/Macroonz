@@ -9,7 +9,7 @@
 - Campaign-plan snapshot used to interpret this observation: SHA-256 `4C5CD359B565858B7D194510EFFBB461B483A71C1E181B55787DC2705727871A`.
 - `Cargo.lock` SHA-256: `471BD8BF8BAA28392CA4B14CB49C175877E6D8E06CD778E20D1AD71C21E3D586`.
 - Product and qualification toolchain: stable Rust 1.98.0 with Cargo 1.98.0.
-- This receipt records a qualified hosted, published, and registry-delivered observation pending final owner acceptance of the release plane.
+- This receipt records the qualified hosted, published, and registry-delivered observation that the owner accepted as the Macroonz `0.1.0` release plane.
 
 ## Hosted source crossing
 
@@ -74,6 +74,6 @@
 
 ## Plane limits
 
-- This receipt does not claim a supply-chain attestation, signed package, reproducible-build proof across hosts, trusted-publishing configuration, immutable GitHub Release, download population, or final owner acceptance.
-- Annotated tag `v0.1.0` remains pending at exact published source `eb4e6c0` until the receipt and cleanup truth are committed.
+- This receipt does not claim a supply-chain attestation, signed package, reproducible-build proof across hosts, trusted-publishing configuration, immutable GitHub Release, or download population.
+- Annotated tag `v0.1.0` exists as tag object `446b8a75ad1967df060cb89e4c1b4099b8b3526b` and resolves to exact published source `eb4e6c0855f943065905c93eb98fbf7dfd40fe53`.
 - README adjacency positioning, the facade storefront doctest, announcement posts, and release promotion remain later work rather than hidden conditions of this registry-delivery observation.

@@ -129,14 +129,11 @@ The 58 skipped checks remain explicit non-observations.
 
 ## Compact custody
 
-- `source-payload.tar` is a host-neutral USTAR archive with nine fixed-order entries and one fixed modification time.
-- Two independently created payloads were byte-identical.
-- Source-payload SHA-256: `3B073B916F58F601537983B3C325800C52C499E8C638D90FE167352E41480450`.
-- Source-payload size: 33,792 bytes.
-- The payload retains the exact package-roster delta and the exact baseline/current renamed consumer manifests, locks, and source.
-- The delegated scratch result SHA-256 is `C8379EC23C8B0739473E16E78615EEEDF114F3FE19FA88FE6C9E3C130B510ACB`.
-- Raw analyzer logs, downloaded package archives, extracted packages, analyzer binaries, and build outputs remain disposable because their authoritative identities and result classes are recorded here.
-- The retained receipt and payload contain no personal identity or absolute host path.
+- This receipt retains the irreducible analyzer, package-roster, generated-consumer, and planted-control observations.
+- The historical source payload was removed during the repository evidence-retention correction because its consumer source and package inputs are reconstructable from Git, the published registry artifacts, and the hashes above.
+- The delegated scratch result had SHA-256 `C8379EC23C8B0739473E16E78615EEEDF114F3FE19FA88FE6C9E3C130B510ACB` at observation time.
+- Raw analyzer logs, downloaded package archives, extracted packages, analyzer binaries, source laboratories, and build outputs remain disposable.
+- This receipt contains no personal identity or absolute host path.
 
 ## Acceptance and remaining ceilings
 
