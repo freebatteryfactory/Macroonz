@@ -82,8 +82,9 @@ pub use request::{
 };
 pub use token::{
     CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound,
-    CaptureBuildRefusal, CaptureBuilder, CaptureLevel, CaptureWalk, CapturedAtom,
-    CapturedDelimiter, CapturedInput, CapturedPayload, CapturedTokenTree, CoordinateRole,
+    CaptureBuildRefusal, CaptureBuilder, CaptureCursor, CaptureExpectation, CaptureLevel,
+    CaptureReadIssue, CaptureReadRefusal, CaptureWalk, CapturedAtom, CapturedDelimiter,
+    CapturedInput, CapturedPayload, CapturedSpacing, CapturedTokenTree, CoordinateRole,
     GENERATED_TOKEN_LIMIT, GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree,
     LiteralReadCause, SourceCoordinate, SpanHandle, SpanResolutionRefusal, SpanTable,
     TEXT_SOURCE_BYTE_LIMIT, TOKEN_PATH_DEPTH_LIMIT, TextCapture, TextLexicalCause, TextReadCause,

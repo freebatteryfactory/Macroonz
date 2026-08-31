@@ -46,6 +46,10 @@ It uses a pinned low-level compiler lexer for token boundaries and slices every 
 Its source-byte magnitude is checked before lexing and stands independently of the capture tree and work magnitudes.
 The [`CapturedInput`] it returns is the shared normalization boundary against which the compiler-token producer is observed.
 
+[`CaptureCursor`] reads generic mechanical shapes from that boundary without interpreting them.
+It leaves declaration vocabulary and diagnostic policy with the caller, and its typed refusals retain the exact token span available where a word, identifier, punctuation seat, group, separator, magnitude, or end condition disagrees.
+This is the reusable parser battery for subject-owned grammars, not a grammar owned by Macroonz.
+
 ## Writing
 
 [`GeneratedTree`] is what a renderer produces.
