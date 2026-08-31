@@ -503,12 +503,27 @@ fn refusal_trait_contracts_preserve_the_concrete_cause() -> Result<(), String> {
     )
     .err()
     .ok_or_else(|| "the duplicate roster was admitted".to_owned())?;
+    let roster_duplicates = KeyedRoster::<String, String, 4>::new(
+        vec![
+            "left".to_owned(),
+            "left".to_owned(),
+            "right".to_owned(),
+            "right".to_owned(),
+        ],
+        Clone::clone,
+    )
+    .err()
+    .ok_or_else(|| "the multiply duplicated roster was admitted".to_owned())?;
 
     assert_eq!(roster_empty.to_string(), empty.to_string());
     assert_eq!(roster_overflow.to_string(), overflow.to_string());
     assert_eq!(
         roster_duplicate.to_string(),
         "one caller-declared key occurred more than once"
+    );
+    assert_eq!(
+        roster_duplicates.to_string(),
+        "2 caller-declared keys occurred more than once"
     );
     assert!(roster_empty.source().is_some_and(<dyn Error>::is::<Empty>));
     assert!(

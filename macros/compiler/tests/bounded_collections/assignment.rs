@@ -60,6 +60,18 @@ fn assign<const N: usize>(
     )
 }
 
+fn refused_assignment<const N: usize>(
+    names: &[&str],
+    payloads: Vec<Payload>,
+) -> Result<KeyedRosterAssignmentError<String, String, N>, String> {
+    assign(
+        denominator::<N>(names).map_err(|error| error.to_string())?,
+        payloads,
+    )
+    .err()
+    .ok_or_else(|| "the structurally invalid assignment was admitted".to_owned())
+}
+
 /// Empty and overflowing offerings refuse before either caller projection runs.
 #[test]
 fn assignment_settles_magnitude_before_key_work() -> Result<(), String> {
@@ -441,4 +453,97 @@ fn assignment_refusal_trait_contracts_are_concrete() {
     assert_eq!(overflow.to_string(), "2 items offered where at most 1 fit");
     assert!(empty.source().is_some_and(<dyn Error>::is::<Empty>));
     assert!(overflow.source().is_some_and(<dyn Error>::is::<Overflow>));
+}
+
+/// Foreign-reference sentences distinguish one foreign payload from several without discarding the typed coordinates.
+#[test]
+fn assignment_foreign_reference_sentences_name_the_exact_magnitude() -> Result<(), String> {
+    let one = refused_assignment::<2>(&["a", "b"], vec![payload("foreign", "s0", 0)])?;
+    let many = refused_assignment::<2>(
+        &["a", "b"],
+        vec![payload("foreign-a", "s0", 0), payload("foreign-b", "s1", 1)],
+    )?;
+
+    assert_eq!(
+        one.to_string(),
+        "one offered payload references a key outside the denominator"
+    );
+    assert_eq!(
+        many.to_string(),
+        "2 offered payloads reference keys outside the denominator"
+    );
+    Ok(())
+}
+
+/// Duplicate-reference sentences distinguish one duplicated denominator key from several.
+#[test]
+fn assignment_duplicate_reference_sentences_name_the_exact_magnitude() -> Result<(), String> {
+    let one = refused_assignment::<2>(
+        &["a", "b"],
+        vec![payload("a", "s0", 0), payload("a", "s1", 1)],
+    )?;
+    let many = refused_assignment::<4>(
+        &["a", "b"],
+        vec![
+            payload("a", "s0", 0),
+            payload("a", "s1", 1),
+            payload("b", "s2", 2),
+            payload("b", "s3", 3),
+        ],
+    )?;
+
+    assert_eq!(
+        one.to_string(),
+        "one denominator key is referenced by more than one offered payload"
+    );
+    assert_eq!(
+        many.to_string(),
+        "2 denominator keys are referenced by more than one offered payload"
+    );
+    Ok(())
+}
+
+/// Payload-seat sentences distinguish one reused caller key from several.
+#[test]
+fn assignment_reused_payload_seat_sentences_name_the_exact_magnitude() -> Result<(), String> {
+    let one = refused_assignment::<2>(
+        &["a", "b"],
+        vec![payload("a", "same", 0), payload("b", "same", 1)],
+    )?;
+    let many = refused_assignment::<4>(
+        &["a", "b", "c", "d"],
+        vec![
+            payload("a", "left", 0),
+            payload("b", "left", 1),
+            payload("c", "right", 2),
+            payload("d", "right", 3),
+        ],
+    )?;
+
+    assert_eq!(
+        one.to_string(),
+        "one caller-declared payload-seat key is used more than once"
+    );
+    assert_eq!(
+        many.to_string(),
+        "2 caller-declared payload-seat keys are used more than once"
+    );
+    Ok(())
+}
+
+/// Missing-member sentences distinguish one unassigned denominator member from several.
+#[test]
+fn assignment_missing_member_sentences_name_the_exact_magnitude() -> Result<(), String> {
+    let one = refused_assignment::<2>(&["a", "b"], vec![payload("a", "s0", 0)])?;
+    let many = refused_assignment::<3>(&["a", "b", "c"], vec![payload("a", "s0", 0)])?;
+
+    assert_eq!(
+        one.to_string(),
+        "one denominator member has no offered payload"
+    );
+    assert_eq!(
+        many.to_string(),
+        "2 denominator members have no offered payload"
+    );
+    Ok(())
 }
