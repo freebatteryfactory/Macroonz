@@ -40,6 +40,21 @@ pub enum CaptureError {
     },
 }
 
+/// Why one admitted generated literal could not cross the compiler-token host.
+///
+/// This is a host contradiction rather than a declaration diagnostic: the ordinary compiler admitted the literal before the proc API was asked to materialize it.
+#[must_use = "an emission refusal names the admitted literal the compiler host could not materialize"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum EmissionError {
+    /// The proc-macro literal API rejected one already admitted numeric spelling.
+    NumberRejected {
+        /// The exact admitted numeric spelling.
+        spelling: String,
+    },
+    /// The proc-macro C-string literal API rejected already admitted C-string material.
+    NulTerminatedTextRejected,
+}
+
 /// What one value answers to have its declaration-site cargo emitted.
 ///
 /// A cargo per delivery it carries, in the order a compiler receives them: a value delivering two says so rather than handing over one stream that claims to be both.

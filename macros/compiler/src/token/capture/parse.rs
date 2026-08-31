@@ -19,7 +19,7 @@ impl CapturedInput {
 
 impl<'tokens> CaptureCursor<'tokens> {
     /// Open the top-level cursor while keeping raw slice construction inside the capture owner.
-    const fn over(tokens: &'tokens [CapturedTokenTree]) -> Self {
+    pub(super) const fn over(tokens: &'tokens [CapturedTokenTree]) -> Self {
         Self {
             tokens,
             next: 0,
@@ -31,6 +31,30 @@ impl<'tokens> CaptureCursor<'tokens> {
     #[must_use]
     pub fn is_finished(&self) -> bool {
         self.next == self.tokens.len()
+    }
+
+    /// Read one caller-defined shape and retain the exact captured run it consumed.
+    ///
+    /// The callback may consume no token where an empty exact Rust seat is lawful.
+    /// The returned fragment still belongs to this cursor's original captured sequence and retains its enclosing group boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns the callback's exact typed mechanical refusal without advancing past that refusal.
+    pub fn fragment<T>(
+        &mut self,
+        read: impl FnOnce(&mut Self) -> Result<T, CaptureReadRefusal>,
+    ) -> Result<(super::CapturedFragment<'tokens>, T), CaptureReadRefusal> {
+        let start = self.next;
+        let value = read(self)?;
+        let tokens = self
+            .tokens
+            .get(start..self.next)
+            .ok_or(CaptureReadRefusal {
+                issue: CaptureReadIssue::CursorRangeContradiction,
+                at: self.current_span(),
+            })?;
+        Ok((super::CapturedFragment::over(tokens, self.end), value))
     }
 
     /// Read any one captured token.

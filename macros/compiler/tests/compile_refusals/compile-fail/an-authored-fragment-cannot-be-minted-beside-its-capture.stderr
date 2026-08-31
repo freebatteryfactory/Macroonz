@@ -1,0 +1,9 @@
+error[E0451]: fields `tokens` and `end` of struct `CapturedFragment` are private
+ --> tests/compile_refusals/compile-fail/an-authored-fragment-cannot-be-minted-beside-its-capture.rs:5:9
+  |
+4 |     let _forged = CapturedFragment {
+  |                   ---------------- in this type
+5 |         tokens: &[],
+  |         ^^^^^^ private field
+6 |         end: Some(SpanHandle::at(0)),
+  |         ^^^ private field

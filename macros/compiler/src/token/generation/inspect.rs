@@ -3,7 +3,7 @@
 //! One-way.
 //! Nothing reads a projection back, derives an identity from one, or decides anything by one: the artifact is the tree.
 
-use super::{GeneratedDelimiter, GeneratedSpacing, GeneratedToken};
+use super::{GeneratedDelimiter, GeneratedLiteralForm, GeneratedSpacing, GeneratedToken};
 
 /// Project one generated token into Rust source text.
 pub(super) fn inspect_token(token: &GeneratedToken, into: &mut String) {
@@ -26,27 +26,29 @@ pub(super) fn inspect_token(token: &GeneratedToken, into: &mut String) {
         GeneratedToken::Text(text) => {
             into.push('"');
             for character in text.chars() {
-                if character == '"' || character == '\\' {
-                    into.push('\\');
-                }
-                into.push(character);
+                inspect_string_character(character, into);
             }
             into.push('"');
             into.push(' ');
         }
         GeneratedToken::Group { delimiter, tokens } => {
-            let (open, close) = match delimiter {
-                GeneratedDelimiter::Parenthesis => ('(', ')'),
-                GeneratedDelimiter::Brace => ('{', '}'),
-                GeneratedDelimiter::Bracket => ('[', ']'),
+            let written = match delimiter {
+                GeneratedDelimiter::Parenthesis => Some(('(', ')')),
+                GeneratedDelimiter::Brace => Some(('{', '}')),
+                GeneratedDelimiter::Bracket => Some(('[', ']')),
+                GeneratedDelimiter::Bare => None,
             };
-            into.push(open);
-            into.push(' ');
+            if let Some((open, _)) = written {
+                into.push(open);
+                into.push(' ');
+            }
             for inner in tokens.as_slice() {
                 inspect_token(inner, into);
             }
-            into.push(close);
-            into.push(' ');
+            if let Some((_, close)) = written {
+                into.push(close);
+                into.push(' ');
+            }
         }
         GeneratedToken::ByteText(material) => {
             into.push('b');
@@ -61,6 +63,63 @@ pub(super) fn inspect_token(token: &GeneratedToken, into: &mut String) {
             into.push_str(&value.to_string());
             into.push(' ');
         }
+        GeneratedToken::Literal(literal) => inspect_literal(literal.form(), into),
+    }
+}
+
+/// Write one admitted exact literal as readable Rust source.
+fn inspect_literal(literal: GeneratedLiteralForm<'_>, into: &mut String) {
+    match literal {
+        GeneratedLiteralForm::Number(spelling) => into.push_str(spelling),
+        GeneratedLiteralForm::Character(character) => {
+            into.push('\'');
+            inspect_quoted_character(character, into);
+            into.push('\'');
+        }
+        GeneratedLiteralForm::Byte(byte) => {
+            into.push('b');
+            into.push('\'');
+            inspect_quoted_byte(byte, into);
+            into.push('\'');
+        }
+        GeneratedLiteralForm::NulTerminatedText(material) => {
+            into.push('c');
+            into.push('"');
+            for byte in material {
+                inspect_byte(*byte, into);
+            }
+            into.push('"');
+        }
+    }
+    into.push(' ');
+}
+
+/// Write one character inside a string literal.
+fn inspect_string_character(character: char, into: &mut String) {
+    for escaped in character.escape_default() {
+        into.push(escaped);
+    }
+}
+
+/// Write one character inside a character literal.
+fn inspect_quoted_character(character: char, into: &mut String) {
+    if character == '\'' {
+        into.push('\\');
+        into.push('\'');
+    } else {
+        inspect_string_character(character, into);
+    }
+}
+
+/// Write one byte inside a byte-character literal.
+fn inspect_quoted_byte(byte: u8, into: &mut String) {
+    if byte == b'\'' || byte == b'\\' {
+        into.push('\\');
+        into.push(char::from(byte));
+    } else if byte.is_ascii_graphic() || byte == b' ' {
+        into.push(char::from(byte));
+    } else {
+        inspect_hex_byte(byte, into);
     }
 }
 
@@ -76,12 +135,17 @@ fn inspect_byte(byte: u8, into: &mut String) {
         }
         0x20..=0x7E => into.push(char::from(byte)),
         _ => {
-            into.push('\\');
-            into.push('x');
-            into.push(hex_digit(byte >> 4));
-            into.push(hex_digit(byte & 0x0F));
+            inspect_hex_byte(byte, into);
         }
     }
+}
+
+/// Write one byte as an uppercase hexadecimal escape.
+fn inspect_hex_byte(byte: u8, into: &mut String) {
+    into.push('\\');
+    into.push('x');
+    into.push(hex_digit(byte >> 4));
+    into.push(hex_digit(byte & 0x0F));
 }
 
 /// One uppercase hex digit for one nibble.

@@ -8,4 +8,8 @@ The public paths remain rooted at `token`; this child is an implementation home,
 [`keyed_roster_slice`](crate::token::keyed_roster_slice) and [`keyed_assignment_slice`](crate::token::keyed_assignment_slice) project informed caller-keyed values into conventional borrowed Rust slice expressions.
 They preserve retained or denominator order and delegate every row's tokens to the caller, so the surrounding name, visibility, type, destination, and meaning remain outside this home.
 
+[`CapturedFragment::generated`](crate::token::CapturedFragment::generated) projects an exact captured run into this vocabulary without inspecting or reparsing source text.
+Ordinary and raw identifiers, punctuation adjacency, all captured literal forms, written groups, and invisible compiler groups remain distinct.
+[`GeneratedLiteral`](crate::token::GeneratedLiteral) guards the exact literal forms whose older semantic constructors deliberately canonicalize differently.
+
 This home does not capture input, retain spans, or decide what a generated declaration means.

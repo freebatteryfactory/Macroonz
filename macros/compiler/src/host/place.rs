@@ -2,7 +2,7 @@
 //!
 //! Both roads end in one composition, so a refusal the compiler established and one this host raised point at their token the same way and neither can drift into answering with the declaration's first span.
 
-use super::types::{CaptureError, Spans};
+use super::types::{CaptureError, EmissionError, Spans};
 use crate::diagnostic::Diagnostic;
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 
@@ -13,6 +13,11 @@ use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenSt
 #[must_use]
 pub fn place(diagnostic: &Diagnostic, spans: &Spans) -> TokenStream {
     refused(diagnostic.summary(), sited(diagnostic, spans))
+}
+
+/// Place one host emission contradiction at the invocation boundary.
+pub(super) fn emission_refused(refusal: &EmissionError) -> TokenStream {
+    refused(&refusal.to_string(), Span::call_site())
 }
 
 impl CaptureError {

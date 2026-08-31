@@ -1,7 +1,83 @@
 //! The generation home's invariant nucleus.
 
-use super::{GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree};
+use super::{
+    GeneratedDelimiter, GeneratedLiteral, GeneratedLiteralForm, GeneratedLiteralRefusal,
+    GeneratedLiteralValue, GeneratedSpacing, GeneratedToken, GeneratedTree,
+};
 use crate::bounded::{Bounded, Overflow};
+use crate::token::{CapturedAtom, capture_literal};
+
+impl GeneratedLiteral {
+    /// Admit one exact numeric-literal spelling already recognized by the capture owner.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GeneratedLiteralRefusal::NotANumber`] where the spelling is not one numeric literal.
+    pub fn number(spelling: &str) -> Result<Self, GeneratedLiteralRefusal> {
+        match capture_literal(spelling) {
+            Ok(CapturedAtom::Number(captured)) => Ok(Self {
+                value: GeneratedLiteralValue::Number(captured),
+            }),
+            Ok(
+                CapturedAtom::Word(_)
+                | CapturedAtom::Punct(_)
+                | CapturedAtom::Text(_)
+                | CapturedAtom::ByteText(_)
+                | CapturedAtom::Character(_)
+                | CapturedAtom::Byte(_)
+                | CapturedAtom::NulTerminatedText(_)
+                | CapturedAtom::RawIdentifier(_)
+                | CapturedAtom::JointPunct(_),
+            )
+            | Err(_) => Err(GeneratedLiteralRefusal::NotANumber),
+        }
+    }
+
+    /// Admit one exact character literal value.
+    #[must_use]
+    pub const fn character(character: char) -> Self {
+        Self {
+            value: GeneratedLiteralValue::Character(character),
+        }
+    }
+
+    /// Admit one exact byte literal value.
+    #[must_use]
+    pub const fn byte(byte: u8) -> Self {
+        Self {
+            value: GeneratedLiteralValue::Byte(byte),
+        }
+    }
+
+    /// Admit C-string material without its terminating NUL.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GeneratedLiteralRefusal::InteriorNul`] where the material contains a NUL byte.
+    pub fn nul_terminated_text(material: &[u8]) -> Result<Self, GeneratedLiteralRefusal> {
+        if material.contains(&0) {
+            Err(GeneratedLiteralRefusal::InteriorNul)
+        } else {
+            Ok(Self {
+                value: GeneratedLiteralValue::NulTerminatedText(material.to_vec()),
+            })
+        }
+    }
+
+    /// Read this admitted literal inside the compiler's generation and host owners.
+    pub(crate) fn form(&self) -> GeneratedLiteralForm<'_> {
+        match &self.value {
+            GeneratedLiteralValue::Number(spelling) => GeneratedLiteralForm::Number(spelling),
+            GeneratedLiteralValue::Character(character) => {
+                GeneratedLiteralForm::Character(*character)
+            }
+            GeneratedLiteralValue::Byte(byte) => GeneratedLiteralForm::Byte(*byte),
+            GeneratedLiteralValue::NulTerminatedText(material) => {
+                GeneratedLiteralForm::NulTerminatedText(material)
+            }
+        }
+    }
+}
 
 impl GeneratedToken {
     /// Append this token's canonical bytes to a containing compiler-owned encoding.
@@ -55,6 +131,12 @@ impl GeneratedToken {
     #[must_use]
     pub const fn number(value: u64) -> Self {
         Self::Number(value)
+    }
+
+    /// One exact caller-authored literal admitted by [`GeneratedLiteral`].
+    #[must_use]
+    pub const fn literal(literal: GeneratedLiteral) -> Self {
+        Self::Literal(literal)
     }
 
     /// One delimited group.

@@ -41,6 +41,7 @@ Every sentence a person reads was composed inside the compiler, where the typed 
 
 An expansion's proved declaration-site cargo becomes a `TokenStream`, one delivery at a time.
 No third generated tree is assembled out of them here — a tree this host joined would be bytes no proof committed to — and a delivery that planned nothing emits nothing, because an absence is an answer a reader reads rather than tokens a compiler receives.
+An exact generated literal crosses through the matching stable proc-macro literal constructor, and an unexpected disagreement between the ordinary compiler's admission and that host constructor is a typed [`EmissionError`] placed at the invocation boundary.
 
 A diagnostic becomes a `compile_error!` at the token its site names.
 A diagnostic that names no token, and a handle this table does not reach, are both reported at the invocation.

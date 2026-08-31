@@ -3,7 +3,9 @@
 mod compose;
 mod encode;
 mod inspect;
+mod preserve;
 mod project;
+mod type_contract;
 mod types;
 
 pub(crate) use compose::segmented_twin_path;
@@ -13,6 +15,8 @@ pub use compose::{
     rendered_identifier, rendered_name, result_type, roster, rust_keyword, text_pair, twin_path,
 };
 pub use project::{keyed_assignment_slice, keyed_roster_slice};
+pub(crate) use types::GeneratedLiteralForm;
 pub use types::{
-    GENERATED_TOKEN_LIMIT, GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree,
+    FragmentGenerationIssue, FragmentGenerationRefusal, GENERATED_TOKEN_LIMIT, GeneratedDelimiter,
+    GeneratedLiteral, GeneratedLiteralRefusal, GeneratedSpacing, GeneratedToken, GeneratedTree,
 };
