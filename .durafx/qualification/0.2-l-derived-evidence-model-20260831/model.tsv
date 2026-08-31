@@ -1,0 +1,152 @@
+grammar	macroonz-evidence-model/1
+source	source-000	receipt	.durafx/package/wave-g-release-0.1.0-20260828/receipt.md	af4e036180763a7fef78b444db0b110d5f14f796	bfd76a9e5cfd3b5e1d60c67dd84e6d0e203dae95
+source	source-001	receipt	.durafx/qualification/0.2-h-api-compatibility-20260831/receipt.md	2d881819a383d88ede7b25e6ab6a7330214d1875	bfd76a9e5cfd3b5e1d60c67dd84e6d0e203dae95
+source	source-002	receipt	.durafx/qualification/0.2-j-facade-posture-economics-20260831/receipt.md	208dff81101edad7422824ea9a3730f1bdd2092a	3ef03077c991450f8e83bd68e00942490dbacac7
+source	source-003	receipt	.durafx/qualification/0.2-j-guarded-economics-20260831/receipt.md	3e076d2c6bd72148e090e4a31d9f525c1626c182	bfd76a9e5cfd3b5e1d60c67dd84e6d0e203dae95
+source	source-004	receipt	.durafx/qualification/0.2-j-shape-projection-economics-20260831/receipt.md	cfb171d81432a8532189387bc2d6036298bce441	bfd76a9e5cfd3b5e1d60c67dd84e6d0e203dae95
+source	source-005	receipt	.durafx/qualification/0.2-k-cohesive-subject-20260831/receipt.md	e2a0c8e03fb9c9b258d3d967f4f7e58cf3b45c5c	d81ca1a15daae964ceb28f7d5c12cdcab0e7c465
+source	source-006	receipt	.durafx/qualification/0.2-k-concurrency-runtime-20260831/receipt.md	012ed0723aee712849ecfb7d4c3a3f22d168f5c7	bfbd079840ed546a14c6b8b79f821d35e269b92e
+source	source-007	receipt	.durafx/qualification/0.2-k-docs-blind-storefront-20260831/receipt.md	37ffa34a71fac477262cef66c98c02ae5d51135d	90a6eb6a65dc6e858f8d8cfc5fed2f5bfbf9b375
+source	source-008	receipt	.durafx/qualification/0.2-k-guarded-package-journey-20260831/receipt.md	613b334243cd2f84805bad9a1936fefd08b5c421	26cf178ff231b72777ba8acad118cdf8c7fa9df8
+source	source-009	receipt	.durafx/qualification/0.2-k-parser-codec-20260831/receipt.md	c219e817d467bd9bb7afe166d3f4e7da79ca7c94	073488599683963248945e1486946ef3efe72ba5
+source	source-010	receipt	.durafx/qualification/wave-f-solo-governance-20260828/receipt.md	5d8d56e961ea7f16ded4cbbbdeec19c4d1c5754c	615bb6d6a57b5f463d8b03c4fead7f883c3601f3
+source	source-011	owner	AGENTS.md	751f0034ceb4a1de05bcc6b4d6fdc769bed42084	bfd76a9e5cfd3b5e1d60c67dd84e6d0e203dae95
+source	source-012	owner	Cargo.toml	b5bfeb547d3ae26f542a0aff74583984d4d33fa1	485a4751d397d6dbc6fad7990cda712f8a8bbbd0
+source	source-013	owner	harness/Cargo.toml	532d19975df8cea3379f8349172882bd935b399f	3268515b6e270e76952911f829888816ab1237c3
+source	source-014	owner	macros/compiler/Cargo.toml	691230f37d233678daa6f631436726f88efa947b	3268515b6e270e76952911f829888816ab1237c3
+source	source-015	owner	macros/proc/Cargo.toml	9ac3ab9470c5bb9d2b08b36c301be05de73301be	3268515b6e270e76952911f829888816ab1237c3
+source	source-016	owner	src/lib.rs	548a5ba6376e06235686327140382a162db5a123	9be8156d304e097e6e1b3010dfdbb06b4cdef795
+source	source-017	owner	harness/src/lib.rs	4fbbf97bdc72807c16efbc27f02e778054faa27b	b5d3a5b9b482e48a75bb9d0a7f562f5ba6c33a0f
+source	source-018	owner	macros/compiler/src/lib.rs	d749853e9c231f9aeb4fd323a0c5a8366927823a	b353f71cd5cded0d29e9c9b83dc2531d1ccc52d5
+source	source-019	owner	macros/proc/src/lib.rs	46bb0de2a0cfb2cadca4475f671529dcad956e6f	54b81e0bd891e940f470ef887bc2030b785a0e96
+section	section-source-000-000	source-000	3	13	Standing	architecture,claim,evidence,foundation
+section	section-source-000-001	source-000	14	26	Hosted source crossing	architecture,ceiling,claim,evidence,foundation,sensitivity
+section	section-source-000-002	source-000	27	48	Dependency-ordered publication	architecture,ceiling,claim,cost,evidence,foundation
+section	section-source-000-003	source-000	49	56	Registry-delivered adopter	architecture,claim,evidence,foundation
+section	section-source-000-004	source-000	57	64	Documentation delivery	evidence,foundation
+section	section-source-000-005	source-000	65	74	Cleanup status	architecture,claim,cost,evidence,foundation
+section	section-source-000-006	source-000	75	79	Plane limits	architecture,ceiling,evidence,foundation
+section	section-source-001-000	source-001	5	17	Authority	architecture,assumption,claim,evidence,foundation
+section	section-source-001-001	source-001	18	35	Exact package denominator	architecture,assumption,ceiling,claim,cost,evidence,foundation,sensitivity
+section	section-source-001-002	source-001	36	43	Symmetric analyzer topology	architecture,assumption,ceiling,evidence,foundation
+section	section-source-001-003	source-001	44	64	Analyzer matrix	architecture,assumption,ceiling,evidence,foundation
+section	section-source-001-004	source-001	65	76	Public-path and package-source census	architecture,assumption,ceiling,evidence,foundation
+section	section-source-001-005	source-001	77	86	Package-shaped generated and facade crossings	architecture,assumption,ceiling,evidence,foundation
+section	section-source-001-006	source-001	87	109	Planted controls	architecture,assumption,ceiling,evidence,foundation,sensitivity
+section	section-source-001-007	source-001	110	118	Analyzer and dependency-policy ceilings	architecture,assumption,ceiling,claim,evidence,foundation,sensitivity
+section	section-source-001-008	source-001	119	129	Parent QA and resource disposition	architecture,assumption,ceiling,cost,evidence,foundation
+section	section-source-001-009	source-001	130	137	Compact custody	architecture,evidence,foundation,sensitivity
+section	section-source-001-010	source-001	138	145	Acceptance and remaining ceilings	architecture,assumption,ceiling,claim,evidence,foundation,sensitivity
+section	section-source-002-000	source-002	5	17	Authority	architecture,cost,evidence,foundation
+section	section-source-002-001	source-002	18	35	Typed work and controls	architecture,ceiling,claim,cost,evidence,foundation
+section	section-source-002-002	source-002	36	53	Local host observations	ceiling,cost,evidence,foundation
+section	section-source-002-003	source-002	54	63	Qualification and custody	architecture,claim,evidence,foundation
+section	section-source-002-004	source-002	64	72	Ceiling	architecture,ceiling,claim,cost,evidence,foundation,sensitivity
+section	section-source-003-000	source-003	5	15	Authority	architecture,claim,cost,evidence,foundation
+section	section-source-003-001	source-003	16	24	Input custody	architecture,assumption,claim,cost,evidence,foundation
+section	section-source-003-002	source-003	25	36	Correctness and typed work	assumption,ceiling,claim,cost,evidence,foundation,sensitivity
+section	section-source-003-003	source-003	37	46	Measured local observations	cost,evidence,foundation
+section	section-source-003-004	source-003	47	54	Stable source coverage	claim,cost,evidence,foundation
+section	section-source-003-005	source-003	55	61	Current-source sensitivity join	assumption,claim,cost,evidence,foundation,sensitivity
+section	section-source-003-006	source-003	62	71	Corrections and exclusions	assumption,ceiling,claim,cost,evidence,foundation
+section	section-source-003-007	source-003	72	80	Compact custody	architecture,claim,cost,evidence,foundation,sensitivity
+section	section-source-003-008	source-003	81	93	Standing and next boundary	architecture,assumption,ceiling,claim,cost,evidence,foundation,sensitivity
+section	section-source-004-000	source-004	5	14	Authority	architecture,claim,cost,evidence,foundation
+section	section-source-004-001	source-004	15	24	Input custody	architecture,claim,cost,evidence,foundation
+section	section-source-004-002	source-004	25	33	Correctness and typed work	architecture,ceiling,claim,cost,evidence,foundation,sensitivity
+section	section-source-004-003	source-004	34	44	Shape-member work curve	cost,evidence,foundation,sensitivity
+section	section-source-004-004	source-004	45	53	Projection-accounting work curve	cost,evidence,foundation,sensitivity
+section	section-source-004-005	source-004	54	65	Repeatability and sensitivity posture	architecture,assumption,claim,cost,evidence,foundation,sensitivity
+section	section-source-004-006	source-004	66	75	Reconstruction and cleanup	ceiling,cost,evidence,foundation
+section	section-source-004-007	source-004	76	83	Compact custody	architecture,evidence,foundation,sensitivity
+section	section-source-004-008	source-004	84	96	Standing and next boundary	architecture,assumption,ceiling,claim,cost,evidence,foundation,sensitivity
+section	section-source-005-000	source-005	3	8	Accepted observation	architecture,ceiling,claim,evidence,foundation
+section	section-source-005-001	source-005	9	19	Authority	architecture,claim,evidence,foundation,sensitivity
+section	section-source-005-002	source-005	20	37	Package and source custody	architecture,assumption,claim,cost,evidence,foundation,sensitivity
+section	section-source-005-003	source-005	38	60	Cohesive behavior	architecture,assumption,ceiling,claim,evidence,foundation,sensitivity
+section	section-source-005-004	source-005	61	73	Stable coverage feedback	ceiling,claim,cost,evidence,foundation
+section	section-source-005-005	source-005	74	87	Subject-code mutation	architecture,assumption,ceiling,claim,evidence,foundation,sensitivity
+section	section-source-005-006	source-005	88	95	Economics join	architecture,assumption,claim,cost,evidence,foundation,sensitivity
+section	section-source-005-007	source-005	96	104	Final local wall	architecture,evidence,foundation,sensitivity
+section	section-source-005-008	source-005	105	111	Evidence ceilings	architecture,assumption,ceiling,claim,cost,evidence,foundation
+section	section-source-005-009	source-005	112	121	Cleanup boundary	architecture,ceiling,claim,cost,evidence,foundation,sensitivity
+section	section-source-006-000	source-006	3	9	Accepted observation	architecture,ceiling,claim,evidence,foundation
+section	section-source-006-001	source-006	10	19	Package custody	architecture,assumption,claim,cost,evidence,foundation
+section	section-source-006-002	source-006	20	29	Subject-owned schedule claim	claim,evidence,sensitivity
+section	section-source-006-003	source-006	30	38	Reduction and replay	architecture,ceiling,claim,evidence,foundation,sensitivity
+section	section-source-006-004	source-006	39	46	Runner and process-host standing	assumption,ceiling,claim,cost,evidence,foundation
+section	section-source-006-005	source-006	47	64	Source custody	architecture,assumption,ceiling,claim,cost,evidence,foundation
+section	section-source-006-006	source-006	65	75	Qualification and ceilings	architecture,ceiling,claim,cost,evidence,foundation
+section	section-source-007-000	source-007	3	10	Accepted observation	architecture,ceiling,claim,evidence,foundation
+section	section-source-007-001	source-007	11	24	Public source boundary	architecture,claim,evidence,foundation
+section	section-source-007-002	source-007	25	33	Completed journeys	architecture,claim,evidence,foundation,sensitivity
+section	section-source-007-003	source-007	34	43	Qualification and friction	architecture,assumption,ceiling,claim,evidence,foundation
+section	section-source-007-004	source-007	44	54	Host, custody, and ceilings	architecture,ceiling,claim,cost,evidence,foundation
+section	section-source-008-000	source-008	3	10	Accepted observation	architecture,ceiling,claim,evidence,foundation,sensitivity
+section	section-source-008-001	source-008	11	28	Package custody	architecture,assumption,cost,evidence,foundation
+section	section-source-008-002	source-008	29	52	Subject authority and current crossings	architecture,assumption,claim,cost,evidence,foundation,sensitivity
+section	section-source-008-003	source-008	53	60	Mutation evidence boundary	architecture,assumption,ceiling,claim,evidence,foundation,sensitivity
+section	section-source-008-004	source-008	61	69	Host and feature ceilings	architecture,ceiling,claim,cost,evidence,foundation
+section	section-source-008-005	source-008	70	76	Custody and cleanup	architecture,assumption,ceiling,claim,cost,evidence,foundation
+section	section-source-009-000	source-009	3	12	Accepted observation	architecture,ceiling,claim,evidence,foundation,sensitivity
+section	section-source-009-001	source-009	13	25	Package custody	architecture,ceiling,cost,evidence,foundation
+section	section-source-009-002	source-009	26	35	Subject grammar and codec	assumption,ceiling,claim,evidence,sensitivity
+section	section-source-009-003	source-009	36	49	Coverage, feedback, reduction, and replay	assumption,ceiling,claim,cost,evidence,foundation,sensitivity
+section	section-source-009-004	source-009	50	66	Mutation sensitivity	assumption,ceiling,evidence,foundation,sensitivity
+section	section-source-009-005	source-009	67	94	Source custody	architecture,assumption,ceiling,claim,cost,evidence,foundation,sensitivity
+section	section-source-009-006	source-009	95	109	Qualification and ceilings	architecture,ceiling,claim,cost,evidence,foundation,sensitivity
+section	section-source-010-000	source-010	3	12	Standing	architecture,claim,evidence,foundation,sensitivity
+section	section-source-010-001	source-010	13	20	Prior state	evidence,foundation
+section	section-source-010-002	source-010	21	32	Applied state	evidence
+section	section-source-010-003	source-010	33	41	Repository compatibility	architecture,claim,evidence,foundation
+section	section-source-010-004	source-010	42	49	Verification	assumption,claim,evidence
+section	section-source-010-005	source-010	50	54	Plane limits	architecture,ceiling,claim,evidence,foundation
+edge	edge-macroonz-macroonz-compiler-product	macroonz	macroonz-compiler	product	true	true
+edge	edge-macroonz-macroonz-harness-product	macroonz	macroonz-harness	product	true	true
+edge	edge-macroonz-macroonz-macros-product	macroonz	macroonz-macros	product	true	true
+edge	edge-macroonz-harness-macroonz-compiler-test	macroonz-harness	macroonz-compiler	test	true	true
+edge	edge-macroonz-macros-macroonz-compiler-product	macroonz-macros	macroonz-compiler	product	true	true
+edge	edge-macroonz-macros-macroonz-harness-test	macroonz-macros	macroonz-harness	test	true	true
+capability	capability-macroonz-compiler	macroonz	src/lib.rs	7	compiler	facade
+capability	capability-macroonz-compiler-bounded	macroonz-compiler	macros/compiler/src/lib.rs	10	bounded	module
+capability	capability-macroonz-compiler-closure	macroonz-compiler	macros/compiler/src/lib.rs	18	closure	module
+capability	capability-macroonz-compiler-codec	macroonz-compiler	macros/compiler/src/lib.rs	23	codec	module
+capability	capability-macroonz-compiler-descriptor	macroonz-compiler	macros/compiler/src/lib.rs	22	descriptor	module
+capability	capability-macroonz-compiler-diagnostic	macroonz-compiler	macros/compiler/src/lib.rs	15	diagnostic	module
+capability	capability-macroonz-compiler-expansion	macroonz-compiler	macros/compiler/src/lib.rs	20	expansion	module
+capability	capability-macroonz-compiler-explanation	macroonz-compiler	macros/compiler/src/lib.rs	19	explanation	module
+capability	capability-macroonz-compiler-host	macroonz-compiler	macros/compiler/src/lib.rs	28	host	module
+capability	capability-macroonz-compiler-identity	macroonz-compiler	macros/compiler/src/lib.rs	11	identity	module
+capability	capability-macroonz-compiler-kind	macroonz-compiler	macros/compiler/src/lib.rs	13	kind	module
+capability	capability-macroonz-compiler-origin	macroonz-compiler	macros/compiler/src/lib.rs	14	origin	module
+capability	capability-macroonz-compiler-plan	macroonz-compiler	macros/compiler/src/lib.rs	16	plan	module
+capability	capability-macroonz-compiler-render	macroonz-compiler	macros/compiler/src/lib.rs	17	render	module
+capability	capability-macroonz-compiler-request	macroonz-compiler	macros/compiler/src/lib.rs	25	request	module
+capability	capability-macroonz-compiler-stamp	macroonz-compiler	macros/compiler/src/lib.rs	24	stamp	module
+capability	capability-macroonz-compiler-support	macroonz-compiler	macros/compiler/src/lib.rs	21	support	module
+capability	capability-macroonz-compiler-token	macroonz-compiler	macros/compiler/src/lib.rs	12	token	module
+capability	capability-macroonz-harness	macroonz	src/lib.rs	14	harness	facade
+capability	capability-macroonz-harness-bench	macroonz-harness	harness/src/lib.rs	22	bench	module
+capability	capability-macroonz-harness-clock	macroonz-harness	harness/src/lib.rs	23	clock	module
+capability	capability-macroonz-harness-corpus	macroonz-harness	harness/src/lib.rs	24	corpus	module
+capability	capability-macroonz-harness-depot	macroonz-harness	harness/src/lib.rs	25	depot	module
+capability	capability-macroonz-harness-descriptor	macroonz-harness	harness/src/lib.rs	26	descriptor	module
+capability	capability-macroonz-harness-fault	macroonz-harness	harness/src/lib.rs	27	fault	module
+capability	capability-macroonz-harness-fuzz	macroonz-harness	harness/src/lib.rs	28	fuzz	module
+capability	capability-macroonz-harness-generate	macroonz-harness	harness/src/lib.rs	29	generate	module
+capability	capability-macroonz-harness-identity	macroonz-harness	harness/src/lib.rs	20	identity	module
+capability	capability-macroonz-harness-interleave	macroonz-harness	harness/src/lib.rs	30	interleave	module
+capability	capability-macroonz-harness-muterprater	macroonz-harness	harness/src/lib.rs	31	muterprater	module
+capability	capability-macroonz-harness-network	macroonz-harness	harness/src/lib.rs	32	network	module
+capability	capability-macroonz-harness-oracle	macroonz-harness	harness/src/lib.rs	33	oracle	module
+capability	capability-macroonz-harness-preemption	macroonz-harness	harness/src/lib.rs	35	preemption	module
+capability	capability-macroonz-harness-properties	macroonz-harness	harness/src/lib.rs	36	properties	module
+capability	capability-macroonz-harness-report	macroonz-harness	harness/src/lib.rs	37	report	module
+capability	capability-macroonz-harness-runner	macroonz-harness	harness/src/lib.rs	38	runner	module
+capability	capability-macroonz-macros	macroonz	src/lib.rs	10	macros	facade
+capability	capability-macroonz-macros-bench	macroonz-macros	macros/proc/src/lib.rs	177	bench	function
+capability	capability-macroonz-macros-concurrency	macroonz-macros	macros/proc/src/lib.rs	224	concurrency	function
+capability	capability-macroonz-macros-mutations	macroonz-macros	macros/proc/src/lib.rs	157	mutations	function
+capability	capability-macroonz-macros-network	macroonz-macros	macros/proc/src/lib.rs	212	network	function
+capability	capability-macroonz-macros-shadow	macroonz-macros	macros/proc/src/lib.rs	199	shadow	function
+capability	capability-macroonz-macros-trials	macroonz-macros	macros/proc/src/lib.rs	135	trials	function

@@ -1,0 +1,9 @@
+check	standing	detail
+identity	passed	4442dce0811648bde656b21fccab091b1c7af31f
+shared-node-roster	passed	151 nodes
+deterministic-canonical	passed	byte-identical
+model-mutation	passed	225c235ac168e2b3167a3d60d59cf526ec9c2907
+renderer-only-change	passed	identity-preserved
+architecture-liveness	passed	6 matched; 0 unmatched
+architecture-removal-control	passed	b353f790031e4b889cc61810f4771e39fe4e76ee
+semantic-authority	passed	coordinates-and-headings-only
