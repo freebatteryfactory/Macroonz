@@ -5,6 +5,10 @@ The hand that loads the oven.
 A proc-macro crate may export nothing but macros, so this one is small on purpose: token conversion, span custody, one call into the compiler, diagnostic placement, emission.
 It owns no grammar, no roster, no identity rule, no planning decision, and no judgment.
 
+The root `macroonz::recipe!` entrance reaches its compiler-owned recipe door through this carrier.
+Built-in projectors and exact declarative configuration may run there because they ship with Macroonz, while an arbitrary downstream projection algorithm runs through `macroonz-compiler` in a caller-owned compiler or proc host.
+Both hosts consume the same informed recipe and constrained output protocol; this crate gains no plugin registry or second compiler model.
+
 ---
 
 ## Procedural declaration families
@@ -35,11 +39,11 @@ What lives here is one thin function per procedural entry, and every sentence a 
 
 ---
 
-## Writing your own derive
+## Caller-owned projection algorithms
 
-Do not write it here.
+Do not add one here merely because a recipe needs a custom projection.
 
-A derive that produces your types lives in your repository, in your proc-macro crate, on `macroonz-compiler` with the `host` feature:
+An arbitrary projection algorithm is ordinary caller-owned compiler code or lives in the caller's proc-macro crate on `macroonz-compiler` with the `host` feature:
 
 ```rust
 #[proc_macro_derive(Greet, attributes(greet))]
@@ -52,6 +56,6 @@ pub fn greet(input: TokenStream) -> TokenStream {
 }
 ```
 
-That is the whole crate a derive needs.
-`serde_derive` ships with `serde`; your derive ships with you.
-A derive that also wants to deliver descriptor cargo composes its own carrier on the same public roads these attributes walk — one vehicle may carry a trial table beside a mutation module, which is a composition the standalone attributes deliberately keep apart.
+That is the whole host a caller-owned projection algorithm needs.
+It consumes the same compiler contract as the paved recipe road and may compose descriptor cargo on the same public carrier road these attributes walk.
+The distinction is execution host rather than semantic model: an already compiled Macroonz proc macro cannot invoke arbitrary code defined later in a downstream crate.

@@ -1,6 +1,6 @@
 [package]
 name = "macroonz-macros"
-description = "Procedural macros for Macroonz trials, benches, mutations, shadow, network, and concurrency declarations."
+description = "Procedural host for Macroonz recipes, trials, benches, mutations, shadow, network, and concurrency declarations."
 keywords = ["proc-macro", "attribute-macro", "testing", "codegen", "concurrency"]
 categories = ["development-tools::testing", "development-tools::procedural-macro-helpers"]
 version.workspace = true

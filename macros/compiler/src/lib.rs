@@ -1,6 +1,6 @@
-//! A compiler for declared code: one complete request goes in, one sealed expansion comes out, or one diagnostic that says exactly why not.
+//! A compiler that informs declared structure and seals every requested projection into one complete expansion.
 //!
-//! The crate README is the specification — what a kind is, what each step of the road settles, and which half of the work is the caller's.
+//! The crate README specifies the paved recipe contract, the raw callable extension road, what each generation step settles, and which semantic facts remain the caller's.
 //! Every home below carries its own README as its module documentation.
 //! The module list is a reading order: homes cite their semantic owners directly, including the request-owned door whose diagnostic projections are consumed by the diagnostic home, and the crate depends on nothing else in this workspace.
 

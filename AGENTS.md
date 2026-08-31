@@ -19,7 +19,7 @@ It has no product.
 - Outside that adapter, no downstream type, trait, roster, identity rule, bound, or error family is defined here, copied here, or depended on here.
 - Nothing is moved here because several files happen to import it. Shared is not ours.
 - The compiler's own errors are plain diagnostics with ordinary fields. Its own collections are its own. Its own rosters are plain enums. None of them is somebody else's theory of refusal, admission, or commitment wearing a new name.
-- A library that uses Macroonz keeps every one of its primitives and writes its own derives on the compiler's public API.
+- A library that uses Macroonz keeps every one of its primitives and every subject-specific derive; generic recipe mechanics may remove repeated structural plumbing without learning the library's semantics.
 
 If the compiler or the harness cannot do its job without knowing the product it serves, the request surface is wrong, and it is repaired here, generically.
 
