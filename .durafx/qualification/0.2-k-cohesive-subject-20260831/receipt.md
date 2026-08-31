@@ -115,4 +115,7 @@ The source payload and this readable receipt are the only new tracked evidence.
 Raw profiles, package copies, extracted package source, coverage tool output, Cargo logs, mutation working directories, and compiled targets remain disposable.
 After the promoted receipt and source payload passed a file-for-file archive comparison, Cargo cleaned the exact `target/qualification/k-cohesive/build-target` directory.
 That cleanup removed `4,714` files and `1.4 GiB`, and the exact target no longer exists.
+The post-clean custody audit then found three marked child Cargo targets under `target/qualification/k-cohesive/runtime-targets`, created by the hostile compile crossings in the complete subject journey.
+Cargo cleaned the exact `foreign-roster`, `macro-removed`, and `malformed-macro` child targets, removing another `2,235` files and `1,123,069,952` bytes.
+The `runtime-targets` directory contains zero files afterward.
 Two superseded mutation-output directories totaling `109,044` bytes remain only because the host policy refused their exact validated removal; no bypass or broader deletion was attempted.
