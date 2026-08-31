@@ -20,6 +20,7 @@ const RECEIPTS: &[&str] = &[
     ".durafx/qualification/0.2-k-docs-blind-storefront-20260831/receipt.md",
     ".durafx/qualification/0.2-k-guarded-package-journey-20260831/receipt.md",
     ".durafx/qualification/0.2-k-parser-codec-20260831/receipt.md",
+    ".durafx/qualification/0.2-m-factoring-ruling-20260831/receipt.md",
     ".durafx/qualification/wave-f-solo-governance-20260828/receipt.md",
 ];
 const OWNERS: &[&str] = &[

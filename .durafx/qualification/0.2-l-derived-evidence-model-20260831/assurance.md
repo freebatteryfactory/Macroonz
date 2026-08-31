@@ -1,7 +1,7 @@
 # Macroonz assurance view
 
 - Model grammar: `macroonz-evidence-model/1`
-- Model identity: `4442dce0811648bde656b21fccab091b1c7af31f`
+- Model identity: `f6da4dbd81f37c7720015bbcb8c338cbcdc9a19e`
 
 This view navigates authoritative sources by mechanically derived role; each receipt remains the semantic owner.
 
@@ -63,10 +63,18 @@ This view navigates authoritative sources by mechanically derived role; each rec
 - `section-source-009-003` -> `.durafx/qualification/0.2-k-parser-codec-20260831/receipt.md:36` (Coverage, feedback, reduction, and replay) [assumption, ceiling, claim, cost, evidence, foundation, sensitivity]
 - `section-source-009-005` -> `.durafx/qualification/0.2-k-parser-codec-20260831/receipt.md:67` (Source custody) [architecture, assumption, ceiling, claim, cost, evidence, foundation, sensitivity]
 - `section-source-009-006` -> `.durafx/qualification/0.2-k-parser-codec-20260831/receipt.md:95` (Qualification and ceilings) [architecture, ceiling, claim, cost, evidence, foundation, sensitivity]
-- `section-source-010-000` -> `.durafx/qualification/wave-f-solo-governance-20260828/receipt.md:3` (Standing) [architecture, claim, evidence, foundation, sensitivity]
-- `section-source-010-003` -> `.durafx/qualification/wave-f-solo-governance-20260828/receipt.md:33` (Repository compatibility) [architecture, claim, evidence, foundation]
-- `section-source-010-004` -> `.durafx/qualification/wave-f-solo-governance-20260828/receipt.md:42` (Verification) [assumption, claim, evidence]
-- `section-source-010-005` -> `.durafx/qualification/wave-f-solo-governance-20260828/receipt.md:50` (Plane limits) [architecture, ceiling, claim, evidence, foundation]
+- `section-source-010-000` -> `.durafx/qualification/0.2-m-factoring-ruling-20260831/receipt.md:3` (Standing) [ceiling, claim, evidence]
+- `section-source-010-001` -> `.durafx/qualification/0.2-m-factoring-ruling-20260831/receipt.md:9` (Already-earned compiler structure) [architecture, assumption, ceiling, claim, evidence, foundation]
+- `section-source-010-002` -> `.durafx/qualification/0.2-m-factoring-ruling-20260831/receipt.md:17` (Existing harness composition) [architecture, assumption, claim, cost, evidence, foundation, sensitivity]
+- `section-source-010-003` -> `.durafx/qualification/0.2-m-factoring-ruling-20260831/receipt.md:26` (Repeated glue disposition) [architecture, assumption, ceiling, claim, evidence, foundation, sensitivity]
+- `section-source-010-004` -> `.durafx/qualification/0.2-m-factoring-ruling-20260831/receipt.md:37` (Documentation and stamps) [architecture, claim, evidence, foundation, sensitivity]
+- `section-source-010-005` -> `.durafx/qualification/0.2-m-factoring-ruling-20260831/receipt.md:44` (Derived evidence model) [architecture, assumption, claim, evidence, foundation]
+- `section-source-010-006` -> `.durafx/qualification/0.2-m-factoring-ruling-20260831/receipt.md:50` (Rejected candidates) [architecture, assumption, claim, evidence, foundation]
+- `section-source-010-007` -> `.durafx/qualification/0.2-m-factoring-ruling-20260831/receipt.md:61` (Acceptance and ceiling) [architecture, assumption, ceiling, claim, evidence, foundation]
+- `section-source-011-000` -> `.durafx/qualification/wave-f-solo-governance-20260828/receipt.md:3` (Standing) [architecture, claim, evidence, foundation, sensitivity]
+- `section-source-011-003` -> `.durafx/qualification/wave-f-solo-governance-20260828/receipt.md:33` (Repository compatibility) [architecture, claim, evidence, foundation]
+- `section-source-011-004` -> `.durafx/qualification/wave-f-solo-governance-20260828/receipt.md:42` (Verification) [assumption, claim, evidence]
+- `section-source-011-005` -> `.durafx/qualification/wave-f-solo-governance-20260828/receipt.md:50` (Plane limits) [architecture, ceiling, claim, evidence, foundation]
 - `section-source-000-004` -> `.durafx/package/wave-g-release-0.1.0-20260828/receipt.md:57` (Documentation delivery) [evidence, foundation]
 - `section-source-000-006` -> `.durafx/package/wave-g-release-0.1.0-20260828/receipt.md:75` (Plane limits) [architecture, ceiling, evidence, foundation]
 - `section-source-001-002` -> `.durafx/qualification/0.2-h-api-compatibility-20260831/receipt.md:36` (Symmetric analyzer topology) [architecture, assumption, ceiling, evidence, foundation]
@@ -87,8 +95,8 @@ This view navigates authoritative sources by mechanically derived role; each rec
 - `section-source-008-001` -> `.durafx/qualification/0.2-k-guarded-package-journey-20260831/receipt.md:11` (Package custody) [architecture, assumption, cost, evidence, foundation]
 - `section-source-009-001` -> `.durafx/qualification/0.2-k-parser-codec-20260831/receipt.md:13` (Package custody) [architecture, ceiling, cost, evidence, foundation]
 - `section-source-009-004` -> `.durafx/qualification/0.2-k-parser-codec-20260831/receipt.md:50` (Mutation sensitivity) [assumption, ceiling, evidence, foundation, sensitivity]
-- `section-source-010-001` -> `.durafx/qualification/wave-f-solo-governance-20260828/receipt.md:13` (Prior state) [evidence, foundation]
-- `section-source-010-002` -> `.durafx/qualification/wave-f-solo-governance-20260828/receipt.md:21` (Applied state) [evidence]
+- `section-source-011-001` -> `.durafx/qualification/wave-f-solo-governance-20260828/receipt.md:13` (Prior state) [evidence, foundation]
+- `section-source-011-002` -> `.durafx/qualification/wave-f-solo-governance-20260828/receipt.md:21` (Applied state) [evidence]
 
 ## Architecture liveness
 
@@ -280,6 +288,14 @@ This view navigates authoritative sources by mechanically derived role; each rec
 - `section-source-010-003`
 - `section-source-010-004`
 - `section-source-010-005`
+- `section-source-010-006`
+- `section-source-010-007`
+- `section-source-011-000`
+- `section-source-011-001`
+- `section-source-011-002`
+- `section-source-011-003`
+- `section-source-011-004`
+- `section-source-011-005`
 - `source-000`
 - `source-001`
 - `source-002`
@@ -300,3 +316,4 @@ This view navigates authoritative sources by mechanically derived role; each rec
 - `source-017`
 - `source-018`
 - `source-019`
+- `source-020`

@@ -1,7 +1,7 @@
 # Macroonz evidence navigation graph
 
 - Model grammar: `macroonz-evidence-model/1`
-- Model identity: `4442dce0811648bde656b21fccab091b1c7af31f`
+- Model identity: `f6da4dbd81f37c7720015bbcb8c338cbcdc9a19e`
 
 This graph routes from live source owners to their section references and public doors without restating their semantic claims.
 
@@ -19,16 +19,17 @@ flowchart LR
   s7[".durafx/qualification/0.2-k-docs-blind-storefront-20260831/receipt.md"]
   s8[".durafx/qualification/0.2-k-guarded-package-journey-20260831/receipt.md"]
   s9[".durafx/qualification/0.2-k-parser-codec-20260831/receipt.md"]
-  s10[".durafx/qualification/wave-f-solo-governance-20260828/receipt.md"]
-  s11["AGENTS.md"]
-  s12["Cargo.toml"]
-  s13["harness/Cargo.toml"]
-  s14["macros/compiler/Cargo.toml"]
-  s15["macros/proc/Cargo.toml"]
-  s16["src/lib.rs"]
-  s17["harness/src/lib.rs"]
-  s18["macros/compiler/src/lib.rs"]
-  s19["macros/proc/src/lib.rs"]
+  s10[".durafx/qualification/0.2-m-factoring-ruling-20260831/receipt.md"]
+  s11[".durafx/qualification/wave-f-solo-governance-20260828/receipt.md"]
+  s12["AGENTS.md"]
+  s13["Cargo.toml"]
+  s14["harness/Cargo.toml"]
+  s15["macros/compiler/Cargo.toml"]
+  s16["macros/proc/Cargo.toml"]
+  s17["src/lib.rs"]
+  s18["harness/src/lib.rs"]
+  s19["macros/compiler/src/lib.rs"]
+  s20["macros/proc/src/lib.rs"]
   n0["3:Standing architecture,claim,evidence,foundation"]
   s0 --> n0
   n1["14:Hosted source crossing architecture,ceiling,claim,evidence,foundation,sensitivity"]
@@ -181,18 +182,34 @@ flowchart LR
   s9 --> n74
   n75["95:Qualification and ceilings architecture,ceiling,claim,cost,evidence,foundation,sensitivity"]
   s9 --> n75
-  n76["3:Standing architecture,claim,evidence,foundation,sensitivity"]
+  n76["3:Standing ceiling,claim,evidence"]
   s10 --> n76
-  n77["13:Prior state evidence,foundation"]
+  n77["9:Already-earned compiler structure architecture,assumption,ceiling,claim,evidence,foundation"]
   s10 --> n77
-  n78["21:Applied state evidence"]
+  n78["17:Existing harness composition architecture,assumption,claim,cost,evidence,foundation,sensitivity"]
   s10 --> n78
-  n79["33:Repository compatibility architecture,claim,evidence,foundation"]
+  n79["26:Repeated glue disposition architecture,assumption,ceiling,claim,evidence,foundation,sensitivity"]
   s10 --> n79
-  n80["42:Verification assumption,claim,evidence"]
+  n80["37:Documentation and stamps architecture,claim,evidence,foundation,sensitivity"]
   s10 --> n80
-  n81["50:Plane limits architecture,ceiling,claim,evidence,foundation"]
+  n81["44:Derived evidence model architecture,assumption,claim,evidence,foundation"]
   s10 --> n81
+  n82["50:Rejected candidates architecture,assumption,claim,evidence,foundation"]
+  s10 --> n82
+  n83["61:Acceptance and ceiling architecture,assumption,ceiling,claim,evidence,foundation"]
+  s10 --> n83
+  n84["3:Standing architecture,claim,evidence,foundation,sensitivity"]
+  s11 --> n84
+  n85["13:Prior state evidence,foundation"]
+  s11 --> n85
+  n86["21:Applied state evidence"]
+  s11 --> n86
+  n87["33:Repository compatibility architecture,claim,evidence,foundation"]
+  s11 --> n87
+  n88["42:Verification assumption,claim,evidence"]
+  s11 --> n88
+  n89["50:Plane limits architecture,ceiling,claim,evidence,foundation"]
+  s11 --> n89
 ```
 
 ## Package graph
@@ -390,6 +407,14 @@ flowchart LR
 - `section-source-010-003`
 - `section-source-010-004`
 - `section-source-010-005`
+- `section-source-010-006`
+- `section-source-010-007`
+- `section-source-011-000`
+- `section-source-011-001`
+- `section-source-011-002`
+- `section-source-011-003`
+- `section-source-011-004`
+- `section-source-011-005`
 - `source-000`
 - `source-001`
 - `source-002`
@@ -410,3 +435,4 @@ flowchart LR
 - `source-017`
 - `source-018`
 - `source-019`
+- `source-020`

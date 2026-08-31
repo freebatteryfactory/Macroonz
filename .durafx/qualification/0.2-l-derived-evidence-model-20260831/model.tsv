@@ -9,16 +9,17 @@ source	source-006	receipt	.durafx/qualification/0.2-k-concurrency-runtime-202608
 source	source-007	receipt	.durafx/qualification/0.2-k-docs-blind-storefront-20260831/receipt.md	37ffa34a71fac477262cef66c98c02ae5d51135d	90a6eb6a65dc6e858f8d8cfc5fed2f5bfbf9b375
 source	source-008	receipt	.durafx/qualification/0.2-k-guarded-package-journey-20260831/receipt.md	613b334243cd2f84805bad9a1936fefd08b5c421	26cf178ff231b72777ba8acad118cdf8c7fa9df8
 source	source-009	receipt	.durafx/qualification/0.2-k-parser-codec-20260831/receipt.md	c219e817d467bd9bb7afe166d3f4e7da79ca7c94	073488599683963248945e1486946ef3efe72ba5
-source	source-010	receipt	.durafx/qualification/wave-f-solo-governance-20260828/receipt.md	5d8d56e961ea7f16ded4cbbbdeec19c4d1c5754c	615bb6d6a57b5f463d8b03c4fead7f883c3601f3
-source	source-011	owner	AGENTS.md	751f0034ceb4a1de05bcc6b4d6fdc769bed42084	bfd76a9e5cfd3b5e1d60c67dd84e6d0e203dae95
-source	source-012	owner	Cargo.toml	b5bfeb547d3ae26f542a0aff74583984d4d33fa1	485a4751d397d6dbc6fad7990cda712f8a8bbbd0
-source	source-013	owner	harness/Cargo.toml	532d19975df8cea3379f8349172882bd935b399f	3268515b6e270e76952911f829888816ab1237c3
-source	source-014	owner	macros/compiler/Cargo.toml	691230f37d233678daa6f631436726f88efa947b	3268515b6e270e76952911f829888816ab1237c3
-source	source-015	owner	macros/proc/Cargo.toml	9ac3ab9470c5bb9d2b08b36c301be05de73301be	3268515b6e270e76952911f829888816ab1237c3
-source	source-016	owner	src/lib.rs	548a5ba6376e06235686327140382a162db5a123	9be8156d304e097e6e1b3010dfdbb06b4cdef795
-source	source-017	owner	harness/src/lib.rs	4fbbf97bdc72807c16efbc27f02e778054faa27b	b5d3a5b9b482e48a75bb9d0a7f562f5ba6c33a0f
-source	source-018	owner	macros/compiler/src/lib.rs	d749853e9c231f9aeb4fd323a0c5a8366927823a	b353f71cd5cded0d29e9c9b83dc2531d1ccc52d5
-source	source-019	owner	macros/proc/src/lib.rs	46bb0de2a0cfb2cadca4475f671529dcad956e6f	54b81e0bd891e940f470ef887bc2030b785a0e96
+source	source-010	receipt	.durafx/qualification/0.2-m-factoring-ruling-20260831/receipt.md	adc9a287fcdace75d5d017945f76a3615e618c78	64f061cfa555dab568f284d8f4a8b2900c462e57
+source	source-011	receipt	.durafx/qualification/wave-f-solo-governance-20260828/receipt.md	5d8d56e961ea7f16ded4cbbbdeec19c4d1c5754c	615bb6d6a57b5f463d8b03c4fead7f883c3601f3
+source	source-012	owner	AGENTS.md	751f0034ceb4a1de05bcc6b4d6fdc769bed42084	bfd76a9e5cfd3b5e1d60c67dd84e6d0e203dae95
+source	source-013	owner	Cargo.toml	53fcafcbd7ad31a1bc7a22874d528bf28fa4b422	6cbf43428f7d4d9d2fac5af645814863ce30d7ac
+source	source-014	owner	harness/Cargo.toml	532d19975df8cea3379f8349172882bd935b399f	3268515b6e270e76952911f829888816ab1237c3
+source	source-015	owner	macros/compiler/Cargo.toml	691230f37d233678daa6f631436726f88efa947b	3268515b6e270e76952911f829888816ab1237c3
+source	source-016	owner	macros/proc/Cargo.toml	d721b5e8a03d3aa48021477fe0fb707a06e6a49e	6cbf43428f7d4d9d2fac5af645814863ce30d7ac
+source	source-017	owner	src/lib.rs	548a5ba6376e06235686327140382a162db5a123	9be8156d304e097e6e1b3010dfdbb06b4cdef795
+source	source-018	owner	harness/src/lib.rs	4fbbf97bdc72807c16efbc27f02e778054faa27b	b5d3a5b9b482e48a75bb9d0a7f562f5ba6c33a0f
+source	source-019	owner	macros/compiler/src/lib.rs	d749853e9c231f9aeb4fd323a0c5a8366927823a	b353f71cd5cded0d29e9c9b83dc2531d1ccc52d5
+source	source-020	owner	macros/proc/src/lib.rs	46bb0de2a0cfb2cadca4475f671529dcad956e6f	54b81e0bd891e940f470ef887bc2030b785a0e96
 section	section-source-000-000	source-000	3	13	Standing	architecture,claim,evidence,foundation
 section	section-source-000-001	source-000	14	26	Hosted source crossing	architecture,ceiling,claim,evidence,foundation,sensitivity
 section	section-source-000-002	source-000	27	48	Dependency-ordered publication	architecture,ceiling,claim,cost,evidence,foundation
@@ -95,12 +96,20 @@ section	section-source-009-003	source-009	36	49	Coverage, feedback, reduction, a
 section	section-source-009-004	source-009	50	66	Mutation sensitivity	assumption,ceiling,evidence,foundation,sensitivity
 section	section-source-009-005	source-009	67	94	Source custody	architecture,assumption,ceiling,claim,cost,evidence,foundation,sensitivity
 section	section-source-009-006	source-009	95	109	Qualification and ceilings	architecture,ceiling,claim,cost,evidence,foundation,sensitivity
-section	section-source-010-000	source-010	3	12	Standing	architecture,claim,evidence,foundation,sensitivity
-section	section-source-010-001	source-010	13	20	Prior state	evidence,foundation
-section	section-source-010-002	source-010	21	32	Applied state	evidence
-section	section-source-010-003	source-010	33	41	Repository compatibility	architecture,claim,evidence,foundation
-section	section-source-010-004	source-010	42	49	Verification	assumption,claim,evidence
-section	section-source-010-005	source-010	50	54	Plane limits	architecture,ceiling,claim,evidence,foundation
+section	section-source-010-000	source-010	3	8	Standing	ceiling,claim,evidence
+section	section-source-010-001	source-010	9	16	Already-earned compiler structure	architecture,assumption,ceiling,claim,evidence,foundation
+section	section-source-010-002	source-010	17	25	Existing harness composition	architecture,assumption,claim,cost,evidence,foundation,sensitivity
+section	section-source-010-003	source-010	26	36	Repeated glue disposition	architecture,assumption,ceiling,claim,evidence,foundation,sensitivity
+section	section-source-010-004	source-010	37	43	Documentation and stamps	architecture,claim,evidence,foundation,sensitivity
+section	section-source-010-005	source-010	44	49	Derived evidence model	architecture,assumption,claim,evidence,foundation
+section	section-source-010-006	source-010	50	60	Rejected candidates	architecture,assumption,claim,evidence,foundation
+section	section-source-010-007	source-010	61	66	Acceptance and ceiling	architecture,assumption,ceiling,claim,evidence,foundation
+section	section-source-011-000	source-011	3	12	Standing	architecture,claim,evidence,foundation,sensitivity
+section	section-source-011-001	source-011	13	20	Prior state	evidence,foundation
+section	section-source-011-002	source-011	21	32	Applied state	evidence
+section	section-source-011-003	source-011	33	41	Repository compatibility	architecture,claim,evidence,foundation
+section	section-source-011-004	source-011	42	49	Verification	assumption,claim,evidence
+section	section-source-011-005	source-011	50	54	Plane limits	architecture,ceiling,claim,evidence,foundation
 edge	edge-macroonz-macroonz-compiler-product	macroonz	macroonz-compiler	product	true	true
 edge	edge-macroonz-macroonz-harness-product	macroonz	macroonz-harness	product	true	true
 edge	edge-macroonz-macroonz-macros-product	macroonz	macroonz-macros	product	true	true
