@@ -158,6 +158,18 @@ The stable coverage path remains one-package usage through `macroonz::harness::f
 2. Add `macroonz` with that command.
 3. Follow the compiler, proc, or harness crate README for the road you are on.
 
+Runnable examples cover four distinct public roads:
+
+| Journey | Command | What it establishes |
+| --- | --- | --- |
+| Callable compiler | `cargo run -p macroonz-compiler --example callable_compiler` | One public compiler request plans, renders, closes, explains, binds, and emits a unit. |
+| Direct handwritten property | `cargo run -p macroonz-harness --example temporal_property` | Caller-owned state and transitions enter a temporal contract without a macro or subject trait. |
+| Exact compile contract | `cargo run --example compile_contract` | A caller-stated compiler observation is compared with an independently declared exact outcome. |
+| Stable coverage composition | `cargo run --example rustc_coverage` | Stable rustc instrumentation supplies source-region novelty to corpus, reduction, and replay composition. |
+
+The compile-contract example is intentionally the pure comparison half.
+The caller that actually runs rustc or Cargo owns that effect, structured diagnostic extraction, and the provenance of the observation it supplies.
+
 Contribution procedure lives in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 Security reporting lives in [`SECURITY.md`](SECURITY.md).
 

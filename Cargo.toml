@@ -64,6 +64,11 @@ name = "rustc_coverage"
 path = "examples/rustc_coverage.rs"
 required-features = ["harness"]
 
+[[example]]
+name = "compile_contract"
+path = "examples/compile_contract.rs"
+required-features = ["harness"]
+
 [lints]
 workspace = true
 

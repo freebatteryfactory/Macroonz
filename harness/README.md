@@ -9,6 +9,18 @@ A verdict comes back as two separately earned values that join on one execution 
 The harness belongs in test and tooling code, and it never depends on the crates it judges.
 The `macroonz` facade includes its API by default so one dependency opens the complete machine; a shipping crate that wants no judge selects the diet posture.
 
+## Direct handwritten property
+
+A subject does not need a Macroonz macro, trait, or registration step before the harness can judge it.
+The runnable `temporal_property` example declares a handwritten transition system, proves one lawful history, and requires one hostile history to produce a typed finding:
+
+```console
+cargo run -p macroonz-harness --example temporal_property
+```
+
+The example leaves state, input, transition meaning, and the boundedness rule with the caller.
+The harness contributes only the temporal contract, the whole-history reading, and the typed conclusion.
+
 ---
 
 ## What you write
