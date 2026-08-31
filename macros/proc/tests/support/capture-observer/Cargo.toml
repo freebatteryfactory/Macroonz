@@ -11,7 +11,7 @@ publish = false
 proc-macro = true
 
 [dependencies]
-macroonz-compiler = { path = "../../../../compiler", version = "=0.1.0", features = ["host"] }
+macroonz-compiler = { path = "../../../../compiler", version = "=0.2.0", features = ["host"] }
 
 [lints.rust]
 warnings = { level = "deny", priority = -1 }
