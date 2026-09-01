@@ -14,6 +14,7 @@ pub use compose::{
     documentation, equality, function, group, metavariable, method_call, method_chain,
     rendered_identifier, rendered_name, result_type, roster, rust_keyword, text_pair, twin_path,
 };
+pub(crate) use preserve::preserved_tokens;
 pub use project::{keyed_assignment_slice, keyed_roster_slice};
 pub(crate) use types::GeneratedLiteralForm;
 pub use types::{

@@ -1,0 +1,5 @@
+error: macroonz: the declaration was not read: authored enum `State` states member `Closed` more than once (at semantic-origin position 14)
+  --> tests/compile_refusals/compile-fail/a-recipe-duplicate-member-points-at-the-second-member.rs:10:17
+   |
+10 |                 Closed,
+   |                 ^^^^^^

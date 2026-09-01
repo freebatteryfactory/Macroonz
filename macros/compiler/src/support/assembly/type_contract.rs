@@ -9,8 +9,8 @@ use crate::kind::CanonicalContent;
 use crate::support::cargo::{CargoAxis, encode_axis, encode_declared, encode_proved};
 use core::fmt;
 impl CanonicalContent for SupportAssembly {
-    /// Appends the root, expectation, address, and axes, followed by one presence byte and the framed helper identity where the assembly holds one.
-    /// An assembly with no helper writes nothing after its axes, so the generic assembly road retains exactly its root-through-axes encoding.
+    /// Appends the root, expectation, address, and axes, followed by the optional helper identity and declaring-binding extension.
+    /// Harness-only assemblies retain their established bytes; only a required declaring binding appends its tagged extension.
     fn encode_content_into(&self, into: &mut Vec<u8>) {
         encode_bytes(self.root().as_bytes(), into);
         encode_bytes(self.expectation().as_bytes(), into);
@@ -27,6 +27,9 @@ impl CanonicalContent for SupportAssembly {
         if let Some(helper) = self.helper() {
             into.push(1);
             encode_bytes(helper.as_bytes(), into);
+        }
+        if self.declaring_binding() == crate::support::DeclaringBinding::Required {
+            into.push(2);
         }
     }
 }

@@ -1,0 +1,275 @@
+//! The paved and callable walks over one informed recipe and one projection protocol.
+
+use super::render::{self, StandardProjector};
+use super::types::{RecipeShell, RecipeShellContent};
+use super::{
+    HarnessPosture, ProjectionSink, RECIPE_FACT, Recipe, RecipeBake, RecipeError, RecipeIssue,
+    RecipeProjection, RecipeProjector, RecipeRole,
+};
+use crate::closure::PartitionCargo;
+use crate::diagnostic::{Diagnostic, Placement, Refused};
+use crate::kind::{Destination, Disposition, SoleRole};
+use crate::request::{Door, Request};
+use crate::support::{
+    self, AxisCargo, CargoAxis, DeferredCargo, ProvedCargo, SupportAxes, SupportCarrier,
+};
+use crate::token::{
+    CapturedInput, GeneratedDelimiter, GeneratedToken, GeneratedTree, SpanTable, documentation,
+    group,
+};
+
+/// Bake one recipe through the standard projector catalog.
+///
+/// # Errors
+///
+/// Returns the exact capture, recipe, planning, rendering, closure, support, or final-emission diagnostic established before tokens are exposed.
+pub fn bake(
+    capture: &CapturedInput,
+    harness: HarnessPosture,
+    door: &Door,
+) -> Result<RecipeBake, Diagnostic> {
+    walked(capture, harness, door, None)
+}
+
+/// Bake the facade wrapper's fixed posture envelope through the same recipe road.
+///
+/// This is inter-package carrier plumbing for `macroonz::recipe!`; ordinary callable hosts use [`bake`] or [`bake_with`].
+///
+/// # Errors
+///
+/// Returns the exact envelope, recipe, or downstream compiler diagnostic before any tokens are exposed.
+pub fn bake_wrapped(capture: &CapturedInput, door: &Door) -> Result<RecipeBake, Diagnostic> {
+    let (harness, inner) =
+        wrapper_input(capture).map_err(|refusal| recipe_refused(&refusal, door))?;
+    walked(&inner, harness, door, None)
+}
+
+/// Bake one recipe while replacing one selected standard projection with a caller-owned projector.
+///
+/// The replacement receives the same informed view, selected request, and one-use output sink as the standard projector.
+///
+/// # Errors
+///
+/// Returns the same diagnostics as [`bake`], plus the typed recipe refusal where the replacement names an unselected role.
+pub fn bake_with(
+    capture: &CapturedInput,
+    harness: HarnessPosture,
+    door: &Door,
+    role: RecipeRole,
+    projector: &dyn RecipeProjector,
+) -> Result<RecipeBake, Diagnostic> {
+    walked(capture, harness, door, Some((role, projector)))
+}
+
+fn walked(
+    capture: &CapturedInput,
+    harness: HarnessPosture,
+    door: &Door,
+    replacement: Option<(RecipeRole, &dyn RecipeProjector)>,
+) -> Result<RecipeBake, Diagnostic> {
+    let recipe =
+        Recipe::read(capture, harness).map_err(|refusal| recipe_refused(&refusal, door))?;
+    if let Some((role, _)) = replacement
+        && !recipe.selected_roles().any(|selected| selected == role)
+    {
+        return Err(recipe_refused(
+            &RecipeError::at(RecipeIssue::ReplacementUnplanned { role }, None),
+            door,
+        ));
+    }
+    let selected = recipe.selected_roles().collect::<Vec<_>>();
+    let Some((&first, rest)) = selected.split_first() else {
+        return Err(recipe_refused(
+            &RecipeError::at(RecipeIssue::ProjectionRequired, None),
+            door,
+        ));
+    };
+    let projection = Request::<RecipeProjection>::over(capture.clone(), recipe.clone(), door)
+        .selecting(first, rest.to_vec())
+        .assuming(vec![RECIPE_FACT])
+        .render(|_, output| {
+            for role in selected.iter().copied() {
+                let projector: &dyn RecipeProjector = match replacement {
+                    Some((replaced, custom)) if replaced == role => custom,
+                    Some((_, _)) | None => &StandardProjector,
+                };
+                render::project(
+                    &recipe,
+                    role,
+                    ProjectionSink::bound(output, role),
+                    projector,
+                )?;
+            }
+            Ok(())
+        })?;
+    let support = support(capture, &recipe, &projection, door)?;
+    let emitted = final_emission(capture, &recipe, &projection, support.as_ref(), door)?;
+    Ok(RecipeBake::baked(projection, emitted))
+}
+
+fn wrapper_input(capture: &CapturedInput) -> Result<(HarnessPosture, CapturedInput), RecipeError> {
+    let [facade, marker, body] = capture.trees() else {
+        return Err(RecipeError::at(RecipeIssue::InlineModuleRequired, None));
+    };
+    let Some(facade) = facade.group_fragment(crate::token::CapturedDelimiter::Brace) else {
+        return Err(RecipeError::at(
+            RecipeIssue::InlineModuleRequired,
+            Some(facade.span()),
+        ));
+    };
+    if facade.is_empty() {
+        return Err(RecipeError::at(
+            RecipeIssue::InlineModuleRequired,
+            Some(facade.enclosing_span().unwrap_or(marker.span())),
+        ));
+    }
+    let harness = match marker.word() {
+        Some("__macroonz_test_carrier_available") => HarnessPosture::Available,
+        Some("__macroonz_test_carrier_unavailable") => HarnessPosture::Unavailable,
+        _ => {
+            return Err(RecipeError::at(
+                RecipeIssue::InlineModuleRequired,
+                Some(marker.span()),
+            ));
+        }
+    };
+    let Some(fragment) = body.group_fragment(crate::token::CapturedDelimiter::Brace) else {
+        return Err(RecipeError::at(
+            RecipeIssue::InlineModuleRequired,
+            Some(body.span()),
+        ));
+    };
+    let selected = CapturedInput::selected(fragment, capture.issued()).map_err(|_| {
+        RecipeError::at(
+            RecipeIssue::Grammar(crate::token::CaptureReadIssue::SequenceUnbounded {
+                limit: crate::token::CAPTURED_TOKEN_LIMIT,
+            }),
+            Some(body.span()),
+        )
+    })?;
+    Ok((harness, selected))
+}
+
+fn support(
+    capture: &CapturedInput,
+    recipe: &Recipe,
+    projection: &crate::expansion::Expansion<RecipeProjection>,
+    door: &Door,
+) -> Result<Option<crate::expansion::Expansion<SupportCarrier>>, Diagnostic> {
+    let Some(address) = recipe.support().cloned() else {
+        return Ok(None);
+    };
+    let deferred = proved_test_cargo(projection, door)?;
+    let axes = SupportAxes {
+        declared: AxisCargo::Absent {
+            because: Disposition::NotRequested {
+                because: RECIPE_FACT,
+            },
+        },
+        deferred: AxisCargo::Carried(deferred),
+        bench: AxisCargo::Absent {
+            because: Disposition::NotApplicable {
+                because: RECIPE_FACT,
+            },
+        },
+    };
+    let assembly = support::SupportAssembly::assembled_requiring_declaring(
+        projection.plan().account().commitment(),
+        Some(address),
+        axes,
+    )
+    .map_err(|refusal| whole(&refusal, door))?;
+    support::delivered(capture.clone(), Vec::new(), assembly, door).map(Some)
+}
+
+fn proved_test_cargo(
+    projection: &crate::expansion::Expansion<RecipeProjection>,
+    door: &Door,
+) -> Result<ProvedCargo, Diagnostic> {
+    let Some(PartitionCargo::Carried(cargo)) =
+        projection.emission().joined(Destination::TestCarrier)
+    else {
+        return Err(recipe_refused(
+            &RecipeError::at(RecipeIssue::SupportAddressUnneeded, None),
+            door,
+        ));
+    };
+    ProvedCargo::carried(
+        projection,
+        CargoAxis::Deferred,
+        Destination::TestCarrier,
+        DeferredCargo::deferred(cargo.tree().clone()),
+    )
+    .map_err(|refusal| whole(&refusal, door))
+}
+
+fn final_emission(
+    capture: &CapturedInput,
+    recipe: &Recipe,
+    projection: &crate::expansion::Expansion<RecipeProjection>,
+    support: Option<&crate::expansion::Expansion<SupportCarrier>>,
+    door: &Door,
+) -> Result<crate::expansion::Expansion<RecipeShell>, Diagnostic> {
+    let tree = final_tree(recipe, projection, support).map_err(|overflow| {
+        whole(
+            &crate::render::RenderError::TokensUnbounded {
+                bound: overflow.capacity,
+                observed: overflow.offered,
+            },
+            door,
+        )
+    })?;
+    let content = RecipeShellContent::composed(
+        projection.identity(),
+        support.map(crate::expansion::Expansion::identity),
+    );
+    Request::<RecipeShell>::over(capture.clone(), content, door)
+        .assuming(vec![RECIPE_FACT])
+        .render(|_, output| output.unit(SoleRole::Sole, tree))
+}
+
+fn final_tree(
+    recipe: &Recipe,
+    projection: &crate::expansion::Expansion<RecipeProjection>,
+    support: Option<&crate::expansion::Expansion<SupportCarrier>>,
+) -> Result<GeneratedTree, crate::bounded::Overflow> {
+    let mut root = Vec::new();
+    if let Some(support) = support
+        && let Some(tree) = support.emit().tokens()
+    {
+        root.extend(tree.tokens().iter().cloned());
+    }
+    let mut body = recipe.authored_body().tokens().to_vec();
+    if let Some(tree) = projection.emit().tokens() {
+        body.extend(documentation(
+            "Generated companions selected by this recipe's informed projection account.",
+        )?);
+        body.extend([
+            GeneratedToken::word("pub"),
+            GeneratedToken::word("mod"),
+            GeneratedToken::word("baked"),
+            group(GeneratedDelimiter::Brace, tree.tokens().to_vec())?,
+        ]);
+    }
+    root.extend(recipe.module_head().tokens().iter().cloned());
+    root.push(group(GeneratedDelimiter::Brace, body)?);
+    GeneratedTree::assembled(root)
+}
+
+fn recipe_refused(refusal: &RecipeError, door: &Door) -> Diagnostic {
+    match refusal.token() {
+        Some(token) => Diagnostic::refused(
+            refusal,
+            door,
+            &Placement::AtToken {
+                token,
+                spans: &SpanTable::ProducerHeld,
+            },
+        ),
+        None => Diagnostic::refused(refusal, door, &Placement::WholeDeclaration),
+    }
+}
+
+fn whole<E: Refused>(refusal: &E, door: &Door) -> Diagnostic {
+    Diagnostic::refused(refusal, door, &Placement::WholeDeclaration)
+}

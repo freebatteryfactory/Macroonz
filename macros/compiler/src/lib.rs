@@ -23,6 +23,7 @@ pub mod descriptor;
 pub mod codec;
 pub mod stamp;
 pub mod request;
+pub mod recipe;
 
 #[cfg(feature = "host")]
 pub mod host;

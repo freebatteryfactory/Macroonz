@@ -10,6 +10,39 @@ pub use macroonz_compiler as compiler;
 /// The built-in procedural declaration doors.
 pub use macroonz_macros as macros;
 
+/// Bakes one ordinary Rust module from its declared structure and requested projections.
+///
+/// This is the only supported root recipe entrance.
+/// Its procedural carrier is public only because Rust requires a public proc-macro entry behind this hygienic facade wrapper; direct carrier invocation is outside the compatibility contract.
+#[cfg(feature = "harness")]
+#[macro_export]
+macro_rules! recipe {
+    ($($recipe:tt)*) => {
+        $crate::macros::__macroonz_recipe_carrier! {
+            { $crate }
+            __macroonz_test_carrier_available
+            { $($recipe)* }
+        }
+    };
+}
+
+/// Bakes one ordinary Rust module from its declared structure and requested projections.
+///
+/// This is the only supported root recipe entrance.
+/// Harness-owned projections produce a typed declaration refusal in this facade posture.
+/// Its procedural carrier is public only because Rust requires a public proc-macro entry behind this hygienic facade wrapper; direct carrier invocation is outside the compatibility contract.
+#[cfg(not(feature = "harness"))]
+#[macro_export]
+macro_rules! recipe {
+    ($($recipe:tt)*) => {
+        $crate::macros::__macroonz_recipe_carrier! {
+            { $crate }
+            __macroonz_test_carrier_unavailable
+            { $($recipe)* }
+        }
+    };
+}
+
 /// The independent test harness.
 #[cfg(feature = "harness")]
 pub use macroonz_harness as harness;

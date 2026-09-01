@@ -9,6 +9,10 @@ The root `macroonz::recipe!` entrance reaches its compiler-owned recipe door thr
 Built-in projectors and exact declarative configuration may run there because they ship with Macroonz, while an arbitrary downstream projection algorithm runs through `macroonz-compiler` in a caller-owned compiler or proc host.
 Both hosts consume the same informed recipe and constrained output protocol; this crate gains no plugin registry or second compiler model.
 
+Rust requires the function-like proc carrier behind the hygienic facade wrapper to be public.
+Exactly one such carrier exists, it is hidden from generated documentation, and `macroonz::recipe!` is the only supported entrance.
+Direct invocation of `__macroonz_recipe_carrier!` is outside the compatibility contract and may change or break in any release without notice.
+
 ---
 
 ## Procedural declaration families

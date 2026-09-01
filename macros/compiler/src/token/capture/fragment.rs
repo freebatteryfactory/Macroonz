@@ -13,6 +13,19 @@ impl CapturedInput {
     }
 }
 
+impl CapturedTokenTree {
+    /// Borrow this token's grouped members as one exact fragment when its delimiter matches.
+    #[must_use]
+    pub fn group_fragment(
+        &self,
+        expected: super::CapturedDelimiter,
+    ) -> Option<CapturedFragment<'_>> {
+        self.group().and_then(|(delimiter, members)| {
+            (delimiter == expected).then(|| CapturedFragment::over(members, Some(self.span())))
+        })
+    }
+}
+
 impl<'tokens> CapturedFragment<'tokens> {
     /// Construct one fragment inside the capture owner.
     #[must_use]

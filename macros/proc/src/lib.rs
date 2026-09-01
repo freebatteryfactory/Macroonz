@@ -12,6 +12,30 @@ use macroonz_compiler::descriptor::{Emitter, Grammar};
 use macroonz_compiler::{CrateBinding, Door, Producer, host};
 use proc_macro::TokenStream;
 
+/// Who is asking wherever the root recipe entrance refuses.
+const RECIPE_DOOR: Door = Door::declared(
+    "macroonz",
+    "macroonz.recipe",
+    "macroonz::recipe!",
+    CrateBinding::declared("macroonz"),
+    Producer {
+        namespace: "macroonz",
+        name: "macroonz-macros",
+    },
+);
+
+/// The procedural carrier behind `macroonz::recipe!`.
+///
+/// Rust requires this function-like proc entry to be public so the facade's hygienic wrapper can reach it across the package boundary.
+/// `macroonz::recipe!` is the only supported entrance; direct invocation is outside the compatibility contract and may change or break in any release without notice.
+#[doc(hidden)]
+#[proc_macro]
+pub fn __macroonz_recipe_carrier(body: TokenStream) -> TokenStream {
+    host::expand_emittable(body, |capture| {
+        macroonz_compiler::recipe::bake_wrapped(&capture, &RECIPE_DOOR)
+    })
+}
+
 /// The grammar spelling the `trials` attribute registers.
 const TRIALS_GRAMMAR: Grammar = Grammar {
     attribute: "trials",

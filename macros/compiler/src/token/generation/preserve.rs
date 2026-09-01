@@ -19,16 +19,19 @@ impl CapturedFragment<'_> {
     ///
     /// Returns the exact captured span where an admitted generated literal or generated-token magnitude refuses.
     pub fn generated(self) -> Result<GeneratedTree, FragmentGenerationRefusal> {
-        let tokens = self
-            .tokens()
-            .iter()
-            .map(preserved_token)
-            .collect::<Result<Vec<_>, _>>()?;
+        let tokens = preserved_tokens(self.tokens())?;
         GeneratedTree::assembled(tokens).map_err(|_| FragmentGenerationRefusal {
             issue: FragmentGenerationIssue::Unbounded,
             at: self.first_span().or(self.enclosing_span()),
         })
     }
+}
+
+/// Preserve one already bounded captured-token slice for a compiler-owned structural lens.
+pub(crate) fn preserved_tokens(
+    tokens: &[CapturedTokenTree],
+) -> Result<Vec<GeneratedToken>, FragmentGenerationRefusal> {
+    tokens.iter().map(preserved_token).collect()
 }
 
 impl FragmentGenerationRefusal {

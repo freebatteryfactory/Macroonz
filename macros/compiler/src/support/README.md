@@ -36,7 +36,8 @@ The promotion records the terminal, its declaration, its destination, and the di
 Assembly then verifies the relationships across every carried axis before any shell can be rendered.
 
 The rendered carrier is named from its plan identity so declarations sharing one crate do not choose competing machinery names.
-An author-facing alias may forward to that hidden carrier, but it adds no grammar and changes no cargo.
+An author-facing alias normally forwards its input whole and changes no cargo.
+Where opaque cargo names items in the declaring crate, the alias reads that target-supplied physical path only to reach the hidden carrier and forwards the same binding into the cargo; it interprets no semantic material.
 
 ## Composition
 

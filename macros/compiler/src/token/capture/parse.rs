@@ -284,6 +284,11 @@ impl<'tokens> CaptureCursor<'tokens> {
 }
 
 impl CaptureReadRefusal {
+    /// Bind one compiler-owned higher grammar operation to an already established mechanical issue and span.
+    pub(crate) const fn projected(issue: CaptureReadIssue, at: Option<super::SpanHandle>) -> Self {
+        Self { issue, at }
+    }
+
     /// The mechanical disagreement this read established.
     pub const fn issue(&self) -> &CaptureReadIssue {
         &self.issue
@@ -295,5 +300,10 @@ impl CaptureReadRefusal {
     #[must_use]
     pub const fn token(&self) -> Option<super::SpanHandle> {
         self.at
+    }
+
+    /// Consume this refusal into its mechanical issue and exact available span.
+    pub(crate) fn into_parts(self) -> (CaptureReadIssue, Option<super::SpanHandle>) {
+        (self.issue, self.at)
     }
 }

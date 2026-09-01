@@ -58,15 +58,24 @@ impl SupportShell {
         let form = assembly.form();
         let pin = render::expectation_roster(assembly.expectation())?;
         let body = render::gate_invocation(form, pin, stamped(assembly), opaque(assembly, form))?;
-        let matched = render::matcher(assembly.declared());
+        let matched = match assembly.declaring_binding() {
+            crate::support::DeclaringBinding::Absent => render::matcher(assembly.declared()),
+            crate::support::DeclaringBinding::Required => {
+                render::matcher_requiring_declaring(assembly.declared())
+            }
+        };
         let mut tokens =
             render::exported_shell(&name, &render::shell_sentence(door), matched, body)?;
         if let Some(address) = assembly.address() {
-            tokens.extend(render::public_alias(
-                &name,
-                address,
-                &render::alias_sentence(door),
-            )?);
+            let sentence = render::alias_sentence(door);
+            tokens.extend(match assembly.declaring_binding() {
+                crate::support::DeclaringBinding::Absent => {
+                    render::public_alias(&name, address, &sentence)?
+                }
+                crate::support::DeclaringBinding::Required => {
+                    render::public_alias_requiring_declaring(&name, address, &sentence)?
+                }
+            });
         }
         Ok(Self {
             name,

@@ -21,6 +21,14 @@ crate::roster! {
         Harness = "harness",
     }
 }
+/// Whether one support address must receive the declaring crate's path in order to reach its hidden carrier and generated cargo.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum DeclaringBinding {
+    /// The carrier and its cargo do not need the declaring crate's path.
+    Absent,
+    /// The consumption target must state the declaring crate's path.
+    Required,
+}
 crate::roster! {
     /// The coupled gate-seat form.
     pub enum DeliveryForm {

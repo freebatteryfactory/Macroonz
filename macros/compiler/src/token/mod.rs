@@ -17,7 +17,6 @@ pub use capture::{
 };
 #[cfg(feature = "host")]
 pub(crate) use generation::GeneratedLiteralForm;
-pub(crate) use generation::segmented_twin_path;
 pub use generation::{
     FragmentGenerationIssue, FragmentGenerationRefusal, GENERATED_TOKEN_LIMIT, GeneratedDelimiter,
     GeneratedLiteral, GeneratedLiteralRefusal, GeneratedSpacing, GeneratedToken, GeneratedTree,
@@ -26,3 +25,4 @@ pub use generation::{
     metavariable, method_call, method_chain, rendered_identifier, rendered_name, result_type,
     roster, rust_keyword, text_pair, twin_path,
 };
+pub(crate) use generation::{preserved_tokens, segmented_twin_path};
