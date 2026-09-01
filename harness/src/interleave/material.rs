@@ -1,6 +1,6 @@
 //! The material road: total interpretation of arbitrary bytes and checked encoding of canonical interleavings.
 
-use super::types::{EncodingRefusal, InterleavedSequence, Interleaving, StrandSet};
+use super::types::{EncodingRefusal, InterleavedSequence, Interleaving, Realization, StrandSet};
 use std::collections::VecDeque;
 
 /// Realize one material string over a strand set.
@@ -60,16 +60,6 @@ pub fn encoded<Command>(
         }
     }
     Ok(material)
-}
-
-/// One realized walk: the canonical choices, the merged commands, and how many live strands each step chose among.
-pub(super) struct Realization<Command> {
-    /// The canonical choice string: which strand stepped, per step.
-    pub(super) choices: Vec<u8>,
-    /// The commands, in merged order.
-    pub(super) commands: Vec<Command>,
-    /// The live-strand count each step's byte picked among, which is the radix the enumerator advances under.
-    pub(super) radixes: Vec<usize>,
 }
 
 /// One command taken from the live strand selected by one material byte.

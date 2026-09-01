@@ -3,17 +3,9 @@
 //! A pure map from a selection and a row to a typed admission, read once per row before anything executes.
 //! Reading it first is what keeps the two accounting axes apart: a row the selection passed over never reaches the execution road, so it can never be recorded as an attempt that failed.
 
-use super::types::Selection;
+use super::types::{Admission, Selection};
 use crate::descriptor::Row;
 use crate::report::{NotSelectedReason, TrialId};
-
-/// What one selection says about one row of the denominator.
-pub(super) enum Admission {
-    /// The selection named this row.
-    Selected,
-    /// The selection passed this row over, for a stated reason.
-    NotSelected(NotSelectedReason),
-}
 
 /// Read one selection over one row of the world.
 pub(super) fn admission(selection: &Selection, row: &Row, trial: TrialId) -> Admission {

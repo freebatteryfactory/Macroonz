@@ -4,8 +4,8 @@
 //! The caller supplies only how a selected binding reaches its admitted trial report; every census seat, row and execution revision, claim, table posture, selection outcome, profile, and target binding is derived here.
 
 use super::resolve::{execution_key, execution_revisions, row_revision, trial_identity};
-use super::select::{Admission, admission};
-use super::types::{Invocation, SelectionPlan, TrialBinding, TrialTableView};
+use super::select::admission;
+use super::types::{Admission, Invocation, SelectionPlan, TrialBinding, TrialTableView};
 use crate::clock::MeasurementReading;
 use crate::report::{
     RunAttempt, RunReport, SelectionDisposition, SelectionOutcome, TrialAccounting, TrialReport,
