@@ -21,7 +21,7 @@ pub const TRANSITION_LIMIT: usize = 128;
 pub(super) const RECIPE_FAMILY: Family = Family::declared("macroonz/recipe");
 
 /// The structural fact this recipe owner declares.
-pub const RECIPE_FACT: OwnerFact = OwnerFact {
+pub(super) const RECIPE_FACT: OwnerFact = OwnerFact {
     home: "recipe",
     name: "one-informed-recipe-selects-and-delivers-every-requested-projection",
 };
@@ -54,6 +54,7 @@ pub struct RecipeTransition {
 
 crate::roster! {
     /// The complete projection vocabulary understood by the first recipe slice.
+    #[non_exhaustive]
     pub enum RecipeRole {
         /// Enum-member and relation companions inside the generated child module.
         Companions = "companions",
@@ -67,14 +68,13 @@ crate::roster! {
 }
 
 /// Where one effective mechanical projection value came from.
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LoweringSource {
     /// The projector's documented conventional spelling.
     Preset,
     /// A named recipe seat replaced the conventional spelling.
     Configuration,
-    /// Exact caller-authored Rust supplies the seat.
-    ExactRust,
 }
 
 /// The effective mechanical configuration of one generated projection.
@@ -87,7 +87,7 @@ pub struct EffectiveProjection {
 
 /// What happened to one role in the recipe's complete projection account.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum ProjectionStanding {
+pub(super) enum ProjectionStanding {
     /// The role enters the selected request membership under this effective lowering.
     Generated(EffectiveProjection),
     /// The caller deliberately did not request this role.
@@ -130,13 +130,15 @@ pub(super) struct RecipeParts {
 pub struct RecipeProjection;
 
 /// A projector's read-only view of one informed recipe.
+#[derive(Clone, Copy)]
 pub struct RecipeView<'recipe> {
     recipe: &'recipe Recipe,
 }
 
 /// The one selected role one projector invocation answers.
-pub struct ProjectionRequest {
-    role: RecipeRole,
+#[derive(Clone, Copy)]
+pub struct ProjectionRequest<'recipe> {
+    effective: &'recipe EffectiveProjection,
 }
 
 /// A consuming output capability already bound to one selected recipe role.
@@ -147,7 +149,7 @@ pub struct ProjectionSink<'output, 'plan> {
 
 /// Opaque evidence that one projector used its bound sink successfully.
 #[must_use = "a successful offer is evidence that the selected projection seat was filled"]
-pub struct Offered {
+pub struct ProjectionOffered {
     _private: (),
 }
 
@@ -160,21 +162,17 @@ pub trait RecipeProjector {
     /// Returns the first token or render refusal established by the implementation.
     fn project(
         &self,
-        view: &RecipeView<'_>,
-        request: &ProjectionRequest,
+        view: RecipeView<'_>,
+        request: ProjectionRequest<'_>,
         sink: ProjectionSink<'_, '_>,
-    ) -> Result<Offered, ProjectionError>;
+    ) -> Result<ProjectionOffered, ProjectionError>;
 }
 
 /// Why one projector invocation produced no admitted unit.
 #[must_use = "a projection refusal states why the selected role was not filled"]
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProjectionError {
-    /// The recipe's plan does not select the requested role.
-    Unplanned {
-        /// The role that was requested.
-        role: RecipeRole,
-    },
     /// Token construction exceeded a generated-tree magnitude.
     Tokens(crate::bounded::Overflow),
     /// The existing output owner refused the offered unit.
@@ -184,14 +182,14 @@ pub enum ProjectionError {
 /// Why one recipe could not be informed or baked.
 #[must_use = "a recipe refusal states the exact structural or capability disagreement"]
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RecipeError {
+pub(super) struct RecipeError {
     issue: RecipeIssue,
     at: Option<SpanHandle>,
 }
 
 /// One recipe declaration or capability disagreement.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum RecipeIssue {
+pub(super) enum RecipeIssue {
     /// The wrapper input is not one inline Rust module.
     InlineModuleRequired,
     /// The module does not end with exactly one `bake!` declaration.

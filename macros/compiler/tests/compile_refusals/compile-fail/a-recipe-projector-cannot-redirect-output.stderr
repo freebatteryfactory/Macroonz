@@ -1,0 +1,11 @@
+error[E0599]: no method named `offer_as` found for struct `ProjectionSink<'output, 'plan>` in the current scope
+ --> tests/compile_refusals/compile-fail/a-recipe-projector-cannot-redirect-output.rs:5:18
+  |
+5 |     let _ = sink.offer_as(RecipeRole::Dispatch, tree);
+  |                  ^^^^^^^^
+  |
+help: there is a method `offer` with a similar name, but with different arguments
+ --> src/recipe/type_guard.rs
+  |
+  |     pub fn offer(self, tree: GeneratedTree) -> Result<ProjectionOffered, ProjectionError> {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

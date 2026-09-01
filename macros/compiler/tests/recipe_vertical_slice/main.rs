@@ -1,8 +1,8 @@
 //! The callable recipe host and the paved wrapper envelope over one informed structural slice.
 
 use macroonz_compiler::recipe::{
-    HarnessPosture, ProjectionError, ProjectionRequest, ProjectionSink, RecipeBake,
-    RecipeProjector, RecipeRole, RecipeView,
+    HarnessPosture, ProjectionError, ProjectionOffered, ProjectionRequest, ProjectionSink,
+    RecipeBake, RecipeProjector, RecipeRole, RecipeView,
 };
 use macroonz_compiler::{
     CanonicalContent, CrateBinding, Destination, Door, GeneratedDelimiter, GeneratedToken,
@@ -79,15 +79,12 @@ struct MirroredCompanions;
 impl RecipeProjector for MirroredCompanions {
     fn project(
         &self,
-        view: &RecipeView<'_>,
-        request: &ProjectionRequest,
+        view: RecipeView<'_>,
+        request: ProjectionRequest<'_>,
         sink: ProjectionSink<'_, '_>,
-    ) -> Result<macroonz_compiler::recipe::Offered, ProjectionError> {
-        if request.role() != RecipeRole::Companions {
-            return Err(ProjectionError::Unplanned {
-                role: request.role(),
-            });
-        }
+    ) -> Result<ProjectionOffered, ProjectionError> {
+        assert_eq!(request.role(), RecipeRole::Companions);
+        assert_eq!(request.effective().role(), RecipeRole::Companions);
         let recipe = view.recipe();
         let mut tokens = roster_constant(
             "STATE_VARIANTS",
@@ -195,6 +192,37 @@ fn a_caller_owned_projector_cannot_replace_an_unselected_role() -> Result<(), ()
     .err()
     .ok_or(())?;
     assert!(refusal.summary().contains("unselected role `dispatch`"));
+    Ok(())
+}
+
+#[test]
+fn semantic_effect_movement_moves_identity_even_when_rendered_companions_do_not() -> Result<(), ()>
+{
+    let first = bake(COMPANION_RECIPE)?;
+    let changed = COMPANION_RECIPE.replace("crate::effects::open", "crate::effects::unlock");
+    let second = bake(&changed)?;
+
+    assert_eq!(emitted_bytes(&first), emitted_bytes(&second));
+    assert_ne!(
+        first
+            .projection()
+            .plan()
+            .content()
+            .canonical_content_bytes(),
+        second
+            .projection()
+            .plan()
+            .content()
+            .canonical_content_bytes()
+    );
+    assert_ne!(
+        first.projection().plan().identity(),
+        second.projection().plan().identity()
+    );
+    assert_ne!(
+        first.projection().identity(),
+        second.projection().identity()
+    );
     Ok(())
 }
 

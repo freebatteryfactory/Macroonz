@@ -47,19 +47,25 @@ What lives here is one thin function per procedural entry, and every sentence a 
 
 Do not add one here merely because a recipe needs a custom projection.
 
-An arbitrary projection algorithm is ordinary caller-owned compiler code or lives in the caller's proc-macro crate on `macroonz-compiler` with the `host` feature:
+An arbitrary recipe projection algorithm is ordinary caller-owned compiler code or lives in the caller's proc-macro crate on `macroonz-compiler` with the `host` feature:
 
 ```rust
-#[proc_macro_derive(Greet, attributes(greet))]
-pub fn greet(input: TokenStream) -> TokenStream {
-    macroonz_compiler::host::expand(input, |capture| {
-        let greeting = Greeting::read(&capture)?;
-        Request::<GreetImpl>::over(capture, greeting, &GREET_DOOR)
-            .render(|plan, out| out.unit(GreetRole::Impl, plan.content().impl_tokens()))
-    })
+impl macroonz_compiler::recipe::RecipeProjector for MyProjector {
+    fn project(
+        &self,
+        view: macroonz_compiler::recipe::RecipeView<'_>,
+        request: macroonz_compiler::recipe::ProjectionRequest<'_>,
+        sink: macroonz_compiler::recipe::ProjectionSink<'_, '_>,
+    ) -> Result<macroonz_compiler::recipe::ProjectionOffered, macroonz_compiler::recipe::ProjectionError> {
+        let tree = project_my_role(view.recipe(), request.effective())?;
+        sink.offer(tree)
+    }
 }
 ```
 
-That is the whole host a caller-owned projection algorithm needs.
-It consumes the same compiler contract as the paved recipe road and may compose descriptor cargo on the same public carrier road these attributes walk.
+`project_my_role` is caller-owned placeholder code returning one `GeneratedTree`.
+The complete compiling example is shipped by `macroonz-compiler` as `examples/custom_recipe_projector.rs`.
+
+That is the complete capability boundary a caller-owned recipe projector receives.
+It consumes the same informed recipe contract as the paved recipe road and returns output through the same planned role.
 The distinction is execution host rather than semantic model: an already compiled Macroonz proc macro cannot invoke arbitrary code defined later in a downstream crate.

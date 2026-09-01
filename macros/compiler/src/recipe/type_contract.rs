@@ -2,10 +2,9 @@
 
 #[cfg(feature = "host")]
 use super::RecipeBake;
-use super::types::{RecipeShell, RecipeShellContent};
+use super::types::{RECIPE_FACT, RecipeError, RecipeIssue, RecipeShell, RecipeShellContent};
 use super::{
-    HarnessPosture, LoweringSource, ProjectionError, RECIPE_FACT, Recipe, RecipeError, RecipeIssue,
-    RecipeProjection, RecipeRole,
+    HarnessPosture, LoweringSource, ProjectionError, Recipe, RecipeProjection, RecipeRole,
 };
 use crate::bounded::{Bounded, Overflow};
 use crate::diagnostic::{LineBody, Observed, Phase, REPAIR_LIMIT, RefusalClass, Refused, Repair};
@@ -32,7 +31,6 @@ impl LoweringSource {
         match self {
             Self::Preset => "preset",
             Self::Configuration => "configuration",
-            Self::ExactRust => "exact-rust",
         }
     }
 }
@@ -69,9 +67,6 @@ impl Kind for RecipeShell {
 impl fmt::Display for ProjectionError {
     fn fmt(&self, into: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Unplanned { role } => {
-                write!(into, "the recipe plan does not select `{}`", role.name())
-            }
             Self::Tokens(overflow) => write!(into, "{overflow}"),
             Self::Render(refusal) => write!(into, "{refusal}"),
         }
@@ -81,7 +76,6 @@ impl fmt::Display for ProjectionError {
 impl core::error::Error for ProjectionError {
     fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match self {
-            Self::Unplanned { .. } => None,
             Self::Tokens(overflow) => Some(overflow),
             Self::Render(refusal) => Some(refusal),
         }
@@ -97,7 +91,6 @@ impl From<Overflow> for ProjectionError {
 impl From<ProjectionError> for RenderError {
     fn from(refusal: ProjectionError) -> Self {
         match refusal {
-            ProjectionError::Unplanned { role } => Self::SeatUnplanned { role: role.name() },
             ProjectionError::Tokens(overflow) => Self::TokensUnbounded {
                 bound: overflow.capacity,
                 observed: overflow.offered,

@@ -1,10 +1,10 @@
 //! The paved and callable walks over one informed recipe and one projection protocol.
 
 use super::render::{self, StandardProjector};
-use super::types::{RecipeShell, RecipeShellContent};
+use super::types::{RECIPE_FACT, RecipeError, RecipeIssue, RecipeShell, RecipeShellContent};
 use super::{
-    HarnessPosture, ProjectionSink, RECIPE_FACT, Recipe, RecipeBake, RecipeError, RecipeIssue,
-    RecipeProjection, RecipeProjector, RecipeRole,
+    HarnessPosture, ProjectionSink, Recipe, RecipeBake, RecipeProjection, RecipeProjector,
+    RecipeRole,
 };
 use crate::closure::PartitionCargo;
 use crate::diagnostic::{Diagnostic, Placement, Refused};
@@ -38,6 +38,7 @@ pub fn bake(
 /// # Errors
 ///
 /// Returns the exact envelope, recipe, or downstream compiler diagnostic before any tokens are exposed.
+#[doc(hidden)]
 pub fn bake_wrapped(capture: &CapturedInput, door: &Door) -> Result<RecipeBake, Diagnostic> {
     let (harness, inner) =
         wrapper_input(capture).map_err(|refusal| recipe_refused(&refusal, door))?;

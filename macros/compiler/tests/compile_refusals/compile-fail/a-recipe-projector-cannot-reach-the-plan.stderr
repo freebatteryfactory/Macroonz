@@ -1,0 +1,5 @@
+error[E0599]: no method named `plan` found for struct `RecipeView<'recipe>` in the current scope
+ --> tests/compile_refusals/compile-fail/a-recipe-projector-cannot-reach-the-plan.rs:4:18
+  |
+4 |     let _ = view.plan();
+  |                  ^^^^ method not found in `RecipeView<'_>`

@@ -1,0 +1,5 @@
+error[E0451]: field `recipe` of struct `RecipeView` is private
+ --> tests/compile_refusals/compile-fail/a-recipe-view-cannot-be-minted-beside-its-recipe.rs:4:18
+  |
+4 |     RecipeView { recipe }
+  |                  ^^^^^^ private field

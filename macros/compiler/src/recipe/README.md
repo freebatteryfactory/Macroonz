@@ -26,6 +26,21 @@ The existing output and closure owners retain admission, missing-output, doubled
 Built-in and caller-owned projectors use this same capability boundary.
 The paved proc host executes only projectors shipped with Macroonz, while an arbitrary caller-owned algorithm runs through this callable compiler home or a caller-owned proc host.
 
+## Caller-owned projectors
+
+A caller-owned projector implements `RecipeProjector` and is selected for one already requested role through `bake_with`.
+It receives a copyable read-only `RecipeView`, a copyable `ProjectionRequest` carrying the role's effective mechanical configuration, and one consuming `ProjectionSink`.
+
+The view exposes only informed recipe facts and exact captured fragments required to generate that role.
+The request exposes the selected role, its role-owned destination, and its effective configuration.
+The sink accepts one `GeneratedTree`; the returned `ProjectionOffered` cannot be constructed any other way.
+
+No capability exposes the plan, closure, identity framing, output membership, sidecars, filesystem, or completion mint.
+The role roster and mechanical lowering provenance are non-exhaustive because later standard projector families may add capabilities without turning exhaustive matching into the extension contract.
+
+The shipped `custom_recipe_projector` example replaces the standard companions seat with a domain-neutral structural-dimensions projection using only `macroonz-compiler`.
+An application cannot name downstream executable projector code inside `macroonz::recipe!`; arbitrary algorithms run in the callable compiler or a caller-owned proc host, not inside Macroonz's already compiled proc carrier.
+
 ## Output
 
 Authored items stay in the recipe module.

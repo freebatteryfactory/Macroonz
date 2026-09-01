@@ -1,7 +1,7 @@
 //! Recipe invariant construction and capability readers.
 
 use super::{
-    EffectiveProjection, LoweringSource, Offered, ProjectionError, ProjectionRequest,
+    EffectiveProjection, LoweringSource, ProjectionError, ProjectionOffered, ProjectionRequest,
     ProjectionSink, ProjectionStanding, Recipe, RecipeBake, RecipeError, RecipeIssue, RecipeMember,
     RecipeParts, RecipeProjection, RecipeRole, RecipeShell, RecipeShellContent, RecipeTransition,
     RecipeView, TRANSITION_LIMIT, VOCABULARY_LIMIT,
@@ -28,7 +28,7 @@ impl RecipeMember {
 
     /// Reads the captured producer span for this member.
     #[must_use]
-    pub const fn at(&self) -> SpanHandle {
+    pub(in crate::recipe) const fn at(&self) -> SpanHandle {
         self.at
     }
 }
@@ -76,7 +76,7 @@ impl RecipeTransition {
 
     /// Reads the source coordinate of this row.
     #[must_use]
-    pub const fn at(&self) -> SpanHandle {
+    pub(in crate::recipe) const fn at(&self) -> SpanHandle {
         self.at
     }
 }
@@ -227,7 +227,7 @@ impl Recipe {
 
     /// Reads the complete standing for one projection role.
     #[must_use]
-    pub fn standing(&self, role: RecipeRole) -> &ProjectionStanding {
+    pub(in crate::recipe) fn standing(&self, role: RecipeRole) -> &ProjectionStanding {
         let [companions, dispatch, compile_contract, property] = &self.projections;
         match role {
             RecipeRole::Companions => companions,
@@ -237,8 +237,17 @@ impl Recipe {
         }
     }
 
+    /// Reads the effective mechanical configuration for one selected role.
+    #[must_use]
+    pub fn effective(&self, role: RecipeRole) -> Option<&EffectiveProjection> {
+        match self.standing(role) {
+            ProjectionStanding::Generated(effective) => Some(effective),
+            ProjectionStanding::NotRequested => None,
+        }
+    }
+
     /// Reads every generated role in declared role order.
-    pub fn selected_roles(&self) -> impl Iterator<Item = RecipeRole> + '_ {
+    pub(in crate::recipe) fn selected_roles(&self) -> impl Iterator<Item = RecipeRole> + '_ {
         RecipeRole::ALL
             .iter()
             .copied()
@@ -247,7 +256,7 @@ impl Recipe {
 
     /// Reads the evidence carrier's explicit public address where one was declared.
     #[must_use]
-    pub const fn support(&self) -> Option<&SupportName> {
+    pub(in crate::recipe) const fn support(&self) -> Option<&SupportName> {
         self.support.as_ref()
     }
 }
@@ -259,26 +268,32 @@ impl<'recipe> RecipeView<'recipe> {
 
     /// Reads the informed recipe without plan or mutation authority.
     #[must_use]
-    pub const fn recipe(&self) -> &'recipe Recipe {
+    pub const fn recipe(self) -> &'recipe Recipe {
         self.recipe
     }
 }
 
-impl ProjectionRequest {
-    pub(in crate::recipe) const fn selected(role: RecipeRole) -> Self {
-        Self { role }
+impl<'recipe> ProjectionRequest<'recipe> {
+    pub(in crate::recipe) const fn selected(effective: &'recipe EffectiveProjection) -> Self {
+        Self { effective }
     }
 
     /// Reads the exact selected role this invocation answers.
     #[must_use]
-    pub const fn role(&self) -> RecipeRole {
-        self.role
+    pub const fn role(self) -> RecipeRole {
+        self.effective.role()
+    }
+
+    /// Reads the complete effective mechanical configuration for this invocation.
+    #[must_use]
+    pub const fn effective(self) -> &'recipe EffectiveProjection {
+        self.effective
     }
 
     /// Reads the destination owned by the selected role.
     #[must_use]
-    pub fn destination(&self) -> crate::kind::Destination {
-        self.role.destination()
+    pub fn destination(self) -> crate::kind::Destination {
+        self.role().destination()
     }
 }
 
@@ -295,11 +310,11 @@ impl<'output, 'plan> ProjectionSink<'output, 'plan> {
     /// # Errors
     ///
     /// Returns the existing output refusal when the plan does not admit the role or the rendered bytes exceed their bound.
-    pub fn offer(self, tree: GeneratedTree) -> Result<Offered, ProjectionError> {
+    pub fn offer(self, tree: GeneratedTree) -> Result<ProjectionOffered, ProjectionError> {
         self.output
             .unit(self.role, tree)
             .map_err(ProjectionError::Render)?;
-        Ok(Offered { _private: () })
+        Ok(ProjectionOffered { _private: () })
     }
 }
 
@@ -310,13 +325,13 @@ impl RecipeError {
 
     /// Reads the exact recipe issue.
     #[must_use]
-    pub const fn issue(&self) -> &RecipeIssue {
+    pub(in crate::recipe) const fn issue(&self) -> &RecipeIssue {
         &self.issue
     }
 
     /// Reads the captured producer span available for this issue.
     #[must_use]
-    pub const fn token(&self) -> Option<SpanHandle> {
+    pub(in crate::recipe) const fn token(&self) -> Option<SpanHandle> {
         self.at
     }
 }

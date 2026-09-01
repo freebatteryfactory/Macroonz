@@ -1,7 +1,7 @@
 //! Canonical recipe and final-emission content.
 
-use super::types::RecipeShellContent;
-use super::{ProjectionStanding, Recipe, RecipeRole};
+use super::types::{ProjectionStanding, RecipeShellContent};
+use super::{Recipe, RecipeRole};
 use crate::identity::{encode_bytes, encode_length};
 use crate::kind::{CanonicalContent, Role};
 

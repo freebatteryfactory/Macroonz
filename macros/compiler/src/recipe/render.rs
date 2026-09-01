@@ -1,8 +1,8 @@
 //! Projection through the one capability shared by standard and caller-owned projectors.
 
 use super::{
-    ProjectionError, ProjectionRequest, ProjectionSink, ProjectionStanding, Recipe,
-    RecipeProjector, RecipeRole, RecipeView,
+    ProjectionError, ProjectionRequest, ProjectionSink, Recipe, RecipeProjector, RecipeRole,
+    RecipeView,
 };
 use crate::bounded::AbsencePosture;
 use crate::token::{
@@ -16,13 +16,13 @@ pub(super) struct StandardProjector;
 impl RecipeProjector for StandardProjector {
     fn project(
         &self,
-        view: &RecipeView<'_>,
-        request: &ProjectionRequest,
+        view: RecipeView<'_>,
+        request: ProjectionRequest<'_>,
         sink: ProjectionSink<'_, '_>,
-    ) -> Result<super::Offered, ProjectionError> {
+    ) -> Result<super::ProjectionOffered, ProjectionError> {
         let tree = match request.role() {
             RecipeRole::Companions => companions(view.recipe())?,
-            RecipeRole::Dispatch => dispatch(view.recipe())?,
+            RecipeRole::Dispatch => dispatch(view.recipe(), request.effective())?,
             RecipeRole::CompileContract => compile_contract(view.recipe())?,
             RecipeRole::Property => property(view.recipe())?,
         };
@@ -36,10 +36,15 @@ pub(super) fn project(
     sink: ProjectionSink<'_, '_>,
     projector: &dyn RecipeProjector,
 ) -> Result<(), ProjectionError> {
+    let Some(effective) = recipe.effective(role) else {
+        return Err(ProjectionError::Render(
+            crate::render::RenderError::SeatUnplanned { role: role.name() },
+        ));
+    };
     projector
         .project(
-            &RecipeView::over(recipe),
-            &ProjectionRequest::selected(role),
+            RecipeView::over(recipe),
+            ProjectionRequest::selected(effective),
             sink,
         )
         .map(|_| ())
@@ -121,7 +126,10 @@ fn transition_constant(recipe: &Recipe) -> Result<Vec<GeneratedToken>, Projectio
     Ok(tokens)
 }
 
-fn dispatch(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError> {
+fn dispatch(
+    recipe: &Recipe,
+    effective: &super::EffectiveProjection,
+) -> Result<GeneratedTree, ProjectionError> {
     if recipe.absence() != AbsencePosture::Refusal {
         return Err(ProjectionError::Render(
             crate::render::RenderError::NothingRendered,
@@ -154,15 +162,15 @@ fn dispatch(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError> {
             body
         })?,
     ]);
-    tokens.extend(dispatch_function(recipe)?);
+    tokens.extend(dispatch_function(recipe, effective)?);
     GeneratedTree::assembled(tokens).map_err(ProjectionError::Tokens)
 }
 
-fn dispatch_function(recipe: &Recipe) -> Result<Vec<GeneratedToken>, ProjectionError> {
-    let name = match recipe.standing(RecipeRole::Dispatch) {
-        ProjectionStanding::Generated(lowering) => lowering.name().unwrap_or("apply"),
-        ProjectionStanding::NotRequested => "apply",
-    };
+fn dispatch_function(
+    recipe: &Recipe,
+    effective: &super::EffectiveProjection,
+) -> Result<Vec<GeneratedToken>, ProjectionError> {
+    let name = effective.name().unwrap_or("apply");
     let parameters = comma_separated(vec![
         typed("state", super_path(recipe.states_name())),
         typed("event", super_path(recipe.events_name())),
@@ -369,10 +377,10 @@ fn harness_path(segments: &[&str]) -> Vec<GeneratedToken> {
 }
 
 fn dispatch_name(recipe: &Recipe) -> &str {
-    match recipe.standing(RecipeRole::Dispatch) {
-        ProjectionStanding::Generated(lowering) => lowering.name().unwrap_or("apply"),
-        ProjectionStanding::NotRequested => "apply",
-    }
+    recipe
+        .effective(RecipeRole::Dispatch)
+        .and_then(super::EffectiveProjection::name)
+        .unwrap_or("apply")
 }
 
 fn super_path(name: &str) -> Vec<GeneratedToken> {

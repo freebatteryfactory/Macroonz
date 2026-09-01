@@ -1,9 +1,9 @@
 //! Reading the one inline-module recipe grammar into informed structural values.
 
-use super::types::RecipeParts;
+use super::types::{ProjectionStanding, RecipeError, RecipeIssue, RecipeParts};
 use super::{
-    EffectiveProjection, HarnessPosture, LoweringSource, ProjectionStanding, Recipe, RecipeError,
-    RecipeIssue, RecipeMember, RecipeRole, RecipeTransition,
+    EffectiveProjection, HarnessPosture, LoweringSource, Recipe, RecipeMember, RecipeRole,
+    RecipeTransition,
 };
 use crate::bounded::AbsencePosture;
 use crate::support::SupportName;
@@ -21,7 +21,10 @@ impl Recipe {
     /// # Errors
     ///
     /// Returns the exact structural, grammar, membership, collision, or feature-posture refusal established before planning.
-    pub fn read(input: &CapturedInput, harness: HarnessPosture) -> Result<Self, RecipeError> {
+    pub(in crate::recipe) fn read(
+        input: &CapturedInput,
+        harness: HarnessPosture,
+    ) -> Result<Self, RecipeError> {
         let item = input.authored_item().map_err(|refusal| {
             RecipeError::at(RecipeIssue::InlineModuleRequired, refusal.token())
         })?;

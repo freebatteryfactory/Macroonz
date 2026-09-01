@@ -27,6 +27,15 @@ Every projector can offer output only for a planned role and destination, while 
 
 ## Raw callable road
 
+A caller who wants the informed recipe road but needs a projection algorithm Macroonz does not ship implements `recipe::RecipeProjector` and supplies it to `recipe::bake_with` for one selected role.
+The projector reads `RecipeView` and `ProjectionRequest`, offers one `GeneratedTree` through its consuming `ProjectionSink`, and receives no planning, closure, identity, sidecar, or completion authority.
+
+The package ships that exact journey at `examples/custom_recipe_projector.rs`; run `cargo run -p macroonz-compiler --example custom_recipe_projector` from the workspace root.
+The example replaces one standard seat with a domain-neutral structural-dimensions projection and depends on no facade, proc host, harness, plugin registry, or ambient discovery.
+
+The paved `macroonz::recipe!` host can configure projectors that ship with Macroonz, but it cannot execute arbitrary Rust code declared later in an adopter crate.
+Such algorithms run through this callable road or through a caller-owned proc-macro crate using the same compiler contract.
+
 A raw caller declares a **kind** — what one request produces — plus a reader for its declaration grammar and a projector over the resulting content.
 This is the extension road for a projection algorithm the first-party recipe host cannot execute, not a different semantic model.
 
