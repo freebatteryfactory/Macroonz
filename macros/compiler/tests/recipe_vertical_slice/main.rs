@@ -1,5 +1,7 @@
 //! The callable recipe host and the paved wrapper envelope over one informed structural slice.
 
+mod refusal_contract;
+
 use macroonz_compiler::recipe::{
     HarnessPosture, LoweringSource, ProjectionDisposition, ProjectionError, ProjectionOffered,
     ProjectionRequest, ProjectionSink, RecipeBake, RecipeProjector, RecipeRole, RecipeView,

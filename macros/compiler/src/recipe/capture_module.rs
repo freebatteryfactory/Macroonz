@@ -31,6 +31,20 @@ pub(super) fn bake_suffix(
             ));
         }
     };
+    if let Some(duplicate) = suffix.0.windows(3).find_map(|window| {
+        let [name, bang, group] = window else {
+            return None;
+        };
+        (name.word() == Some(BAKE)
+            && bang.punct() == Some('!')
+            && group.group_fragment(CapturedDelimiter::Brace).is_some())
+        .then_some(name)
+    }) {
+        return Err(RecipeError::at(
+            RecipeIssue::BakeRequiredLast,
+            Some(duplicate.span()),
+        ));
+    }
     let declaration = suffix
         .1
         .group_fragment(CapturedDelimiter::Brace)
