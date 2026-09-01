@@ -37,6 +37,9 @@ The carrier is a hidden `macro_rules!` definition — plus the alias you chose i
 An ordinary build compiles the definition and nothing inside it.
 Your test or bench target invokes the alias, supplies its own host facts and callables there, and the carrier's gate checks the schema pin before a single constructor reaches type checking.
 
+A descriptor carrier composed through `macroonz::recipe!` also requires the invocation target to state the declaring crate path.
+The wrapper's `$crate` belongs to the facade that defined the wrapper, so the explicit path is what lets the existing carrier reach its hidden helper without guessing package topology or adding ambient discovery.
+
 Each attribute walks the road any derive built on `macroonz-compiler` walks — capture, request, render, close, explain, bind, emit.
 The grammar each one reads is the compiler's `descriptor` home's; the road from a reading to a sealed carrier expansion is the same home's `door`; the carrier itself is the compiler's `support` home's.
 What lives here is one thin function per procedural entry, and every sentence a refusal shows you was composed inside the compiler at the token it is about.

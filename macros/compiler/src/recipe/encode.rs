@@ -37,8 +37,11 @@ impl CanonicalContent for Recipe {
                     encode_bytes(lowering.source().name().as_bytes(), into);
                     encode_optional_name(lowering.name(), into);
                 }
+                ProjectionStanding::FeatureUnavailable => into.push(2),
+                ProjectionStanding::TargetUnavailable => into.push(3),
             }
             encode_bytes(role.destination().name().as_bytes(), into);
+            encode_evidence(self.evidence(*role), into);
         }
         match self.support() {
             None => into.push(0),
@@ -48,6 +51,16 @@ impl CanonicalContent for Recipe {
             }
         }
     }
+}
+
+fn encode_evidence(evidence: Option<&super::RecipeEvidence>, into: &mut Vec<u8>) {
+    let Some(evidence) = evidence else {
+        into.push(0);
+        return;
+    };
+    into.push(1);
+    encode_optional_name(evidence.target().map(super::EvidenceTarget::name), into);
+    encode_bytes(&evidence.body().canonical_bytes(), into);
 }
 
 fn encode_optional_name(name: Option<&str>, into: &mut Vec<u8>) {

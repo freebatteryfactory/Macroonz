@@ -74,7 +74,10 @@ An explicit roster is required only when Macroonz must enumerate members or prov
 
 Authored items remain where they were written.
 Generated companions remain inside the recipe module, private support remains in one hidden child, and public names, visibility, destinations, reexports, and unsafe boundaries remain explicit caller choices.
-A name collision refuses the request before partial output, and no generated item is sprayed into the crate root or reexported automatically.
+A name collision refuses the request before partial output, and no ordinary generated item is sprayed into the crate root or reexported automatically.
+
+An evidence bake may carry an explicitly named support macro because Rust exports such macros at the declaring crate root.
+That caller-authored address is the exception rather than an automatic reexport: its cargo stays inert, and the external test or bench target must invoke it with both the declaring-crate path and the harness path before any judgment exists.
 
 One bake request admits progressively more precision without changing semantic models:
 

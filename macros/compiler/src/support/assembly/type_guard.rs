@@ -110,9 +110,34 @@ impl SupportAssembly {
         address: Option<SupportName>,
         axes: SupportAxes,
     ) -> Result<Self, AssemblyError> {
+        Self::assembled_for_helper_with_binding(
+            declaration,
+            helper,
+            helper_position,
+            address,
+            DeclaringBinding::Absent,
+            axes,
+        )
+    }
+
+    /// Checks and assembles one complete helper-derived axis set under the declared consumption binding.
+    ///
+    /// This crate-private road lets the descriptor adapter preserve one informing operation while choosing whether its consumer must state the declaring crate path.
+    ///
+    /// # Errors
+    ///
+    /// Returns every independently established issue within the issue bound.
+    pub(crate) fn assembled_for_helper_with_binding(
+        declaration: &CapturedInput,
+        helper: &CapturedInput,
+        helper_position: u32,
+        address: Option<SupportName>,
+        declaring: DeclaringBinding,
+        axes: SupportAxes,
+    ) -> Result<Self, AssemblyError> {
         let root = committed(declaration);
         let helper = committed_helper(declaration, helper, helper_position);
-        Self::checked(root, Some(helper), address, DeclaringBinding::Absent, axes)
+        Self::checked(root, Some(helper), address, declaring, axes)
     }
 
     /// Checks and assembles one complete axis set under an optional helper commitment.

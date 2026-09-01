@@ -2,8 +2,8 @@
 
 use super::types::{ProjectionStanding, RecipeError, RecipeIssue, RecipeParts};
 use super::{
-    EffectiveProjection, HarnessPosture, LoweringSource, Recipe, RecipeMember, RecipeRole,
-    RecipeTransition,
+    EVIDENCE_LIMIT, EffectiveProjection, EvidenceTarget, HarnessPosture, LoweringSource, Recipe,
+    RecipeEvidence, RecipeMember, RecipeRole, RecipeTransition,
 };
 use crate::bounded::AbsencePosture;
 use crate::support::SupportName;
@@ -48,7 +48,7 @@ impl Recipe {
         };
         let (authored, declaration) = bake_suffix(body)?;
         collision_free(authored)?;
-        let read = read_bake(declaration, harness)?;
+        let read = read_bake(declaration, harness, input.issued())?;
         let states = enum_members(authored, read.states.spelling.as_str())?;
         let events = enum_members(authored, read.events.spelling.as_str())?;
 
@@ -83,6 +83,7 @@ impl Recipe {
             transitions: read.transitions,
             absence: read.absence,
             projections: read.projections,
+            evidence: read.evidence,
             support: read.support,
         })
     }
@@ -94,7 +95,8 @@ struct BakeRead {
     events: CapturedName,
     transitions: Vec<RecipeTransition>,
     absence: AbsencePosture,
-    projections: [ProjectionStanding; 5],
+    projections: [ProjectionStanding; 10],
+    evidence: [Option<RecipeEvidence>; EVIDENCE_LIMIT],
     support: Option<SupportName>,
 }
 
@@ -192,6 +194,7 @@ fn generated_name_collision(name: &CapturedTokenTree) -> RecipeError {
 fn read_bake(
     declaration: CapturedFragment<'_>,
     harness: HarnessPosture,
+    issued: usize,
 ) -> Result<BakeRead, RecipeError> {
     let mut cursor = declaration.cursor();
     let VocabularyNames { states, events } = read_vocabularies(&mut cursor)?;
@@ -222,9 +225,11 @@ fn read_bake(
         .punctuation(';', CapturedSpacing::Alone)
         .map_err(grammar)?;
 
+    let requested_evidence = read_evidence_block(&mut cursor, issued)?;
     let support = read_support(&mut cursor)?;
     cursor.finish().map_err(grammar)?;
-    let projections = projections(&requested, harness)?;
+    let projections = projections(&requested, &requested_evidence, harness)?;
+    let evidence = evidence(&requested_evidence);
     support_matches_projections(&projections, support.as_ref(), declaration.last_span())?;
     Ok(BakeRead {
         states,
@@ -232,6 +237,7 @@ fn read_bake(
         transitions,
         absence,
         projections,
+        evidence,
         support,
     })
 }
@@ -313,7 +319,7 @@ fn read_support(cursor: &mut CaptureCursor<'_>) -> Result<Option<SupportName>, R
 }
 
 fn support_matches_projections(
-    projections: &[ProjectionStanding; 5],
+    projections: &[ProjectionStanding; 10],
     support: Option<&SupportName>,
     at: Option<crate::token::SpanHandle>,
 ) -> Result<(), RecipeError> {
@@ -370,6 +376,110 @@ struct RequestedProjection {
     at: crate::token::SpanHandle,
 }
 
+/// One descriptor-native evidence role and its generated or target-unavailable standing.
+#[derive(Clone)]
+struct RequestedEvidence {
+    role: RecipeRole,
+    target: Option<EvidenceTarget>,
+    body: Option<CapturedInput>,
+    at: crate::token::SpanHandle,
+}
+
+fn read_evidence_block(
+    cursor: &mut CaptureCursor<'_>,
+    issued: usize,
+) -> Result<Vec<RequestedEvidence>, RecipeError> {
+    if cursor.next_word() != Some("evidence") {
+        return Ok(Vec::new());
+    }
+    cursor.word("evidence").map_err(grammar)?;
+    let rows = cursor
+        .group(CapturedDelimiter::Brace)
+        .map_err(grammar)?
+        .trailing_separated::<_, EVIDENCE_LIMIT>(';', |row| read_evidence(row, issued))
+        .map_err(grammar)?
+        .as_slice()
+        .to_vec();
+    cursor
+        .punctuation(';', CapturedSpacing::Alone)
+        .map_err(grammar)?;
+    Ok(rows)
+}
+
+fn read_evidence(
+    cursor: &mut CaptureCursor<'_>,
+    issued: usize,
+) -> Result<RequestedEvidence, CaptureReadRefusal> {
+    let (token, spelling) = cursor.identifier()?;
+    let role = match spelling {
+        "trials" => RecipeRole::Trials,
+        "mutation" => RecipeRole::Mutation,
+        "benchmarks" => RecipeRole::Benchmarks,
+        "network" => RecipeRole::Network,
+        "concurrency" => RecipeRole::Concurrency,
+        _ => {
+            return Err(CaptureReadRefusal::projected(
+                crate::token::CaptureReadIssue::Unexpected(crate::token::CaptureExpectation::Word(
+                    "a descriptor-native evidence projection".to_owned(),
+                )),
+                Some(token.span()),
+            ));
+        }
+    };
+    if cursor.next_word() == Some("unavailable") {
+        cursor.word("unavailable")?;
+        return Ok(RequestedEvidence {
+            role,
+            target: None,
+            body: None,
+            at: token.span(),
+        });
+    }
+    let target = if role == RecipeRole::Mutation {
+        let mut selected = cursor.group(CapturedDelimiter::Parenthesis)?;
+        let (target_token, target) = selected.identifier()?;
+        let target = match target {
+            "states" => EvidenceTarget::States,
+            "events" => EvidenceTarget::Events,
+            _ => {
+                return Err(CaptureReadRefusal::projected(
+                    crate::token::CaptureReadIssue::Unexpected(
+                        crate::token::CaptureExpectation::Word("states or events".to_owned()),
+                    ),
+                    Some(target_token.span()),
+                ));
+            }
+        };
+        selected.finish()?;
+        Some(target)
+    } else {
+        None
+    };
+    let group = cursor.token()?;
+    let Some(fragment) = group.group_fragment(CapturedDelimiter::Brace) else {
+        return Err(CaptureReadRefusal::projected(
+            crate::token::CaptureReadIssue::Unexpected(crate::token::CaptureExpectation::Group(
+                CapturedDelimiter::Brace,
+            )),
+            Some(group.span()),
+        ));
+    };
+    let body = CapturedInput::selected(fragment, issued).map_err(|_| {
+        CaptureReadRefusal::projected(
+            crate::token::CaptureReadIssue::SequenceUnbounded {
+                limit: crate::token::CAPTURED_TOKEN_LIMIT,
+            },
+            Some(group.span()),
+        )
+    })?;
+    Ok(RequestedEvidence {
+        role,
+        target,
+        body: Some(body),
+        at: token.span(),
+    })
+}
+
 /// Read one projection request.
 fn read_projection(
     cursor: &mut CaptureCursor<'_>,
@@ -418,8 +528,9 @@ fn read_projection(
 /// Build the complete projection account and enforce harness posture before planning.
 fn projections(
     requested: &[RequestedProjection],
+    evidence: &[RequestedEvidence],
     harness: HarnessPosture,
-) -> Result<[ProjectionStanding; 5], RecipeError> {
+) -> Result<[ProjectionStanding; 10], RecipeError> {
     for (position, row) in requested.iter().enumerate() {
         if requested
             .iter()
@@ -440,16 +551,49 @@ fn projections(
             ));
         }
     }
+    for (position, row) in evidence.iter().enumerate() {
+        if evidence
+            .iter()
+            .take(position)
+            .any(|earlier| earlier.role == row.role)
+        {
+            return Err(RecipeError::at(
+                RecipeIssue::DuplicateProjection { role: row.role },
+                Some(row.at),
+            ));
+        }
+        if harness == HarnessPosture::Unavailable && row.body.is_some() {
+            return Err(RecipeError::at(
+                RecipeIssue::HarnessUnavailable { role: row.role },
+                Some(row.at),
+            ));
+        }
+    }
     Ok([
-        standing(requested, RecipeRole::Companions),
-        standing(requested, RecipeRole::Dispatch),
-        standing(requested, RecipeRole::CompileContract),
-        standing(requested, RecipeRole::Property),
-        standing(requested, RecipeRole::Typestate),
+        standing(requested, RecipeRole::Companions, harness),
+        standing(requested, RecipeRole::Dispatch, harness),
+        standing(requested, RecipeRole::CompileContract, harness),
+        standing(requested, RecipeRole::Property, harness),
+        standing(requested, RecipeRole::Typestate, harness),
+        evidence_standing(evidence, RecipeRole::Trials, harness),
+        evidence_standing(evidence, RecipeRole::Mutation, harness),
+        evidence_standing(evidence, RecipeRole::Benchmarks, harness),
+        evidence_standing(evidence, RecipeRole::Network, harness),
+        evidence_standing(evidence, RecipeRole::Concurrency, harness),
     ])
 }
 
-fn standing(requested: &[RequestedProjection], role: RecipeRole) -> ProjectionStanding {
+fn standing(
+    requested: &[RequestedProjection],
+    role: RecipeRole,
+    harness: HarnessPosture,
+) -> ProjectionStanding {
+    if harness == HarnessPosture::Unavailable
+        && matches!(role, RecipeRole::CompileContract | RecipeRole::Property)
+        && !requested.iter().any(|row| row.role == role)
+    {
+        return ProjectionStanding::FeatureUnavailable;
+    }
     requested
         .iter()
         .find(|row| row.role == role)
@@ -462,8 +606,63 @@ fn standing(requested: &[RequestedProjection], role: RecipeRole) -> ProjectionSt
         })
 }
 
-fn generated(projections: &[ProjectionStanding; 5], role: RecipeRole) -> bool {
-    let [companions, dispatch, compile_contract, property, typestate] = projections;
+fn evidence_standing(
+    requested: &[RequestedEvidence],
+    role: RecipeRole,
+    harness: HarnessPosture,
+) -> ProjectionStanding {
+    if harness == HarnessPosture::Unavailable {
+        return ProjectionStanding::FeatureUnavailable;
+    }
+    requested
+        .iter()
+        .find(|row| row.role == role)
+        .map_or(ProjectionStanding::NotRequested, |row| {
+            if row.body.is_some() {
+                ProjectionStanding::Generated(EffectiveProjection::effective(
+                    role,
+                    None,
+                    LoweringSource::Configuration,
+                ))
+            } else {
+                ProjectionStanding::TargetUnavailable
+            }
+        })
+}
+
+fn evidence(requested: &[RequestedEvidence]) -> [Option<RecipeEvidence>; EVIDENCE_LIMIT] {
+    core::array::from_fn(|position| {
+        let role = evidence_role(position)?;
+        let row = requested.iter().find(|candidate| candidate.role == role)?;
+        let body = row.body.clone()?;
+        Some(RecipeEvidence::captured(row.role, row.target, body, row.at))
+    })
+}
+
+const fn evidence_role(position: usize) -> Option<RecipeRole> {
+    match position {
+        0 => Some(RecipeRole::Trials),
+        1 => Some(RecipeRole::Mutation),
+        2 => Some(RecipeRole::Benchmarks),
+        3 => Some(RecipeRole::Network),
+        4 => Some(RecipeRole::Concurrency),
+        _ => None,
+    }
+}
+
+fn generated(projections: &[ProjectionStanding; 10], role: RecipeRole) -> bool {
+    let [
+        companions,
+        dispatch,
+        compile_contract,
+        property,
+        typestate,
+        trials,
+        mutation,
+        benchmarks,
+        network,
+        concurrency,
+    ] = projections;
     matches!(
         match role {
             RecipeRole::Companions => companions,
@@ -471,6 +670,11 @@ fn generated(projections: &[ProjectionStanding; 5], role: RecipeRole) -> bool {
             RecipeRole::CompileContract => compile_contract,
             RecipeRole::Property => property,
             RecipeRole::Typestate => typestate,
+            RecipeRole::Trials => trials,
+            RecipeRole::Mutation => mutation,
+            RecipeRole::Benchmarks => benchmarks,
+            RecipeRole::Network => network,
+            RecipeRole::Concurrency => concurrency,
         },
         ProjectionStanding::Generated(_)
     )

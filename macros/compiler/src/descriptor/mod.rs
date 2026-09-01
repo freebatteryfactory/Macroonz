@@ -5,6 +5,7 @@ pub mod concurrency;
 pub mod door;
 pub mod mutation;
 pub mod network;
+pub(crate) mod recipe;
 pub mod shadow;
 pub mod trial;
 

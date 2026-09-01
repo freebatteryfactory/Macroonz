@@ -200,6 +200,20 @@ fn observe_crossing(scratch: &Path) -> Result<(), String> {
     if !tested.status.success() {
         return Err(command_refusal("renamed recipe qualification", &tested));
     }
+    let wasm = cargo(
+        scratch,
+        &[
+            "check",
+            "--lib",
+            "--locked",
+            "--offline",
+            "--target",
+            "wasm32-unknown-unknown",
+        ],
+    )?;
+    if !wasm.status.success() {
+        return Err(command_refusal("renamed recipe Wasm posture", &wasm));
+    }
     Ok(())
 }
 
@@ -228,7 +242,7 @@ fn observe_harness_refusal(scratch: &Path) -> Result<(), String> {
     }
     let stderr = String::from_utf8_lossy(&checked.stderr);
     if !stderr
-        .contains("projection `property` requires the facade harness feature, which is unavailable")
+        .contains("projection `trials` requires the facade harness feature, which is unavailable")
     {
         return Err(command_refusal(
             "harness-owned projection produced the wrong refusal",
@@ -238,7 +252,7 @@ fn observe_harness_refusal(scratch: &Path) -> Result<(), String> {
     Ok(())
 }
 
-const PRODUCER: &str = r"#![forbid(unsafe_code)]
+const PRODUCER: &str = r#"#![forbid(unsafe_code)]
 #![deny(warnings)]
 
 use core::sync::atomic::{AtomicUsize, Ordering};
@@ -280,6 +294,68 @@ bakery::recipe! {
                 compile_contract;
                 property;
             };
+            evidence {
+                trials {
+                    support = recipe_trials_support,
+                    module = recipe_trials,
+                    table = named("recipe", "trial-table"),
+                    suite checks = named("recipe", "unit") {
+                        transition_answers {
+                            claim = named("recipe", "transition-answers"),
+                            subject = named("recipe", "dispatch"),
+                            check = named("recipe", "exact"),
+                            population = named("recipe", "declared-rows"),
+                        },
+                    },
+                };
+                mutation(states) {
+                    module = recipe_mutations,
+                    refusal = RecipeMutationRefusal,
+                    support = recipe_mutation_support,
+                    family = named("recipe", "refusals"),
+                    point = named("recipe", "state-order"),
+                    fact = named("recipe", "state-order"),
+                    map named("recipe", "state-order") = named("recipe", "order-held"),
+                    permit named("recipe", "order-held") = ["declared-order-permutation"],
+                };
+                benchmarks {
+                    support = recipe_bench_support,
+                    table_function = recipe_bench_table,
+                    table = named("recipe", "bench-table"),
+                    reporter = recipe_bench_reporter,
+                    dispatch_pace {
+                        workload = named("recipe", "dispatch"),
+                        preflight = named("recipe", "dispatch-correct"),
+                        planted_worse = named("recipe", "dispatch-worse"),
+                        complexity = named("recipe", "linear"),
+                        axis = [2, 4, 8],
+                        samples = 16,
+                        warmups = 4,
+                        ratio_numerator = 3,
+                        ratio_denominator = 1,
+                        observe = [named("recipe", "rows-touched")],
+                    },
+                };
+                network {
+                    harness = bakery::harness,
+                    module = recipe_network,
+                    namespace = "recipe",
+                    nodes = [client, server],
+                    link forward = client to server,
+                    schedule quiet = [],
+                };
+                concurrency {
+                    harness = bakery::harness,
+                    module = recipe_concurrency,
+                    namespace = "recipe",
+                    transitions_hold {
+                        population = "transition-orders",
+                        interleavings = 16,
+                        samples = 32,
+                        seed = 11,
+                    },
+                };
+            };
             support(door_recipe_support);
         }
     }
@@ -289,14 +365,19 @@ bakery::recipe! {
 pub fn opened() -> usize {
     OPENED.load(Ordering::Relaxed)
 }
-";
+"#;
 
-const CONSUMER: &str = r"#![forbid(unsafe_code)]
+const CONSUMER: &str = r#"#![forbid(unsafe_code)]
 #![deny(warnings)]
 
-use renamed_recipe_adopter::door_recipe_support;
+use renamed_recipe_adopter::{door_recipe_support, recipe_mutation_support};
 
 door_recipe_support! {
+    declaring: renamed_recipe_adopter,
+    harness: bakery::harness,
+}
+
+recipe_mutation_support! {
     declaring: renamed_recipe_adopter,
     harness: bakery::harness,
 }
@@ -311,8 +392,15 @@ fn the_generated_recipe_and_independent_carrier_are_callable() {
         Ok(renamed_recipe_adopter::door::State::Open)
     );
     assert!(renamed_recipe_adopter::opened() > 0);
+    assert_eq!(recipe_mutations::production(&()), ["Closed", "Open"]);
+    assert_eq!(
+        recipe_mutations::candidate_orders(),
+        [["Open", "Closed"]]
+    );
+    assert!(recipe_mutations::lowering().is_ok());
+    assert_ne!(recipe_mutations::production(&()), ["Open", "Closed"]);
 }
-";
+"#;
 
 const NO_HARNESS_PRODUCER: &str = r"#![forbid(unsafe_code)]
 #![deny(warnings)]
@@ -348,6 +436,13 @@ bakery::recipe! {
                 companions;
                 dispatch(apply);
             };
+            evidence {
+                trials unavailable;
+                mutation unavailable;
+                benchmarks unavailable;
+                network unavailable;
+                concurrency unavailable;
+            };
         }
     }
 }
@@ -368,7 +463,7 @@ fn the_no_harness_recipe_is_callable() {
 }
 ";
 
-const HARNESS_REFUSAL_PRODUCER: &str = r"#![forbid(unsafe_code)]
+const HARNESS_REFUSAL_PRODUCER: &str = r#"#![forbid(unsafe_code)]
 #![deny(warnings)]
 
 fn record_open() {}
@@ -392,12 +487,25 @@ bakery::recipe! {
             absence(refused);
             projections {
                 dispatch(apply);
-                property;
             };
-            support(door_recipe_support);
+            evidence {
+                trials {
+                    support = recipe_trials_support,
+                    module = recipe_trials,
+                    table = named("recipe", "trial-table"),
+                    suite checks = named("recipe", "unit") {
+                        transition_answers {
+                            claim = named("recipe", "transition-answers"),
+                            subject = named("recipe", "dispatch"),
+                            check = named("recipe", "exact"),
+                            population = named("recipe", "declared-rows"),
+                        },
+                    },
+                };
+            };
         }
     }
 }
-";
+"#;
 
 const EMPTY_CONSUMER: &str = "#![forbid(unsafe_code)]\n#![deny(warnings)]\n";

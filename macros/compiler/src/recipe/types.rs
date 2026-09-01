@@ -6,7 +6,7 @@ use crate::expansion::Expansion;
 use crate::identity::OwnerFact;
 use crate::render::Output;
 use crate::support::SupportName;
-use crate::token::{GeneratedToken, GeneratedTree, SpanHandle};
+use crate::token::{CapturedInput, GeneratedToken, GeneratedTree, SpanHandle};
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -16,6 +16,9 @@ pub const VOCABULARY_LIMIT: usize = 64;
 
 /// The maximum number of transition rows in one recipe.
 pub const TRANSITION_LIMIT: usize = 128;
+
+/// The complete number of descriptor-native evidence forms one recipe may carry.
+pub const EVIDENCE_LIMIT: usize = 5;
 
 /// The diagnostic family owned by the recipe declaration.
 pub(super) const RECIPE_FAMILY: Family = Family::declared("macroonz/recipe");
@@ -70,7 +73,35 @@ crate::roster! {
         Property = "property",
         /// Caller-declared state members projected as type-level stage markers.
         Typestate = "typestate",
+        /// One existing descriptor trial carrier over caller-declared rows.
+        Trials = "trials",
+        /// One existing descriptor mutation surface over an explicitly selected vocabulary.
+        Mutation = "mutation",
+        /// One existing descriptor benchmark carrier over caller-declared work.
+        Benchmarks = "benchmarks",
+        /// One existing descriptor network module over caller-declared topology and schedules.
+        Network = "network",
+        /// One existing descriptor concurrency module over caller-declared exploration rows.
+        Concurrency = "concurrency",
     }
+}
+
+/// Which informed recipe vocabulary a mutation evidence block presses.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum EvidenceTarget {
+    /// The caller-authored state vocabulary.
+    States,
+    /// The caller-authored event vocabulary.
+    Events,
+}
+
+/// One exact descriptor-native evidence declaration carried by the recipe.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RecipeEvidence {
+    role: RecipeRole,
+    target: Option<EvidenceTarget>,
+    body: CapturedInput,
+    at: SpanHandle,
 }
 
 /// Where one effective mechanical projection value came from.
@@ -98,6 +129,23 @@ pub(super) enum ProjectionStanding {
     Generated(EffectiveProjection),
     /// The caller deliberately did not request this role.
     NotRequested,
+    /// The facade feature posture does not carry the harness owner this role requires.
+    FeatureUnavailable,
+    /// The caller declared that the target plane for this role is unavailable.
+    TargetUnavailable,
+}
+
+/// The public readback of what happened to one possible recipe projection.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ProjectionDisposition {
+    /// The role is selected and generated.
+    Generated,
+    /// The caller did not request the role.
+    NotRequested,
+    /// The facade feature posture does not carry the required harness owner.
+    FeatureUnavailable,
+    /// The caller declared that the target plane is unavailable.
+    TargetUnavailable,
 }
 
 /// One informed recipe over two caller-owned enum vocabularies.
@@ -115,7 +163,8 @@ pub struct Recipe {
     events: KeyedRoster<RecipeMember, String, VOCABULARY_LIMIT>,
     transitions: KeyedRoster<RecipeTransition, (String, String), TRANSITION_LIMIT>,
     absence: AbsencePosture,
-    projections: [ProjectionStanding; 5],
+    projections: [ProjectionStanding; 10],
+    evidence: [Option<RecipeEvidence>; EVIDENCE_LIMIT],
     support: Option<SupportName>,
 }
 
@@ -133,7 +182,8 @@ pub(super) struct RecipeParts {
     pub(super) event_members: Vec<RecipeMember>,
     pub(super) transitions: Vec<RecipeTransition>,
     pub(super) absence: AbsencePosture,
-    pub(super) projections: [ProjectionStanding; 5],
+    pub(super) projections: [ProjectionStanding; 10],
+    pub(super) evidence: [Option<RecipeEvidence>; EVIDENCE_LIMIT],
     pub(super) support: Option<SupportName>,
 }
 

@@ -1,5 +1,6 @@
 //! Projection through the one capability shared by standard and caller-owned projectors.
 
+use super::evidence::PreparedEvidence;
 use super::{
     ProjectionError, ProjectionRequest, ProjectionSink, Recipe, RecipeProjector, RecipeRole,
     RecipeView,
@@ -14,9 +15,18 @@ use crate::token::{
 };
 
 /// The built-in projector catalog used by the paved proc host.
-pub(super) struct StandardProjector;
+pub(super) struct StandardProjector<'evidence> {
+    evidence: &'evidence PreparedEvidence,
+}
 
-impl RecipeProjector for StandardProjector {
+impl<'evidence> StandardProjector<'evidence> {
+    /// Bind the built-in catalog to the descriptor outputs prepared for this recipe walk.
+    pub(super) const fn over(evidence: &'evidence PreparedEvidence) -> Self {
+        Self { evidence }
+    }
+}
+
+impl RecipeProjector for StandardProjector<'_> {
     fn project(
         &self,
         view: RecipeView<'_>,
@@ -29,8 +39,24 @@ impl RecipeProjector for StandardProjector {
             RecipeRole::CompileContract => compile_contract(view.recipe())?,
             RecipeRole::Property => property(view.recipe())?,
             RecipeRole::Typestate => typestate(view.recipe())?,
+            RecipeRole::Trials
+            | RecipeRole::Mutation
+            | RecipeRole::Benchmarks
+            | RecipeRole::Network
+            | RecipeRole::Concurrency => self.evidence(request.role())?,
         };
         sink.offer(tree)
+    }
+}
+
+impl StandardProjector<'_> {
+    fn evidence(&self, role: RecipeRole) -> Result<GeneratedTree, ProjectionError> {
+        self.evidence
+            .tree(role)
+            .cloned()
+            .ok_or(ProjectionError::Render(
+                crate::render::RenderError::NothingRendered,
+            ))
     }
 }
 

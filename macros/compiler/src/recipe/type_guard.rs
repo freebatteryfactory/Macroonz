@@ -1,16 +1,18 @@
 //! Recipe invariant construction and capability readers.
 
 use super::{
-    EffectiveProjection, LoweringSource, ProjectionError, ProjectionOffered, ProjectionRequest,
-    ProjectionSink, ProjectionStanding, Recipe, RecipeBake, RecipeError, RecipeIssue, RecipeMember,
-    RecipeParts, RecipeProjection, RecipeRole, RecipeShell, RecipeShellContent, RecipeTransition,
-    RecipeView, TRANSITION_LIMIT, VOCABULARY_LIMIT,
+    EffectiveProjection, EvidenceTarget, LoweringSource, ProjectionDisposition, ProjectionError,
+    ProjectionOffered, ProjectionRequest, ProjectionSink, ProjectionStanding, Recipe, RecipeBake,
+    RecipeError, RecipeEvidence, RecipeIssue, RecipeMember, RecipeParts, RecipeProjection,
+    RecipeRole, RecipeShell, RecipeShellContent, RecipeTransition, RecipeView, TRANSITION_LIMIT,
+    VOCABULARY_LIMIT,
 };
 use crate::bounded::{
     AbsencePosture, KeyedRoster, KeyedRosterError, KeyedRosterRows, KeyedRosterRowsError,
 };
 use crate::expansion::Expansion;
 use crate::kind::Role;
+use crate::recipe::evidence_position;
 use crate::render::Output;
 use crate::support::SupportName;
 use crate::token::{GeneratedTree, SpanHandle};
@@ -112,6 +114,44 @@ impl RecipeTransition {
     }
 }
 
+impl RecipeEvidence {
+    pub(in crate::recipe) const fn captured(
+        role: RecipeRole,
+        target: Option<EvidenceTarget>,
+        body: crate::token::CapturedInput,
+        at: SpanHandle,
+    ) -> Self {
+        Self {
+            role,
+            target,
+            body,
+            at,
+        }
+    }
+
+    /// Reads the descriptor-native role this block declares.
+    #[must_use]
+    pub const fn role(&self) -> RecipeRole {
+        self.role
+    }
+
+    /// Reads the explicitly selected vocabulary where this evidence form requires one.
+    #[must_use]
+    pub const fn target(&self) -> Option<EvidenceTarget> {
+        self.target
+    }
+
+    /// Reads the exact captured descriptor declaration body.
+    #[must_use]
+    pub const fn body(&self) -> &crate::token::CapturedInput {
+        &self.body
+    }
+
+    pub(crate) const fn at(&self) -> SpanHandle {
+        self.at
+    }
+}
+
 impl EffectiveProjection {
     pub(in crate::recipe) fn effective(
         role: RecipeRole,
@@ -156,6 +196,7 @@ impl Recipe {
             transitions,
             absence,
             projections,
+            evidence,
             support,
         } = parts;
         let states = informed_members(states_name.as_str(), state_members)?;
@@ -192,6 +233,12 @@ impl Recipe {
                 None,
             ));
         }
+        if let Some(name) = standard_name_collision(&projections) {
+            return Err(RecipeError::at(
+                RecipeIssue::GeneratedNameCollision { name },
+                None,
+            ));
+        }
         Ok(Self {
             module_name,
             module_name_token,
@@ -206,6 +253,7 @@ impl Recipe {
             transitions,
             absence,
             projections,
+            evidence,
             support,
         })
     }
@@ -283,13 +331,40 @@ impl Recipe {
     /// Reads the complete standing for one projection role.
     #[must_use]
     pub(in crate::recipe) fn standing(&self, role: RecipeRole) -> &ProjectionStanding {
-        let [companions, dispatch, compile_contract, property, typestate] = &self.projections;
+        let [
+            companions,
+            dispatch,
+            compile_contract,
+            property,
+            typestate,
+            trials,
+            mutation,
+            benchmarks,
+            network,
+            concurrency,
+        ] = &self.projections;
         match role {
             RecipeRole::Companions => companions,
             RecipeRole::Dispatch => dispatch,
             RecipeRole::CompileContract => compile_contract,
             RecipeRole::Property => property,
             RecipeRole::Typestate => typestate,
+            RecipeRole::Trials => trials,
+            RecipeRole::Mutation => mutation,
+            RecipeRole::Benchmarks => benchmarks,
+            RecipeRole::Network => network,
+            RecipeRole::Concurrency => concurrency,
+        }
+    }
+
+    /// Reads the complete public disposition of one possible projection.
+    #[must_use]
+    pub fn projection_disposition(&self, role: RecipeRole) -> ProjectionDisposition {
+        match self.standing(role) {
+            ProjectionStanding::Generated(_) => ProjectionDisposition::Generated,
+            ProjectionStanding::NotRequested => ProjectionDisposition::NotRequested,
+            ProjectionStanding::FeatureUnavailable => ProjectionDisposition::FeatureUnavailable,
+            ProjectionStanding::TargetUnavailable => ProjectionDisposition::TargetUnavailable,
         }
     }
 
@@ -298,7 +373,9 @@ impl Recipe {
     pub fn effective(&self, role: RecipeRole) -> Option<&EffectiveProjection> {
         match self.standing(role) {
             ProjectionStanding::Generated(effective) => Some(effective),
-            ProjectionStanding::NotRequested => None,
+            ProjectionStanding::NotRequested
+            | ProjectionStanding::FeatureUnavailable
+            | ProjectionStanding::TargetUnavailable => None,
         }
     }
 
@@ -312,9 +389,37 @@ impl Recipe {
 
     /// Reads the evidence carrier's explicit public address where one was declared.
     #[must_use]
-    pub(in crate::recipe) const fn support(&self) -> Option<&SupportName> {
+    pub(crate) const fn support(&self) -> Option<&SupportName> {
         self.support.as_ref()
     }
+
+    /// Reads the exact descriptor-native evidence block for one generated evidence role.
+    #[must_use]
+    pub fn evidence(&self, role: RecipeRole) -> Option<&RecipeEvidence> {
+        let position = evidence_position(role)?;
+        self.evidence.get(position).and_then(Option::as_ref)
+    }
+}
+
+fn standard_name_collision(projections: &[ProjectionStanding; 10]) -> Option<String> {
+    let companions = matches!(
+        standing_in(projections, RecipeRole::Companions),
+        ProjectionStanding::Generated(_)
+    );
+    let ProjectionStanding::Generated(dispatch) = standing_in(projections, RecipeRole::Dispatch)
+    else {
+        return None;
+    };
+    let name = dispatch.name().unwrap_or("apply");
+    (companions
+        && ["STATE_VARIANTS", "EVENT_VARIANTS", "TRANSITIONS"]
+            .iter()
+            .any(|reserved| identifier_key(reserved) == identifier_key(name)))
+    .then(|| name.to_owned())
+}
+
+fn identifier_key(spelling: &str) -> &str {
+    spelling.strip_prefix("r#").unwrap_or(spelling)
 }
 
 impl<'recipe> RecipeView<'recipe> {
@@ -423,14 +528,30 @@ impl RecipeShellContent {
     }
 }
 
-fn standing_in(projections: &[ProjectionStanding; 5], role: RecipeRole) -> &ProjectionStanding {
-    let [companions, dispatch, compile_contract, property, typestate] = projections;
+fn standing_in(projections: &[ProjectionStanding; 10], role: RecipeRole) -> &ProjectionStanding {
+    let [
+        companions,
+        dispatch,
+        compile_contract,
+        property,
+        typestate,
+        trials,
+        mutation,
+        benchmarks,
+        network,
+        concurrency,
+    ] = projections;
     match role {
         RecipeRole::Companions => companions,
         RecipeRole::Dispatch => dispatch,
         RecipeRole::CompileContract => compile_contract,
         RecipeRole::Property => property,
         RecipeRole::Typestate => typestate,
+        RecipeRole::Trials => trials,
+        RecipeRole::Mutation => mutation,
+        RecipeRole::Benchmarks => benchmarks,
+        RecipeRole::Network => network,
+        RecipeRole::Concurrency => concurrency,
     }
 }
 

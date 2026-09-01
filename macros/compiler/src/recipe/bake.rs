@@ -1,5 +1,6 @@
 //! The paved and callable walks over one informed recipe and one projection protocol.
 
+use super::evidence::{ConfiguredEvidence, EvidenceCompiler};
 use super::render::{self, StandardProjector};
 use super::types::{RECIPE_FACT, RecipeError, RecipeIssue, RecipeShell, RecipeShellContent};
 use super::{
@@ -85,6 +86,9 @@ fn walked(
             door,
         ));
     };
+    let prepared =
+        ConfiguredEvidence::prepared(capture, &recipe, door, replacement.map(|(role, _)| role))?;
+    let standard = StandardProjector::over(&prepared);
     let projection = Request::<RecipeProjection>::over(capture.clone(), recipe.clone(), door)
         .selecting(first, rest.to_vec())
         .assuming(vec![RECIPE_FACT])
@@ -92,7 +96,7 @@ fn walked(
             for role in selected.iter().copied() {
                 let projector: &dyn RecipeProjector = match replacement {
                     Some((replaced, custom)) if replaced == role => custom,
-                    Some((_, _)) | None => &StandardProjector,
+                    Some((_, _)) | None => &standard,
                 };
                 render::project(
                     &recipe,
@@ -240,8 +244,29 @@ fn final_tree(
     {
         root.extend(tree.tokens().iter().cloned());
     }
+    for role in [
+        RecipeRole::Trials,
+        RecipeRole::Mutation,
+        RecipeRole::Benchmarks,
+    ] {
+        if let Some(unit) = projection.closure().rendered().under(role) {
+            root.extend(unit.tree().tokens().iter().cloned());
+        }
+    }
     let mut body = recipe.authored_body().tokens().to_vec();
-    if let Some(tree) = projection.emit().tokens() {
+    let mut companions = Vec::new();
+    for role in [
+        RecipeRole::Companions,
+        RecipeRole::Dispatch,
+        RecipeRole::Typestate,
+        RecipeRole::Network,
+        RecipeRole::Concurrency,
+    ] {
+        if let Some(unit) = projection.closure().rendered().under(role) {
+            companions.extend(unit.tree().tokens().iter().cloned());
+        }
+    }
+    if !companions.is_empty() {
         body.extend(documentation(
             "Generated companions selected by this recipe's informed projection account.",
         )?);
@@ -249,7 +274,7 @@ fn final_tree(
             GeneratedToken::word("pub"),
             GeneratedToken::word("mod"),
             GeneratedToken::word("baked"),
-            group(GeneratedDelimiter::Brace, tree.tokens().to_vec())?,
+            group(GeneratedDelimiter::Brace, companions)?,
         ]);
     }
     root.extend(recipe.module_head().tokens().iter().cloned());
@@ -269,6 +294,13 @@ fn recipe_refused(refusal: &RecipeError, door: &Door) -> Diagnostic {
         ),
         None => Diagnostic::refused(refusal, door, &Placement::WholeDeclaration),
     }
+}
+
+pub(crate) fn generated_name_collision(name: String, door: &Door) -> Diagnostic {
+    recipe_refused(
+        &RecipeError::at(RecipeIssue::GeneratedNameCollision { name }, None),
+        door,
+    )
 }
 
 fn whole<E: Refused>(refusal: &E, door: &Door) -> Diagnostic {

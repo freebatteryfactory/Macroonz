@@ -33,6 +33,12 @@ impl<'tokens> CaptureCursor<'tokens> {
         self.next == self.tokens.len()
     }
 
+    /// Read the next ordinary word without advancing this cursor.
+    #[must_use]
+    pub(crate) fn next_word(&self) -> Option<&'tokens str> {
+        self.tokens.get(self.next).and_then(CapturedTokenTree::word)
+    }
+
     /// Read one caller-defined shape and retain the exact captured run it consumed.
     ///
     /// The callback may consume no token where an empty exact Rust seat is lawful.

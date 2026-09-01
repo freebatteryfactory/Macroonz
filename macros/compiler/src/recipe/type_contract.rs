@@ -4,7 +4,8 @@
 use super::RecipeBake;
 use super::types::{RECIPE_FACT, RecipeError, RecipeIssue, RecipeShell, RecipeShellContent};
 use super::{
-    HarnessPosture, LoweringSource, ProjectionError, Recipe, RecipeProjection, RecipeRole,
+    EvidenceTarget, HarnessPosture, LoweringSource, ProjectionDisposition, ProjectionError, Recipe,
+    RecipeProjection, RecipeRole,
 };
 use crate::bounded::{Bounded, Overflow};
 use crate::diagnostic::{LineBody, Observed, Phase, REPAIR_LIMIT, RefusalClass, Refused, Repair};
@@ -35,6 +36,30 @@ impl LoweringSource {
     }
 }
 
+impl EvidenceTarget {
+    /// Reads the stable declared name.
+    #[must_use]
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::States => "states",
+            Self::Events => "events",
+        }
+    }
+}
+
+impl ProjectionDisposition {
+    /// Reads the stable declared name.
+    #[must_use]
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Generated => "generated",
+            Self::NotRequested => "not-requested",
+            Self::FeatureUnavailable => "feature-unavailable",
+            Self::TargetUnavailable => "target-unavailable",
+        }
+    }
+}
+
 impl Role for RecipeRole {
     const ALL: &'static [Self] = Self::ALL;
 
@@ -44,7 +69,14 @@ impl Role for RecipeRole {
 
     fn destination(self) -> Destination {
         match self {
-            Self::Companions | Self::Dispatch | Self::Typestate => Destination::DeclarationSite,
+            Self::Companions
+            | Self::Dispatch
+            | Self::Typestate
+            | Self::Trials
+            | Self::Mutation
+            | Self::Benchmarks
+            | Self::Network
+            | Self::Concurrency => Destination::DeclarationSite,
             Self::CompileContract | Self::Property => Destination::TestCarrier,
         }
     }
@@ -109,10 +141,9 @@ impl fmt::Display for RecipeIssue {
             Self::BakeRequiredLast => {
                 into.write_str("the recipe module must end with exactly one `bake!` declaration")
             }
-            Self::GeneratedNameCollision { name } => write!(
-                into,
-                "the authored recipe module already declares generated name `{name}`"
-            ),
+            Self::GeneratedNameCollision { name } => {
+                write!(into, "generated recipe name `{name}` is already occupied")
+            }
             Self::GeneratedNameNotIdentifier { name } => {
                 write!(
                     into,
