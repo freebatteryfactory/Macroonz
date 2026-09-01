@@ -6,7 +6,7 @@
 //! The walk is one function because the road is one road: a caller cannot arrive at a proof holding a rendering nobody planned, and cannot arrive at a binding holding an explanation answered over something else, because there is no seat between the steps to put a foreign value in.
 
 use super::super::{decide, explain};
-use super::{CrateBinding, Door, Producer, RUST_DECLARATION_PROFILE, Request};
+use super::{CrateBinding, Door, Producer, RUST_DECLARATION_PROFILE, Request, Selection};
 use crate::closure::Closure;
 use crate::diagnostic::{Diagnostic, Placement, Refused};
 use crate::expansion::Expansion;
@@ -112,7 +112,19 @@ impl<'door, K: Kind> Request<'door, K> {
             assumptions: Vec::new(),
             addresses: Vec::new(),
             answers: Vec::new(),
+            selection: Selection::All,
         }
+    }
+
+    /// Selects the structurally nonempty subset this request plans from the kind's complete role roster.
+    ///
+    /// The first role is separate so an empty selection cannot be stated.
+    /// Selection order does not carry meaning and is canonicalized by the kind's role roster before planning.
+    /// Foreign, doubled, and overlarge selections remain typed planning refusals under the existing membership owner.
+    /// Stating a selection again replaces the earlier statement.
+    pub fn selecting(mut self, first: K::Role, rest: Vec<K::Role>) -> Self {
+        self.selection = Selection::Declared { first, rest };
+        self
     }
 
     /// States the captures this content declares it stands on.
@@ -180,17 +192,12 @@ impl<'door, K: Kind> Request<'door, K> {
             assumptions,
             addresses,
             answers,
+            selection,
         } = self;
-        let plan = decide::planned::<K>(
-            &capture,
-            content,
-            door,
-            dependencies,
-            profile,
-            &assumptions,
-            &addresses,
-        )
-        .map_err(|refusal| refused(&refusal, door))?;
+        let statements = decide::Statements::from_request(&assumptions, &addresses, &selection);
+        let plan =
+            decide::planned::<K>(&capture, content, door, dependencies, profile, &statements)
+                .map_err(|refusal| refused(&refusal, door))?;
 
         let mut out = Output::over(&plan);
         renderer(&plan, &mut out).map_err(|refusal| refused(&refusal, door))?;

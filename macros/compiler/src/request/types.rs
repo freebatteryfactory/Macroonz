@@ -4,7 +4,7 @@
 //! Every road that reaches a private field lives in `type_guard.rs`, this file's own child, so a request is whatever one of those roads built.
 
 use crate::identity::{self, Identity, MACROONZ_STEM, OwnerFact, OwnerIdentity, Profile, Version};
-use crate::kind::{Kind, Question};
+use crate::kind::{Kind, Question, Role};
 use crate::token::CapturedInput;
 
 #[path = "type_guard.rs"]
@@ -16,12 +16,12 @@ mod guard;
 pub const RUST_DECLARATION_PROFILE: Profile =
     Profile::declared(MACROONZ_STEM, "rust-declaration", Version::declared(1));
 
-/// This home's own declared fact: a kind's roster is the complete output set of one request through this door.
+/// This home's own declared fact: the seats one request selects are its complete output set.
 ///
 /// The selection rule every plan built here cites, and the first entry of every decision trace it records.
 pub const SELECTION_FACT: OwnerFact = OwnerFact {
     home: "request",
-    name: "a-kinds-declared-seats-are-its-complete-output-set",
+    name: "a-requests-selected-seats-are-its-complete-output-set",
 };
 
 /// Who is asking, for whatever a door's expansions are stamped into.
@@ -73,4 +73,13 @@ pub struct Request<'door, K: Kind> {
     assumptions: Vec<OwnerFact>,
     addresses: Vec<(K::Role, OwnerIdentity)>,
     answers: Vec<<K::Question as Question>::Answer>,
+    selection: Selection<K::Role>,
+}
+
+/// Whether one request selects its kind's complete role roster or one explicitly stated nonempty subset.
+pub(super) enum Selection<R: Role> {
+    /// Every role the kind declares, preserving the established default road.
+    All,
+    /// One explicitly selected role followed by the rest of the selected subset.
+    Declared { first: R, rest: Vec<R> },
 }
