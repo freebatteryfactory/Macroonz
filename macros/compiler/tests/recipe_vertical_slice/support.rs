@@ -1,260 +1,23 @@
-//! Shared recipe specimens, callable helpers, and independent mirror projectors.
+//! Independent mirror projectors and their generated-token helpers.
 
 use macroonz_compiler::recipe::{
-    HarnessPosture, ProjectionError, ProjectionOffered, ProjectionRequest, ProjectionSink,
-    RecipeBake, RecipeProjector, RecipeRole, RecipeView,
+    ProjectionError, ProjectionOffered, ProjectionRequest, ProjectionSink, RecipeProjector,
+    RecipeRole, RecipeView,
 };
 use macroonz_compiler::{
-    CrateBinding, Destination, Door, GeneratedDelimiter, GeneratedRowRefusal, GeneratedToken,
-    GeneratedTree, NonEmptyError, Producer, TextCapture, absolute_path, associated_constant,
-    associated_function, attribute, constant, decorated, documentation, enumeration, function_item,
-    function_signature, group, implementation, inline_module, keyed_roster_items, match_arm,
-    match_expression, result_type, trait_declaration, tuple_struct, typed_parameter, unit_struct,
-    unit_variant, use_item,
+    GeneratedDelimiter, GeneratedRowRefusal, GeneratedToken, GeneratedTree, NonEmptyError,
+    absolute_path, associated_constant, associated_function, attribute, constant, decorated,
+    documentation, enumeration, function_item, function_signature, group, implementation,
+    inline_module, keyed_roster_items, match_arm, match_expression, result_type, trait_declaration,
+    tuple_struct, typed_parameter, unit_struct, unit_variant, use_item,
 };
 
-pub(super) const DOOR: Door = Door::declared(
-    "recipe-crossing",
-    "recipe-crossing.grammar",
-    "recipe-crossing::recipe",
-    CrateBinding::declared("macroonz"),
-    Producer {
-        namespace: "recipe-crossing",
-        name: "recipe",
-    },
-);
-
-pub(super) const COMPLETE_RECIPE: &str = r"
-pub mod door {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub enum State {
-        Closed,
-        Open,
-    }
-
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub enum Event {
-        OpenDoor,
-    }
-
-    bake! {
-        vocabularies(State, Event);
-        transitions {
-            (Closed, OpenDoor) => Open with(crate::effects::open);
-        };
-        absence(refused);
-        projections {
-            companions;
-            dispatch(apply);
-            compile_contract;
-            property;
-            typestate;
-        };
-        support(door_recipe_support);
-    }
-}
-";
-
-pub(super) const COMPANION_RECIPE: &str = r"
-pub mod door {
-    pub enum State {
-        Closed,
-        Open,
-    }
-
-    pub enum Event {
-        OpenDoor,
-    }
-
-    bake! {
-        vocabularies(State, Event);
-        transitions {
-            (Closed, OpenDoor) => Open with(crate::effects::open);
-        };
-        absence(refused);
-        projections {
-            companions;
-        };
-    }
-}
-";
-
-pub(super) const EXACT_DISPATCH_RECIPE: &str = r"
-pub mod door {
-    pub enum State {
-        Closed,
-        Open,
-    }
-
-    pub enum Event {
-        OpenDoor,
-    }
-
-    bake! {
-        vocabularies(State, Event);
-        transitions {
-            (Closed, OpenDoor) => Open with(crate::effects::open);
-        };
-        absence(refused);
-        projections {
-            dispatch {
-                #[inline]
-                pub fn advance<'a>(
-                    current: State,
-                    stimulus: Event,
-                ) -> Result<State, TransitionRefusal>
-                where
-                    State: 'a;
-            };
-        };
-    }
-}
-";
-
-pub(super) const EVIDENCE_RECIPE: &str = r#"
-pub mod door {
-    pub enum State {
-        Closed,
-        Open,
-        Locked,
-    }
-
-    pub enum Event {
-        OpenDoor,
-        CloseDoor,
-    }
-
-    bake! {
-        vocabularies(State, Event);
-        transitions {
-            (Closed, OpenDoor) => Open with(crate::effects::open);
-            (Open, CloseDoor) => Closed with(crate::effects::close);
-        };
-        absence(refused);
-        projections {
-            companions;
-        };
-        evidence {
-            trials {
-                support = recipe_trials_support,
-                module = recipe_trials,
-                table = named("recipe", "trial-table"),
-                suite checks = named("recipe", "unit") {
-                    transition_answers {
-                        claim = named("recipe", "transition-answers"),
-                        subject = named("recipe", "dispatch"),
-                        check = named("recipe", "exact"),
-                        population = named("recipe", "declared-rows"),
-                    },
-                },
-            };
-            mutation(states) {
-                module = recipe_mutations,
-                refusal = RecipeMutationRefusal,
-                support = recipe_mutation_support,
-                family = named("recipe", "refusals"),
-                point = named("recipe", "state-order"),
-                fact = named("recipe", "state-order"),
-                map named("recipe", "state-order") = named("recipe", "order-held"),
-                permit named("recipe", "order-held") = ["declared-order-permutation"],
-            };
-            benchmarks {
-                support = recipe_bench_support,
-                table_function = recipe_bench_table,
-                table = named("recipe", "bench-table"),
-                reporter = recipe_bench_reporter,
-                dispatch_pace {
-                    workload = named("recipe", "dispatch"),
-                    preflight = named("recipe", "dispatch-correct"),
-                    planted_worse = named("recipe", "dispatch-worse"),
-                    complexity = named("recipe", "linear"),
-                    axis = [2, 4, 8],
-                    samples = 16,
-                    warmups = 4,
-                    ratio_numerator = 3,
-                    ratio_denominator = 1,
-                    observe = [named("recipe", "rows-touched")],
-                },
-            };
-            network {
-                harness = renamed_facade::harness,
-                module = recipe_network,
-                namespace = "recipe",
-                nodes = [client, server],
-                link forward = client to server,
-                schedule quiet = [],
-            };
-            concurrency {
-                harness = renamed_facade::harness,
-                module = recipe_concurrency,
-                namespace = "recipe",
-                transitions_hold {
-                    population = "transition-orders",
-                    interleavings = 16,
-                    samples = 32,
-                    seed = 11,
-                },
-            };
-        };
-    }
-}
-"#;
-
-pub(super) const TARGET_UNAVAILABLE_RECIPE: &str = r"
-pub mod door {
-    pub enum State {
-        Closed,
-        Open,
-    }
-
-    pub enum Event {
-        OpenDoor,
-    }
-
-    bake! {
-        vocabularies(State, Event);
-        transitions {
-            (Closed, OpenDoor) => Open with(crate::effects::open);
-        };
-        absence(refused);
-        projections {
-            companions;
-        };
-        evidence {
-            trials unavailable;
-        };
-    }
-}
-";
-
-pub(super) const CALLER_OWNED_TRIAL_RECIPE: &str = r"
-pub mod door {
-    pub enum State {
-        Closed,
-        Open,
-    }
-
-    pub enum Event {
-        OpenDoor,
-    }
-
-    bake! {
-        vocabularies(State, Event);
-        transitions {
-            (Closed, OpenDoor) => Open with(crate::effects::open);
-        };
-        absence(refused);
-        projections {
-            companions;
-        };
-        evidence {
-            trials {
-                this is intentionally not the descriptor trial grammar
-            };
-        };
-    }
-}
-";
+#[path = "support/fixtures.rs"]
+mod fixtures;
+pub(super) use fixtures::{
+    CALLER_OWNED_TRIAL_RECIPE, COMPANION_RECIPE, COMPLETE_RECIPE, DOOR, EVIDENCE_RECIPE,
+    EXACT_DISPATCH_RECIPE, TARGET_UNAVAILABLE_RECIPE,
+};
 
 pub(super) struct MirroredCompanions;
 
@@ -462,33 +225,9 @@ impl RecipeProjector for MirroredTypestate {
     }
 }
 
-pub(super) fn bake(source: &str) -> Result<RecipeBake, ()> {
-    let read = TextCapture::read(source).map_err(|_| ())?;
-    macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR).map_err(|_| ())
-}
-
-pub(super) fn refusal_summary(source: &str) -> Result<String, ()> {
-    let read = TextCapture::read(source).map_err(|_| ())?;
-    macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
-        .err()
-        .map(|refusal| refusal.summary().to_owned())
-        .ok_or(())
-}
-
-pub(super) fn cargo_bytes(
-    expansion: &macroonz_compiler::Expansion<macroonz_compiler::recipe::RecipeProjection>,
-    destination: Destination,
-) -> Option<Vec<u8>> {
-    expansion
-        .emission()
-        .joined(destination)
-        .and_then(macroonz_compiler::PartitionCargo::tokens)
-        .map(GeneratedTree::canonical_bytes)
-}
-
-pub(super) fn emitted_bytes(bake: &RecipeBake) -> Option<Vec<u8>> {
-    bake.emit().tokens().map(GeneratedTree::canonical_bytes)
-}
+#[path = "support/observe.rs"]
+mod observe;
+pub(super) use observe::{bake, cargo_bytes, emitted_bytes, refusal_summary};
 
 fn roster_constant<'name>(
     constant_name: &str,
