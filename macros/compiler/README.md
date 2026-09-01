@@ -138,6 +138,8 @@ A request that fails any step is refused whole — there is no partial output.
 | Home | Owns |
 | --- | --- |
 | `bounded/` | The compiler's bounded collection shapes: optional, required, caller-keyed unique, and deliberately prefix-capped. |
+| `relation/` | Checked rows over caller-owned keyed rosters, duplicate-free promotion, and caller-selected structural questions without domain meaning. |
+| `recipe/` | The informed recipe account, exact authored Rust custody, declared structural postures, selected projections, and the shared standard/custom projection protocol. |
 | `identity/` | `Identity<S>`, the `Subject` trait, transcripts, profiles, versions, provenance, and the digest. |
 | `token/` | Captured token trees with spans, the literal reader, the text route, generated tokens, and the Rust-expression helpers every renderer needs. |
 | `kind/` | `Kind`, `CanonicalContent`, `Role`, `Question`, `Answer`, the `kinds!` declaration, and dispositions. |

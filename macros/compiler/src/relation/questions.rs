@@ -1,15 +1,16 @@
-//! Pure structural questions over already informed bounded values.
+//! Pure structural questions over already informed relation values.
 //!
 //! These operations compute answers.
 //! The caller separately states which answer is lawful.
 
 use super::{
-    Bounded, CompletenessPosture, CompletenessStanding, CyclePosture, CycleStanding,
-    DensityPosture, DensityStanding, EmptyPosture, KeyedRosterRows, NonEmpty, OccupancyStanding,
-    Reachability, ReachabilityError, ReferencedRosterRow, RepetitionPosture, RepetitionStanding,
+    CompletenessPosture, CompletenessStanding, CyclePosture, CycleStanding, DensityPosture,
+    DensityStanding, EmptyPosture, KeyedRosterRows, OccupancyStanding, Reachability,
+    ReachabilityError, ReferencedRosterRow, RepetitionPosture, RepetitionStanding,
     RosterRelationStanding, RowOrder, SameRosterRequired, SelfRelationPosture,
     SelfRelationStanding, StructuralMismatch, StructuralRequirement,
 };
+use crate::bounded::{Bounded, NonEmpty};
 
 impl<Answer> StructuralRequirement<Answer> {
     /// States the exact answer one caller requires from one structural question.
@@ -342,26 +343,29 @@ impl<Member, Key: Eq, Payload, const MEMBERS: usize, const ROWS: usize>
         let Some(root_position) = self.left.index_of(&root) else {
             return Err(ReachabilityError::RootOutsideRoster { root });
         };
-        let mut discovered = vec![root_position];
+        let discovered = self.discover_from(root_position);
+        let reachable = self
+            .left
+            .positions_where(|position, _, _| discovered.contains(&position));
+        let unreachable = self
+            .left
+            .positions_where(|position, _, _| !discovered.contains(&position));
+        let reachable = NonEmpty::from_bounded(reachable)
+            .map_err(|_| ReachabilityError::RootOutsideRoster { root })?;
+        Ok(Reachability {
+            reachable,
+            unreachable,
+        })
+    }
+
+    fn discover_from(&self, root: usize) -> Vec<usize> {
+        let mut discovered = vec![root];
         let mut cursor = 0_usize;
         while let Some(position) = discovered.get(cursor).copied() {
             self.extend_reachability(position, &mut discovered);
             cursor = cursor.saturating_add(1);
         }
-        let mut reachable = (0..self.left.count()).filter(|position| discovered.contains(position));
-        let Some(head) = reachable.next() else {
-            return Err(ReachabilityError::RootOutsideRoster { root });
-        };
-        let unreachable = (0..self.left.count())
-            .filter(|position| !discovered.contains(position))
-            .collect();
-        Ok(Reachability {
-            reachable: NonEmpty {
-                head,
-                tail: reachable.collect(),
-            },
-            unreachable: Bounded(unreachable),
-        })
+        discovered
     }
 }
 

@@ -5,7 +5,7 @@ use super::{
     EVIDENCE_LIMIT, EffectiveProjection, EvidenceTarget, HarnessPosture, LoweringSource, Recipe,
     RecipeEvidence, RecipeMember, RecipeRole, RecipeTransition,
 };
-use crate::bounded::AbsencePosture;
+use crate::relation::AbsencePosture;
 use crate::support::SupportName;
 use crate::token::{
     AuthoredItemKind, CaptureReadRefusal, CapturedDelimiter, CapturedInput, CapturedTokenTree,

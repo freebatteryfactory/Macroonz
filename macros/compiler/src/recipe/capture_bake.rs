@@ -6,7 +6,7 @@ use super::{
     BakeRead, CapturedName, HarnessPosture, RecipeError, RecipeIssue, RecipeTransition,
     VocabularyNames, grammar, identifier_token,
 };
-use crate::bounded::AbsencePosture;
+use crate::relation::AbsencePosture;
 use crate::token::{
     CaptureCursor, CaptureReadRefusal, CapturedDelimiter, CapturedFragment, CapturedSpacing,
 };

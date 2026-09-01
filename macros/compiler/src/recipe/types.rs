@@ -1,9 +1,10 @@
 //! The informed recipe, its projection vocabulary, and the capability boundary shared by both execution hosts.
 
-use crate::bounded::{AbsencePosture, KeyedRoster};
+use crate::bounded::KeyedRoster;
 use crate::diagnostic::{Diagnostic, Family};
 use crate::expansion::Expansion;
 use crate::identity::OwnerFact;
+use crate::relation::AbsencePosture;
 use crate::render::Output;
 use crate::request::Door;
 use crate::support::SupportName;

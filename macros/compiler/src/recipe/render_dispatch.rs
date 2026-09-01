@@ -2,7 +2,7 @@
 
 use super::render_tokens::{call_variant, comma_separated, derive, public, super_path, variant};
 use super::{EffectiveProjection, ProjectionError, Recipe, RecipeTransition};
-use crate::bounded::AbsencePosture;
+use crate::relation::AbsencePosture;
 use crate::token::{
     GeneratedDelimiter, GeneratedToken, GeneratedTree, decorated, documentation, enumeration,
     function_item, function_signature, group, match_arm, match_expression, result_type,

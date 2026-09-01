@@ -7,12 +7,11 @@ use super::{
     RecipeRole, RecipeShell, RecipeShellContent, RecipeTransition, RecipeView, TRANSITION_LIMIT,
     VOCABULARY_LIMIT,
 };
-use crate::bounded::{
-    AbsencePosture, KeyedRoster, KeyedRosterError, KeyedRosterRows, KeyedRosterRowsError,
-};
+use crate::bounded::{KeyedRoster, KeyedRosterError};
 use crate::expansion::Expansion;
 use crate::kind::Role;
 use crate::recipe::evidence_position;
+use crate::relation::{AbsencePosture, KeyedRosterRows, KeyedRosterRowsError};
 use crate::render::Output;
 use crate::support::SupportName;
 use crate::token::{GeneratedTree, SpanHandle};

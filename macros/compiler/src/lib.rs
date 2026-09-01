@@ -8,6 +8,7 @@
 extern crate proc_macro;
 
 pub mod bounded;
+pub mod relation;
 pub mod identity;
 pub mod token;
 pub mod kind;
@@ -40,15 +41,9 @@ impl recipe::EvidenceCompiler for recipe::ConfiguredEvidence {
 pub mod host;
 
 pub use bounded::{
-    AbsencePosture, Bounded, Capped, Capping, CompletenessPosture, CompletenessStanding,
-    CyclePosture, CycleStanding, DensityPosture, DensityStanding, DuplicateKey, Empty,
-    EmptyPosture, ForeignRosterReference, KeyedRoster, KeyedRosterAssignment,
-    KeyedRosterAssignmentError, KeyedRosterError, KeyedRosterRelation, KeyedRosterRows,
-    KeyedRosterRowsError, MembershipPosture, NonEmpty, NonEmptyError, OccupancyStanding, Overflow,
-    Reachability, ReachabilityError, RepeatedRelationPair, RepeatedRelationPairs,
-    RepetitionPosture, RepetitionStanding, RosterRelationStanding, RowOrder, SameRosterRequired,
-    SelfRelationPosture, SelfRelationStanding, StructuralMismatch, StructuralRequirement,
-    UnassignedRosterMember,
+    Bounded, Capped, Capping, DuplicateKey, Empty, ForeignRosterReference, KeyedRoster,
+    KeyedRosterAssignment, KeyedRosterAssignmentError, KeyedRosterError, NonEmpty, NonEmptyError,
+    Overflow, UnassignedRosterMember,
 };
 pub use closure::{
     CLOSURE_ISSUE_LIMIT, CarriedTokens, Closure, ClosureError, ClosureIssue, PartitionCargo,
@@ -93,6 +88,14 @@ pub use plan::{
     DigestContract, Intent, InvalidationSet, InvalidationTrigger, MEMBERSHIP_LIMIT, Membership,
     NONCLAIM_LIMIT, PLAN_ISSUE_LIMIT, Plan, PlanDecisions, PlanError, PlanIssue, PlannedMember,
     PlannedOutput, TRIGGER_LIMIT,
+};
+pub use relation::{
+    AbsencePosture, CompletenessPosture, CompletenessStanding, CyclePosture, CycleStanding,
+    DensityPosture, DensityStanding, EmptyPosture, KeyedRosterRelation, KeyedRosterRows,
+    KeyedRosterRowsError, MembershipPosture, OccupancyStanding, Reachability, ReachabilityError,
+    RepeatedRelationPair, RepeatedRelationPairs, RepetitionPosture, RepetitionStanding,
+    RosterRelationStanding, RowOrder, SameRosterRequired, SelfRelationPosture,
+    SelfRelationStanding, StructuralMismatch, StructuralRequirement,
 };
 pub use render::{Output, RENDERED_BYTE_LIMIT, RenderError, RenderedProjection, RenderedUnit};
 pub use request::{

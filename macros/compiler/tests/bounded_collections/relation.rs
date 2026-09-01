@@ -1,7 +1,7 @@
 //! Foreign-free keyed-roster rows and their duplicate-free relation promotion observed outside the compiler crate.
 
 use core::error::Error;
-use macroonz_compiler::bounded::{
+use macroonz_compiler::relation::{
     KeyedRosterRelation as HomeKeyedRosterRelation, KeyedRosterRows as HomeKeyedRosterRows,
     KeyedRosterRowsError as HomeKeyedRosterRowsError,
     RepeatedRelationPair as HomeRepeatedRelationPair,
