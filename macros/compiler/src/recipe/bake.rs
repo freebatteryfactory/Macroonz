@@ -1,11 +1,12 @@
 //! The paved and callable walks over one informed recipe and one projection protocol.
 
-use super::evidence::{ConfiguredEvidence, EvidenceCompiler};
-use super::render::{self, StandardProjector};
-use super::types::{RECIPE_FACT, RecipeError, RecipeIssue, RecipeShell, RecipeShellContent};
+use super::render;
+use super::types::{
+    RECIPE_FACT, RecipeError, RecipeIssue, RecipeShell, RecipeShellContent, StandardProjector,
+};
 use super::{
-    HarnessPosture, ProjectionSink, Recipe, RecipeBake, RecipeProjection, RecipeProjector,
-    RecipeRole,
+    ConfiguredEvidence, EvidenceCompiler, HarnessPosture, ProjectionSink, Recipe, RecipeBake,
+    RecipeProjection, RecipeProjector, RecipeRole,
 };
 use crate::closure::PartitionCargo;
 use crate::diagnostic::{Diagnostic, Placement, Refused};

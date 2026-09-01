@@ -1,10 +1,11 @@
 //! The informed recipe, its projection vocabulary, and the capability boundary shared by both execution hosts.
 
 use crate::bounded::{AbsencePosture, KeyedRoster};
-use crate::diagnostic::Family;
+use crate::diagnostic::{Diagnostic, Family};
 use crate::expansion::Expansion;
 use crate::identity::OwnerFact;
 use crate::render::Output;
+use crate::request::Door;
 use crate::support::SupportName;
 use crate::token::{CapturedInput, GeneratedToken, GeneratedTree, SpanHandle};
 
@@ -103,6 +104,25 @@ pub struct RecipeEvidence {
     body: CapturedInput,
     at: SpanHandle,
 }
+
+/// The already sealed output for each selected standard evidence projection.
+pub(crate) struct PreparedEvidence {
+    pub(super) trees: [Option<GeneratedTree>; EVIDENCE_LIMIT],
+}
+
+/// The one crate-internal preparation capability the composition root supplies.
+pub(crate) trait EvidenceCompiler {
+    /// Prepare every selected standard evidence projection without giving the recipe home adapter vocabulary.
+    fn prepared(
+        capture: &CapturedInput,
+        recipe: &Recipe,
+        door: &Door,
+        replaced: Option<RecipeRole>,
+    ) -> Result<PreparedEvidence, Diagnostic>;
+}
+
+/// The sealed marker whose sole implementation lives at the crate composition root.
+pub(crate) struct ConfiguredEvidence;
 
 /// Where one effective mechanical projection value came from.
 #[non_exhaustive]
@@ -235,6 +255,11 @@ pub trait RecipeProjector {
         request: ProjectionRequest<'_>,
         sink: ProjectionSink<'_, '_>,
     ) -> Result<ProjectionOffered, ProjectionError>;
+}
+
+/// The built-in projector catalog used by the paved proc host.
+pub(super) struct StandardProjector<'evidence> {
+    pub(super) evidence: &'evidence PreparedEvidence,
 }
 
 /// Why one projector invocation produced no admitted unit.

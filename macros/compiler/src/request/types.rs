@@ -83,3 +83,10 @@ pub(super) enum Selection<R: Role> {
     /// One explicitly selected role followed by the rest of the selected subset.
     Declared { first: R, rest: Vec<R> },
 }
+
+/// The already stated request facts planning reads together.
+pub(super) struct Statements<'request, R: Role> {
+    pub(super) assumptions: &'request [OwnerFact],
+    pub(super) addresses: &'request [(R, OwnerIdentity)],
+    pub(super) selection: &'request Selection<R>,
+}

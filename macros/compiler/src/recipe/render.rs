@@ -1,9 +1,9 @@
 //! Projection through the one capability shared by standard and caller-owned projectors.
 
-use super::evidence::PreparedEvidence;
+use super::types::StandardProjector;
 use super::{
-    ProjectionError, ProjectionRequest, ProjectionSink, Recipe, RecipeProjector, RecipeRole,
-    RecipeView,
+    PreparedEvidence, ProjectionError, ProjectionRequest, ProjectionSink, Recipe, RecipeProjector,
+    RecipeRole, RecipeView,
 };
 use crate::bounded::{AbsencePosture, NonEmptyError};
 use crate::token::{
@@ -13,11 +13,6 @@ use crate::token::{
     keyed_roster_items, match_arm, match_expression, result_type, trait_declaration, tuple_struct,
     typed_parameter, unit_struct, unit_variant, use_item,
 };
-
-/// The built-in projector catalog used by the paved proc host.
-pub(super) struct StandardProjector<'evidence> {
-    evidence: &'evidence PreparedEvidence,
-}
 
 impl<'evidence> StandardProjector<'evidence> {
     /// Bind the built-in catalog to the descriptor outputs prepared for this recipe walk.

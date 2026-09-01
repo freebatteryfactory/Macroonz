@@ -9,9 +9,8 @@ mod type_contract;
 mod types;
 
 pub(crate) use bake::generated_name_collision;
-pub(crate) use evidence::{
-    ConfiguredEvidence, EvidenceCompiler, PreparedEvidence, evidence_position,
-};
+pub(crate) use evidence::evidence_position;
+pub(crate) use types::{ConfiguredEvidence, EvidenceCompiler, PreparedEvidence};
 
 pub use bake::{bake, bake_with, bake_wrapped};
 pub use types::{
