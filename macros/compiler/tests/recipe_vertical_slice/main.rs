@@ -7,8 +7,9 @@ mod host_parity;
 mod projector_authority;
 mod refusal_contract;
 mod structural_refusals;
+mod support;
 
-use projector_authority::{
+use support::{
     CALLER_OWNED_TRIAL_RECIPE, COMPANION_RECIPE, COMPLETE_RECIPE, CallerOwnedTrials, DOOR,
     EVIDENCE_RECIPE, EXACT_DISPATCH_RECIPE, TARGET_UNAVAILABLE_RECIPE, bake, cargo_bytes,
     emitted_bytes, refusal_summary,
