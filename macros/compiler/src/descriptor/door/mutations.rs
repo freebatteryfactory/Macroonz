@@ -3,7 +3,8 @@
 use super::types::{SOLE_READING_FACT, TRIALS_FORM_FACT};
 use super::walk::{helper_refused, proved_off, support_address, unit_tree, whole};
 use crate::descriptor::mutation::{
-    self, MUTATION_HELPER_POSITION, MutationCaptureError, MutationSurface, SurfaceRole,
+    self, Declaration, MUTATION_HELPER_POSITION, MutationCaptureError, MutationSurface, Surface,
+    SurfaceRole,
 };
 use crate::descriptor::{CaptureCause, Grammar};
 use crate::diagnostic::Diagnostic;
@@ -11,7 +12,7 @@ use crate::expansion::Expansion;
 use crate::kind::{Destination, Disposition};
 use crate::request::Door;
 use crate::request::Request;
-use crate::support::{self, AxisCargo, CargoAxis, SupportAxes, SupportCarrier};
+use crate::support::{self, AxisCargo, CargoAxis, DeclaringBinding, SupportAxes, SupportCarrier};
 use crate::token::{CapturedInput, CapturedTokenTree, SpanHandle};
 
 /// Walk one mutation declaration to the sealed carrier expansion its module rides out inside.
@@ -31,15 +32,73 @@ pub fn mutations(
     grammar: Grammar,
     door: &Door,
 ) -> Result<Expansion<SupportCarrier>, Diagnostic> {
-    let trees: Vec<&CapturedTokenTree> = body.trees().iter().collect();
-    let read = mutation::captured(&trees, SpanHandle::at(0), grammar)
-        .map_err(|refusal| helper_refused(&refusal, refusal.refusal().at(), door))?;
-    drop(trees);
+    let read = read(body, grammar, door)?;
     let item_trees: Vec<&CapturedTokenTree> = item.trees().iter().collect();
     let surface = mutation::completed(read, &item_trees, grammar)
         .map_err(|refusal| helper_refused(&refusal, refusal.refusal().at(), door))?;
     drop(item_trees);
+    delivered_surface(body, item, surface, grammar, DeclaringBinding::Absent, door)
+}
 
+/// Walk one mutation declaration over an already informed authored order.
+///
+/// This is the composition road for a parent compiler that already owns the exact member roster and must not make the caller restate the enum item merely so this descriptor can enumerate it again.
+///
+/// # Errors
+///
+/// Returns the same diagnostics as [`mutations`], using the supplied roster coordinate for an order refusal.
+pub fn mutations_from_order(
+    body: &CapturedInput,
+    item: &CapturedInput,
+    order: &[String],
+    at: SpanHandle,
+    grammar: Grammar,
+    door: &Door,
+) -> Result<Expansion<SupportCarrier>, Diagnostic> {
+    let read = read(body, grammar, door)?;
+    let surface = mutation::completed_from_order(read, order, at, grammar)
+        .map_err(|refusal| helper_refused(&refusal, refusal.refusal().at(), door))?;
+    delivered_surface(body, item, surface, grammar, DeclaringBinding::Absent, door)
+}
+
+/// Walk one recipe-composed mutation declaration over an informed order while requiring its consumer to state the declaring crate path.
+pub(crate) fn mutations_from_order_requiring_declaring(
+    body: &CapturedInput,
+    item: &CapturedInput,
+    order: &[String],
+    at: SpanHandle,
+    grammar: Grammar,
+    door: &Door,
+) -> Result<Expansion<SupportCarrier>, Diagnostic> {
+    let read = read(body, grammar, door)?;
+    let surface = mutation::completed_from_order(read, order, at, grammar)
+        .map_err(|refusal| helper_refused(&refusal, refusal.refusal().at(), door))?;
+    delivered_surface(
+        body,
+        item,
+        surface,
+        grammar,
+        DeclaringBinding::Required,
+        door,
+    )
+}
+
+fn read(body: &CapturedInput, grammar: Grammar, door: &Door) -> Result<Declaration, Diagnostic> {
+    let trees: Vec<&CapturedTokenTree> = body.trees().iter().collect();
+    let read = mutation::captured(&trees, SpanHandle::at(0), grammar)
+        .map_err(|refusal| helper_refused(&refusal, refusal.refusal().at(), door))?;
+    drop(trees);
+    Ok(read)
+}
+
+fn delivered_surface(
+    body: &CapturedInput,
+    item: &CapturedInput,
+    surface: Surface,
+    grammar: Grammar,
+    declaring: DeclaringBinding,
+    door: &Door,
+) -> Result<Expansion<SupportCarrier>, Diagnostic> {
     let Some(spelling) = surface.address().support.as_ref() else {
         let refusal = MutationCaptureError::grammar_refused(
             grammar,
@@ -70,11 +129,12 @@ pub fn mutations(
             },
         },
     };
-    let assembly = support::SupportAssembly::assembled_for_helper(
+    let assembly = support::SupportAssembly::assembled_for_helper_with_binding(
         item,
         body,
         MUTATION_HELPER_POSITION,
         Some(address),
+        declaring,
         axes,
     )
     .map_err(|refusal| whole(&refusal, door))?;

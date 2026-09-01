@@ -8,7 +8,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-include = ["src/**", "tests/**", "examples/**", "assets/**", "AGENTS.md", "CONTRIBUTING.md", "SECURITY.md", "Cargo.toml", "README.md", "LICENSE-*"]
+include = ["src/**", "tests/**", "examples/**", "skills/**", "assets/**", "AGENTS.md", "CONTRIBUTING.md", "SECURITY.md", "Cargo.toml", "README.md", "LICENSE-*"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -26,7 +26,7 @@ exclude = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.98.0"
 license = "MIT OR Apache-2.0"
@@ -39,9 +39,9 @@ blake3 = { version = "=1.8.6", default-features = false }
 loom = { version = "=0.7.2", default-features = false, features = ["futures"] }
 ra-ap-rustc_lexer = { version = "=0.174.0", default-features = false }
 trybuild = "=1.0.120"
-macroonz-compiler = { path = "macros/compiler", version = "=0.1.0" }
-macroonz-harness = { path = "harness", version = "=0.1.0", default-features = false }
-macroonz-macros = { path = "macros/proc", version = "=0.1.0" }
+macroonz-compiler = { path = "macros/compiler", version = "=0.2.0" }
+macroonz-harness = { path = "harness", version = "=0.2.0", default-features = false }
+macroonz-macros = { path = "macros/proc", version = "=0.2.0" }
 
 [features]
 default = ["full"]
@@ -62,6 +62,11 @@ required-features = ["harness"]
 [[example]]
 name = "rustc_coverage"
 path = "examples/rustc_coverage.rs"
+required-features = ["harness"]
+
+[[example]]
+name = "compile_contract"
+path = "examples/compile_contract.rs"
 required-features = ["harness"]
 
 [lints]

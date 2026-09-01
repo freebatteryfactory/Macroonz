@@ -1,6 +1,6 @@
 //! Assembly declarations.
 use super::super::cargo::{AxisCargo, CargoAxis, DeclaredCargo, ProvedCargo};
-use super::super::types::{DeliveryForm, SchemaId, SupportName};
+use super::super::types::{DeclaringBinding, DeliveryForm, SchemaId, SupportName};
 use crate::bounded::Capped;
 use crate::identity::{self, ClosedExpansionId, Identity, OwnerFact};
 use crate::kind::Destination;
@@ -21,6 +21,7 @@ pub struct SupportAssembly {
     helper: Option<Identity<identity::CapturedHelper>>,
     expectation: SchemaId,
     address: Option<SupportName>,
+    declaring: DeclaringBinding,
     declared: AxisCargo<DeclaredCargo>,
     deferred: AxisCargo<ProvedCargo>,
     bench: AxisCargo<ProvedCargo>,

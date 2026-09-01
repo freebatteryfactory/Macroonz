@@ -1,13 +1,41 @@
 //! Deterministic disposable scratch custody and shell-free Cargo invocation.
 
 use super::render::RenderedSource;
+use macroonz_harness::report::{
+    ForeignText, InfrastructureFailure, InfrastructureFault, SkipReason,
+};
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum HostFailure {
+    NotRun {
+        reason: SkipReason,
+        detail: ForeignText,
+    },
+    Infrastructure(InfrastructureFailure),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct HostFacts {
+    target: String,
+    toolchain: String,
+}
+
+impl HostFacts {
+    pub(crate) fn target(&self) -> &str {
+        &self.target
+    }
+
+    pub(crate) fn toolchain(&self) -> &str {
+        &self.toolchain
+    }
+}
+
 /// One atomically claimed qualification run.
-pub(super) struct Scratch {
+pub(crate) struct Scratch {
     qualification: PathBuf,
     root: PathBuf,
     manifest: PathBuf,
@@ -15,7 +43,7 @@ pub(super) struct Scratch {
 }
 
 impl Scratch {
-    pub(super) fn claimed() -> Result<Self, String> {
+    pub(crate) fn claimed() -> Result<Self, String> {
         let qualification = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("..")
             .join("target")
@@ -61,6 +89,7 @@ impl Scratch {
                 "publish = false\n\n",
                 "[dependencies]\n",
                 "macroonz-harness = { path = \"../../../../harness\", default-features = false }\n\n",
+                "bakery = { package = \"macroonz\", path = \"../../../..\", default-features = false, features = [\"harness\"] }\n\n",
                 "[workspace]\n",
             ),
         )
@@ -74,12 +103,21 @@ impl Scratch {
     }
 
     pub(super) fn write(&self, rendered: &RenderedSource) -> Result<(), String> {
-        let path = self.root.join("src").join("bin").join(&rendered.file_name);
-        fs::write(&path, &rendered.source)
+        self.write_source(&rendered.file_name, &rendered.source)
+    }
+
+    pub(crate) fn write_source(&self, file_name: &str, source: &str) -> Result<(), String> {
+        let path = self.root.join("src").join("bin").join(file_name);
+        fs::write(&path, source)
             .map_err(|error| format!("could not write {}: {error}", path.display()))
     }
 
-    pub(super) fn generate_lockfile(&self) -> Result<(), String> {
+    pub(crate) fn root(&self) -> &Path {
+        &self.root
+    }
+
+    pub(crate) fn generate_lockfile(&self) -> Result<HostFacts, HostFailure> {
+        let host = self.host_facts()?;
         let output = Command::new("cargo")
             .arg("+1.98.0")
             .arg("generate-lockfile")
@@ -88,15 +126,23 @@ impl Scratch {
             .arg("--offline")
             .current_dir(&self.root)
             .output()
-            .map_err(|error| format!("could not launch Cargo lock generation: {error}"))?;
+            .map_err(|error| {
+                infrastructure(
+                    InfrastructureFault::BackendInitializationFailed,
+                    &format!("could not launch Cargo lock generation: {error}"),
+                )
+            })?;
         if output.status.success() {
-            Ok(())
+            Ok(host)
         } else {
-            Err(failed_command("scratch lock generation", &output))
+            Err(infrastructure(
+                InfrastructureFault::BackendInitializationFailed,
+                &failed_command("scratch lock generation", &output),
+            ))
         }
     }
 
-    pub(super) fn check(&self, bin_name: &str) -> Result<Output, String> {
+    pub(crate) fn check(&self, bin_name: &str, host: &HostFacts) -> Result<Output, HostFailure> {
         Command::new("cargo")
             .arg("+1.98.0")
             .arg("check")
@@ -104,6 +150,8 @@ impl Scratch {
             .arg(&self.manifest)
             .arg("--bin")
             .arg(bin_name)
+            .arg("--target")
+            .arg(host.target())
             .arg("--target-dir")
             .arg(&self.target)
             .arg("--locked")
@@ -114,10 +162,71 @@ impl Scratch {
             .arg("json")
             .current_dir(&self.root)
             .output()
-            .map_err(|error| format!("could not launch Cargo for {bin_name}: {error}"))
+            .map_err(|error| {
+                infrastructure(
+                    InfrastructureFault::BackendInitializationFailed,
+                    &format!("could not launch Cargo for {bin_name}: {error}"),
+                )
+            })
     }
 
-    pub(super) fn finish(self, outcome: Result<(), String>) -> Result<(), String> {
+    fn host_facts(&self) -> Result<HostFacts, HostFailure> {
+        let cargo = self.tool_output(
+            "cargo",
+            &["+1.98.0", "--version", "--verbose"],
+            "Cargo toolchain preflight",
+        )?;
+        let rustc = self.tool_output("rustc", &["+1.98.0", "-vV"], "rustc toolchain preflight")?;
+        let cargo = tool_text(&cargo, "Cargo toolchain preflight")?;
+        let rustc = tool_text(&rustc, "rustc toolchain preflight")?;
+        let cargo_identity = identity_line(cargo, "Cargo toolchain preflight")?;
+        let rustc_identity = identity_line(rustc, "rustc toolchain preflight")?;
+        let cargo_release = required_field(cargo, "release: ", "Cargo release")?;
+        let rustc_release = required_field(rustc, "release: ", "rustc release")?;
+        let cargo_host = required_field(cargo, "host: ", "Cargo host")?;
+        let rustc_host = required_field(rustc, "host: ", "rustc host")?;
+        if cargo_release != "1.98.0" || rustc_release != "1.98.0" {
+            return Err(unavailable(&format!(
+                "required Cargo and rustc release 1.98.0, observed Cargo {cargo_release} and rustc {rustc_release}"
+            )));
+        }
+        if cargo_host != rustc_host {
+            return Err(unavailable(&format!(
+                "Cargo host {cargo_host} disagreed with rustc host {rustc_host}"
+            )));
+        }
+        Ok(HostFacts {
+            target: cargo_host.to_owned(),
+            toolchain: format!("{cargo_identity}; {rustc_identity}"),
+        })
+    }
+
+    fn tool_output(
+        &self,
+        program: &str,
+        arguments: &[&str],
+        context: &str,
+    ) -> Result<Output, HostFailure> {
+        let output = Command::new(program)
+            .args(arguments)
+            .current_dir(&self.root)
+            .output()
+            .map_err(|error| {
+                infrastructure(
+                    InfrastructureFault::BackendInitializationFailed,
+                    &format!("could not launch {context}: {error}"),
+                )
+            })?;
+        let availability = if output.status.success() {
+            ToolchainAvailability::Available
+        } else {
+            ToolchainAvailability::Unavailable
+        };
+        classify_toolchain(availability, &failed_command(context, &output))?;
+        Ok(output)
+    }
+
+    pub(crate) fn finish(self, outcome: Result<(), String>) -> Result<(), String> {
         let cleanup = fs::remove_dir_all(&self.root)
             .map_err(|error| format!("could not remove {}: {error}", self.root.display()))
             .and_then(|()| match fs::remove_dir(&self.qualification) {
@@ -143,6 +252,97 @@ impl Scratch {
             )),
         }
     }
+}
+
+#[derive(Clone, Copy)]
+enum ToolchainAvailability {
+    Available,
+    Unavailable,
+}
+
+fn classify_toolchain(
+    availability: ToolchainAvailability,
+    detail: &str,
+) -> Result<(), HostFailure> {
+    match availability {
+        ToolchainAvailability::Available => Ok(()),
+        ToolchainAvailability::Unavailable => Err(HostFailure::NotRun {
+            reason: SkipReason::PrerequisiteAbsent,
+            detail: ForeignText::admitted(detail.as_bytes()),
+        }),
+    }
+}
+
+fn unavailable(detail: &str) -> HostFailure {
+    HostFailure::NotRun {
+        reason: SkipReason::PrerequisiteAbsent,
+        detail: ForeignText::admitted(detail.as_bytes()),
+    }
+}
+
+fn tool_text<'output>(output: &'output Output, context: &str) -> Result<&'output str, HostFailure> {
+    std::str::from_utf8(&output.stdout).map_err(|error| {
+        infrastructure(
+            InfrastructureFault::CaptureFailed,
+            &format!("{context} was not UTF-8: {error}"),
+        )
+    })
+}
+
+fn identity_line<'text>(text: &'text str, context: &str) -> Result<&'text str, HostFailure> {
+    text.lines()
+        .next()
+        .filter(|line| !line.is_empty())
+        .ok_or_else(|| {
+            infrastructure(
+                InfrastructureFault::CaptureFailed,
+                &format!("{context} carried no identity line"),
+            )
+        })
+}
+
+fn required_field<'text>(
+    text: &'text str,
+    prefix: &str,
+    context: &str,
+) -> Result<&'text str, HostFailure> {
+    text.lines()
+        .find_map(|line| line.strip_prefix(prefix))
+        .filter(|field| !field.is_empty())
+        .ok_or_else(|| {
+            infrastructure(
+                InfrastructureFault::CaptureFailed,
+                &format!("{context} was absent"),
+            )
+        })
+}
+
+fn infrastructure(fault: InfrastructureFault, detail: &str) -> HostFailure {
+    HostFailure::Infrastructure(InfrastructureFailure::recorded(
+        fault,
+        Some(ForeignText::admitted(detail.as_bytes())),
+    ))
+}
+
+#[test]
+fn unavailable_toolchain_and_spawn_failure_keep_distinct_host_standing() {
+    let unavailable = classify_toolchain(ToolchainAvailability::Unavailable, "toolchain missing");
+    assert!(matches!(
+        unavailable,
+        Err(HostFailure::NotRun {
+            reason: SkipReason::PrerequisiteAbsent,
+            detail: _,
+        })
+    ));
+    let spawn = infrastructure(
+        InfrastructureFault::BackendInitializationFailed,
+        "spawn refused",
+    );
+    assert!(matches!(
+        spawn,
+        HostFailure::Infrastructure(ref failure)
+            if failure.fault() == InfrastructureFault::BackendInitializationFailed
+    ));
 }
 
 pub(super) fn failed_command(context: &str, output: &Output) -> String {

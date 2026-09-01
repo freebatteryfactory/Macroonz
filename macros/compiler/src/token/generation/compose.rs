@@ -269,31 +269,6 @@ pub fn constant(
     tokens
 }
 
-/// One item `fn name(parameters) -> result { body }`.
-///
-/// The visibility is the caller's and is written before this, so one helper spells a private function, a `pub` one, and a `pub(crate)` one.
-///
-/// # Errors
-///
-/// Returns [`Overflow`] where the parameter list or the body outgrows the declared magnitude.
-pub fn function(
-    name: &str,
-    parameters: Vec<GeneratedToken>,
-    result: Vec<GeneratedToken>,
-    body: Vec<GeneratedToken>,
-) -> Result<Vec<GeneratedToken>, Overflow> {
-    let mut tokens = vec![
-        GeneratedToken::word("fn"),
-        GeneratedToken::word(name),
-        group(GeneratedDelimiter::Parenthesis, parameters)?,
-        GeneratedToken::joint('-'),
-        GeneratedToken::alone('>'),
-    ];
-    tokens.extend(result);
-    tokens.push(group(GeneratedDelimiter::Brace, body)?);
-    Ok(tokens)
-}
-
 /// One comparison `left == right`.
 #[must_use]
 pub fn equality(mut left: Vec<GeneratedToken>, right: Vec<GeneratedToken>) -> Vec<GeneratedToken> {

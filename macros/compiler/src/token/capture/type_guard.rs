@@ -291,6 +291,14 @@ impl CapturedTokenTree {
 }
 
 impl CapturedInput {
+    /// Copy one already captured fragment into a narrower input without issuing new source handles.
+    pub(crate) fn selected(
+        fragment: super::CapturedFragment<'_>,
+        issued: usize,
+    ) -> Result<Self, crate::bounded::Overflow> {
+        Bounded::new(fragment.tokens().to_vec()).map(|trees| Self { trees, issued })
+    }
+
     /// The top-level trees, in the order they were written.
     #[must_use]
     pub fn trees(&self) -> &[CapturedTokenTree] {

@@ -9,7 +9,9 @@ use crate::expansion::Expansion;
 use crate::kind::{Destination, Disposition};
 use crate::request::Door;
 use crate::request::Request;
-use crate::support::{self, AxisCargo, CargoAxis, DeclaredCargo, SupportAxes, SupportCarrier};
+use crate::support::{
+    self, AxisCargo, CargoAxis, DeclaredCargo, DeclaringBinding, SupportAxes, SupportCarrier,
+};
 use crate::token::{CapturedInput, CapturedTokenTree, GeneratedTree, SpanHandle};
 
 /// Walk one benchmark declaration to the sealed carrier expansion its table and report reader ride out inside.
@@ -25,6 +27,35 @@ pub fn bench(
     item: &CapturedInput,
     grammar: Grammar,
     emitter: Emitter,
+    door: &Door,
+) -> Result<Expansion<SupportCarrier>, Diagnostic> {
+    walked(body, item, grammar, emitter, DeclaringBinding::Absent, door)
+}
+
+/// Walk one recipe-composed benchmark declaration while requiring its consumer to state the declaring crate path.
+pub(crate) fn bench_requiring_declaring(
+    body: &CapturedInput,
+    item: &CapturedInput,
+    grammar: Grammar,
+    emitter: Emitter,
+    door: &Door,
+) -> Result<Expansion<SupportCarrier>, Diagnostic> {
+    walked(
+        body,
+        item,
+        grammar,
+        emitter,
+        DeclaringBinding::Required,
+        door,
+    )
+}
+
+fn walked(
+    body: &CapturedInput,
+    item: &CapturedInput,
+    grammar: Grammar,
+    emitter: Emitter,
+    declaring: DeclaringBinding,
     door: &Door,
 ) -> Result<Expansion<SupportCarrier>, Diagnostic> {
     let trees: Vec<&CapturedTokenTree> = body.trees().iter().collect();
@@ -62,11 +93,12 @@ pub fn bench(
         },
         bench: AxisCargo::Carried(proved),
     };
-    let assembly = support::SupportAssembly::assembled_for_helper(
+    let assembly = support::SupportAssembly::assembled_for_helper_with_binding(
         item,
         body,
         BENCH_HELPER_POSITION,
         Some(address),
+        declaring,
         axes,
     )
     .map_err(|refusal| whole(&refusal, door))?;

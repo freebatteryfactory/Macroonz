@@ -1,6 +1,6 @@
 //! The constant answer this home's one roster settles, the contracts a capture refusal stands under, and what an expansion delivers to be emitted.
 
-use super::types::{CaptureError, Emittable};
+use super::types::{CaptureError, EmissionError, Emittable};
 use crate::closure::PartitionCargo;
 use crate::expansion::Expansion;
 use crate::kind::Kind;
@@ -40,6 +40,37 @@ impl core::error::Error for CaptureError {
         match self {
             Self::Unbounded { bound } => Some(bound),
             Self::Unread { cause, .. } => Some(cause),
+        }
+    }
+}
+
+impl fmt::Display for EmissionError {
+    fn fmt(&self, into: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NumberRejected { spelling } => write!(
+                into,
+                "the compiler host rejected the admitted numeric literal `{spelling}`"
+            ),
+            Self::NulTerminatedTextRejected => into
+                .write_str("the compiler host rejected admitted NUL-terminated literal material"),
+            Self::SourceSpanRosterContradiction => into.write_str(
+                "the generated tree's preserved source roster does not match its token denominator",
+            ),
+            Self::SourceSpanUnresolved(refusal) => write!(
+                into,
+                "the compiler host could not resolve one preserved source span: {refusal}"
+            ),
+        }
+    }
+}
+
+impl core::error::Error for EmissionError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+        match self {
+            Self::SourceSpanUnresolved(refusal) => Some(refusal),
+            Self::NumberRejected { .. }
+            | Self::NulTerminatedTextRejected
+            | Self::SourceSpanRosterContradiction => None,
         }
     }
 }

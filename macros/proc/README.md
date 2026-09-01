@@ -5,6 +5,14 @@ The hand that loads the oven.
 A proc-macro crate may export nothing but macros, so this one is small on purpose: token conversion, span custody, one call into the compiler, diagnostic placement, emission.
 It owns no grammar, no roster, no identity rule, no planning decision, and no judgment.
 
+The root `macroonz::recipe!` entrance reaches its compiler-owned recipe door through this carrier.
+Built-in projectors and exact declarative configuration may run there because they ship with Macroonz, while an arbitrary downstream projection algorithm runs through `macroonz-compiler` in a caller-owned compiler or proc host.
+Both hosts consume the same informed recipe and constrained output protocol; this crate gains no plugin registry or second compiler model.
+
+Rust requires the function-like proc carrier behind the hygienic facade wrapper to be public.
+Exactly one such carrier exists, it is hidden from generated documentation, and `macroonz::recipe!` is the only supported entrance.
+Direct invocation of `__macroonz_recipe_carrier!` is outside the compatibility contract and may change or break in any release without notice.
+
 ---
 
 ## Procedural declaration families
@@ -29,29 +37,38 @@ The carrier is a hidden `macro_rules!` definition — plus the alias you chose i
 An ordinary build compiles the definition and nothing inside it.
 Your test or bench target invokes the alias, supplies its own host facts and callables there, and the carrier's gate checks the schema pin before a single constructor reaches type checking.
 
+A descriptor carrier composed through `macroonz::recipe!` also requires the invocation target to state the declaring crate path.
+The wrapper's `$crate` belongs to the facade that defined the wrapper, so the explicit path is what lets the existing carrier reach its hidden helper without guessing package topology or adding ambient discovery.
+
 Each attribute walks the road any derive built on `macroonz-compiler` walks — capture, request, render, close, explain, bind, emit.
 The grammar each one reads is the compiler's `descriptor` home's; the road from a reading to a sealed carrier expansion is the same home's `door`; the carrier itself is the compiler's `support` home's.
 What lives here is one thin function per procedural entry, and every sentence a refusal shows you was composed inside the compiler at the token it is about.
 
 ---
 
-## Writing your own derive
+## Caller-owned projection algorithms
 
-Do not write it here.
+Do not add one here merely because a recipe needs a custom projection.
 
-A derive that produces your types lives in your repository, in your proc-macro crate, on `macroonz-compiler` with the `host` feature:
+An arbitrary recipe projection algorithm is ordinary caller-owned compiler code or lives in the caller's proc-macro crate on `macroonz-compiler` with the `host` feature:
 
 ```rust
-#[proc_macro_derive(Greet, attributes(greet))]
-pub fn greet(input: TokenStream) -> TokenStream {
-    macroonz_compiler::host::expand(input, |capture| {
-        let greeting = Greeting::read(&capture)?;
-        Request::<GreetImpl>::over(capture, greeting, &GREET_DOOR)
-            .render(|plan, out| out.unit(GreetRole::Impl, plan.content().impl_tokens()))
-    })
+impl macroonz_compiler::recipe::RecipeProjector for MyProjector {
+    fn project(
+        &self,
+        view: macroonz_compiler::recipe::RecipeView<'_>,
+        request: macroonz_compiler::recipe::ProjectionRequest<'_>,
+        sink: macroonz_compiler::recipe::ProjectionSink<'_, '_>,
+    ) -> Result<macroonz_compiler::recipe::ProjectionOffered, macroonz_compiler::recipe::ProjectionError> {
+        let tree = project_my_role(view.recipe(), request.effective())?;
+        sink.offer(tree)
+    }
 }
 ```
 
-That is the whole crate a derive needs.
-`serde_derive` ships with `serde`; your derive ships with you.
-A derive that also wants to deliver descriptor cargo composes its own carrier on the same public roads these attributes walk — one vehicle may carry a trial table beside a mutation module, which is a composition the standalone attributes deliberately keep apart.
+`project_my_role` is caller-owned placeholder code returning one `GeneratedTree`.
+The complete compiling example is shipped by `macroonz-compiler` as `examples/custom_recipe_projector.rs`.
+
+That is the complete capability boundary a caller-owned recipe projector receives.
+It consumes the same informed recipe contract as the paved recipe road and returns output through the same planned role.
+The distinction is execution host rather than semantic model: an already compiled Macroonz proc macro cannot invoke arbitrary code defined later in a downstream crate.

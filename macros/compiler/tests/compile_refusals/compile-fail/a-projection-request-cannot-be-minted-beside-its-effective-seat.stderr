@@ -1,0 +1,5 @@
+error[E0451]: field `effective` of struct `ProjectionRequest` is private
+ --> tests/compile_refusals/compile-fail/a-projection-request-cannot-be-minted-beside-its-effective-seat.rs:4:25
+  |
+4 |     ProjectionRequest { effective }
+  |                         ^^^^^^^^^ private field

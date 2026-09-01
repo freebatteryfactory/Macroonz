@@ -12,7 +12,7 @@ use crate::bounded::Overflow;
 use crate::kind::SoleRole;
 use crate::plan::Plan;
 use crate::render::{Output, RenderError};
-use crate::token::{GeneratedDelimiter, GeneratedToken, GeneratedTree, group};
+use crate::token::{GeneratedToken, GeneratedTree, implementation};
 
 /// Render the one unit a codec request produces.
 ///
@@ -51,9 +51,14 @@ pub fn codec_surface(content: &CodecContent) -> Result<GeneratedTree, Overflow> 
     if reads {
         inherent.extend(decode_road(shape)?);
     }
-    tokens.push(GeneratedToken::word("impl"));
-    tokens.extend(type_path(shape.owner()));
-    tokens.push(group(GeneratedDelimiter::Brace, inherent)?);
+    tokens.extend(implementation(
+        Vec::new(),
+        Vec::new(),
+        None,
+        type_path(shape.owner()),
+        Vec::new(),
+        inherent,
+    )?);
     let placed = match &content.placement {
         CodecPlacement::AtDeclarationSite => tokens,
         CodecPlacement::PublishedModule { spelling } => {

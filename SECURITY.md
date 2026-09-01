@@ -6,12 +6,12 @@ Report privately, through GitHub's private vulnerability reporting on this repos
 If that road is closed to you, open an ordinary issue that says only that you have something to report and asks for a private channel — no detail, no reproduction.
 
 You will get an acknowledgement.
-There is no response-time promise until there is a release to stand behind, because a number nobody can hold to is worse than none.
+There is no response-time promise, because a number nobody can hold to is worse than none.
 
 ## Supported versions
 
-The most recent published `0.1` release, when one exists, is supported.
-Before the first publication, a report names the revision it is against.
+The most recent published release is supported.
+A report names the exact version or revision it is against.
 
 ## In scope
 

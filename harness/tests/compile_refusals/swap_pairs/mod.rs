@@ -1,8 +1,8 @@
 //! Generated compiler challenges over every authored type-separation row.
 
-mod diagnostic;
+pub(super) mod diagnostic;
 mod render;
-mod scratch;
+pub(super) mod scratch;
 
 use macroonz_harness::depot::swap_pairs::SWAP_PAIRS;
 
@@ -20,22 +20,38 @@ fn every_swap_pair_is_observed_in_its_declared_direction() -> Result<(), String>
             challenges.push(challenge);
         }
 
-        scratch.generate_lockfile()?;
+        let host = scratch
+            .generate_lockfile()
+            .map_err(|failure| format!("scratch lock generation was not runnable: {failure:?}"))?;
 
         for challenge in &challenges {
-            let lawful = scratch.check(&challenge.lawful.bin_name)?;
-            if !lawful.status.success() {
-                return Err(scratch::failed_command("lawful control", &lawful));
-            }
+            let lawful = scratch
+                .check(&challenge.lawful.bin_name, &host)
+                .map_err(|failure| format!("lawful control was not runnable: {failure:?}"))?;
+            diagnostic::require_compilation(
+                &lawful,
+                scratch.root(),
+                challenge.lawful.locus.source(),
+                &macroonz_harness::oracle::DeclaredCompilation::compiles(),
+            )?;
 
-            let hostile = scratch.check(&challenge.hostile.bin_name)?;
-            if hostile.status.success() {
-                return Err(format!(
-                    "swap-pair row {} accepted {} where {} was required",
+            let hostile = scratch
+                .check(&challenge.hostile.bin_name, &host)
+                .map_err(|failure| format!("hostile control was not runnable: {failure:?}"))?;
+            diagnostic::require_compilation(
+                &hostile,
+                scratch.root(),
+                challenge.hostile.locus.source(),
+                &macroonz_harness::oracle::DeclaredCompilation::refuses(
+                    challenge.expected_hostile_refusal.clone(),
+                ),
+            )
+            .map_err(|failure| {
+                format!(
+                    "swap-pair row {} offered {} where {} was required: {failure}",
                     challenge.ordinal, challenge.substitute, challenge.seat
-                ));
-            }
-            diagnostic::require_one_mismatch(&hostile.stdout, &challenge.hostile.primary)?;
+                )
+            })?;
         }
 
         Ok(())

@@ -1,0 +1,9 @@
+error[E0451]: fields `output` and `role` of struct `ProjectionSink` are private
+ --> tests/compile_refusals/compile-fail/a-projection-sink-cannot-be-minted-beside-its-plan.rs:8:9
+  |
+7 |     ProjectionSink {
+  |     -------------- in this type
+8 |         output,
+  |         ^^^^^^ private field
+9 |         role: RecipeRole::Companions,
+  |         ^^^^ private field

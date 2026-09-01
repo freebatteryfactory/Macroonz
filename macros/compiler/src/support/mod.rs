@@ -15,6 +15,7 @@ pub use carrier::{
     expectation_roster, exported_shell, gate_invocation, matched_clause, matcher, public_alias,
     rendered_path,
 };
+pub(crate) use types::DeclaringBinding;
 pub use types::{
     BoundPath, CrateFacing, DeclarationError, DeliveryForm, EXPECTED_SCHEMA_ID, PATH_SEGMENT_LIMIT,
     SchemaId, SupportName, WallName, rendered_identifier, rendered_name,

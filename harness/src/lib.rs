@@ -2,6 +2,7 @@
 //!
 //! Every verdict is claim-specific and method-specific and carries the evidence that earned it; a reduction-minted replay capsule is a second, separately earned value, joined to its report on the one execution key they share.
 //! The harness belongs in test and tooling code, and it depends on nothing it judges.
+//! A recipe may generate an inert call to this crate's public constructors, but handwritten composition retains the same capability and this crate remains the sole judgment owner.
 //! No type is re-exported at this root, so a call site spells the home that made the claim — `oracle::StructuralVerdict`, `muterprater::ARTIFACT_MUTATIONS`.
 //! The four stamps are the exception, because Rust puts an exported macro at the crate root: [`generated_support!`], [`trial_table!`], [`bench_table!`], and the [`ensure_ok!`] battery beside it.
 //!

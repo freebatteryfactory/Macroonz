@@ -1,7 +1,8 @@
-//! The proc-macro seat of `macroonz`: item-preserving attributes riding the carrier road, and direct declarations emitted where they stand.
+//! The thin proc-macro carrier for the root recipe entrance, item-preserving attributes, and direct declarations.
 //!
 //! Every grammar an entry here reads is the compiler's `descriptor` home's, every road from a reading to the tokens a declaration site receives is the compiler's, and the walk between them is the descriptor home's own `door` road.
 //! What this crate adds is exactly what a proc host owns: token conversion, span custody, one compiler call, diagnostic placement, and emission — plus the facts of its own act, declared once beside each entry.
+//! Built-in recipe projections may cross this host, while an arbitrary downstream projection algorithm uses the same compiler contract from a caller-owned compiler or proc host.
 //!
 //! Each attribute expands to one exported carrier and then re-emits the item token stream it received; the carrier is inert until a consumption target invokes it, so an ordinary build compiles the item and one macro definition and nothing more.
 //! Direct declarations such as [`shadow!`](macro@shadow), [`network!`](macro@network), and [`concurrency!`](macro@concurrency) emit ordinary items where the declaration stands, inert inside nothing, because a face and a builder are not cargo.
@@ -10,6 +11,30 @@ use macroonz_compiler::descriptor::door;
 use macroonz_compiler::descriptor::{Emitter, Grammar};
 use macroonz_compiler::{CrateBinding, Door, Producer, host};
 use proc_macro::TokenStream;
+
+/// Who is asking wherever the root recipe entrance refuses.
+const RECIPE_DOOR: Door = Door::declared(
+    "macroonz",
+    "macroonz.recipe",
+    "macroonz::recipe!",
+    CrateBinding::declared("macroonz"),
+    Producer {
+        namespace: "macroonz",
+        name: "macroonz-macros",
+    },
+);
+
+/// The procedural carrier behind `macroonz::recipe!`.
+///
+/// Rust requires this function-like proc entry to be public so the facade's hygienic wrapper can reach it across the package boundary.
+/// `macroonz::recipe!` is the only supported entrance; direct invocation is outside the compatibility contract and may change or break in any release without notice.
+#[doc(hidden)]
+#[proc_macro]
+pub fn __macroonz_recipe_carrier(body: TokenStream) -> TokenStream {
+    host::expand_emittable(body, |capture| {
+        macroonz_compiler::recipe::bake_wrapped(&capture, &RECIPE_DOOR)
+    })
+}
 
 /// The grammar spelling the `trials` attribute registers.
 const TRIALS_GRAMMAR: Grammar = Grammar {

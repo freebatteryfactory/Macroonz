@@ -1,0 +1,9 @@
+error[E0451]: fields `denominator` and `payloads` of struct `KeyedRosterAssignment` are private
+ --> tests/compile_refusals/compile-fail/a-keyed-roster-assignment-cannot-be-minted-beside-its-guard.rs:7:9
+  |
+6 |     let _assignment = KeyedRosterAssignment::<u8, &'static str, u8, &'static str, 1> {
+  |                       -------------------------------------------------------------- in this type
+7 |         denominator: KeyedRoster::one(1, "one"),
+  |         ^^^^^^^^^^^ private field
+8 |         payloads: KeyedRoster::one(2, "seat"),
+  |         ^^^^^^^^ private field

@@ -9,6 +9,27 @@ A verdict comes back as two separately earned values that join on one execution 
 The harness belongs in test and tooling code, and it never depends on the crates it judges.
 The `macroonz` facade includes its API by default so one dependency opens the complete machine; a shipping crate that wants no judge selects the diet posture.
 
+## Direct handwritten property
+
+A subject does not need a Macroonz macro, trait, or registration step before the harness can judge it.
+The runnable `temporal_property` example declares a handwritten transition system, proves one lawful history, and requires one hostile history to produce a typed finding:
+
+```console
+cargo run -p macroonz-harness --example temporal_property
+```
+
+The example leaves state, input, transition meaning, and the boundedness rule with the caller.
+The harness contributes only the temporal contract, the whole-history reading, and the typed conclusion.
+
+## Recipe evidence
+
+A recipe may request mechanical carrier material for an existing harness constructor, but the compiler never decides the resulting claim.
+The compiler's bounded descriptor adapter renders the declared constructor call, the generated carrier remains inert until an external target invokes it, and this crate alone owns the judgment and report standing.
+The invocation states both the declaring-crate path and this harness path, then the existing schema gate admits both carrier seats or withholds both before type checking.
+
+The handwritten road remains at least as capable as the generated road.
+Removing the facade's harness feature leaves ordinary Rust and compiler recipe projections available while making harness-owned evidence bakes typed unavailable through the same recipe contract.
+
 ---
 
 ## What you write

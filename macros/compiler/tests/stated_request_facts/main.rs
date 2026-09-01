@@ -6,7 +6,8 @@
 use macroonz_compiler::request::committed;
 use macroonz_compiler::{
     Answer, CrateBinding, Destination, Door, GeneratedToken, GeneratedTree, Kind, OwnerFact,
-    OwnerIdentity, Producer, Profile, Question, Request, Role, TextCapture, TraceDecision, Version,
+    OwnerIdentity, Producer, Profile, Question, Request, Role, SELECTION_FACT, TextCapture,
+    TraceDecision, Version,
 };
 
 /// The one publishing seat this lane plans.
@@ -14,13 +15,21 @@ use macroonz_compiler::{
 enum Seat {
     /// The generated publication.
     Publication,
+    /// A second independently selectable publication seat.
+    Companion,
+    /// A role value outside the declared roster.
+    Foreign,
 }
 
 impl Role for Seat {
-    const ALL: &'static [Self] = &[Self::Publication];
+    const ALL: &'static [Self] = &[Self::Publication, Self::Companion];
 
     fn name(self) -> &'static str {
-        "publication"
+        match self {
+            Self::Publication => "publication",
+            Self::Companion => "companion",
+            Self::Foreign => "foreign",
+        }
     }
 
     fn destination(self) -> Destination {
@@ -149,6 +158,8 @@ fn every_repeated_request_statement_keeps_the_last_value() -> Result<(), ()> {
         .publishing_at(Seat::Publication, SECOND_ADDRESS)
         .answering(vec![Answered::First])
         .answering(vec![Answered::Second])
+        .selecting(Seat::Companion, Vec::new())
+        .selecting(Seat::Publication, Vec::new())
         .render(|_plan, out| {
             out.unit(
                 Seat::Publication,
@@ -186,5 +197,104 @@ fn every_repeated_request_statement_keeps_the_last_value() -> Result<(), ()> {
     assert!(!selected.contains(&FIRST_FACT));
     assert_eq!(expansion.explain().declared(), &[Answered::Second]);
     assert_ne!(first_commitment, second_commitment);
+    Ok(())
+}
+
+fn rendered_word(word: &'static str) -> Result<GeneratedTree, macroonz_compiler::Overflow> {
+    GeneratedTree::assembled(vec![GeneratedToken::word(word)])
+}
+
+/// The default and explicit complete selection agree, while one selected role becomes the exact planned set before rendering.
+#[test]
+fn request_selection_is_nonempty_checked_and_identity_bearing() -> Result<(), String> {
+    assert_eq!(
+        SELECTION_FACT,
+        OwnerFact {
+            home: "request",
+            name: "a-requests-selected-seats-are-its-complete-output-set",
+        }
+    );
+    let source = TextCapture::read("struct Publication;").map_err(|refusal| refusal.to_string())?;
+    let default = Request::<Publication>::over(source.input().clone(), "publication", &DOOR)
+        .answering(vec![Answered::Second])
+        .publishing_at(Seat::Publication, FIRST_ADDRESS)
+        .publishing_at(Seat::Companion, SECOND_ADDRESS)
+        .render(|_plan, out| {
+            out.unit(Seat::Publication, rendered_word("publication")?)?;
+            out.unit(Seat::Companion, rendered_word("companion")?)
+        })
+        .map_err(|diagnostic| diagnostic.summary().to_owned())?;
+    let explicit = Request::<Publication>::over(source.input().clone(), "publication", &DOOR)
+        .answering(vec![Answered::Second])
+        .selecting(Seat::Publication, vec![Seat::Companion])
+        .publishing_at(Seat::Publication, FIRST_ADDRESS)
+        .publishing_at(Seat::Companion, SECOND_ADDRESS)
+        .render(|_plan, out| {
+            out.unit(Seat::Publication, rendered_word("publication")?)?;
+            out.unit(Seat::Companion, rendered_word("companion")?)
+        })
+        .map_err(|diagnostic| diagnostic.summary().to_owned())?;
+    let reversed = Request::<Publication>::over(source.input().clone(), "publication", &DOOR)
+        .answering(vec![Answered::Second])
+        .selecting(Seat::Companion, vec![Seat::Publication])
+        .publishing_at(Seat::Publication, FIRST_ADDRESS)
+        .publishing_at(Seat::Companion, SECOND_ADDRESS)
+        .render(|_plan, out| {
+            out.unit(Seat::Publication, rendered_word("publication")?)?;
+            out.unit(Seat::Companion, rendered_word("companion")?)
+        })
+        .map_err(|diagnostic| diagnostic.summary().to_owned())?;
+    let selected = Request::<Publication>::over(source.input().clone(), "publication", &DOOR)
+        .answering(vec![Answered::Second])
+        .selecting(Seat::Companion, Vec::new())
+        .publishing_at(Seat::Companion, SECOND_ADDRESS)
+        .render(|plan, out| {
+            assert_eq!(plan.membership().count(), 1);
+            assert!(plan.membership().under(Seat::Publication).is_none());
+            out.unit(Seat::Companion, rendered_word("companion")?)
+        })
+        .map_err(|diagnostic| diagnostic.summary().to_owned())?;
+
+    assert_eq!(default.plan().identity(), explicit.plan().identity());
+    assert_eq!(default.plan().identity(), reversed.plan().identity());
+    assert_ne!(default.plan().identity(), selected.plan().identity());
+    Ok(())
+}
+
+/// Selection admission and address consumption keep their existing typed planning authority.
+#[test]
+fn request_selection_refuses_doubled_foreign_and_inert_seats() -> Result<(), String> {
+    let source = TextCapture::read("struct Publication;").map_err(|refusal| refusal.to_string())?;
+    let doubled = Request::<Publication>::over(source.input().clone(), "publication", &DOOR)
+        .answering(vec![Answered::Second])
+        .selecting(Seat::Publication, vec![Seat::Publication])
+        .render(|_plan, _out| Ok(()))
+        .err()
+        .ok_or_else(|| "the doubled selection was admitted".to_owned())?;
+    let foreign = Request::<Publication>::over(source.input().clone(), "publication", &DOOR)
+        .answering(vec![Answered::Second])
+        .selecting(Seat::Foreign, Vec::new())
+        .render(|_plan, _out| Ok(()))
+        .err()
+        .ok_or_else(|| "the foreign selection was admitted".to_owned())?;
+    let inert = Request::<Publication>::over(source.input().clone(), "publication", &DOOR)
+        .answering(vec![Answered::Second])
+        .selecting(Seat::Publication, Vec::new())
+        .publishing_at(Seat::Companion, SECOND_ADDRESS)
+        .render(|_plan, _out| Ok(()))
+        .err()
+        .ok_or_else(|| "the inert address was admitted".to_owned())?;
+
+    assert!(doubled.summary().contains("2 members stand under the seat"));
+    assert!(
+        foreign
+            .summary()
+            .contains("stands outside the kind's declared roster")
+    );
+    assert!(
+        inert
+            .summary()
+            .contains("which no publication act consumes")
+    );
     Ok(())
 }

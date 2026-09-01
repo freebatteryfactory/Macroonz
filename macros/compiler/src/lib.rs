@@ -1,6 +1,6 @@
-//! A compiler for declared code: one complete request goes in, one sealed expansion comes out, or one diagnostic that says exactly why not.
+//! A compiler that informs declared structure and seals every requested projection into one complete expansion.
 //!
-//! The crate README is the specification — what a kind is, what each step of the road settles, and which half of the work is the caller's.
+//! The crate README specifies the paved recipe contract, the raw callable extension road, what each generation step settles, and which semantic facts remain the caller's.
 //! Every home below carries its own README as its module documentation.
 //! The module list is a reading order: homes cite their semantic owners directly, including the request-owned door whose diagnostic projections are consumed by the diagnostic home, and the crate depends on nothing else in this workspace.
 
@@ -23,11 +23,33 @@ pub mod descriptor;
 pub mod codec;
 pub mod stamp;
 pub mod request;
+pub mod recipe;
+
+impl recipe::EvidenceCompiler for recipe::ConfiguredEvidence {
+    fn prepared(
+        capture: &CapturedInput,
+        recipe: &recipe::Recipe,
+        door: &Door,
+        replaced: Option<recipe::RecipeRole>,
+    ) -> Result<recipe::PreparedEvidence, Diagnostic> {
+        descriptor::recipe::prepared(capture, recipe, door, replaced)
+    }
+}
 
 #[cfg(feature = "host")]
 pub mod host;
 
-pub use bounded::{Bounded, Capped, Capping, Empty, NonEmpty, NonEmptyError, Overflow};
+pub use bounded::{
+    AbsencePosture, Bounded, Capped, Capping, CompletenessPosture, CompletenessStanding,
+    CyclePosture, CycleStanding, DensityPosture, DensityStanding, DuplicateKey, Empty,
+    EmptyPosture, ForeignRosterReference, KeyedRoster, KeyedRosterAssignment,
+    KeyedRosterAssignmentError, KeyedRosterError, KeyedRosterRelation, KeyedRosterRows,
+    KeyedRosterRowsError, MembershipPosture, NonEmpty, NonEmptyError, OccupancyStanding, Overflow,
+    Reachability, ReachabilityError, RepeatedRelationPair, RepeatedRelationPairs,
+    RepetitionPosture, RepetitionStanding, RosterRelationStanding, RowOrder, SameRosterRequired,
+    SelfRelationPosture, SelfRelationStanding, StructuralMismatch, StructuralRequirement,
+    UnassignedRosterMember,
+};
 pub use closure::{
     CLOSURE_ISSUE_LIMIT, CarriedTokens, Closure, ClosureError, ClosureIssue, PartitionCargo,
     PartitionedEmission,
@@ -77,14 +99,24 @@ pub use request::{
     CrateBinding, Door, Producer, RUST_DECLARATION_PROFILE, Request, SELECTION_FACT, bound_content,
 };
 pub use token::{
+    AuthoredItem, AuthoredItemKind, AuthoredItemReadIssue, AuthoredItemReadRefusal,
     CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound,
-    CaptureBuildRefusal, CaptureBuilder, CaptureLevel, CaptureWalk, CapturedAtom,
-    CapturedDelimiter, CapturedInput, CapturedPayload, CapturedTokenTree, CoordinateRole,
-    GENERATED_TOKEN_LIMIT, GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree,
-    LiteralReadCause, SourceCoordinate, SpanHandle, SpanResolutionRefusal, SpanTable,
-    TEXT_SOURCE_BYTE_LIMIT, TOKEN_PATH_DEPTH_LIMIT, TextCapture, TextLexicalCause, TextReadCause,
-    TextReadRefusal, TokenPath, absolute_path, and_all, attribute, bound_local, bound_path, call,
-    capture_literal, comma, comma_many, constant, documentation, equality, function, group,
-    metavariable, method_call, method_chain, rendered_identifier, rendered_name, result_type,
-    roster, rust_keyword, text_pair, twin_path,
+    CaptureBuildRefusal, CaptureBuilder, CaptureCursor, CaptureExpectation, CaptureLevel,
+    CaptureReadIssue, CaptureReadRefusal, CaptureWalk, CapturedAtom, CapturedDelimiter,
+    CapturedFragment, CapturedInput, CapturedPayload, CapturedSpacing, CapturedTokenTree,
+    CoordinateRole, FragmentGenerationIssue, FragmentGenerationRefusal, GENERATED_TOKEN_LIMIT,
+    GeneratedDelimiter, GeneratedLiteral, GeneratedLiteralRefusal, GeneratedRowRefusal,
+    GeneratedSpacing, GeneratedToken, GeneratedTree, LiteralReadCause, SourceCoordinate,
+    SpanHandle, SpanResolutionRefusal, SpanTable, TEXT_SOURCE_BYTE_LIMIT, TOKEN_PATH_DEPTH_LIMIT,
+    TextCapture, TextLexicalCause, TextReadCause, TextReadRefusal, TokenPath, absolute_path,
+    and_all, associated_constant, associated_function, associated_type, attribute, bound_local,
+    bound_path, call, capture_literal, comma, comma_many, constant, consuming_receiver, decorated,
+    documentation, enumeration, equality, exclusive_receiver, function, function_item,
+    function_signature, generic_parameters, group, implementation, inline_module,
+    keyed_assignment_items, keyed_assignment_slice, keyed_roster_items, keyed_roster_slice,
+    match_arm, match_expression, metavariable, method_call, method_chain, named_field,
+    named_struct, named_variant, pinned_receiver, rendered_identifier, rendered_name, result_type,
+    roster, rust_keyword, shared_receiver, text_pair, trait_declaration, tuple_struct,
+    tuple_variant, twin_path, type_alias, typed_parameter, unit_struct, unit_variant, use_item,
+    where_clause,
 };

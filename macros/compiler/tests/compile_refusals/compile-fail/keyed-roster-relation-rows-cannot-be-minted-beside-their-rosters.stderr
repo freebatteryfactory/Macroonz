@@ -1,0 +1,11 @@
+error[E0451]: fields `left`, `right`, `rows` and `canonical_indices` of struct `KeyedRosterRows` are private
+  --> tests/compile_refusals/compile-fail/keyed-roster-relation-rows-cannot-be-minted-beside-their-rosters.rs:12:9
+   |
+11 |     let _forged = KeyedRosterRows::<u8, u8, u8, u8, (), 1, 1, 0> {
+   |                   ---------------------------------------------- in this type
+12 |         left: &roster,
+   |         ^^^^^^^^^^^^^ private field
+13 |         right: &roster,
+   |         ^^^^^^^^^^^^^^ private field
+14 |         ..inaccessible_base()
+   |           ^^^^^^^^^^^^^^^^^^^ fields `rows` and `canonical_indices` are private

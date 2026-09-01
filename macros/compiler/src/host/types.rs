@@ -3,7 +3,9 @@
 //! Declarations only, with every road that reaches a private field in `type_guard.rs`, this file's own child.
 
 use crate::closure::PartitionCargo;
-use crate::token::{CaptureBound, CaptureBuilder, LiteralReadCause, SpanHandle, TokenPath};
+use crate::token::{
+    CaptureBound, CaptureBuilder, LiteralReadCause, SpanHandle, SpanResolutionRefusal, TokenPath,
+};
 use proc_macro::Span;
 
 #[path = "type_guard.rs"]
@@ -38,6 +40,25 @@ pub enum CaptureError {
         /// The producer-local handle already bound to the token's compiler span.
         at: SpanHandle,
     },
+}
+
+/// Why one admitted generated literal could not cross the compiler-token host.
+///
+/// This is a host contradiction rather than a declaration diagnostic: the ordinary compiler admitted the literal before the proc API was asked to materialize it.
+#[must_use = "an emission refusal names the admitted literal the compiler host could not materialize"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum EmissionError {
+    /// The proc-macro literal API rejected one already admitted numeric spelling.
+    NumberRejected {
+        /// The exact admitted numeric spelling.
+        spelling: String,
+    },
+    /// The proc-macro C-string literal API rejected already admitted C-string material.
+    NulTerminatedTextRejected,
+    /// A generated tree's private source roster no longer matches its recursive token denominator.
+    SourceSpanRosterContradiction,
+    /// One preserved source handle does not resolve in the capture table supplied for emission.
+    SourceSpanUnresolved(SpanResolutionRefusal),
 }
 
 /// What one value answers to have its declaration-site cargo emitted.

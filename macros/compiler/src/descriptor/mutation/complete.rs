@@ -40,6 +40,26 @@ pub fn completed(
     grammar: Grammar,
 ) -> Result<Surface, MutationCaptureError> {
     let (at, order) = declared_order(grammar, item)?;
+    completed_from_order(declaration, &order, at, grammar)
+}
+
+/// Complete one captured declaration from an already informed authored order.
+///
+/// This is the composition road for a caller that already proved the exact member roster and therefore must not reparse a second copy of the enum item.
+/// It applies the same adjacent-transposition mechanics and refusal contract as [`completed`].
+///
+/// # Errors
+///
+/// Returns [`MutationCaptureError`] where the order has fewer than two members, exceeds the alternative bound, or cannot be rendered within its declared token magnitudes.
+pub fn completed_from_order(
+    declaration: Declaration,
+    order: &[String],
+    at: SpanHandle,
+    grammar: Grammar,
+) -> Result<Surface, MutationCaptureError> {
+    if order.len() < 2 {
+        return Err(refused(grammar, CaptureCause::OrderUnpressable, at));
+    }
     let offered_alternatives = order.len().saturating_sub(1);
     if offered_alternatives > ALTERNATIVE_LIMIT {
         return Err(carried(
@@ -49,14 +69,14 @@ pub fn completed(
         ));
     }
     let family = declaration.policy().family().clone();
-    let unchanged = order_operation(&family, &order);
-    let production = spelling_array(&order).map_err(|overflow| overflown(grammar, overflow, at))?;
+    let unchanged = order_operation(&family, order);
+    let production = spelling_array(order).map_err(|overflow| overflown(grammar, overflow, at))?;
     let order_type =
         order_type(order.len()).map_err(|overflow| overflown(grammar, overflow, at))?;
 
     let mut alternatives: Vec<Alternative> = Vec::new();
     for left in 0..order.len().saturating_sub(1) {
-        let mut transposed = order.clone();
+        let mut transposed = order.to_vec();
         transposed.swap(left, left.saturating_add(1));
         let operation = order_operation(&family, &transposed);
         let meaning =
@@ -97,10 +117,10 @@ fn overflown(grammar: Grammar, overflow: Overflow, at: SpanHandle) -> MutationCa
 }
 
 /// The declared order the item states: the enum's variant names, in authored order, and the token the body sits at.
-fn declared_order<'trees>(
+fn declared_order(
     grammar: Grammar,
-    item: &[&'trees CapturedTokenTree],
-) -> Result<(SpanHandle, Vec<&'trees str>), MutationCaptureError> {
+    item: &[&CapturedTokenTree],
+) -> Result<(SpanHandle, Vec<String>), MutationCaptureError> {
     let fallback = item
         .first()
         .map_or_else(|| SpanHandle::at(0), |tree| tree.span());
@@ -118,7 +138,7 @@ fn declared_order<'trees>(
         })
         .ok_or_else(|| refused(grammar, CaptureCause::ItemUnread, fallback))?;
     let (at, inner) = body;
-    let mut order: Vec<&str> = Vec::new();
+    let mut order: Vec<String> = Vec::new();
     let mut group: Vec<&CapturedTokenTree> = Vec::new();
     for tree in inner {
         if tree.punct() == Some(',') {
@@ -129,14 +149,14 @@ fn declared_order<'trees>(
                     tree.span(),
                 ));
             }
-            order.push(variant(grammar, &group, at)?);
+            order.push(variant(grammar, &group, at)?.to_owned());
             group.clear();
         } else {
             group.push(tree);
         }
     }
     if !group.is_empty() {
-        order.push(variant(grammar, &group, at)?);
+        order.push(variant(grammar, &group, at)?.to_owned());
     }
     if order.len() < 2 {
         return Err(refused(grammar, CaptureCause::OrderUnpressable, at));
@@ -165,7 +185,7 @@ fn variant<'trees>(
 }
 
 /// The semantic bytes one order is identified by: a version, a label, the evaluation family, and the members in sequence.
-fn order_operation(family: &Name, order: &[&str]) -> Vec<u8> {
+fn order_operation(family: &Name, order: &[String]) -> Vec<u8> {
     let mut bytes = Vec::new();
     bytes.extend_from_slice(&ORDER_OPERATION_VERSION.to_be_bytes());
     encode_bytes(ORDER_OPERATION_LABEL, &mut bytes);
@@ -194,7 +214,7 @@ fn order_type(count: usize) -> Result<Vec<GeneratedToken>, Overflow> {
 }
 
 /// One order as the array literal that spells it.
-fn spelling_array(order: &[&str]) -> Result<Vec<GeneratedToken>, Overflow> {
+fn spelling_array(order: &[String]) -> Result<Vec<GeneratedToken>, Overflow> {
     let mut members: Vec<GeneratedToken> = Vec::new();
     for spelling in order {
         members.push(GeneratedToken::text(spelling));

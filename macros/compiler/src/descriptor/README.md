@@ -32,6 +32,14 @@ Not one harness type is imported, and the constructor-calling expressions a rend
 
 The producer writes letters to an address; it does not own the mailbox.
 
+## Recipe composition
+
+The recipe home may carry declared trial, mutation, benchmark, network, and concurrency material through these same kinds.
+It does not translate them into recipe-owned evidence types or reproduce their constructor vocabulary.
+
+Each declared block is read by its existing grammar, rendered by its existing kind, and delivered through its existing direct or support-carrier road before the recipe projection accounts for the resulting output.
+Compile, property, temporal, generation, fuzz, fault, schedule, package, and publication claims remain caller-owned meanings stated through trial rows rather than new compiler policies.
+
 ## Two binding postures, and no hardcoded crate name
 
 Carrier cargo roots every harness path at the support carrier's logical harness metavariable.

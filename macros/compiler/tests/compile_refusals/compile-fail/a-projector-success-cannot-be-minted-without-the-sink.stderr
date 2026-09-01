@@ -1,0 +1,5 @@
+error[E0451]: field `_private` of struct `ProjectionOffered` is private
+ --> tests/compile_refusals/compile-fail/a-projector-success-cannot-be-minted-without-the-sink.rs:4:25
+  |
+4 |     ProjectionOffered { _private: () }
+  |                         ^^^^^^^^ private field

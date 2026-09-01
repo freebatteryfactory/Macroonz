@@ -6,14 +6,38 @@ A complete request goes in; one sealed expansion comes out, or one diagnostic th
 This crate is ordinary callable Rust.
 Its default build knows no proc macro: the `host` feature is the one opt-in bridge to `proc_macro`, and everything outside that feature is plain functions over plain values.
 The generic kernel knows nothing about what you are generating; the `descriptor` home is the one stated exception, the first-party adapter that speaks this workspace's own harness vocabulary.
-You declare a **kind** — what one request produces — and the compiler is generic over it from the first byte to the last.
+The paved recipe road and the raw callable road meet at the same informed structure, projection authority, and sealed expansion.
 
 ---
 
-## What you write
+## Declare, inform, compose, project
 
-A kind, a reader for your own declaration grammar, and a renderer.
-Everything else is the road.
+A recipe hands the compiler caller-owned Rust items, explicit structural facts and postures, ordinary Rust paths, and requested projections.
+The compiler informs only the structure it must account over, offers each planned projection to a standard or caller-owned projector, and carries accepted generated tokens through the existing request road.
+
+The caller owns grammar meaning, vocabularies, relations, effects, policies, lawful answers, exact Rust fragments, and every independent claim.
+The compiler owns generic capture, membership and duplicate refusal, checked references, exact seat accounting, projection disposition, token construction, planning, closure, explanation, and expansion.
+Rustc owns path resolution, visibility, typing, ownership, borrowing, lifetimes, coherence, exhaustiveness, and the final legality of the generated Rust.
+
+Complete caller-authored items retain one token reading and one checked structural lens into the positions the recipe needs to enumerate or augment.
+The compiler does not reconstruct those items as a second public Rust model, and it does not inspect source strings to rediscover facts the caller already declared.
+
+Conventional presets, named configuration, exact Rust seats, and arbitrary caller-owned projectors consume one informed account and one checked projection request.
+Every projector can offer output only for a planned role and destination, while closure and expansion remain compiler authority.
+
+## Raw callable road
+
+A caller who wants the informed recipe road but needs a projection algorithm Macroonz does not ship implements `recipe::RecipeProjector` and supplies it to `recipe::bake_with` for one selected role.
+The projector reads `RecipeView` and `ProjectionRequest`, offers one `GeneratedTree` through its consuming `ProjectionSink`, and receives no planning, closure, identity, sidecar, or completion authority.
+
+The package ships that exact journey at `examples/custom_recipe_projector.rs`; run `cargo run -p macroonz-compiler --example custom_recipe_projector` from the workspace root.
+The example replaces one standard seat with a domain-neutral structural-dimensions projection and depends on no facade, proc host, harness, plugin registry, or ambient discovery.
+
+The paved `macroonz::recipe!` host can configure projectors that ship with Macroonz, but it cannot execute arbitrary Rust code declared later in an adopter crate.
+Such algorithms run through this callable road or through a caller-owned proc-macro crate using the same compiler contract.
+
+A raw caller declares a **kind** — what one request produces — plus a reader for its declaration grammar and a projector over the resulting content.
+This is the extension road for a projection algorithm the first-party recipe host cannot execute, not a different semantic model.
 
 ```rust
 use macroonz_compiler::{Destination, Kind, NoQuestions, Request, Role};
@@ -54,8 +78,12 @@ pub fn greet(input: TokenStream) -> TokenStream {
 }
 ```
 
-`Greeting::read` is yours.
-The compiler hands you typed token trees with spans and never parses your attribute for you, because the moment it did, it would own your grammar.
+`Greeting`, `GREET_DOOR`, and `impl_tokens` in this proc-host sketch are adopter-owned placeholders.
+The package ships a complete one-unit callable compiler at `examples/callable_compiler.rs` using their minimal equivalents; run `cargo run -p macroonz-compiler --example callable_compiler` from the workspace root.
+That example executes `Request::over(...).render(...)`, not `host::expand` or a proc-macro host crossing.
+
+`Greeting::read` is the raw caller's grammar owner.
+The compiler hands it typed token trees with spans and supplies reusable grammar mechanics without assigning meaning to any clause.
 
 `Greeting` implements `CanonicalContent`, giving the kind-specific facts one complete semantic encoding that changes whenever a fact the renderer may read changes.
 `GREET_DOOR` is the one value that says who is asking: the diagnostic prefix and stable names, the crate rendered paths are rooted at, and the producer namespace and name.
@@ -109,7 +137,7 @@ A request that fails any step is refused whole — there is no partial output.
 
 | Home | Owns |
 | --- | --- |
-| `bounded/` | The compiler's own capped collections: `Bounded`, `NonEmpty`, and `Capped` — a list plus how it was capped. |
+| `bounded/` | The compiler's bounded collection shapes: optional, required, caller-keyed unique, and deliberately prefix-capped. |
 | `identity/` | `Identity<S>`, the `Subject` trait, transcripts, profiles, versions, provenance, and the digest. |
 | `token/` | Captured token trees with spans, the literal reader, the text route, generated tokens, and the Rust-expression helpers every renderer needs. |
 | `kind/` | `Kind`, `CanonicalContent`, `Role`, `Question`, `Answer`, the `kinds!` declaration, and dispositions. |
@@ -135,11 +163,11 @@ A home is a directory with a README, a `mod.rs`, and a `types.rs`; the repositor
 
 Everything with meaning.
 
-- **Kinds, roles, questions.** `Kind`, `Role`, `Question`, and `Subject` are open traits. Implement them in your crate. There is no seal and no registration.
-- **Content.** `Kind::Content` implements `CanonicalContent`. Its declaring adapter owns the complete semantic encoding; the compiler frames it and binds it to the exact capture and owner-qualified kind before planning.
-- **Grammar.** Your attributes, your clauses, your refusals, your wording.
-- **Identity.** Your subjects derive under your stem. The compiler's own identities derive under `macroonz/identity`. They cannot collide.
-- **The door.** The prefix on every diagnostic, the names of your grammar and entry, the crate your paths are rooted at, and the producer namespace and name generated identities stand under.
+- **Kinds, roles, questions:** `Kind`, `Role`, `Question`, and `Subject` remain open traits for raw callers and custom hosts with no seal or registration.
+- **Content:** A raw `Kind::Content` implements `CanonicalContent`, while a recipe's informed structural account supplies the equivalent complete declared facts and its declaring adapter owns the semantic encoding bound to the exact capture and owner-qualified kind before planning.
+- **Grammar meaning:** Your attributes, clauses, meanings, refusals, and wording remain yours even when generic token mechanics perform the bounded reading work.
+- **Identity:** Your subjects derive under your stem while compiler-owned identities derive under `macroonz/identity`, so the two cannot collide.
+- **The door:** The prefix on every diagnostic, the names of your grammar and entry, the crate your paths are rooted at, and the producer namespace and name generated identities stand under.
 
 What is the compiler's: the eight steps, the proof that rendering matched plan, the explanation protocol, the diagnostic grammar, the digest, and the carrier a test target invokes.
 

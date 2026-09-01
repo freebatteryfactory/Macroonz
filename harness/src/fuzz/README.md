@@ -61,8 +61,10 @@ flowchart LR
 
 ## Runnable road
 
-The facade-level [`examples/rustc_coverage.rs`](../../../examples/rustc_coverage.rs) target compiles a small Rust subject, proves coverage novelty and repeatability, retains a seed pack, and crosses one coverage-earned input into reduction and replay.
+The current facade package source ships [`examples/rustc_coverage.rs`](https://docs.rs/crate/macroonz/latest/source/examples/rustc_coverage.rs) with its complete [`examples/support/`](https://docs.rs/crate/macroonz/latest/source/examples/support/) directory as a target that compiles a small Rust subject, proves coverage novelty and repeatability, retains a seed pack, and crosses one coverage-earned input into reduction and replay.
 It uses the same `macroonz` package an adopter installs and no separate qualification package.
+Adding `macroonz` as a dependency does not install the facade package's example target into the adopter's package.
+Obtain the main file and complete support directory in that layout as an example target, and enable the dependency's `harness` feature before running this command from the package that owns the target.
 
 ```sh
 cargo run --example rustc_coverage

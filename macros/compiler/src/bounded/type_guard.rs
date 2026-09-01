@@ -3,7 +3,13 @@
 //! Declared inside `types.rs` as its own child, which is what makes this home's claims structural.
 //! A list longer than its ceiling and a non-empty list with nothing in it are values nobody can build, rather than shapes something downstream has to check for.
 
-use super::{Bounded, Capped, Capping, Empty, NonEmpty, NonEmptyError, Overflow};
+use super::{
+    Bounded, Capped, Capping, DuplicateKey, Empty, ForeignRosterReference, KeyedRoster,
+    KeyedRosterAssignment, KeyedRosterAssignmentError, KeyedRosterError, KeyedRosterRelation,
+    KeyedRosterRows, KeyedRosterRowsError, NonEmpty, NonEmptyError, Overflow, ReferencedRosterRow,
+    RepeatedRelationPair, RepeatedRelationPairs, UnassignedRosterMember,
+};
+use core::borrow::Borrow;
 
 impl<T, const N: usize> Bounded<T, N> {
     /// An empty collection under this ceiling.
@@ -151,6 +157,1002 @@ impl<'held, T, const N: usize> IntoIterator for &'held NonEmpty<T, N> {
 
     fn into_iter(self) -> Self::IntoIter {
         core::iter::once(&self.head).chain(self.tail.iter())
+    }
+}
+
+impl<T, K, const N: usize> KeyedRoster<T, K, N> {
+    /// A roster containing one member under its caller-declared key.
+    #[must_use]
+    pub const fn one(member: T, key: K) -> Self {
+        Self {
+            members: NonEmpty::one(member),
+            keys: NonEmpty::one(key),
+        }
+    }
+
+    /// The first member, which this roster always has.
+    #[must_use]
+    pub const fn first(&self) -> &T {
+        self.members.first()
+    }
+
+    /// The key retained for the first member.
+    #[must_use]
+    pub const fn first_key(&self) -> &K {
+        self.keys.first()
+    }
+
+    /// How many members are held, which is never zero.
+    #[must_use]
+    pub fn count(&self) -> usize {
+        self.members.count()
+    }
+
+    /// Reads the members in declaration order.
+    pub fn members(&self) -> impl Iterator<Item = &T> {
+        self.members.iter()
+    }
+
+    /// Reads the retained keys in declaration order.
+    pub fn keys(&self) -> impl Iterator<Item = &K> {
+        self.keys.iter()
+    }
+
+    /// Reads every declaration index, retained key, and member together.
+    pub fn indexed(&self) -> impl Iterator<Item = (usize, &K, &T)> {
+        self.keys()
+            .zip(self.members())
+            .enumerate()
+            .map(|(index, (key, member))| (index, key, member))
+    }
+
+    /// Reads the key and member at one checked declaration index.
+    #[must_use]
+    pub fn at(&self, index: usize) -> Option<(&K, &T)> {
+        self.keys().zip(self.members()).nth(index)
+    }
+
+    /// Finds the declaration index of one borrowed key.
+    #[must_use]
+    pub fn index_of<Q>(&self, sought: &Q) -> Option<usize>
+    where
+        K: Borrow<Q>,
+        Q: Eq + ?Sized,
+    {
+        self.keys().position(|key| key.borrow() == sought)
+    }
+
+    /// Finds the member held under one borrowed key.
+    #[must_use]
+    pub fn get<Q>(&self, sought: &Q) -> Option<&T>
+    where
+        K: Borrow<Q>,
+        Q: Eq + ?Sized,
+    {
+        self.keys()
+            .zip(self.members())
+            .find_map(|(key, member)| (key.borrow() == sought).then_some(member))
+    }
+
+    /// Finds the declaration position, retained key, and member under one borrowed key.
+    #[must_use]
+    pub fn indexed_get<Q>(&self, sought: &Q) -> Option<(usize, &K, &T)>
+    where
+        K: Borrow<Q>,
+        Q: Eq + ?Sized,
+    {
+        self.indexed()
+            .find(|(_index, key, _member)| (*key).borrow() == sought)
+    }
+}
+
+impl<T, K: Eq, const N: usize> KeyedRoster<T, K, N> {
+    /// Admits one complete ordered offering under caller-declared unique keys.
+    ///
+    /// The offering's nonempty bounded magnitude is settled before the key projection runs.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Empty`] when nothing is offered, [`Overflow`] when more than `N` items are offered, and [`DuplicateKey`] coordinates for every distinct key that occurs more than once.
+    pub fn new(
+        members: Vec<T>,
+        key_of: impl FnMut(&T) -> K,
+    ) -> Result<Self, KeyedRosterError<K, N>> {
+        let members = NonEmpty::new(members).map_err(keyed_magnitude_refusal)?;
+        let keys = project_keys(&members, key_of);
+        match admit_keys(keys) {
+            KeyAdmission::Unique(keys) => Ok(Self { members, keys }),
+            KeyAdmission::Duplicated(duplicates) => {
+                Err(KeyedRosterError::DuplicateKeys(duplicates))
+            }
+        }
+    }
+}
+
+impl<K, const N: usize> DuplicateKey<K, N> {
+    /// The caller-declared key that occurred more than once.
+    #[must_use]
+    pub const fn key(&self) -> &K {
+        &self.key
+    }
+
+    /// The zero-based declaration position of the first occurrence.
+    #[must_use]
+    pub const fn first_position(&self) -> usize {
+        self.first
+    }
+
+    /// The zero-based declaration positions of every later occurrence.
+    #[must_use]
+    pub const fn repeated_positions(&self) -> &NonEmpty<usize, N> {
+        &self.repeated
+    }
+}
+
+fn keyed_magnitude_refusal<K, const N: usize>(error: NonEmptyError) -> KeyedRosterError<K, N> {
+    match error {
+        NonEmptyError::Empty(empty) => KeyedRosterError::Empty(empty),
+        NonEmptyError::Overflow(overflow) => KeyedRosterError::Overflow(overflow),
+    }
+}
+
+fn project_keys<T, K, const N: usize>(
+    members: &NonEmpty<T, N>,
+    mut key_of: impl FnMut(&T) -> K,
+) -> NonEmpty<K, N> {
+    let (head, tail) = members.split();
+    NonEmpty {
+        head: key_of(head),
+        tail: tail.iter().map(key_of).collect(),
+    }
+}
+
+fn admit_keys<K: Eq, const N: usize>(keys: NonEmpty<K, N>) -> KeyAdmission<K, N> {
+    let NonEmpty { head, tail } = keys;
+    let mut groups = KeyGroups {
+        head: KeyGroup {
+            key: head,
+            first: 0,
+            repeated: Vec::new(),
+        },
+        tail: Vec::new(),
+    };
+    for (index, key) in tail.into_iter().enumerate() {
+        groups.insert(key, index.saturating_add(1));
+    }
+    groups.admit()
+}
+
+struct KeyGroup<K> {
+    key: K,
+    first: usize,
+    repeated: Vec<usize>,
+}
+
+struct KeyGroups<K> {
+    head: KeyGroup<K>,
+    tail: Vec<KeyGroup<K>>,
+}
+
+enum KeyAdmission<K, const N: usize> {
+    Unique(NonEmpty<K, N>),
+    Duplicated(NonEmpty<DuplicateKey<K, N>, N>),
+}
+
+impl<K: Eq> KeyGroups<K> {
+    fn insert(&mut self, key: K, index: usize) {
+        if self.head.key == key {
+            self.head.repeated.push(index);
+            return;
+        }
+        if let Some(group) = self.tail.iter_mut().find(|group| group.key == key) {
+            group.repeated.push(index);
+            return;
+        }
+        self.tail.push(KeyGroup {
+            key,
+            first: index,
+            repeated: Vec::new(),
+        });
+    }
+
+    fn admit<const N: usize>(self) -> KeyAdmission<K, N> {
+        let mut tail = self.tail.into_iter();
+        let head = match admitted_group(self.head) {
+            Ok(key) => key,
+            Err(duplicate) => {
+                return KeyAdmission::Duplicated(NonEmpty {
+                    head: duplicate,
+                    tail: tail
+                        .filter_map(|group| admitted_group(group).err())
+                        .collect(),
+                });
+            }
+        };
+        let mut unique = Vec::new();
+        while let Some(group) = tail.next() {
+            match admitted_group(group) {
+                Ok(key) => unique.push(key),
+                Err(duplicate) => {
+                    return KeyAdmission::Duplicated(NonEmpty {
+                        head: duplicate,
+                        tail: tail
+                            .filter_map(|remaining| admitted_group(remaining).err())
+                            .collect(),
+                    });
+                }
+            }
+        }
+        KeyAdmission::Unique(NonEmpty { head, tail: unique })
+    }
+}
+
+fn admitted_group<K, const N: usize>(group: KeyGroup<K>) -> Result<K, DuplicateKey<K, N>> {
+    let KeyGroup {
+        key,
+        first,
+        repeated,
+    } = group;
+    let mut repeated = repeated.into_iter();
+    if let Some(repeated_head) = repeated.next() {
+        return Err(DuplicateKey {
+            key,
+            first,
+            repeated: NonEmpty {
+                head: repeated_head,
+                tail: repeated.collect(),
+            },
+        });
+    }
+    Ok(key)
+}
+
+impl<D, K, P, S, const N: usize> KeyedRosterAssignment<D, K, P, S, N> {
+    /// The complete caller-keyed denominator retained by this assignment.
+    #[must_use]
+    pub const fn denominator(&self) -> &KeyedRoster<D, K, N> {
+        &self.denominator
+    }
+
+    /// The payload roster aligned with the denominator and keyed by caller-declared seats.
+    #[must_use]
+    pub const fn payloads(&self) -> &KeyedRoster<P, S, N> {
+        &self.payloads
+    }
+
+    /// How many denominator members and aligned payloads are held.
+    #[must_use]
+    pub fn count(&self) -> usize {
+        self.denominator.count()
+    }
+
+    /// The first denominator member and its assigned payload.
+    #[must_use]
+    pub const fn first(&self) -> (&K, &D, &S, &P) {
+        (
+            self.denominator.first_key(),
+            self.denominator.first(),
+            self.payloads.first_key(),
+            self.payloads.first(),
+        )
+    }
+
+    /// Reads every denominator member and aligned payload in denominator order.
+    pub fn indexed(&self) -> impl Iterator<Item = (usize, &K, &D, &S, &P)> {
+        self.denominator
+            .indexed()
+            .zip(self.payloads.keys().zip(self.payloads.members()))
+            .map(|((index, key, member), (seat, payload))| (index, key, member, seat, payload))
+    }
+
+    /// Reads one denominator member and aligned payload at a checked index.
+    #[must_use]
+    pub fn at(&self, index: usize) -> Option<(&K, &D, &S, &P)> {
+        self.denominator
+            .at(index)
+            .zip(self.payloads.at(index))
+            .map(|((key, member), (seat, payload))| (key, member, seat, payload))
+    }
+
+    /// Finds one denominator member and aligned payload through a borrowed key.
+    #[must_use]
+    pub fn get<Q>(&self, sought: &Q) -> Option<(&D, &S, &P)>
+    where
+        K: Borrow<Q>,
+        Q: Eq + ?Sized,
+    {
+        let index = self.denominator.index_of(sought)?;
+        self.at(index)
+            .map(|(_key, member, seat, payload)| (member, seat, payload))
+    }
+}
+
+impl<D, K: Eq, P, S: Eq, const N: usize> KeyedRosterAssignment<D, K, P, S, N> {
+    /// Completes one payload assignment over an existing caller-keyed denominator.
+    ///
+    /// Payload magnitude is settled before either key projection runs.
+    /// Reference membership and uniqueness are settled before payload-seat keys are projected.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`KeyedRosterAssignmentError`] with the first structural refusal class reached by the declared construction order.
+    pub fn complete(
+        denominator: KeyedRoster<D, K, N>,
+        payloads: Vec<P>,
+        reference_of: impl FnMut(&P) -> K,
+        seat_of: impl FnMut(&P) -> S,
+    ) -> Result<Self, KeyedRosterAssignmentError<K, S, N>> {
+        let payloads = NonEmpty::new(payloads).map_err(assignment_magnitude_refusal::<K, S, N>)?;
+        let references = project_keys(&payloads, reference_of);
+        let (references, positions) = match admit_references(&denominator, references) {
+            ReferenceAdmission::Lawful { keys, positions } => (keys, positions),
+            ReferenceAdmission::Foreign(foreign) => {
+                return Err(KeyedRosterAssignmentError::ForeignReferences(foreign));
+            }
+        };
+        if let KeyAdmission::Duplicated(duplicates) = admit_keys(references) {
+            return Err(KeyedRosterAssignmentError::DuplicateReferences(duplicates));
+        }
+        let seats = project_keys(&payloads, seat_of);
+        let seats = match admit_keys(seats) {
+            KeyAdmission::Unique(seats) => seats,
+            KeyAdmission::Duplicated(duplicates) => {
+                return Err(KeyedRosterAssignmentError::ReusedPayloadSeats(duplicates));
+            }
+        };
+        let denominator = match settle_completeness(denominator, &positions) {
+            AssignmentCompleteness::Complete(denominator) => denominator,
+            AssignmentCompleteness::Missing(missing) => {
+                return Err(KeyedRosterAssignmentError::MissingMembers(missing));
+            }
+        };
+        let payloads = align_payloads(payloads, seats, positions);
+        Ok(Self {
+            denominator,
+            payloads,
+        })
+    }
+}
+
+impl<K> ForeignRosterReference<K> {
+    /// The denominator key named by the offered payload.
+    #[must_use]
+    pub const fn key(&self) -> &K {
+        &self.key
+    }
+
+    /// The zero-based offered-payload position carrying the foreign reference.
+    #[must_use]
+    pub const fn offered_position(&self) -> usize {
+        self.offered_position
+    }
+}
+
+impl<K> UnassignedRosterMember<K> {
+    /// The denominator key for which no payload was offered.
+    #[must_use]
+    pub const fn key(&self) -> &K {
+        &self.key
+    }
+
+    /// The zero-based denominator position for which no payload was offered.
+    #[must_use]
+    pub const fn denominator_position(&self) -> usize {
+        self.denominator_position
+    }
+}
+
+impl<
+    'rosters,
+    Left,
+    LeftKey,
+    Right,
+    RightKey,
+    Payload,
+    const LEFT: usize,
+    const RIGHT: usize,
+    const ROWS: usize,
+> KeyedRosterRows<'rosters, Left, LeftKey, Right, RightKey, Payload, LEFT, RIGHT, ROWS>
+{
+    /// The left roster every row was resolved against.
+    #[must_use]
+    pub const fn left(&self) -> &'rosters KeyedRoster<Left, LeftKey, LEFT> {
+        self.left
+    }
+
+    /// The right roster every row was resolved against.
+    #[must_use]
+    pub const fn right(&self) -> &'rosters KeyedRoster<Right, RightKey, RIGHT> {
+        self.right
+    }
+
+    /// How many foreign-free rows are held.
+    #[must_use]
+    pub fn count(&self) -> usize {
+        self.rows.len()
+    }
+
+    /// Whether no relation row was declared.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.rows.is_empty()
+    }
+
+    /// Reads every authored row with both resolved roster members and its caller-owned payload.
+    pub fn indexed(
+        &self,
+    ) -> impl Iterator<Item = (usize, &LeftKey, &Left, &RightKey, &Right, &Payload)> {
+        self.rows.iter().enumerate().map(|(index, row)| {
+            (
+                index,
+                row.left_key,
+                row.left_member,
+                row.right_key,
+                row.right_member,
+                &row.payload,
+            )
+        })
+    }
+
+    /// Reads one authored row at a checked position.
+    #[must_use]
+    pub fn at(&self, index: usize) -> Option<(&LeftKey, &Left, &RightKey, &Right, &Payload)> {
+        self.rows.as_slice().get(index).map(|row| {
+            (
+                row.left_key,
+                row.left_member,
+                row.right_key,
+                row.right_member,
+                &row.payload,
+            )
+        })
+    }
+
+    /// The authored row indices in canonical left-position then right-position order.
+    ///
+    /// Equal endpoint pairs retain authored order until duplicate posture is settled.
+    #[must_use]
+    pub fn canonical_indices(&self) -> &[usize] {
+        self.canonical_indices.as_slice()
+    }
+
+    /// Reads one row by its canonical-order position.
+    #[must_use]
+    pub fn canonical_at(
+        &self,
+        index: usize,
+    ) -> Option<(&LeftKey, &Left, &RightKey, &Right, &Payload)> {
+        self.canonical_indices()
+            .get(index)
+            .and_then(|authored| self.at(*authored))
+    }
+
+    /// Reads every payload under one pair of borrowed roster keys.
+    pub fn payloads_for<'reading, LeftQuery, RightQuery>(
+        &'reading self,
+        left: &LeftQuery,
+        right: &RightQuery,
+    ) -> impl Iterator<Item = &'reading Payload>
+    where
+        LeftKey: Borrow<LeftQuery>,
+        LeftQuery: Eq + ?Sized,
+        RightKey: Borrow<RightQuery>,
+        RightQuery: Eq + ?Sized,
+    {
+        let left_position = self.left.index_of(left);
+        let right_position = self.right.index_of(right);
+        self.rows.iter().filter_map(move |row| {
+            (Some(row.left_position) == left_position && Some(row.right_position) == right_position)
+                .then_some(&row.payload)
+        })
+    }
+
+    /// Promote these foreign-free rows into a relation where every endpoint pair occurs once.
+    ///
+    /// # Errors
+    ///
+    /// Returns every distinct repeated endpoint pair with its first and later authored positions.
+    pub fn distinct(
+        self,
+    ) -> Result<
+        KeyedRosterRelation<'rosters, Left, LeftKey, Right, RightKey, Payload, LEFT, RIGHT, ROWS>,
+        RepeatedRelationPairs<ROWS>,
+    > {
+        match repeated_relation_pairs(&self) {
+            Some(repeated) => Err(repeated),
+            None => Ok(KeyedRosterRelation { rows: self }),
+        }
+    }
+}
+
+impl<
+    'rosters,
+    Left,
+    LeftKey: Eq,
+    Right,
+    RightKey: Eq,
+    Payload,
+    const LEFT: usize,
+    const RIGHT: usize,
+    const ROWS: usize,
+> KeyedRosterRows<'rosters, Left, LeftKey, Right, RightKey, Payload, LEFT, RIGHT, ROWS>
+{
+    /// Resolve one complete row offering against two existing keyed rosters.
+    ///
+    /// Row magnitude is settled before either endpoint projection runs.
+    /// Every left reference is settled before the right projection begins.
+    ///
+    /// # Errors
+    ///
+    /// Returns row overflow, every foreign left reference, or every foreign right reference under that precedence.
+    pub fn referenced(
+        left: &'rosters KeyedRoster<Left, LeftKey, LEFT>,
+        right: &'rosters KeyedRoster<Right, RightKey, RIGHT>,
+        payloads: Vec<Payload>,
+        left_key_of: impl FnMut(&Payload) -> LeftKey,
+        right_key_of: impl FnMut(&Payload) -> RightKey,
+    ) -> Result<Self, KeyedRosterRowsError<LeftKey, RightKey, ROWS>> {
+        let payloads = Bounded::new(payloads).map_err(KeyedRosterRowsError::Overflow)?;
+        let left_rows = resolve_rows(left, &payloads, left_key_of)
+            .map_err(KeyedRosterRowsError::ForeignLeft)?;
+        let right_rows = resolve_rows(right, &payloads, right_key_of)
+            .map_err(KeyedRosterRowsError::ForeignRight)?;
+        let Bounded(payloads) = payloads;
+        let rows = payloads
+            .into_iter()
+            .zip(left_rows)
+            .zip(right_rows)
+            .map(
+                |((payload, left_reference), right_reference)| ReferencedRosterRow {
+                    left_position: left_reference.position,
+                    left_key: left_reference.key,
+                    left_member: left_reference.member,
+                    right_position: right_reference.position,
+                    right_key: right_reference.key,
+                    right_member: right_reference.member,
+                    payload,
+                },
+            )
+            .collect::<Vec<_>>();
+        let mut canonical = rows
+            .iter()
+            .enumerate()
+            .map(|(authored, row)| CanonicalRelationPosition {
+                authored,
+                left: row.left_position,
+                right: row.right_position,
+            })
+            .collect::<Vec<_>>();
+        canonical.sort_by_key(|position| (position.left, position.right, position.authored));
+        Ok(Self {
+            left,
+            right,
+            rows: Bounded(rows),
+            canonical_indices: Bounded(
+                canonical
+                    .into_iter()
+                    .map(|position| position.authored)
+                    .collect(),
+            ),
+        })
+    }
+}
+
+impl<
+    'rosters,
+    Left,
+    LeftKey,
+    Right,
+    RightKey,
+    Payload,
+    const LEFT: usize,
+    const RIGHT: usize,
+    const ROWS: usize,
+> KeyedRosterRelation<'rosters, Left, LeftKey, Right, RightKey, Payload, LEFT, RIGHT, ROWS>
+{
+    /// The foreign-free authored rows whose endpoint pairs this relation proves distinct.
+    #[must_use]
+    pub const fn rows(
+        &self,
+    ) -> &KeyedRosterRows<'rosters, Left, LeftKey, Right, RightKey, Payload, LEFT, RIGHT, ROWS>
+    {
+        &self.rows
+    }
+
+    /// Recover the foreign-free row value where a later caller posture permits repetition.
+    #[must_use]
+    pub fn into_rows(
+        self,
+    ) -> KeyedRosterRows<'rosters, Left, LeftKey, Right, RightKey, Payload, LEFT, RIGHT, ROWS> {
+        self.rows
+    }
+}
+
+impl<const N: usize> RepeatedRelationPair<N> {
+    /// The resolved left-roster position of the repeated pair.
+    #[must_use]
+    pub const fn left_position(&self) -> usize {
+        self.left_position
+    }
+
+    /// The resolved right-roster position of the repeated pair.
+    #[must_use]
+    pub const fn right_position(&self) -> usize {
+        self.right_position
+    }
+
+    /// The pair's first authored row position.
+    #[must_use]
+    pub const fn first_position(&self) -> usize {
+        self.first
+    }
+
+    /// Every later authored row position carrying the same pair.
+    #[must_use]
+    pub const fn repeated_positions(&self) -> &NonEmpty<usize, N> {
+        &self.repeated
+    }
+}
+
+impl<const N: usize> RepeatedRelationPairs<N> {
+    /// Every distinct repeated pair in first-occurrence order.
+    pub fn iter(&self) -> impl Iterator<Item = &RepeatedRelationPair<N>> {
+        self.pairs.iter()
+    }
+
+    /// How many distinct endpoint pairs repeated.
+    #[must_use]
+    pub fn count(&self) -> usize {
+        self.pairs.count()
+    }
+}
+
+struct ResolvedRosterMember<'roster, Member, Key> {
+    position: usize,
+    key: &'roster Key,
+    member: &'roster Member,
+}
+
+struct CanonicalRelationPosition {
+    authored: usize,
+    left: usize,
+    right: usize,
+}
+
+struct RelationPairGroup {
+    left_position: usize,
+    right_position: usize,
+    first: usize,
+    repeated: Vec<usize>,
+}
+
+fn resolve_rows<'roster, Member, Key: Eq, Payload, const MEMBERS: usize, const ROWS: usize>(
+    roster: &'roster KeyedRoster<Member, Key, MEMBERS>,
+    payloads: &Bounded<Payload, ROWS>,
+    mut key_of: impl FnMut(&Payload) -> Key,
+) -> Result<
+    Vec<ResolvedRosterMember<'roster, Member, Key>>,
+    NonEmpty<ForeignRosterReference<Key>, ROWS>,
+> {
+    let mut resolved = Vec::with_capacity(payloads.len());
+    let mut foreign = None;
+    for (offered_position, payload) in payloads.iter().enumerate() {
+        let key = key_of(payload);
+        match roster.indexed_get(&key) {
+            Some((position, retained, member)) => resolved.push(ResolvedRosterMember {
+                position,
+                key: retained,
+                member,
+            }),
+            None => push_nonempty(
+                &mut foreign,
+                ForeignRosterReference {
+                    key,
+                    offered_position,
+                },
+            ),
+        }
+    }
+    foreign.map_or(Ok(resolved), Err)
+}
+
+fn push_nonempty<T, const N: usize>(held: &mut Option<NonEmpty<T, N>>, item: T) {
+    match held {
+        Some(items) => items.tail.push(item),
+        None => {
+            *held = Some(NonEmpty {
+                head: item,
+                tail: Vec::new(),
+            });
+        }
+    }
+}
+
+fn repeated_relation_pairs<
+    Left,
+    LeftKey,
+    Right,
+    RightKey,
+    Payload,
+    const LEFT: usize,
+    const RIGHT: usize,
+    const ROWS: usize,
+>(
+    rows: &KeyedRosterRows<'_, Left, LeftKey, Right, RightKey, Payload, LEFT, RIGHT, ROWS>,
+) -> Option<RepeatedRelationPairs<ROWS>> {
+    let mut groups = Vec::<RelationPairGroup>::new();
+    for (authored, row) in rows.rows.iter().enumerate() {
+        if let Some(group) = groups.iter_mut().find(|group| {
+            group.left_position == row.left_position && group.right_position == row.right_position
+        }) {
+            group.repeated.push(authored);
+        } else {
+            groups.push(RelationPairGroup {
+                left_position: row.left_position,
+                right_position: row.right_position,
+                first: authored,
+                repeated: Vec::new(),
+            });
+        }
+    }
+    let mut repeated = None;
+    for group in groups {
+        let mut positions = group.repeated.into_iter();
+        if let Some(head) = positions.next() {
+            push_nonempty(
+                &mut repeated,
+                RepeatedRelationPair {
+                    left_position: group.left_position,
+                    right_position: group.right_position,
+                    first: group.first,
+                    repeated: NonEmpty {
+                        head,
+                        tail: positions.collect(),
+                    },
+                },
+            );
+        }
+    }
+    repeated.map(|pairs| RepeatedRelationPairs { pairs })
+}
+
+enum ReferenceAdmission<K, const N: usize> {
+    Lawful {
+        keys: NonEmpty<K, N>,
+        positions: NonEmpty<usize, N>,
+    },
+    Foreign(NonEmpty<ForeignRosterReference<K>, N>),
+}
+
+fn admit_references<D, K: Eq, const N: usize>(
+    denominator: &KeyedRoster<D, K, N>,
+    references: NonEmpty<K, N>,
+) -> ReferenceAdmission<K, N> {
+    let NonEmpty { head, tail } = references;
+    let Some(head_position) = denominator.index_of(&head) else {
+        let foreign_tail = tail
+            .into_iter()
+            .enumerate()
+            .filter_map(|(offset, key)| {
+                denominator
+                    .index_of(&key)
+                    .is_none()
+                    .then_some(ForeignRosterReference {
+                        key,
+                        offered_position: offset.saturating_add(1),
+                    })
+            })
+            .collect();
+        return ReferenceAdmission::Foreign(NonEmpty {
+            head: ForeignRosterReference {
+                key: head,
+                offered_position: 0,
+            },
+            tail: foreign_tail,
+        });
+    };
+    admit_references_after_lawful_head(denominator, head, head_position, tail)
+}
+
+fn admit_references_after_lawful_head<D, K: Eq, const N: usize>(
+    denominator: &KeyedRoster<D, K, N>,
+    head: K,
+    head_position: usize,
+    tail: Vec<K>,
+) -> ReferenceAdmission<K, N> {
+    let mut lawful_keys = Vec::new();
+    let mut lawful_positions = Vec::new();
+    let mut foreign_head = None;
+    let mut foreign_tail = Vec::new();
+    for (offset, key) in tail.into_iter().enumerate() {
+        let offered_position = offset.saturating_add(1);
+        if let Some(position) = denominator.index_of(&key) {
+            lawful_keys.push(key);
+            lawful_positions.push(position);
+        } else {
+            let foreign = ForeignRosterReference {
+                key,
+                offered_position,
+            };
+            if foreign_head.is_none() {
+                foreign_head = Some(foreign);
+            } else {
+                foreign_tail.push(foreign);
+            }
+        }
+    }
+    if let Some(foreign) = foreign_head {
+        ReferenceAdmission::Foreign(NonEmpty {
+            head: foreign,
+            tail: foreign_tail,
+        })
+    } else {
+        ReferenceAdmission::Lawful {
+            keys: NonEmpty {
+                head,
+                tail: lawful_keys,
+            },
+            positions: NonEmpty {
+                head: head_position,
+                tail: lawful_positions,
+            },
+        }
+    }
+}
+
+enum AssignmentCompleteness<D, K, const N: usize> {
+    Complete(KeyedRoster<D, K, N>),
+    Missing(NonEmpty<UnassignedRosterMember<K>, N>),
+}
+
+enum KeyCompleteness<K, const N: usize> {
+    Complete(NonEmpty<K, N>),
+    Missing(NonEmpty<UnassignedRosterMember<K>, N>),
+}
+
+enum AssignmentStanding {
+    Assigned,
+    Missing,
+}
+
+fn settle_completeness<D, K, const N: usize>(
+    denominator: KeyedRoster<D, K, N>,
+    positions: &NonEmpty<usize, N>,
+) -> AssignmentCompleteness<D, K, N> {
+    let KeyedRoster { members, keys } = denominator;
+    let NonEmpty { head, tail } = keys;
+    let first_assigned = positions.iter().any(|position| *position == 0);
+    let mut completeness = if first_assigned {
+        KeyCompleteness::Complete(NonEmpty {
+            head,
+            tail: Vec::new(),
+        })
+    } else {
+        KeyCompleteness::Missing(NonEmpty {
+            head: UnassignedRosterMember {
+                key: head,
+                denominator_position: 0,
+            },
+            tail: Vec::new(),
+        })
+    };
+    for (offset, key) in tail.into_iter().enumerate() {
+        let denominator_position = offset.saturating_add(1);
+        let standing = if positions
+            .iter()
+            .any(|position| *position == denominator_position)
+        {
+            AssignmentStanding::Assigned
+        } else {
+            AssignmentStanding::Missing
+        };
+        completeness = completeness.push(key, denominator_position, standing);
+    }
+    match completeness {
+        KeyCompleteness::Complete(complete_keys) => AssignmentCompleteness::Complete(KeyedRoster {
+            members,
+            keys: complete_keys,
+        }),
+        KeyCompleteness::Missing(missing) => AssignmentCompleteness::Missing(missing),
+    }
+}
+
+impl<K, const N: usize> KeyCompleteness<K, N> {
+    fn push(self, key: K, denominator_position: usize, standing: AssignmentStanding) -> Self {
+        match (self, standing) {
+            (Self::Complete(mut keys), AssignmentStanding::Assigned) => {
+                keys.tail.push(key);
+                Self::Complete(keys)
+            }
+            (Self::Complete(_keys), AssignmentStanding::Missing) => Self::Missing(NonEmpty {
+                head: UnassignedRosterMember {
+                    key,
+                    denominator_position,
+                },
+                tail: Vec::new(),
+            }),
+            (Self::Missing(missing), AssignmentStanding::Assigned) => Self::Missing(missing),
+            (Self::Missing(mut missing), AssignmentStanding::Missing) => {
+                missing.tail.push(UnassignedRosterMember {
+                    key,
+                    denominator_position,
+                });
+                Self::Missing(missing)
+            }
+        }
+    }
+}
+
+struct PendingAssignment<P, S> {
+    denominator_position: usize,
+    payload: P,
+    seat: S,
+}
+
+fn align_payloads<P, S, const N: usize>(
+    payloads: NonEmpty<P, N>,
+    seats: NonEmpty<S, N>,
+    positions: NonEmpty<usize, N>,
+) -> KeyedRoster<P, S, N> {
+    let NonEmpty {
+        head: payload_head,
+        tail: payload_tail,
+    } = payloads;
+    let NonEmpty {
+        head: seat_head,
+        tail: seat_tail,
+    } = seats;
+    let NonEmpty {
+        head: position_head,
+        tail: position_tail,
+    } = positions;
+    let mut head = PendingAssignment {
+        denominator_position: position_head,
+        payload: payload_head,
+        seat: seat_head,
+    };
+    let mut tail = position_tail
+        .into_iter()
+        .zip(payload_tail)
+        .zip(seat_tail)
+        .map(
+            |((denominator_position, payload), seat)| PendingAssignment {
+                denominator_position,
+                payload,
+                seat,
+            },
+        )
+        .collect::<Vec<_>>();
+    for assignment in &mut tail {
+        if assignment.denominator_position < head.denominator_position {
+            core::mem::swap(&mut head, assignment);
+        }
+    }
+    tail.sort_by_key(|assignment| assignment.denominator_position);
+    let mut ordered_payload_tail = Vec::with_capacity(tail.len());
+    let mut ordered_seat_tail = Vec::with_capacity(tail.len());
+    for assignment in tail {
+        ordered_payload_tail.push(assignment.payload);
+        ordered_seat_tail.push(assignment.seat);
+    }
+    KeyedRoster {
+        members: NonEmpty {
+            head: head.payload,
+            tail: ordered_payload_tail,
+        },
+        keys: NonEmpty {
+            head: head.seat,
+            tail: ordered_seat_tail,
+        },
+    }
+}
+
+fn assignment_magnitude_refusal<K, S, const N: usize>(
+    error: NonEmptyError,
+) -> KeyedRosterAssignmentError<K, S, N> {
+    match error {
+        NonEmptyError::Empty(empty) => KeyedRosterAssignmentError::Empty(empty),
+        NonEmptyError::Overflow(overflow) => KeyedRosterAssignmentError::Overflow(overflow),
     }
 }
 

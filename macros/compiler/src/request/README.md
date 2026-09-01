@@ -18,14 +18,16 @@ The crate root and `diagnostic::Door` remain compatibility navigation to that sa
 
 ## What a request decides for you
 
-A kind declares its seats, and a request through this door plans one member per seat.
+A kind declares every seat it can render, and a request through this door plans one member per seat by default.
 
-That is the whole selection rule, and it is this home's own declared fact: what a kind's roster names is what one request produces.
+Where one informed declaration selects only part of that roster, [`Request::selecting`](Request::selecting) states a structurally nonempty subset before rendering.
+The selected roles pass through the same membership admission as the default roster, so a foreign, doubled, or overlarge selection refuses before syntax exists.
+The resulting membership is the complete output set of that request.
 The content binding, semantic key, origin node, and digest contract of each member are derived from the captured bytes, the owner-qualified kind, the content's canonical bytes, and the seat as each identity grammar requires.
 They are never supplied, because a caller who could supply them could make a plan agree with content or a rendering it was not planned for.
 
-A kind whose output set varies with what was declared does not use this door.
-The lower-level homes remain reachable underneath, which is where a conditional membership is built and proved explicitly.
+Selection remains a request fact rather than a rendering choice.
+An unselected role is absent from the plan, and the existing output and closure owners therefore retain their authority over unplanned, missing, and doubled units without placeholders or a second planner.
 
 ## What you decide
 

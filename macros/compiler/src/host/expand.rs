@@ -3,7 +3,7 @@
 use super::capture::capture;
 use super::emit::emit;
 use super::place::place;
-use super::types::Spans;
+use super::types::{Emittable, Spans};
 use crate::diagnostic::Diagnostic;
 use crate::expansion::Expansion;
 use crate::kind::Kind;
@@ -19,10 +19,24 @@ pub fn expand<K: Kind>(
     input: TokenStream,
     road: impl FnOnce(CapturedInput) -> Result<Expansion<K>, Diagnostic>,
 ) -> TokenStream {
+    expand_emittable(input, road)
+}
+
+/// Capture one declared input, hand it to a road returning any compiler-owned emittable, and emit that value's declaration-site cargos.
+///
+/// This is the same host operation as [`expand`], generalized for a composed result whose emitted cargos come from more than one sealed expansion.
+#[must_use]
+pub fn expand_emittable<E: Emittable>(
+    input: TokenStream,
+    road: impl FnOnce(CapturedInput) -> Result<E, Diagnostic>,
+) -> TokenStream {
     let mut spans = Spans::empty();
     match capture(input, &mut spans) {
         Ok(captured) => match road(captured) {
-            Ok(expansion) => emit(&expansion),
+            Ok(expansion) => match emit(&expansion, &spans) {
+                Ok(tokens) => tokens,
+                Err(refusal) => super::place::emission_refused(&refusal),
+            },
             Err(diagnostic) => place(&diagnostic, &spans),
         },
         Err(refusal) => refusal.placed(&spans),
@@ -52,7 +66,10 @@ pub fn expand_on<K: Kind>(
         Err(refusal) => return refusal.placed(&spans),
     };
     match road(captured_body, captured_item) {
-        Ok(expansion) => emit(&expansion),
+        Ok(expansion) => match emit(&expansion, &spans) {
+            Ok(tokens) => tokens,
+            Err(refusal) => super::place::emission_refused(&refusal),
+        },
         Err(diagnostic) => place(&diagnostic, &spans),
     }
 }

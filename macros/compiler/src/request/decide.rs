@@ -6,6 +6,7 @@
 
 use super::Door;
 use super::SELECTION_FACT;
+use super::types::Selection;
 use crate::bounded::{Bounded, Overflow};
 use crate::identity::{
     self, Identity, OwnerFact, OwnerIdentity, Profile, Transcript, encode_bytes,
@@ -22,7 +23,29 @@ use crate::plan::{
 use crate::request::Producer;
 use crate::token::CapturedInput;
 
-/// Plan one request: the account it stands on, the context it is decided under, one member per declared seat, and the record of why.
+/// The already stated request facts planning reads together.
+pub(super) struct Statements<'request, R: Role> {
+    assumptions: &'request [OwnerFact],
+    addresses: &'request [(R, OwnerIdentity)],
+    selection: &'request Selection<R>,
+}
+
+impl<'request, R: Role> Statements<'request, R> {
+    /// Borrows the request facts planning consumes without minting another owner for them.
+    pub(super) const fn from_request(
+        assumptions: &'request [OwnerFact],
+        addresses: &'request [(R, OwnerIdentity)],
+        selection: &'request Selection<R>,
+    ) -> Self {
+        Self {
+            assumptions,
+            addresses,
+            selection,
+        }
+    }
+}
+
+/// Plan one request: the account it stands on, the context it is decided under, one member per selected seat, and the record of why.
 ///
 /// The watch set travels inside the plan and nowhere beside it: the plan owns the value, and every later reading — the explanation's included — is read off that one seat, so no second copy exists for a later normalization to disagree with.
 ///
@@ -35,10 +58,10 @@ pub(super) fn planned<K: Kind>(
     door: &Door,
     dependencies: Vec<Identity<identity::CapturedDeclaration>>,
     profile: Profile,
-    assumptions: &[OwnerFact],
-    addresses: &[(K::Role, OwnerIdentity)],
+    statements: &Statements<'_, K::Role>,
 ) -> Result<Plan<K>, PlanError> {
-    consumable::<K::Role>(addresses)?;
+    let roles = selected_roles(statements.selection);
+    consumable(statements.addresses, &roles)?;
     let account = Account::standing_on(bound_content(capture, content, door), dependencies)?;
     let stands_over = account.commitment();
     let content_commitment = account.content_commitment();
@@ -51,8 +74,9 @@ pub(super) fn planned<K: Kind>(
         content_commitment,
         authored,
         profile,
-        addresses,
+        statements.addresses,
         kind,
+        &roles,
     )?;
     let origin = OriginTrail::from_edge(OriginEdge {
         from: authored,
@@ -64,7 +88,10 @@ pub(super) fn planned<K: Kind>(
             membership.first().role,
         ),
     });
-    let trace = trace(traced(kind, content_commitment, stands_over), assumptions)?;
+    let trace = trace(
+        traced(kind, content_commitment, stands_over),
+        statements.assumptions,
+    )?;
     Ok(Plan::planned(
         account,
         decided_under,
@@ -78,7 +105,7 @@ pub(super) fn planned<K: Kind>(
     ))
 }
 
-/// The complete output set: one member per row of the kind's roster, in roster order.
+/// The complete output set: one member per selected role, canonicalized into kind-roster order.
 ///
 /// # Errors
 ///
@@ -90,8 +117,9 @@ fn membership<R: Role>(
     profile: Profile,
     addresses: &[(R, OwnerIdentity)],
     kind: Identity<identity::ProjectionKind>,
+    roles: &[R],
 ) -> Result<Membership<R>, PlanError> {
-    let mut seats = R::ALL.iter().copied();
+    let mut seats = roles.iter().copied();
     let Some(head) = seats.next() else {
         return Err(PlanError::of(PlanIssue::UnknownKind { named: kind }));
     };
@@ -120,6 +148,20 @@ fn membership<R: Role>(
         ),
         rest,
     )
+}
+
+/// The selected roles in canonical kind-roster order.
+fn selected_roles<R: Role>(selection: &Selection<R>) -> Vec<R> {
+    let mut roles = match selection {
+        Selection::All => R::ALL.to_vec(),
+        Selection::Declared { first, rest } => {
+            let mut roles = vec![*first];
+            roles.extend(rest.iter().copied());
+            roles
+        }
+    };
+    roles.sort_by_key(|role| role.slot());
+    roles
 }
 
 /// One planned member: what the seat's unit will be, where it came from, who renders it, and what its digest must satisfy.
@@ -157,11 +199,11 @@ fn member<R: Role>(
 /// # Errors
 ///
 /// Returns one [`PlanIssue::AddressInert`] per address whose seat never publishes.
-fn consumable<R: Role>(addresses: &[(R, OwnerIdentity)]) -> Result<(), PlanError> {
+fn consumable<R: Role>(addresses: &[(R, OwnerIdentity)], selected: &[R]) -> Result<(), PlanError> {
     let mut inert = addresses
         .iter()
         .filter(|(seat, _)| {
-            !R::ALL.contains(seat) || seat.destination() != Destination::PublicationArtifact
+            !selected.contains(seat) || seat.destination() != Destination::PublicationArtifact
         })
         .map(|(seat, _)| PlanIssue::AddressInert { seat: seat.name() });
     match inert.next() {

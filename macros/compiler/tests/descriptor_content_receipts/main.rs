@@ -4,8 +4,9 @@
 //! The reversal changes only authored order, so an encoder that sorted a roster would fail beside the exact receipts rather than appearing equivalent.
 
 use macroonz_compiler::descriptor::{
-    CaptureIssue, Composition, CompositionIssue, DESCRIPTOR_MEANING_FACT, DeclarationError,
-    Grammar, PROVIDER_LIMIT, Provider, Seat, bench, concurrency, mutation, network, shadow, trial,
+    CaptureCause, CaptureIssue, Composition, CompositionIssue, DESCRIPTOR_MEANING_FACT,
+    DeclarationError, Grammar, PROVIDER_LIMIT, Provider, Seat, bench, concurrency, mutation,
+    network, shadow, trial,
 };
 use macroonz_compiler::{
     CanonicalContent, Capping, CapturedInput, CrateBinding, Diagnostic, Door, LineBody, Observed,
@@ -295,6 +296,49 @@ fn authored_order_is_a_canonical_content_member() -> Result<(), ()> {
         network_content(NETWORK_BODY)?,
         network_content(REVERSED_NETWORK_BODY)?
     );
+    Ok(())
+}
+
+#[test]
+/// Claim: declared-order completion refuses an order with no adjacent pair and admits the first order that has one.
+/// Subject: `mutation::completed_from_order` over an already informed caller-owned roster.
+/// Population: one one-member order and one two-member order.
+/// Hostile control: the two-member order must produce exactly one adjacent transposition rather than sharing the one-member refusal.
+/// Denominator: both sides of the lower declared-order boundary.
+/// Evidence ceiling: this proves the minimum pressable width, while the separate magnitude lane proves the upper boundary.
+/// Retained-regression policy: changing the refusal or first admitted alternative count requires an explicit mutation-vocabulary ruling.
+fn declared_order_completion_requires_one_adjacent_pair() -> Result<(), ()> {
+    let grammar = Grammar {
+        attribute: "mutations",
+    };
+    let body = captured(MUTATION_BODY)?;
+    let unpressable =
+        mutation::captured(&trees(&body), SpanHandle::at(0), grammar).map_err(|_refusal| ())?;
+    let refusal = mutation::completed_from_order(
+        unpressable,
+        &["Only".to_owned()],
+        SpanHandle::at(0),
+        grammar,
+    )
+    .err()
+    .ok_or(())?;
+    assert_eq!(
+        refusal.refusal().issue(),
+        CaptureIssue::Grammar {
+            cause: CaptureCause::OrderUnpressable,
+        }
+    );
+
+    let first_pressable =
+        mutation::captured(&trees(&body), SpanHandle::at(0), grammar).map_err(|_refusal| ())?;
+    let surface = mutation::completed_from_order(
+        first_pressable,
+        &["First".to_owned(), "Second".to_owned()],
+        SpanHandle::at(0),
+        grammar,
+    )
+    .map_err(|_refusal| ())?;
+    assert_eq!(surface.site().alternatives().len(), 1);
     Ok(())
 }
 

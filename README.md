@@ -37,9 +37,9 @@ One storefront opens onto the oven, the hand that loads it, and the taste tester
 
 | Crate | Directory | What it is |
 | --- | --- | --- |
-| **`macroonz`** | `/` | The storefront. It preserves the owners as `compiler`, `macros`, and feature-gated `harness` modules. This is the crate you add. |
-| **`macroonz-compiler`** | `macros/compiler/` | The compiler, as ordinary functions. Capture a declaration, build a request, plan, render, close, explain, bind, emit. |
-| **`macroonz-macros`** | `macros/proc/` | The thin procedural host. Item-preserving attributes and direct declarations call compiler-owned descriptor doors, then carry token conversion, span custody, diagnostic placement, and emission. It owns no grammar. |
+| **`macroonz`** | `/` | The storefront exposing the one `recipe!` workflow entrance while preserving the expert owners as `compiler`, `macros`, and feature-gated `harness` modules; this is the crate you add. |
+| **`macroonz-compiler`** | `macros/compiler/` | The ordinary callable compiler that informs structural declarations, projects requested ordinary Rust or evidence material, then plans, renders, closes, explains, binds, and emits. |
+| **`macroonz-macros`** | `macros/proc/` | The grammar-free procedural host carrying the recipe entrance and built-in declarations through compiler-owned doors with token conversion, span custody, diagnostic placement, and emission. |
 | **`macroonz-harness`** | `harness/` | The judge. Descriptors, generation, properties, oracles, faults, corpus, fuzz composition, mutation, benches, reports, replay. The default storefront includes it; the diet posture removes it from a shipping graph. |
 
 ```mermaid
@@ -62,39 +62,54 @@ The proc crate reaches the harness only from its tests, and the harness reaches 
 
 ## Your recipe, your kinds
 
-A **kind** is a thing you can ask Macroonz to generate: one `impl` block, a codec pair, a test carrier, a documentation page.
-You define it.
-A kind says what content it is rendered from, which roles its output units play, and which questions its explanation has to answer.
-The compiler is generic over all of that; it has never heard of your kind and does not need to.
+`macroonz::recipe!` is the one workflow entrance for declaring ordinary Rust ingredients, structural relationships and postures, effects, and requested projections.
+The recipe vocabulary describes only the structure Macroonz must account over; complete authored Rust items remain authored Rust rather than becoming a parallel framework AST.
+
+You own every name, item, vocabulary, relation, effect, policy, lawful answer, exact Rust fragment, requested projection, and independent behavioral claim.
+Macroonz owns bounded capture, structural informing, exact accounting, mechanical projection, and the generation road that proves the requested output set was delivered whole.
+Rustc remains the authority for paths, visibility, types, ownership, borrowing, lifetimes, coherence, exhaustiveness, const evaluation, and the final legality of the emitted Rust.
+
+An ordinary Rust path is enough when Macroonz only needs to refer to a type, trait, function, effect, constructor, constant, module, associated item, or earlier generated item.
+An explicit roster is required only when Macroonz must enumerate members or prove that every member received one disposition.
+
+Authored items remain where they were written.
+Generated companions remain inside the recipe module, private support remains in one hidden child, and public names, visibility, destinations, reexports, and unsafe boundaries remain explicit caller choices.
+A name collision refuses the request before partial output, and no ordinary generated item is sprayed into the crate root or reexported automatically.
+
+An evidence bake may carry an explicitly named support macro because Rust exports such macros at the declaring crate root.
+That caller-authored address is the exception rather than an automatic reexport: its cargo stays inert, and the external test or bench target must invoke it with both the declaring-crate path and the harness path before any judgment exists.
+
+One bake request admits progressively more precision without changing semantic models:
+
+- A conventional bake supplies documented mechanical choices.
+- A configured bake replaces named mechanical seats.
+- An exact bake supplies caller-authored Rust for those same seats.
+- A caller-owned projector consumes the same informed account and constrained output protocol through the callable compiler or a caller-owned proc host.
+
+Projection syntax follows one grammar across the catalog:
 
 ```rust
-use macroonz::compiler::{Kind, NoQuestions, Request};
-
-/// One `impl Greet` for the declared type.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct GreetImpl;
-
-impl Kind for GreetImpl {
-    const NAME: &'static str = "greet.impl";
-    type Content = Greeting;
-    type Role = GreetRole;
-    type Question = NoQuestions;
-}
-
-pub fn greet(input: TokenStream) -> TokenStream {
-    macroonz::compiler::host::expand(input, |capture| {
-        let greeting = Greeting::read(&capture)?;
-        Request::<GreetImpl>::over(capture, greeting, &GREET_DOOR)
-            .render(|plan, out| out.unit(GreetRole::Impl, plan.content().impl_tokens()))
-    })
-}
+dispatch; // documented conventional mechanics
+dispatch(apply); // one flat configured name
+dispatch {
+    /// Applies one caller-declared transition or returns typed absence.
+    pub fn advance(
+        current: State,
+        event: Event,
+    ) -> Result<State, TransitionRefusal>;
+}; // exact caller-authored Rust; Macroonz supplies only the checked body
 ```
 
-`Greeting::read` is yours: your grammar, your rules, your refusals.
-`Greeting` implements `CanonicalContent`, giving the kind-specific facts one complete semantic encoding that changes whenever a fact the renderer may read changes.
-`GREET_DOOR` is the one value that says who is asking — the diagnostic spellings, rendered crate binding, and producer qualification each compiler surface reads.
-Macroonz never parses your declaration for you and never decides what it means.
-This is the same split `serde` makes — `serde_derive` ships with `serde`, not with `syn` — and it is the only split that keeps a generator honest.
+Parentheses carry flat configuration names, while braces carry exact Rust material.
+An exact dispatch signature owns its attributes, visibility, qualifiers, name, generics, two simple caller-named parameter bindings and types, result, and where clause.
+The standard projector still owns the relation-accounted body; a caller-owned body belongs on the custom-projector road.
+
+Two values for one seat refuse.
+Semantic postures are stated once in the structural account and consumed by every projector that needs them.
+Safe presets emit safe Rust, while an exact caller-authored unsafe boundary may be preserved or repeated only as explicit caller authority.
+
+The callable `compiler` module remains the raw road for defining a new kind, grammar, or projection algorithm.
+Its `Kind` and `Request` vocabulary exposes the same plan, render, closure, explanation, and expansion owners beneath the paved recipe surface rather than a second compiler model.
 
 ---
 
@@ -148,7 +163,7 @@ The harness hands you the instruments — each independently callable, composed 
 
 Descriptors, trials, mutations, and benches live in your tests — written through the generic `macroonz::macros` attributes, through your own attributes, or by hand.
 The harness owns how they are judged, never what they mean.
-The stable coverage path remains one-package usage through `macroonz::harness::fuzz`; its [fuzz home](harness/src/fuzz/README.md#runnable-road) owns the runnable facade example and command.
+The stable coverage path remains one-package usage through `macroonz::harness::fuzz`; its [fuzz home](https://github.com/freebatteryfactory/Macroonz/blob/main/harness/src/fuzz/README.md#runnable-road) owns the runnable facade example and command.
 
 ---
 
@@ -156,7 +171,23 @@ The stable coverage path remains one-package usage through `macroonz::harness::f
 
 1. Pick a posture from [The three postures](#the-three-postures).
 2. Add `macroonz` with that command.
-3. Follow the compiler, proc, or harness crate README for the road you are on.
+3. Start with `macroonz::recipe!`, or follow the [compiler README](https://github.com/freebatteryfactory/Macroonz/blob/main/macros/compiler/README.md) when you need a caller-owned projection algorithm.
+4. Use the harness directly or through an evidence bake when an independent judgment is part of the recipe.
+
+Runnable examples cross distinct public roads:
+
+| Journey | Command | What it establishes |
+| --- | --- | --- |
+| First recipe | `cargo run --example recipe` | Conventional, configured, and exact projection levels through the root facade entrance. |
+| Callable compiler | `cargo run -p macroonz-compiler --example callable_compiler` | One public compiler request plans, renders, closes, explains, binds, and emits a unit. |
+| Direct handwritten property | `cargo run -p macroonz-harness --example temporal_property` | Caller-owned state and transitions enter a temporal contract without a macro or subject trait. |
+| Exact compile contract | `cargo run --example compile_contract` | A caller-stated compiler observation is compared with an independently declared exact outcome. |
+| Stable coverage composition | `cargo run --example rustc_coverage` | Stable rustc instrumentation supplies source-region novelty to corpus, reduction, and replay composition. |
+
+The compile-contract example is intentionally the pure comparison half.
+The caller that actually runs rustc or Cargo owns that effect, structured diagnostic extraction, and the provenance of the observation it supplies.
+
+The shipped [Macroonz agent skill](skills/macroonz/SKILL.md) is a one-page routing surface for agents authoring recipes from the packaged facade.
 
 Contribution procedure lives in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 Security reporting lives in [`SECURITY.md`](SECURITY.md).
@@ -169,9 +200,9 @@ Cargo features are additive, so the lighter postures are selected by turning off
 
 | Posture | Command | Surface |
 | --- | --- | --- |
-| **full** | `cargo add macroonz` | Compiler, proc declarations, harness, and the target-qualified preemption backend. This is the default. |
-| **diet-lite** | `cargo add macroonz --no-default-features --features harness` | Compiler, proc declarations, and harness without Loom. |
-| **diet** | `cargo add macroonz --no-default-features` | Compiler and proc declarations only. |
+| **full** | `cargo add macroonz` | Recipe entrance, compiler, proc declarations, harness, and the target-qualified preemption backend as the default posture. |
+| **diet-lite** | `cargo add macroonz --no-default-features --features harness` | Recipe entrance, compiler, proc declarations, and harness without Loom. |
+| **diet** | `cargo add macroonz --no-default-features` | Recipe entrance, compiler, and proc declarations; harness-owned evidence bakes are typed unavailable. |
 
 The `preemption` feature always implies `harness`.
 On a native target supported by the pinned Loom backend, enabling `preemption` installs that backend.

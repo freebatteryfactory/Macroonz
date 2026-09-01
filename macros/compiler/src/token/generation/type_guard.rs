@@ -1,7 +1,107 @@
 //! The generation home's invariant nucleus.
 
-use super::{GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree};
-use crate::bounded::{Bounded, Overflow};
+use super::{
+    GeneratedDelimiter, GeneratedLiteral, GeneratedLiteralForm, GeneratedLiteralRefusal,
+    GeneratedLiteralValue, GeneratedRowRefusal, GeneratedSpacing, GeneratedToken, GeneratedTree,
+};
+use crate::bounded::{Bounded, NonEmptyError, Overflow};
+use crate::token::{CapturedAtom, SpanHandle, capture_literal};
+
+impl GeneratedRowRefusal {
+    /// Records the exact retained row whose generated item run refused.
+    pub(crate) const fn at(position: usize, cause: NonEmptyError) -> Self {
+        Self { position, cause }
+    }
+
+    /// The retained row position whose item run refused.
+    #[must_use]
+    pub const fn position(&self) -> usize {
+        self.position
+    }
+
+    /// The exact non-empty token disagreement established at that row.
+    #[must_use]
+    pub const fn cause(&self) -> NonEmptyError {
+        self.cause
+    }
+
+    /// Borrows the concrete non-empty token disagreement for the error chain.
+    pub(crate) const fn cause_ref(&self) -> &NonEmptyError {
+        &self.cause
+    }
+}
+
+impl GeneratedLiteral {
+    /// Admit one exact numeric-literal spelling already recognized by the capture owner.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GeneratedLiteralRefusal::NotANumber`] where the spelling is not one numeric literal.
+    pub fn number(spelling: &str) -> Result<Self, GeneratedLiteralRefusal> {
+        match capture_literal(spelling) {
+            Ok(CapturedAtom::Number(captured)) => Ok(Self {
+                value: GeneratedLiteralValue::Number(captured),
+            }),
+            Ok(
+                CapturedAtom::Word(_)
+                | CapturedAtom::Punct(_)
+                | CapturedAtom::Text(_)
+                | CapturedAtom::ByteText(_)
+                | CapturedAtom::Character(_)
+                | CapturedAtom::Byte(_)
+                | CapturedAtom::NulTerminatedText(_)
+                | CapturedAtom::RawIdentifier(_)
+                | CapturedAtom::JointPunct(_),
+            )
+            | Err(_) => Err(GeneratedLiteralRefusal::NotANumber),
+        }
+    }
+
+    /// Admit one exact character literal value.
+    #[must_use]
+    pub const fn character(character: char) -> Self {
+        Self {
+            value: GeneratedLiteralValue::Character(character),
+        }
+    }
+
+    /// Admit one exact byte literal value.
+    #[must_use]
+    pub const fn byte(byte: u8) -> Self {
+        Self {
+            value: GeneratedLiteralValue::Byte(byte),
+        }
+    }
+
+    /// Admit C-string material without its terminating NUL.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GeneratedLiteralRefusal::InteriorNul`] where the material contains a NUL byte.
+    pub fn nul_terminated_text(material: &[u8]) -> Result<Self, GeneratedLiteralRefusal> {
+        if material.contains(&0) {
+            Err(GeneratedLiteralRefusal::InteriorNul)
+        } else {
+            Ok(Self {
+                value: GeneratedLiteralValue::NulTerminatedText(material.to_vec()),
+            })
+        }
+    }
+
+    /// Read this admitted literal inside the compiler's generation and host owners.
+    pub(crate) fn form(&self) -> GeneratedLiteralForm<'_> {
+        match &self.value {
+            GeneratedLiteralValue::Number(spelling) => GeneratedLiteralForm::Number(spelling),
+            GeneratedLiteralValue::Character(character) => {
+                GeneratedLiteralForm::Character(*character)
+            }
+            GeneratedLiteralValue::Byte(byte) => GeneratedLiteralForm::Byte(*byte),
+            GeneratedLiteralValue::NulTerminatedText(material) => {
+                GeneratedLiteralForm::NulTerminatedText(material)
+            }
+        }
+    }
+}
 
 impl GeneratedToken {
     /// Append this token's canonical bytes to a containing compiler-owned encoding.
@@ -57,6 +157,12 @@ impl GeneratedToken {
         Self::Number(value)
     }
 
+    /// One exact caller-authored literal admitted by [`GeneratedLiteral`].
+    #[must_use]
+    pub const fn literal(literal: GeneratedLiteral) -> Self {
+        Self::Literal(literal)
+    }
+
     /// One delimited group.
     ///
     /// # Errors
@@ -86,7 +192,26 @@ impl GeneratedTree {
     ///
     /// Returns [`Overflow`] where the tree carries more top-level tokens than the declared magnitude admits.
     pub fn assembled(tokens: Vec<GeneratedToken>) -> Result<Self, Overflow> {
-        Bounded::new(tokens).map(|tokens| Self { tokens })
+        Bounded::new(tokens).map(|tokens| {
+            let source_spans = absent_source_spans(tokens.as_slice());
+            Self {
+                tokens,
+                source_spans,
+            }
+        })
+    }
+
+    /// Assemble one preserved generated tree with its nonsemantic producer-span roster.
+    pub(crate) fn preserved(
+        tokens: Vec<GeneratedToken>,
+        source_spans: Vec<Option<SpanHandle>>,
+    ) -> Result<Self, Overflow> {
+        let tokens = Bounded::new(tokens)?;
+        debug_assert_eq!(source_spans.len(), recursive_token_count(tokens.as_slice()));
+        Ok(Self {
+            tokens,
+            source_spans,
+        })
     }
 
     /// The top-level tokens, in the order they were written.
@@ -115,7 +240,34 @@ impl GeneratedTree {
     pub fn joined(&self, other: &Self) -> Result<Self, Overflow> {
         let mut tokens = self.tokens.as_slice().to_vec();
         tokens.extend_from_slice(other.tokens.as_slice());
-        Self::assembled(tokens)
+        let tokens = Bounded::new(tokens)?;
+        let mut source_spans = self.source_spans.clone();
+        source_spans.extend_from_slice(other.source_spans.as_slice());
+        Ok(Self {
+            tokens,
+            source_spans,
+        })
+    }
+
+    /// Place this tree under one group while retaining every nested producer span.
+    pub(crate) fn grouped(
+        &self,
+        delimiter: GeneratedDelimiter,
+        at: Option<SpanHandle>,
+    ) -> Result<Self, Overflow> {
+        let grouped = GeneratedToken::group(delimiter, self.tokens.as_slice().to_vec())?;
+        let mut source_spans = vec![at];
+        source_spans.extend_from_slice(self.source_spans.as_slice());
+        Ok(Self {
+            tokens: Bounded::from_array([grouped]),
+            source_spans,
+        })
+    }
+
+    /// Read the nonsemantic producer-span roster inside the compiler host.
+    #[cfg(feature = "host")]
+    pub(crate) fn source_spans(&self) -> &[Option<SpanHandle>] {
+        self.source_spans.as_slice()
     }
 
     /// The Rust source text this tree projects, for a person to read.
@@ -137,4 +289,40 @@ impl GeneratedTree {
         }
         bytes
     }
+}
+
+/// One absent source entry for every token in pre-order.
+fn absent_source_spans(tokens: &[GeneratedToken]) -> Vec<Option<SpanHandle>> {
+    let mut spans = Vec::new();
+    for token in tokens {
+        spans.push(None);
+        if let GeneratedToken::Group {
+            tokens: nested_tokens,
+            ..
+        } = token
+        {
+            spans.extend(absent_source_spans(nested_tokens.as_slice()));
+        }
+    }
+    spans
+}
+
+/// The recursive token denominator one source roster must match.
+fn recursive_token_count(tokens: &[GeneratedToken]) -> usize {
+    tokens.iter().fold(0usize, |count, token| {
+        let nested = match token {
+            GeneratedToken::Group {
+                tokens: nested_tokens,
+                ..
+            } => recursive_token_count(nested_tokens.as_slice()),
+            GeneratedToken::Word(_)
+            | GeneratedToken::Punct { .. }
+            | GeneratedToken::Text(_)
+            | GeneratedToken::ByteText(_)
+            | GeneratedToken::Number(_)
+            | GeneratedToken::RawIdentifier(_)
+            | GeneratedToken::Literal(_) => 0,
+        };
+        count.saturating_add(1).saturating_add(nested)
+    })
 }

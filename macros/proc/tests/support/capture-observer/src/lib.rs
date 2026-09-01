@@ -1,7 +1,7 @@
 #![doc = include_str!("../README.md")]
 
-use macroonz_compiler::host::{Spans, capture};
-use proc_macro::{Literal, TokenStream, TokenTree};
+use macroonz_compiler::host::{Spans, capture, emit_tree};
+use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 
 /// Capture the compiler's real input and expand to one literal containing its canonical bytes as lowercase hexadecimal.
 #[proc_macro]
@@ -12,6 +12,48 @@ pub fn canonical_capture(input: TokenStream) -> TokenStream {
         Err(refusal) => format!("capture-refused:{refusal}"),
     };
     TokenStream::from(TokenTree::Literal(Literal::string(&observed)))
+}
+
+/// Capture the compiler's real input and return the structurally preserved generated tokens through the real host emitter.
+#[proc_macro]
+pub fn round_trip(input: TokenStream) -> TokenStream {
+    let mut spans = Spans::empty();
+    let captured = match capture(input, &mut spans) {
+        Ok(captured) => captured,
+        Err(refusal) => return refused(&refusal.to_string()),
+    };
+    let generated = match captured.fragment().generated() {
+        Ok(generated) => generated,
+        Err(refusal) => return refused(&refusal.to_string()),
+    };
+    match emit_tree(&generated, &spans) {
+        Ok(emitted) => emitted,
+        Err(refusal) => refused(&refusal.to_string()),
+    }
+}
+
+/// One invocation-sited `compile_error!` carrying a typed refusal rendered by its owner.
+fn refused(message: &str) -> TokenStream {
+    let span = Span::call_site();
+    let mut bang = Punct::new('!', Spacing::Alone);
+    bang.set_span(span);
+    let mut terminator = Punct::new(';', Spacing::Alone);
+    terminator.set_span(span);
+    let mut line = Literal::string(message);
+    line.set_span(span);
+    let mut argument = Group::new(
+        Delimiter::Parenthesis,
+        TokenStream::from(TokenTree::Literal(line)),
+    );
+    argument.set_span(span);
+    [
+        TokenTree::Ident(Ident::new("compile_error", span)),
+        TokenTree::Punct(bang),
+        TokenTree::Group(argument),
+        TokenTree::Punct(terminator),
+    ]
+    .into_iter()
+    .collect()
 }
 
 /// Lowercase hexadecimal for one canonical byte string.

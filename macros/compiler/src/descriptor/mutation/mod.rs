@@ -7,7 +7,7 @@ mod type_contract;
 mod types;
 
 pub use capture::captured;
-pub use complete::completed;
+pub use complete::{completed, completed_from_order};
 pub use render::generated_module;
 pub use types::{
     ALTERNATIVE_LIMIT, Address, Alternative, DECLARED_ORDER_FAMILY, Declaration, FactMapping,

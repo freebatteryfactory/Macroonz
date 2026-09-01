@@ -18,7 +18,9 @@
 //! An unsuffixed integer has exactly one rendering, so the two sides are one token by construction.
 
 use super::super::cargo::{AxisCargo, DeclaredCargo};
-use super::super::types::{BoundPath, CrateFacing, DeliveryForm, SchemaId, SupportName};
+use super::super::types::{
+    BoundPath, CrateFacing, DeclaringBinding, DeliveryForm, SchemaId, SupportName,
+};
 use super::ShellName;
 use crate::bounded::Overflow;
 use crate::request::Door;
@@ -85,7 +87,31 @@ pub fn matched_clause(name: &str, fragment: &str) -> Vec<GeneratedToken> {
 /// The rest is the declared cargo's own, carried beside the body that spells it — an argument a consumer supplies that nothing spells is a value the plan decided and nothing read.
 #[must_use]
 pub fn matcher(declared: &AxisCargo<DeclaredCargo>) -> Vec<GeneratedToken> {
-    let facing = CrateFacing::Harness;
+    matcher_for(DeclaringBinding::Absent, declared)
+}
+
+pub(super) fn matcher_requiring_declaring(
+    declared: &AxisCargo<DeclaredCargo>,
+) -> Vec<GeneratedToken> {
+    matcher_for(DeclaringBinding::Required, declared)
+}
+
+fn matcher_for(
+    declaring: DeclaringBinding,
+    declared: &AxisCargo<DeclaredCargo>,
+) -> Vec<GeneratedToken> {
+    let mut tokens = Vec::new();
+    if declaring == DeclaringBinding::Required {
+        tokens.extend(path_matcher(CrateFacing::Declaring));
+    }
+    tokens.extend(path_matcher(CrateFacing::Harness));
+    if let AxisCargo::Carried(cargo) = declared {
+        tokens.extend(cargo.matched().tokens().iter().cloned());
+    }
+    tokens
+}
+
+fn path_matcher(facing: CrateFacing) -> Vec<GeneratedToken> {
     let binding = facing.name();
     let segment = segment_binding(facing);
     let mut tokens = vec![GeneratedToken::word(binding), GeneratedToken::alone(':')];
@@ -106,9 +132,6 @@ pub fn matcher(declared: &AxisCargo<DeclaredCargo>) -> Vec<GeneratedToken> {
     ));
     tokens.push(GeneratedToken::alone('*'));
     tokens.push(GeneratedToken::alone(','));
-    if let AxisCargo::Carried(cargo) = declared {
-        tokens.extend(cargo.matched().tokens().iter().cloned());
-    }
     tokens
 }
 
@@ -196,9 +219,10 @@ pub fn exported_shell(
 ///
 /// # What it forwards
 ///
-/// Every token, unread.
-/// The address declares no grammar of its own — the hidden carrier's matcher is the grammar, and a second matcher here would be a second shape a caller has to satisfy and a second place for it to drift.
-/// The forward is spelled through the defining crate's own root, so it resolves inside whatever crate the declaration site sits in whatever that crate is called.
+/// Every semantic token, unread.
+/// An ordinary address forwards through the defining crate's own root.
+/// Where generated cargo needs declaration-owned items across a target boundary, the address reads the explicitly supplied declaring path only to reach the hidden carrier and forwards that same binding beside every other token.
+/// The hidden carrier remains the sole owner of the complete matcher grammar.
 ///
 /// # Errors
 ///
@@ -208,39 +232,85 @@ pub fn public_alias(
     address: &SupportName,
     sentence: &str,
 ) -> Result<Vec<GeneratedToken>, Overflow> {
+    public_alias_for(name, address, sentence, DeclaringBinding::Absent)
+}
+
+pub(super) fn public_alias_requiring_declaring(
+    name: &ShellName,
+    address: &SupportName,
+    sentence: &str,
+) -> Result<Vec<GeneratedToken>, Overflow> {
+    public_alias_for(name, address, sentence, DeclaringBinding::Required)
+}
+
+fn public_alias_for(
+    name: &ShellName,
+    address: &SupportName,
+    sentence: &str,
+    declaring: DeclaringBinding,
+) -> Result<Vec<GeneratedToken>, Overflow> {
     let mut tokens = documentation(sentence)?;
     tokens.extend(attribute(vec![GeneratedToken::word("macro_export")])?);
     tokens.push(GeneratedToken::word("macro_rules"));
     tokens.push(GeneratedToken::alone('!'));
     tokens.push(GeneratedToken::word(address.spelling()));
 
-    let mut taken = metavariable("input");
-    taken.push(GeneratedToken::alone(':'));
-    taken.push(GeneratedToken::word("tt"));
-    let mut repeated = vec![GeneratedToken::joint('$')];
-    repeated.push(group(GeneratedDelimiter::Parenthesis, taken)?);
-    repeated.push(GeneratedToken::alone('*'));
-
-    let mut forwarded = metavariable("crate");
+    let (matched, mut forwarded) = match declaring {
+        DeclaringBinding::Absent => (repeated_input()?, metavariable("crate")),
+        DeclaringBinding::Required => {
+            let facing = CrateFacing::Declaring;
+            (declaring_input()?, rooted_path(facing, &[]))
+        }
+    };
     forwarded.push(GeneratedToken::joint(':'));
     forwarded.push(GeneratedToken::alone(':'));
     forwarded.push(GeneratedToken::word(name.spelling()));
     forwarded.push(GeneratedToken::alone('!'));
-    let mut passed = vec![GeneratedToken::joint('$')];
-    passed.push(group(
-        GeneratedDelimiter::Parenthesis,
-        metavariable("input"),
-    )?);
-    passed.push(GeneratedToken::alone('*'));
+    let passed = forwarded_input(declaring)?;
     forwarded.push(group(GeneratedDelimiter::Brace, passed)?);
 
-    let mut rule = vec![group(GeneratedDelimiter::Parenthesis, repeated)?];
+    let mut rule = vec![group(GeneratedDelimiter::Parenthesis, matched)?];
     rule.push(GeneratedToken::joint('='));
     rule.push(GeneratedToken::alone('>'));
     rule.push(group(GeneratedDelimiter::Brace, forwarded)?);
     rule.push(GeneratedToken::alone(';'));
     tokens.push(group(GeneratedDelimiter::Brace, rule)?);
     Ok(tokens)
+}
+
+fn repeated_input() -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut taken = metavariable("input");
+    taken.push(GeneratedToken::alone(':'));
+    taken.push(GeneratedToken::word("tt"));
+    let mut repeated = vec![GeneratedToken::joint('$')];
+    repeated.push(group(GeneratedDelimiter::Parenthesis, taken)?);
+    repeated.push(GeneratedToken::alone('*'));
+    Ok(repeated)
+}
+
+fn declaring_input() -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut matched = path_matcher(CrateFacing::Declaring);
+    matched.extend(repeated_input()?);
+    Ok(matched)
+}
+
+fn forwarded_input(declaring: DeclaringBinding) -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut passed = Vec::new();
+    if declaring == DeclaringBinding::Required {
+        passed.extend([
+            GeneratedToken::word(CrateFacing::Declaring.name()),
+            GeneratedToken::alone(':'),
+        ]);
+        passed.extend(rooted_path(CrateFacing::Declaring, &[]));
+        passed.push(GeneratedToken::alone(','));
+    }
+    passed.push(GeneratedToken::joint('$'));
+    passed.push(group(
+        GeneratedDelimiter::Parenthesis,
+        metavariable("input"),
+    )?);
+    passed.push(GeneratedToken::alone('*'));
+    Ok(passed)
 }
 
 /// The sentence the exported carrier documents itself with.

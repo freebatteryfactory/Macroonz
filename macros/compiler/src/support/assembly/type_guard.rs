@@ -11,7 +11,7 @@ use crate::request::{committed, committed_helper};
 use crate::support::cargo::{
     AxisCargo, CargoAxis, CargoProofIssue, DeclaredCargo, DeferredCargo, ProvedCargo, SupportAxes,
 };
-use crate::support::{DeliveryForm, EXPECTED_SCHEMA_ID, SchemaId, SupportName};
+use crate::support::{DeclaringBinding, DeliveryForm, EXPECTED_SCHEMA_ID, SchemaId, SupportName};
 use crate::token::{CapturedInput, GeneratedTree};
 impl DeclaredCargo {
     /// Reads a stamped body from the terminal which proved it.
@@ -78,7 +78,22 @@ impl SupportAssembly {
         address: Option<SupportName>,
         axes: SupportAxes,
     ) -> Result<Self, AssemblyError> {
-        Self::checked(root, None, address, axes)
+        Self::checked(root, None, address, DeclaringBinding::Absent, axes)
+    }
+
+    /// Checks and assembles one complete axis set whose consumption target must bind the declaring crate.
+    ///
+    /// This crate-private road exists for generated cargo that names declaration-owned items across a target boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns every independently established issue within the issue bound.
+    pub(crate) fn assembled_requiring_declaring(
+        root: Identity<identity::CapturedDeclaration>,
+        address: Option<SupportName>,
+        axes: SupportAxes,
+    ) -> Result<Self, AssemblyError> {
+        Self::checked(root, None, address, DeclaringBinding::Required, axes)
     }
 
     /// Checks and assembles one complete axis set read from a helper beside a declaration.
@@ -95,9 +110,34 @@ impl SupportAssembly {
         address: Option<SupportName>,
         axes: SupportAxes,
     ) -> Result<Self, AssemblyError> {
+        Self::assembled_for_helper_with_binding(
+            declaration,
+            helper,
+            helper_position,
+            address,
+            DeclaringBinding::Absent,
+            axes,
+        )
+    }
+
+    /// Checks and assembles one complete helper-derived axis set under the declared consumption binding.
+    ///
+    /// This crate-private road lets the descriptor adapter preserve one informing operation while choosing whether its consumer must state the declaring crate path.
+    ///
+    /// # Errors
+    ///
+    /// Returns every independently established issue within the issue bound.
+    pub(crate) fn assembled_for_helper_with_binding(
+        declaration: &CapturedInput,
+        helper: &CapturedInput,
+        helper_position: u32,
+        address: Option<SupportName>,
+        declaring: DeclaringBinding,
+        axes: SupportAxes,
+    ) -> Result<Self, AssemblyError> {
         let root = committed(declaration);
         let helper = committed_helper(declaration, helper, helper_position);
-        Self::checked(root, Some(helper), address, axes)
+        Self::checked(root, Some(helper), address, declaring, axes)
     }
 
     /// Checks and assembles one complete axis set under an optional helper commitment.
@@ -105,6 +145,7 @@ impl SupportAssembly {
         root: Identity<identity::CapturedDeclaration>,
         helper: Option<Identity<identity::CapturedHelper>>,
         address: Option<SupportName>,
+        declaring: DeclaringBinding,
         axes: SupportAxes,
     ) -> Result<Self, AssemblyError> {
         let mut issues = Vec::new();
@@ -123,6 +164,7 @@ impl SupportAssembly {
             helper,
             expectation: EXPECTED_SCHEMA_ID,
             address,
+            declaring,
             declared: axes.declared,
             deferred: axes.deferred,
             bench: axes.bench,
@@ -148,6 +190,11 @@ impl SupportAssembly {
     #[must_use]
     pub const fn address(&self) -> Option<&SupportName> {
         self.address.as_ref()
+    }
+    /// Reads whether this carrier requires the consumption target's declaring-crate binding.
+    #[must_use]
+    pub(crate) const fn declaring_binding(&self) -> DeclaringBinding {
+        self.declaring
     }
     /// Reads declaration cargo.
     pub const fn declared(&self) -> &AxisCargo<DeclaredCargo> {

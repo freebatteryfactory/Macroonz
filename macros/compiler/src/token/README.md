@@ -46,6 +46,17 @@ It uses a pinned low-level compiler lexer for token boundaries and slices every 
 Its source-byte magnitude is checked before lexing and stands independently of the capture tree and work magnitudes.
 The [`CapturedInput`] it returns is the shared normalization boundary against which the compiler-token producer is observed.
 
+[`CaptureCursor`] reads generic mechanical shapes from that boundary without interpreting them.
+It leaves declaration vocabulary and diagnostic policy with the caller, and its typed refusals retain the exact token span available where a word, identifier, punctuation seat, group, separator, magnitude, or end condition disagrees.
+This is the reusable parser battery for subject-owned grammars, not a grammar owned by Macroonz.
+
+[`CapturedFragment`] is one borrowed exact run inside that same boundary.
+A cursor can return the fragment consumed by a caller-owned structural read, so types, paths, signatures, expressions, patterns, generic clauses, bodies, and other exact Rust seats retain their captured tokens and source handles without becoming strings.
+
+[`AuthoredItem`] is the shallow structural lens over one supported complete caller-authored item boundary.
+It identifies the outer attributes, visibility, qualifiers, structural item family, optional name, generics, where clause, signature, and body group while the complete [`CapturedFragment`] remains the one preserved token reading.
+The lens is not a Rust AST, and Rustc remains responsible for full syntax, type, lifetime, ownership, and coherence judgments.
+
 ## Writing
 
 [`GeneratedTree`] is what a renderer produces.
@@ -54,6 +65,11 @@ That is what keeps `b"…"` from being assembled out of a word and a quoted stri
 
 The private generation home's composers are the rest of what a renderer needs: paths, calls, method chains, bindings, constants, functions, attributes, rosters.
 A renderer states what it means and never assembles punctuation by hand.
+The keyed slice projectors walk an informed [`KeyedRoster`](crate::KeyedRoster) or [`KeyedRosterAssignment`](crate::KeyedRosterAssignment) in its structural order while the renderer supplies every row's tokens and the ordinary Rust item surrounding the slice.
+
+Where generated output must repeat exact caller-authored Rust, [`CapturedFragment::generated`] projects the captured token structure directly into the generated vocabulary.
+The road never builds and reparses source text, retains invisible compiler groups, carries each producer span as nonsemantic emission provenance, and uses a guarded [`GeneratedLiteral`] for numeric, character, byte, and C-string forms that require exact literal custody.
+Producer spans do not enter equality, hashing, canonical bytes, or human inspection, and only the compiler host resolves them while materializing the declaration-site token stream.
 
 The written roster grows only at its end.
 Each arm's stable slot is one byte of the tree's canonical encoding, and those bytes are what a rendered unit's identity is derived over.

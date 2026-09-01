@@ -4,9 +4,48 @@
 //! The shared case carries only distinctions both producers can author truthfully; comment lowering and invisible groups keep their separate disposition observers.
 
 use core::convert::Infallible;
+use core::mem::size_of_val;
 use macroonz_compiler::{
     CaptureBuildRefusal, CaptureBuilder, CapturedAtom, CapturedDelimiter, TextCapture,
 };
+use std::ffi::CStr;
+
+macroonz_capture_observer::round_trip! {
+    /// One item whose authored Rust crosses capture, exact generated tokens, and the real proc emitter.
+    pub struct RoundTripItem<'a, T, const N: usize>
+    where
+        T: 'a,
+    {
+        /// The borrowed caller value.
+        pub value: &'a T,
+        /// The const-generic byte payload.
+        pub bytes: [u8; N],
+    }
+}
+
+macroonz_capture_observer::round_trip! {
+    /// One GAT-bearing trait preserved without a parallel item model.
+    pub trait RoundTripTrait {
+        /// One value borrowed for a caller-chosen lifetime.
+        type Item<'a>
+        where
+            Self: 'a;
+    }
+}
+
+macroonz_capture_observer::round_trip! {
+    /// One precise-capture return type preserved through the compiler-token boundary.
+    pub fn precisely_captured<'a, T>(value: &'a T) -> impl Copy + use<'a, T> {
+        value
+    }
+}
+
+/// Forward one parsed expression through the exact fragment road so the compiler supplies an invisible group.
+macro_rules! round_trip_expression {
+    ($expression:expr) => {
+        macroonz_capture_observer::round_trip!($expression)
+    };
+}
 
 /// The source spelling corresponding exactly to the token stream given to the proc witness below.
 const SOURCE: &str = r##"r#type::Item<'a, 'r#kind> && "a\nb" r#"raw"# b"\xff" c"x" { [1..=3] }"##;
@@ -113,4 +152,29 @@ fn proc_invisible_group_stays_distinct_from_text() -> Result<(), ()> {
     assert_eq!(proc_bytes, hexadecimal(&expected.canonical_bytes()));
     assert_ne!(proc_bytes, hexadecimal(&text.input().canonical_bytes()));
     Ok(())
+}
+
+/// Exact literals, raw identifiers, advanced item syntax, and an invisible expression group survive a real compiler-token round trip.
+#[test]
+fn preserved_fragments_return_through_the_real_proc_host() {
+    const NUMBER: u8 = macroonz_capture_observer::round_trip!(0xFFu8);
+    const CHARACTER: char = macroonz_capture_observer::round_trip!('é');
+    const BYTE: u8 = macroonz_capture_observer::round_trip!(b'\xff');
+    const C_TEXT: &CStr = macroonz_capture_observer::round_trip!(c"ab");
+    const SUM: u8 = round_trip_expression!(1u8 + 2u8);
+
+    let r#type = 9u8;
+    let raw = macroonz_capture_observer::round_trip!(r#type);
+    let item = RoundTripItem::<u8, 2> {
+        value: &raw,
+        bytes: [NUMBER, SUM],
+    };
+
+    assert_eq!(NUMBER, 255);
+    assert_eq!(CHARACTER, 'é');
+    assert_eq!(BYTE, 255);
+    assert_eq!(C_TEXT.to_bytes(), b"ab");
+    let captured = precisely_captured(item.value);
+    assert!(size_of_val(&captured) > 0);
+    assert_eq!(item.bytes, [255, 3]);
 }

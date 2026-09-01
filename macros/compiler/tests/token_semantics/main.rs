@@ -6,7 +6,7 @@
 use core::convert::Infallible;
 use macroonz_compiler::token::{
     CaptureBuildRefusal as HomeCaptureBuildRefusal, CaptureBuilder as HomeCaptureBuilder,
-    CapturedAtom, CapturedDelimiter, CapturedInput, GeneratedDelimiter,
+    CapturedAtom, CapturedDelimiter, CapturedInput, GeneratedDelimiter, GeneratedLiteral,
     GeneratedToken as HomeGeneratedToken, GeneratedTree as HomeGeneratedTree,
 };
 use macroonz_compiler::{CaptureBuildRefusal, CaptureBuilder, GeneratedToken, GeneratedTree};
@@ -120,7 +120,7 @@ fn captured_receipt() -> Vec<u8> {
     bytes
 }
 
-/// One generated tree carrying every token slot, both spacing rows, and every generated delimiter slot.
+/// One generated tree carrying every token slot, both spacing rows, every generated delimiter slot, and every exact-literal row.
 fn generated() -> Option<GeneratedTree> {
     let tokens = vec![
         GeneratedToken::word("word"),
@@ -130,9 +130,18 @@ fn generated() -> Option<GeneratedTree> {
         GeneratedToken::group(GeneratedDelimiter::Parenthesis, Vec::new()).ok()?,
         GeneratedToken::group(GeneratedDelimiter::Brace, Vec::new()).ok()?,
         GeneratedToken::group(GeneratedDelimiter::Bracket, Vec::new()).ok()?,
+        GeneratedToken::group(
+            GeneratedDelimiter::Bare,
+            vec![GeneratedToken::word("inside")],
+        )
+        .ok()?,
         GeneratedToken::byte_text(&[0, 0xff]),
         GeneratedToken::number(0x0102_0304_0506_0708),
         GeneratedToken::raw_identifier("type"),
+        GeneratedToken::literal(GeneratedLiteral::number("0xFFu8").ok()?),
+        GeneratedToken::literal(GeneratedLiteral::character('é')),
+        GeneratedToken::literal(GeneratedLiteral::byte(0xff)),
+        GeneratedToken::literal(GeneratedLiteral::nul_terminated_text(b"ab").ok()?),
     ];
     GeneratedTree::assembled(tokens).ok()
 }
@@ -152,10 +161,20 @@ fn generated_receipt() -> Vec<u8> {
         bytes.extend_from_slice(&[4, delimiter]);
         bytes.extend_from_slice(&0u64.to_be_bytes());
     }
+    bytes.extend_from_slice(&[4, 3]);
+    bytes.extend_from_slice(&1u64.to_be_bytes());
+    framed(1, b"inside", &mut bytes);
     framed(5, &[0, 0xff], &mut bytes);
     bytes.push(6);
     bytes.extend_from_slice(&0x0102_0304_0506_0708u64.to_be_bytes());
     framed(7, b"type", &mut bytes);
+    bytes.push(8);
+    framed(0, b"0xFFu8", &mut bytes);
+    bytes.push(8);
+    framed(1, "é".as_bytes(), &mut bytes);
+    bytes.extend_from_slice(&[8, 2, 0xff]);
+    bytes.push(8);
+    framed(3, b"ab", &mut bytes);
     bytes
 }
 
@@ -196,7 +215,7 @@ fn captured_slots_are_exact_and_producer_coordinates_stay_out() -> Result<(), ()
 }
 
 /// Claim: every generated token and delimiter retains its exact canonical slot, framing, and readable spelling.
-/// Subject: one generated tree carrying all seven token slots, both spacing rows, and all three delimiters.
+/// Subject: one generated tree carrying all eight token slots, both spacing rows, all four delimiters, and all four exact-literal rows.
 /// Population: the complete current generated-token roster.
 /// Hostile control: joint and alone punctuation share one mark but encode apart, while the projection makes their spacing difference visible.
 /// Evidence ceiling: this fixes canonical bytes and the one-way readable projection, not proc-macro span placement or downstream parsing.
@@ -206,7 +225,7 @@ fn generated_slots_and_readable_spelling_are_exact() -> Result<(), ()> {
     assert_eq!(tree.canonical_bytes(), generated_receipt());
     assert_eq!(
         tree.inspected(),
-        r#"word :: "a\"\\" ( ) { } [ ] b"\x00\xFF" 72623859790382856 r#type "#
+        r#"word :: "a\"\\" ( ) { } [ ] inside b"\x00\xFF" 72623859790382856 r#type 0xFFu8 '\u{e9}' b'\xFF' c"ab" "#
     );
     Ok(())
 }
