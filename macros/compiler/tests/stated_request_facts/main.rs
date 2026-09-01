@@ -6,7 +6,8 @@
 use macroonz_compiler::request::committed;
 use macroonz_compiler::{
     Answer, CrateBinding, Destination, Door, GeneratedToken, GeneratedTree, Kind, OwnerFact,
-    OwnerIdentity, Producer, Profile, Question, Request, Role, TextCapture, TraceDecision, Version,
+    OwnerIdentity, Producer, Profile, Question, Request, Role, SELECTION_FACT, TextCapture,
+    TraceDecision, Version,
 };
 
 /// The one publishing seat this lane plans.
@@ -206,6 +207,13 @@ fn rendered_word(word: &'static str) -> Result<GeneratedTree, macroonz_compiler:
 /// The default and explicit complete selection agree, while one selected role becomes the exact planned set before rendering.
 #[test]
 fn request_selection_is_nonempty_checked_and_identity_bearing() -> Result<(), String> {
+    assert_eq!(
+        SELECTION_FACT,
+        OwnerFact {
+            home: "request",
+            name: "a-requests-selected-seats-are-its-complete-output-set",
+        }
+    );
     let source = TextCapture::read("struct Publication;").map_err(|refusal| refusal.to_string())?;
     let default = Request::<Publication>::over(source.input().clone(), "publication", &DOOR)
         .answering(vec![Answered::Second])

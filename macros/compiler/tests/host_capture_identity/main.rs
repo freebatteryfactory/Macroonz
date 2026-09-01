@@ -2,11 +2,29 @@
 //!
 //! The checked token builder mints both coordinates, while the host refusal projects declaration identity from the path and retains the handle for producer placement.
 
-use macroonz_compiler::host::CaptureError;
+use macroonz_compiler::host::{CaptureError, Emittable, Spans, emit};
 use macroonz_compiler::{
-    CaptureBound, CaptureBuildRefusal, CaptureBuilder, CapturedAtom, LiteralReadCause, SpanHandle,
-    TOKEN_PATH_DEPTH_LIMIT, TokenPath,
+    CaptureBound, CaptureBuildRefusal, CaptureBuilder, CapturedAtom, LiteralReadCause,
+    PartitionCargo, SpanHandle, TOKEN_PATH_DEPTH_LIMIT, TokenPath,
 };
+
+/// One empty emission source used only to type-check the public host contract.
+struct EmptyEmission;
+
+impl Emittable for EmptyEmission {
+    fn cargos(&self) -> impl Iterator<Item = &PartitionCargo> {
+        core::iter::empty()
+    }
+}
+
+/// Host emission requires the capture's span custody and exposes its typed contradiction.
+#[test]
+fn emission_contract_carries_spans_and_a_typed_result() {
+    if core::hint::black_box(false) {
+        let result = emit(&EmptyEmission, &Spans::empty());
+        assert!(result.is_ok());
+    }
+}
 
 /// Mint one producer refusal after complete earlier captures and complete earlier tokens in the failing declaration.
 fn producer_refusal(
