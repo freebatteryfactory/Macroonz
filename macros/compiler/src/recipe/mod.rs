@@ -5,6 +5,11 @@ mod capture;
 mod encode;
 mod evidence;
 mod render;
+mod render_companions;
+mod render_dispatch;
+mod render_evidence;
+mod render_tokens;
+mod render_typestate;
 mod type_contract;
 mod types;
 
