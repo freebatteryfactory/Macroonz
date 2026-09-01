@@ -4,14 +4,18 @@
 
 mod behavior;
 mod items;
+mod traits;
 
 use macroonz_compiler::token::{
-    keyed_assignment_slice as home_assignment_slice, keyed_roster_slice as home_roster_slice,
+    keyed_assignment_items as home_assignment_items,
+    keyed_assignment_slice as home_assignment_slice, keyed_roster_items as home_roster_items,
+    keyed_roster_slice as home_roster_slice,
 };
 use macroonz_compiler::{
-    CrateBinding, GENERATED_TOKEN_LIMIT, GeneratedDelimiter, GeneratedToken, GeneratedTree,
-    KeyedRoster, KeyedRosterAssignment, Kind, NoQuestions, Overflow, Producer, Request, SoleRole,
-    TextCapture, comma_many, group, keyed_assignment_slice, keyed_roster_slice,
+    CrateBinding, Empty, GENERATED_TOKEN_LIMIT, GeneratedDelimiter, GeneratedToken, GeneratedTree,
+    KeyedRoster, KeyedRosterAssignment, Kind, NoQuestions, NonEmptyError, Overflow, Producer,
+    Request, SoleRole, TextCapture, comma_many, group, keyed_assignment_items,
+    keyed_assignment_slice, keyed_roster_items, keyed_roster_slice,
 };
 
 const MEMBER_LIMIT: usize = 4;
@@ -184,6 +188,66 @@ fn root_and_token_home_paths_project_one_surface() -> Result<(), ()> {
     assert_eq!(
         tree(assignment_root)?.canonical_bytes(),
         tree(assignment_home)?.canonical_bytes()
+    );
+    Ok(())
+}
+
+/// Claim: the crate root and token home expose one exact flat-item projection behavior.
+/// Subject: one two-member keyed roster and one exact assignment over it.
+/// Population: both public paths for both flat-item operations and the assignment row-refusal diagnostic.
+/// Hostile control: one assignment row emits nothing and must refuse under its exact denominator position.
+/// Evidence ceiling: this fixes public path and refusal parity, not the meaning of any generated item.
+#[test]
+fn root_and_token_home_item_paths_project_one_surface() -> Result<(), ()> {
+    let roster = members(&[("first", "First"), ("second", "Second")])?;
+    let roster_root = keyed_roster_items(&roster, |index, key, member| {
+        Ok(member_row(index, key, member))
+    })
+    .map_err(|_refusal| ())?;
+    let roster_home = home_roster_items(&roster, |index, key, member| {
+        Ok(member_row(index, key, member))
+    })
+    .map_err(|_refusal| ())?;
+    assert_eq!(
+        tree(roster_root)?.canonical_bytes(),
+        tree(roster_home)?.canonical_bytes()
+    );
+
+    let assignment = payloads(
+        roster,
+        &[("second", "second-seat", 2), ("first", "first-seat", 1)],
+    )?;
+    let assignment_root =
+        keyed_assignment_items(&assignment, |index, key, member, seat, payload| {
+            payload_row(index, key, member, seat, payload)
+        })
+        .map_err(|_refusal| ())?;
+    let assignment_home =
+        home_assignment_items(&assignment, |index, key, member, seat, payload| {
+            payload_row(index, key, member, seat, payload)
+        })
+        .map_err(|_refusal| ())?;
+    assert_eq!(
+        tree(assignment_root)?.canonical_bytes(),
+        tree(assignment_home)?.canonical_bytes()
+    );
+
+    let Err(refusal) =
+        keyed_assignment_items(&assignment, |_index, _key, _member, _seat, _payload| {
+            Ok(Vec::new())
+        })
+    else {
+        return Err(());
+    };
+    assert_eq!(refusal.position(), 0);
+    assert_eq!(refusal.cause(), NonEmptyError::Empty(Empty));
+    assert_eq!(
+        refusal.to_string(),
+        "generated row 0 refused: no item offered where at least one is required"
+    );
+    assert_eq!(
+        core::error::Error::source(&refusal).map(ToString::to_string),
+        Some("no item offered where at least one is required".to_owned())
     );
     Ok(())
 }

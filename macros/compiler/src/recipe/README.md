@@ -12,7 +12,8 @@ The enum variants are read from the authored enums themselves.
 The caller does not restate a roster, and Macroonz does not reconstruct either enum as a parallel Rust model.
 
 The optional `typestate` projection treats the authored state members as caller-declared type-level stages.
-It generates one marker per member plus one generic `Stage<Marker>` phantom carrier inside `baked::typestate`, and it assigns no runtime transition meaning to those types.
+It generates one marker per member, one structural `RecipeStage` trait carrying the caller-authored spelling, and one generic `Stage<Marker>` phantom carrier with conventional construction inside `baked::typestate`.
+The projection assigns no runtime transition meaning to those types.
 Newtypes, markers and phantom carriers are ordinary data-item compositions rather than separate compiler ontologies.
 
 A transition names one state member, one event member, one target state member, and one ordinary Rust effect path.

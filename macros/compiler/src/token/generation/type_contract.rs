@@ -1,6 +1,26 @@
 //! Trait contracts for exact generated literals and preserved-fragment refusals.
 
-use super::{FragmentGenerationIssue, FragmentGenerationRefusal, GeneratedLiteralRefusal};
+use super::{
+    FragmentGenerationIssue, FragmentGenerationRefusal, GeneratedLiteralRefusal,
+    GeneratedRowRefusal,
+};
+
+impl core::fmt::Display for GeneratedRowRefusal {
+    fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(
+            into,
+            "generated row {} refused: {}",
+            self.position(),
+            self.cause()
+        )
+    }
+}
+
+impl core::error::Error for GeneratedRowRefusal {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+        Some(self.cause_ref())
+    }
+}
 
 impl core::fmt::Display for GeneratedLiteralRefusal {
     fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

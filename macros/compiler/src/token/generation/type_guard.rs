@@ -2,10 +2,34 @@
 
 use super::{
     GeneratedDelimiter, GeneratedLiteral, GeneratedLiteralForm, GeneratedLiteralRefusal,
-    GeneratedLiteralValue, GeneratedSpacing, GeneratedToken, GeneratedTree,
+    GeneratedLiteralValue, GeneratedRowRefusal, GeneratedSpacing, GeneratedToken, GeneratedTree,
 };
-use crate::bounded::{Bounded, Overflow};
+use crate::bounded::{Bounded, NonEmptyError, Overflow};
 use crate::token::{CapturedAtom, capture_literal};
+
+impl GeneratedRowRefusal {
+    /// Records the exact retained row whose generated item run refused.
+    pub(crate) const fn at(position: usize, cause: NonEmptyError) -> Self {
+        Self { position, cause }
+    }
+
+    /// The retained row position whose item run refused.
+    #[must_use]
+    pub const fn position(&self) -> usize {
+        self.position
+    }
+
+    /// The exact non-empty token disagreement established at that row.
+    #[must_use]
+    pub const fn cause(&self) -> NonEmptyError {
+        self.cause
+    }
+
+    /// Borrows the concrete non-empty token disagreement for the error chain.
+    pub(crate) const fn cause_ref(&self) -> &NonEmptyError {
+        &self.cause
+    }
+}
 
 impl GeneratedLiteral {
     /// Admit one exact numeric-literal spelling already recognized by the capture owner.

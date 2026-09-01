@@ -5,11 +5,12 @@ use macroonz_compiler::recipe::{
     RecipeBake, RecipeProjector, RecipeRole, RecipeView,
 };
 use macroonz_compiler::{
-    CanonicalContent, CrateBinding, Destination, Door, GeneratedDelimiter, GeneratedToken,
-    GeneratedTree, Producer, TextCapture, absolute_path, attribute, constant, decorated,
-    documentation, enumeration, function_item, function_signature, group, inline_module, match_arm,
-    match_expression, result_type, tuple_struct, typed_parameter, unit_struct, unit_variant,
-    use_item,
+    CanonicalContent, CrateBinding, Destination, Door, GeneratedDelimiter, GeneratedRowRefusal,
+    GeneratedToken, GeneratedTree, NonEmptyError, Producer, TextCapture, absolute_path,
+    associated_constant, associated_function, attribute, constant, decorated, documentation,
+    enumeration, function_item, function_signature, group, implementation, inline_module,
+    keyed_roster_items, match_arm, match_expression, result_type, trait_declaration, tuple_struct,
+    typed_parameter, unit_struct, unit_variant, use_item,
 };
 
 const DOOR: Door = Door::declared(
@@ -217,16 +218,13 @@ impl RecipeProjector for MirroredTypestate {
     ) -> Result<ProjectionOffered, ProjectionError> {
         assert_eq!(request.role(), RecipeRole::Typestate);
         let mut items = use_item(absolute_path(&["core", "marker", "PhantomData"]), None);
-        for member in view.recipe().states().members() {
-            items.extend(decorated(
-                vec![
-                    documentation("One caller-declared typestate stage.")?,
-                    derived(&["Debug", "Clone", "Copy", "PartialEq", "Eq", "Hash"])?,
-                ],
-                public(),
-                unit_struct(member.name_token().clone(), Vec::new(), Vec::new()),
-            ));
-        }
+        items.extend(mirrored_stage_trait()?);
+        items.extend(
+            keyed_roster_items(view.recipe().states(), |_position, spelling, member| {
+                mirrored_stage_member(spelling, member)
+            })
+            .map_err(mirrored_row_projection_error)?,
+        );
         items.extend(decorated(
             vec![
                 documentation("A type-level carrier over one caller-declared stage.")?,
@@ -249,6 +247,8 @@ impl RecipeProjector for MirroredTypestate {
                 Vec::new(),
             )?,
         ));
+        items.extend(mirrored_stage_inherent()?);
+        items.extend(mirrored_stage_default()?);
         let projected = decorated(
             vec![documentation(
                 "Type-level stages derived from the caller-authored state vocabulary.",
@@ -662,6 +662,145 @@ fn variant(vocabulary: &GeneratedToken, member: &GeneratedToken) -> Vec<Generate
     tokens
 }
 
+fn mirrored_stage_trait() -> Result<Vec<GeneratedToken>, ProjectionError> {
+    let name = associated_constant(GeneratedToken::word("NAME"), mirrored_static_str(), None);
+    Ok(decorated(
+        vec![documentation(
+            "One caller-declared member admitted as a typestate stage.",
+        )?],
+        public(),
+        trait_declaration(
+            Vec::new(),
+            GeneratedToken::word("RecipeStage"),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            decorated(
+                vec![documentation("The caller-authored stage spelling.")?],
+                Vec::new(),
+                name,
+            ),
+        )?,
+    ))
+}
+
+fn mirrored_stage_member(
+    spelling: &str,
+    member: &macroonz_compiler::recipe::RecipeMember,
+) -> Result<Vec<GeneratedToken>, macroonz_compiler::Overflow> {
+    let mut tokens = decorated(
+        vec![
+            documentation("One caller-declared typestate stage.")?,
+            derived(&["Debug", "Clone", "Copy", "PartialEq", "Eq", "Hash"])?,
+        ],
+        public(),
+        unit_struct(member.name_token().clone(), Vec::new(), Vec::new()),
+    );
+    tokens.extend(implementation(
+        Vec::new(),
+        Vec::new(),
+        Some(vec![GeneratedToken::word("RecipeStage")]),
+        vec![member.name_token().clone()],
+        Vec::new(),
+        associated_constant(
+            GeneratedToken::word("NAME"),
+            mirrored_static_str(),
+            Some(vec![GeneratedToken::text(spelling)]),
+        ),
+    )?);
+    Ok(tokens)
+}
+
+fn mirrored_stage_inherent() -> Result<Vec<GeneratedToken>, ProjectionError> {
+    let constructor = decorated(
+        vec![documentation("Constructs the zero-sized stage carrier.")?],
+        public(),
+        associated_function(
+            function_signature(
+                vec![GeneratedToken::word("const")],
+                GeneratedToken::word("new"),
+                Vec::new(),
+                Vec::new(),
+                Some(vec![GeneratedToken::word("Self")]),
+                Vec::new(),
+            )?,
+            Some(vec![
+                GeneratedToken::word("Self"),
+                group(
+                    GeneratedDelimiter::Parenthesis,
+                    vec![GeneratedToken::word("PhantomData")],
+                )?,
+            ]),
+        )?,
+    );
+    implementation(
+        Vec::new(),
+        vec![vec![GeneratedToken::word("Marker")]],
+        None,
+        mirrored_generic_stage(),
+        Vec::new(),
+        constructor,
+    )
+    .map_err(ProjectionError::Tokens)
+}
+
+fn mirrored_stage_default() -> Result<Vec<GeneratedToken>, ProjectionError> {
+    let body = vec![
+        GeneratedToken::word("Self"),
+        group(
+            GeneratedDelimiter::Parenthesis,
+            vec![GeneratedToken::word("PhantomData")],
+        )?,
+    ];
+    let function = associated_function(
+        function_signature(
+            Vec::new(),
+            GeneratedToken::word("default"),
+            Vec::new(),
+            Vec::new(),
+            Some(vec![GeneratedToken::word("Self")]),
+            Vec::new(),
+        )?,
+        Some(body),
+    )?;
+    implementation(
+        Vec::new(),
+        vec![vec![GeneratedToken::word("Marker")]],
+        Some(absolute_path(&["core", "default", "Default"])),
+        mirrored_generic_stage(),
+        Vec::new(),
+        function,
+    )
+    .map_err(ProjectionError::Tokens)
+}
+
+fn mirrored_generic_stage() -> Vec<GeneratedToken> {
+    vec![
+        GeneratedToken::word("Stage"),
+        GeneratedToken::alone('<'),
+        GeneratedToken::word("Marker"),
+        GeneratedToken::alone('>'),
+    ]
+}
+
+fn mirrored_static_str() -> Vec<GeneratedToken> {
+    vec![
+        GeneratedToken::alone('&'),
+        GeneratedToken::joint('\''),
+        GeneratedToken::word("static"),
+        GeneratedToken::word("str"),
+    ]
+}
+
+fn mirrored_row_projection_error(refusal: GeneratedRowRefusal) -> ProjectionError {
+    match refusal.cause() {
+        NonEmptyError::Empty(_) => {
+            ProjectionError::Render(macroonz_compiler::RenderError::NothingRendered)
+        }
+        NonEmptyError::Overflow(cause) => ProjectionError::Tokens(cause),
+    }
+}
+
 fn comma_separated(parts: Vec<Vec<GeneratedToken>>) -> Vec<GeneratedToken> {
     let mut tokens = Vec::new();
     for (position, part) in parts.into_iter().enumerate() {
@@ -677,7 +816,7 @@ fn public() -> Vec<GeneratedToken> {
     vec![GeneratedToken::word("pub")]
 }
 
-fn derived(names: &[&str]) -> Result<Vec<GeneratedToken>, ProjectionError> {
+fn derived(names: &[&str]) -> Result<Vec<GeneratedToken>, macroonz_compiler::Overflow> {
     attribute(vec![
         GeneratedToken::word("derive"),
         group(
@@ -690,5 +829,4 @@ fn derived(names: &[&str]) -> Result<Vec<GeneratedToken>, ProjectionError> {
             ),
         )?,
     ])
-    .map_err(ProjectionError::Tokens)
 }

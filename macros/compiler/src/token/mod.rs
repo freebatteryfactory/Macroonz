@@ -19,14 +19,16 @@ pub use capture::{
 pub(crate) use generation::GeneratedLiteralForm;
 pub use generation::{
     FragmentGenerationIssue, FragmentGenerationRefusal, GENERATED_TOKEN_LIMIT, GeneratedDelimiter,
-    GeneratedLiteral, GeneratedLiteralRefusal, GeneratedSpacing, GeneratedToken, GeneratedTree,
-    absolute_path, and_all, attribute, bound_local, bound_path, call, comma, comma_many, constant,
-    consuming_receiver, decorated, documentation, enumeration, equality, exclusive_receiver,
-    function, function_item, function_signature, generic_parameters, group, inline_module,
-    keyed_assignment_slice, keyed_roster_slice, match_arm, match_expression, metavariable,
-    method_call, method_chain, named_field, named_struct, named_variant, pinned_receiver,
-    rendered_identifier, rendered_name, result_type, roster, rust_keyword, shared_receiver,
-    text_pair, tuple_struct, tuple_variant, twin_path, type_alias, typed_parameter, unit_struct,
-    unit_variant, use_item, where_clause,
+    GeneratedLiteral, GeneratedLiteralRefusal, GeneratedRowRefusal, GeneratedSpacing,
+    GeneratedToken, GeneratedTree, absolute_path, and_all, associated_constant,
+    associated_function, associated_type, attribute, bound_local, bound_path, call, comma,
+    comma_many, constant, consuming_receiver, decorated, documentation, enumeration, equality,
+    exclusive_receiver, function, function_item, function_signature, generic_parameters, group,
+    implementation, inline_module, keyed_assignment_items, keyed_assignment_slice,
+    keyed_roster_items, keyed_roster_slice, match_arm, match_expression, metavariable, method_call,
+    method_chain, named_field, named_struct, named_variant, pinned_receiver, rendered_identifier,
+    rendered_name, result_type, roster, rust_keyword, shared_receiver, text_pair,
+    trait_declaration, tuple_struct, tuple_variant, twin_path, type_alias, typed_parameter,
+    unit_struct, unit_variant, use_item, where_clause,
 };
 pub(crate) use generation::{preserved_tokens, segmented_twin_path};

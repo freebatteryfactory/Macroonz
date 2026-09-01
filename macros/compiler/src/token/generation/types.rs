@@ -3,7 +3,7 @@
 //! Declarations only.
 //! Every road that reaches a private field lives in `type_guard.rs`, this file's own child.
 
-use crate::bounded::Bounded;
+use crate::bounded::{Bounded, NonEmptyError};
 use crate::token::SpanHandle;
 
 #[path = "type_guard.rs"]
@@ -88,6 +88,14 @@ pub enum FragmentGenerationIssue {
 pub struct FragmentGenerationRefusal {
     pub(super) issue: FragmentGenerationIssue,
     pub(super) at: Option<SpanHandle>,
+}
+
+/// Why one flat keyed-row projection could not produce exactly one non-empty item run.
+#[must_use = "a generated-row refusal names the exact row and non-empty token disagreement"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct GeneratedRowRefusal {
+    position: usize,
+    cause: NonEmptyError,
 }
 
 /// One token a renderer writes.

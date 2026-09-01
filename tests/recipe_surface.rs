@@ -50,6 +50,21 @@ bakery::recipe! {
             Open,
         }
 
+        /// One caller-authored trait preserved beside generated companions.
+        pub trait AuthoredStage {
+            /// Reads the caller-authored state spelling.
+            fn authored_name(self) -> &'static str;
+        }
+
+        impl AuthoredStage for State {
+            fn authored_name(self) -> &'static str {
+                match self {
+                    Self::Closed => "Closed",
+                    Self::Open => "Open",
+                }
+            }
+        }
+
         /// The caller-owned event vocabulary.
         #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         pub enum Event {
@@ -116,8 +131,20 @@ fn the_renamed_facade_bakes_the_declared_module_without_recipe_material_ceremony
     };
     assert_eq!(borrowed.value, "borrowed");
     assert_eq!(borrowed.bytes, [1, 2]);
-    let stage = door::typestate::Stage::<door::typestate::Closed>(core::marker::PhantomData);
+    assert_eq!(
+        door::AuthoredStage::authored_name(door::State::Open),
+        "Open"
+    );
+    assert_eq!(
+        <door::typestate::Closed as door::typestate::RecipeStage>::NAME,
+        "Closed"
+    );
+    let stage = door::typestate::Stage::<door::typestate::Closed>::new();
     assert_eq!(stage, door::typestate::Stage(core::marker::PhantomData));
+    assert_eq!(
+        door::typestate::Stage::<door::typestate::Open>::default(),
+        door::typestate::Stage(core::marker::PhantomData)
+    );
     let result: door::DoorResult<door::State> = Ok(door::State::Open);
     assert_eq!(result, Ok(door::State::Open));
 }
@@ -166,9 +193,11 @@ fn raw_identifiers_survive_every_declaration_site_projection() {
         r#type::baked::apply(r#type::r#state::r#match, r#type::r#event::r#move),
         Ok(r#type::r#state::Ready)
     );
-    let stage = r#type::baked::typestate::Stage::<r#type::baked::typestate::r#match>(
-        core::marker::PhantomData,
+    assert_eq!(
+        <r#type::baked::typestate::r#match as r#type::baked::typestate::RecipeStage>::NAME,
+        "match"
     );
+    let stage = r#type::baked::typestate::Stage::<r#type::baked::typestate::r#match>::new();
     assert_eq!(
         stage,
         r#type::baked::typestate::Stage(core::marker::PhantomData)

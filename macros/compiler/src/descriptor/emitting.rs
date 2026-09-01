@@ -4,7 +4,10 @@
 
 use crate::bounded::Overflow;
 use crate::descriptor::DirectBinding;
-use crate::token::{GeneratedDelimiter, GeneratedToken};
+use crate::token::{
+    GeneratedDelimiter, GeneratedToken, associated_function, function_signature, implementation,
+    typed_parameter,
+};
 
 /// Append one absolute path: `::seg::seg…`.
 pub(crate) fn absolute_path(segments: &[&str], into: &mut Vec<GeneratedToken>) {
@@ -90,37 +93,41 @@ pub(crate) fn from_impl(
     arm: &str,
     into: &mut Vec<GeneratedToken>,
 ) -> Result<(), Overflow> {
-    into.push(GeneratedToken::word("impl"));
-    absolute_path(&["core", "convert", "From"], into);
-    into.push(GeneratedToken::alone('<'));
-    into.extend(source.iter().cloned());
-    into.push(GeneratedToken::alone('>'));
-    into.push(GeneratedToken::word("for"));
-    into.push(GeneratedToken::word(target));
-    let mut body = vec![GeneratedToken::word("fn"), GeneratedToken::word("from")];
-    let mut parameter = vec![GeneratedToken::word("refusal"), GeneratedToken::alone(':')];
-    parameter.extend(source);
-    body.push(GeneratedToken::group(
-        GeneratedDelimiter::Parenthesis,
-        parameter,
+    let mut trait_path = Vec::new();
+    absolute_path(&["core", "convert", "From"], &mut trait_path);
+    trait_path.push(GeneratedToken::alone('<'));
+    trait_path.extend(source.iter().cloned());
+    trait_path.push(GeneratedToken::alone('>'));
+    let signature = function_signature(
+        Vec::new(),
+        GeneratedToken::word("from"),
+        vec![typed_parameter(
+            vec![GeneratedToken::word("refusal")],
+            source,
+        )],
+        Vec::new(),
+        Some(vec![GeneratedToken::word("Self")]),
+        Vec::new(),
+    )?;
+    let body = vec![
+        GeneratedToken::word("Self"),
+        GeneratedToken::joint(':'),
+        GeneratedToken::alone(':'),
+        GeneratedToken::word(arm),
+        GeneratedToken::group(
+            GeneratedDelimiter::Parenthesis,
+            vec![GeneratedToken::word("refusal")],
+        )?,
+    ];
+    let road = associated_function(signature, Some(body))?;
+    into.extend(implementation(
+        Vec::new(),
+        Vec::new(),
+        Some(trait_path),
+        vec![GeneratedToken::word(target)],
+        Vec::new(),
+        road,
     )?);
-    body.push(GeneratedToken::joint('-'));
-    body.push(GeneratedToken::alone('>'));
-    body.push(GeneratedToken::word("Self"));
-    body.push(GeneratedToken::group(
-        GeneratedDelimiter::Brace,
-        vec![
-            GeneratedToken::word("Self"),
-            GeneratedToken::joint(':'),
-            GeneratedToken::alone(':'),
-            GeneratedToken::word(arm),
-            GeneratedToken::group(
-                GeneratedDelimiter::Parenthesis,
-                vec![GeneratedToken::word("refusal")],
-            )?,
-        ],
-    )?);
-    into.push(GeneratedToken::group(GeneratedDelimiter::Brace, body)?);
     Ok(())
 }
 

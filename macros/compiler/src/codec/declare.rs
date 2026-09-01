@@ -4,7 +4,8 @@ use super::spell::{CARRIED_BINDING, MEMBER_SEAT, associated, generics, type_path
 use super::{AssemblyPosture, CodecShape, DecodeRefusal};
 use crate::bounded::Overflow;
 use crate::token::{
-    GeneratedDelimiter, GeneratedToken, absolute_path, attribute, documentation, group,
+    GeneratedDelimiter, GeneratedToken, absolute_path, associated_function, attribute,
+    documentation, function_signature, group, implementation, typed_parameter,
 };
 
 /// The sentence the rendered decode refusal documents itself with.
@@ -100,25 +101,26 @@ pub(super) fn refusal_conversion(shape: &CodecShape) -> Result<Vec<GeneratedToke
         GeneratedDelimiter::Parenthesis,
         vec![GeneratedToken::word(CARRIED_BINDING)],
     )?);
-    let mut parameters = vec![
-        GeneratedToken::word(CARRIED_BINDING),
-        GeneratedToken::alone(':'),
-    ];
-    parameters.extend(carried.clone());
-    let road = vec![
-        GeneratedToken::word("fn"),
+    let signature = function_signature(
+        Vec::new(),
         GeneratedToken::word("from"),
-        group(GeneratedDelimiter::Parenthesis, parameters)?,
-        GeneratedToken::joint('-'),
-        GeneratedToken::alone('>'),
-        GeneratedToken::word("Self"),
-        group(GeneratedDelimiter::Brace, body)?,
-    ];
-    let mut tokens = vec![GeneratedToken::word("impl")];
-    tokens.extend(absolute_path(&["core", "convert", "From"]));
-    tokens.extend(generics(carried));
-    tokens.push(GeneratedToken::word("for"));
-    tokens.push(GeneratedToken::word(shape.refusal()));
-    tokens.push(group(GeneratedDelimiter::Brace, road)?);
-    Ok(tokens)
+        vec![typed_parameter(
+            vec![GeneratedToken::word(CARRIED_BINDING)],
+            carried.clone(),
+        )],
+        Vec::new(),
+        Some(vec![GeneratedToken::word("Self")]),
+        Vec::new(),
+    )?;
+    let road = associated_function(signature, Some(body))?;
+    let mut trait_path = absolute_path(&["core", "convert", "From"]);
+    trait_path.extend(generics(carried));
+    implementation(
+        Vec::new(),
+        Vec::new(),
+        Some(trait_path),
+        vec![GeneratedToken::word(shape.refusal())],
+        Vec::new(),
+        road,
+    )
 }

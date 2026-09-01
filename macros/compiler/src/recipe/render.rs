@@ -4,12 +4,13 @@ use super::{
     ProjectionError, ProjectionRequest, ProjectionSink, Recipe, RecipeProjector, RecipeRole,
     RecipeView,
 };
-use crate::bounded::AbsencePosture;
+use crate::bounded::{AbsencePosture, NonEmptyError};
 use crate::token::{
-    GeneratedDelimiter, GeneratedToken, GeneratedTree, absolute_path, attribute, constant,
-    decorated, documentation, enumeration, function_item, function_signature, group, inline_module,
-    match_arm, match_expression, result_type, tuple_struct, typed_parameter, unit_struct,
-    unit_variant, use_item,
+    GeneratedDelimiter, GeneratedRowRefusal, GeneratedToken, GeneratedTree, absolute_path,
+    associated_constant, associated_function, attribute, constant, decorated, documentation,
+    enumeration, function_item, function_signature, group, implementation, inline_module,
+    keyed_roster_items, match_arm, match_expression, result_type, trait_declaration, tuple_struct,
+    typed_parameter, unit_struct, unit_variant, use_item,
 };
 
 /// The built-in projector catalog used by the paved proc host.
@@ -35,16 +36,13 @@ impl RecipeProjector for StandardProjector {
 
 fn typestate(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError> {
     let mut items = use_item(absolute_path(&["core", "marker", "PhantomData"]), None);
-    for member in recipe.states().members() {
-        items.extend(decorated(
-            vec![
-                documentation("One caller-declared typestate stage.")?,
-                derive(&["Debug", "Clone", "Copy", "PartialEq", "Eq", "Hash"])?,
-            ],
-            public(),
-            unit_struct(member.name_token().clone(), Vec::new(), Vec::new()),
-        ));
-    }
+    items.extend(stage_trait()?);
+    items.extend(
+        keyed_roster_items(recipe.states(), |_position, spelling, member| {
+            stage_member(spelling, member)
+        })
+        .map_err(row_projection_error)?,
+    );
     let marker = vec![GeneratedToken::word("Marker")];
     let phantom = vec![
         GeneratedToken::word("PhantomData"),
@@ -65,6 +63,8 @@ fn typestate(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError> {
             Vec::new(),
         )?,
     ));
+    items.extend(stage_inherent()?);
+    items.extend(stage_default()?);
     let projected = decorated(
         vec![documentation(
             "Type-level stages derived from the caller-authored state vocabulary.",
@@ -75,11 +75,150 @@ fn typestate(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError> {
     GeneratedTree::assembled(projected).map_err(ProjectionError::Tokens)
 }
 
+fn stage_trait() -> Result<Vec<GeneratedToken>, ProjectionError> {
+    let name = associated_constant(GeneratedToken::word("NAME"), static_str(), None);
+    Ok(decorated(
+        vec![documentation(
+            "One caller-declared member admitted as a typestate stage.",
+        )?],
+        public(),
+        trait_declaration(
+            Vec::new(),
+            GeneratedToken::word("RecipeStage"),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            decorated(
+                vec![documentation("The caller-authored stage spelling.")?],
+                Vec::new(),
+                name,
+            ),
+        )?,
+    ))
+}
+
+fn stage_member(
+    spelling: &str,
+    member: &super::RecipeMember,
+) -> Result<Vec<GeneratedToken>, crate::bounded::Overflow> {
+    let mut tokens = decorated(
+        vec![
+            documentation("One caller-declared typestate stage.")?,
+            derive(&["Debug", "Clone", "Copy", "PartialEq", "Eq", "Hash"])?,
+        ],
+        public(),
+        unit_struct(member.name_token().clone(), Vec::new(), Vec::new()),
+    );
+    tokens.extend(implementation(
+        Vec::new(),
+        Vec::new(),
+        Some(vec![GeneratedToken::word("RecipeStage")]),
+        vec![member.name_token().clone()],
+        Vec::new(),
+        associated_constant(
+            GeneratedToken::word("NAME"),
+            static_str(),
+            Some(vec![GeneratedToken::text(spelling)]),
+        ),
+    )?);
+    Ok(tokens)
+}
+
+fn stage_inherent() -> Result<Vec<GeneratedToken>, ProjectionError> {
+    let constructor = decorated(
+        vec![documentation("Constructs the zero-sized stage carrier.")?],
+        public(),
+        associated_function(
+            function_signature(
+                vec![GeneratedToken::word("const")],
+                GeneratedToken::word("new"),
+                Vec::new(),
+                Vec::new(),
+                Some(vec![GeneratedToken::word("Self")]),
+                Vec::new(),
+            )?,
+            Some(vec![
+                GeneratedToken::word("Self"),
+                group(
+                    GeneratedDelimiter::Parenthesis,
+                    vec![GeneratedToken::word("PhantomData")],
+                )?,
+            ]),
+        )?,
+    );
+    implementation(
+        Vec::new(),
+        vec![vec![GeneratedToken::word("Marker")]],
+        None,
+        generic_stage(),
+        Vec::new(),
+        constructor,
+    )
+    .map_err(ProjectionError::Tokens)
+}
+
+fn stage_default() -> Result<Vec<GeneratedToken>, ProjectionError> {
+    let body = vec![
+        GeneratedToken::word("Self"),
+        group(
+            GeneratedDelimiter::Parenthesis,
+            vec![GeneratedToken::word("PhantomData")],
+        )?,
+    ];
+    let function = associated_function(
+        function_signature(
+            Vec::new(),
+            GeneratedToken::word("default"),
+            Vec::new(),
+            Vec::new(),
+            Some(vec![GeneratedToken::word("Self")]),
+            Vec::new(),
+        )?,
+        Some(body),
+    )?;
+    implementation(
+        Vec::new(),
+        vec![vec![GeneratedToken::word("Marker")]],
+        Some(absolute_path(&["core", "default", "Default"])),
+        generic_stage(),
+        Vec::new(),
+        function,
+    )
+    .map_err(ProjectionError::Tokens)
+}
+
+fn generic_stage() -> Vec<GeneratedToken> {
+    vec![
+        GeneratedToken::word("Stage"),
+        GeneratedToken::alone('<'),
+        GeneratedToken::word("Marker"),
+        GeneratedToken::alone('>'),
+    ]
+}
+
+fn static_str() -> Vec<GeneratedToken> {
+    vec![
+        GeneratedToken::alone('&'),
+        GeneratedToken::joint('\''),
+        GeneratedToken::word("static"),
+        GeneratedToken::word("str"),
+    ]
+}
+
+fn row_projection_error(refusal: GeneratedRowRefusal) -> ProjectionError {
+    match refusal.cause() {
+        NonEmptyError::Empty(_) => {
+            ProjectionError::Render(crate::render::RenderError::NothingRendered)
+        }
+        NonEmptyError::Overflow(cause) => ProjectionError::Tokens(cause),
+    }
+}
+
 fn public() -> Vec<GeneratedToken> {
     vec![GeneratedToken::word("pub")]
 }
 
-fn derive(names: &[&str]) -> Result<Vec<GeneratedToken>, ProjectionError> {
+fn derive(names: &[&str]) -> Result<Vec<GeneratedToken>, crate::bounded::Overflow> {
     attribute(vec![
         GeneratedToken::word("derive"),
         group(
@@ -92,7 +231,6 @@ fn derive(names: &[&str]) -> Result<Vec<GeneratedToken>, ProjectionError> {
             ),
         )?,
     ])
-    .map_err(ProjectionError::Tokens)
 }
 
 pub(super) fn project(
