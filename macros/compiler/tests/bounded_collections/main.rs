@@ -4,6 +4,7 @@
 //! It also proves that retained order, capping posture, and error chaining remain readable without reaching any private field.
 
 mod assignment;
+mod relation;
 
 use core::error::Error;
 use macroonz_compiler::bounded::{

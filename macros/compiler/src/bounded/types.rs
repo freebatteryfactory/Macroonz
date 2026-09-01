@@ -35,6 +35,71 @@ pub struct KeyedRosterAssignment<D, K, P, S, const N: usize> {
     payloads: KeyedRoster<P, S, N>,
 }
 
+/// Foreign-free rows referencing one left and one right caller-keyed roster.
+///
+/// Rows retain authored order and may be empty or repeated until a caller-selected posture informs those questions.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct KeyedRosterRows<
+    'rosters,
+    Left,
+    LeftKey,
+    Right,
+    RightKey,
+    Payload,
+    const LEFT: usize,
+    const RIGHT: usize,
+    const ROWS: usize,
+> {
+    left: &'rosters KeyedRoster<Left, LeftKey, LEFT>,
+    right: &'rosters KeyedRoster<Right, RightKey, RIGHT>,
+    rows: Bounded<ReferencedRosterRow<'rosters, Left, LeftKey, Right, RightKey, Payload>, ROWS>,
+    canonical_indices: Bounded<usize, ROWS>,
+}
+
+/// One duplicate-free relation promoted from foreign-free keyed-roster rows.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct KeyedRosterRelation<
+    'rosters,
+    Left,
+    LeftKey,
+    Right,
+    RightKey,
+    Payload,
+    const LEFT: usize,
+    const RIGHT: usize,
+    const ROWS: usize,
+> {
+    rows: KeyedRosterRows<'rosters, Left, LeftKey, Right, RightKey, Payload, LEFT, RIGHT, ROWS>,
+}
+
+/// One internally resolved relation row.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct ReferencedRosterRow<'rosters, Left, LeftKey, Right, RightKey, Payload> {
+    left_position: usize,
+    left_key: &'rosters LeftKey,
+    left_member: &'rosters Left,
+    right_position: usize,
+    right_key: &'rosters RightKey,
+    right_member: &'rosters Right,
+    payload: Payload,
+}
+
+/// One repeated relation pair and every authored position at which it occurred.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RepeatedRelationPair<const N: usize> {
+    left_position: usize,
+    right_position: usize,
+    first: usize,
+    repeated: NonEmpty<usize, N>,
+}
+
+/// Every distinct relation pair that occurred more than once.
+#[must_use = "a repeated-pair refusal carries every duplicated relation coordinate"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RepeatedRelationPairs<const N: usize> {
+    pairs: NonEmpty<RepeatedRelationPair<N>, N>,
+}
+
 /// One duplicated key and every declaration position at which it occurred.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DuplicateKey<K, const N: usize> {
@@ -124,4 +189,15 @@ pub enum KeyedRosterAssignmentError<K, S, const N: usize> {
     ReusedPayloadSeats(NonEmpty<DuplicateKey<S, N>, N>),
     /// One or more denominator members received no payload.
     MissingMembers(NonEmpty<UnassignedRosterMember<K>, N>),
+}
+
+/// How offered rows refuse reference-safe admission over two keyed rosters.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum KeyedRosterRowsError<LeftKey, RightKey, const N: usize> {
+    /// More rows were offered than the declared row ceiling admits.
+    Overflow(Overflow),
+    /// One or more rows name a key outside the left roster.
+    ForeignLeft(NonEmpty<ForeignRosterReference<LeftKey>, N>),
+    /// One or more rows name a key outside the right roster.
+    ForeignRight(NonEmpty<ForeignRosterReference<RightKey>, N>),
 }

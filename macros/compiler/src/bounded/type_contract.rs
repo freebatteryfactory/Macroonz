@@ -2,7 +2,10 @@
 //!
 //! A construction refusal here is an ordinary error and nothing more.
 
-use super::{Empty, KeyedRosterAssignmentError, KeyedRosterError, NonEmptyError, Overflow};
+use super::{
+    Empty, KeyedRosterAssignmentError, KeyedRosterError, KeyedRosterRowsError, NonEmptyError,
+    Overflow, RepeatedRelationPairs,
+};
 use core::error::Error;
 use core::fmt::{self, Display, Formatter};
 
@@ -135,3 +138,54 @@ impl<K: fmt::Debug, S: fmt::Debug, const N: usize> Error for KeyedRosterAssignme
         }
     }
 }
+
+impl<LeftKey, RightKey, const N: usize> Display for KeyedRosterRowsError<LeftKey, RightKey, N> {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Overflow(overflow) => Display::fmt(overflow, formatter),
+            Self::ForeignLeft(foreign) if foreign.count() == 1 => {
+                formatter.write_str("one relation row references a key outside the left roster")
+            }
+            Self::ForeignLeft(foreign) => write!(
+                formatter,
+                "{} relation rows reference keys outside the left roster",
+                foreign.count()
+            ),
+            Self::ForeignRight(foreign) if foreign.count() == 1 => {
+                formatter.write_str("one relation row references a key outside the right roster")
+            }
+            Self::ForeignRight(foreign) => write!(
+                formatter,
+                "{} relation rows reference keys outside the right roster",
+                foreign.count()
+            ),
+        }
+    }
+}
+
+impl<LeftKey: fmt::Debug, RightKey: fmt::Debug, const N: usize> Error
+    for KeyedRosterRowsError<LeftKey, RightKey, N>
+{
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Overflow(overflow) => Some(overflow),
+            Self::ForeignLeft(_) | Self::ForeignRight(_) => None,
+        }
+    }
+}
+
+impl<const N: usize> Display for RepeatedRelationPairs<N> {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        if self.count() == 1 {
+            formatter.write_str("one relation endpoint pair occurs more than once")
+        } else {
+            write!(
+                formatter,
+                "{} relation endpoint pairs occur more than once",
+                self.count()
+            )
+        }
+    }
+}
+
+impl<const N: usize> Error for RepeatedRelationPairs<N> {}

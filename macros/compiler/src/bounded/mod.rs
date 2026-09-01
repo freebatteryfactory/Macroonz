@@ -5,6 +5,7 @@ mod types;
 
 pub use types::{
     Bounded, Capped, Capping, DuplicateKey, Empty, ForeignRosterReference, KeyedRoster,
-    KeyedRosterAssignment, KeyedRosterAssignmentError, KeyedRosterError, NonEmpty, NonEmptyError,
-    Overflow, UnassignedRosterMember,
+    KeyedRosterAssignment, KeyedRosterAssignmentError, KeyedRosterError, KeyedRosterRelation,
+    KeyedRosterRows, KeyedRosterRowsError, NonEmpty, NonEmptyError, Overflow, RepeatedRelationPair,
+    RepeatedRelationPairs, UnassignedRosterMember,
 };
