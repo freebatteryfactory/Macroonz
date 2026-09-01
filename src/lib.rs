@@ -14,6 +14,12 @@ pub use macroonz_macros as macros;
 ///
 /// This is the only supported root recipe entrance.
 /// Its procedural carrier is public only because Rust requires a public proc-macro entry behind this hygienic facade wrapper; direct carrier invocation is outside the compatibility contract.
+///
+/// # Example
+///
+#[doc = "```rust"]
+#[doc = include_str!("../examples/recipe.rs")]
+#[doc = "```"]
 #[cfg(feature = "harness")]
 #[macro_export]
 macro_rules! recipe {
@@ -31,6 +37,12 @@ macro_rules! recipe {
 /// This is the only supported root recipe entrance.
 /// Harness-owned projections produce a typed declaration refusal in this facade posture.
 /// Its procedural carrier is public only because Rust requires a public proc-macro entry behind this hygienic facade wrapper; direct carrier invocation is outside the compatibility contract.
+///
+/// # Example
+///
+#[doc = "```rust"]
+#[doc = include_str!("../examples/recipe.rs")]
+#[doc = "```"]
 #[cfg(not(feature = "harness"))]
 #[macro_export]
 macro_rules! recipe {

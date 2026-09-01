@@ -1,8 +1,8 @@
 //! The callable recipe host and the paved wrapper envelope over one informed structural slice.
 
 use macroonz_compiler::recipe::{
-    HarnessPosture, ProjectionDisposition, ProjectionError, ProjectionOffered, ProjectionRequest,
-    ProjectionSink, RecipeBake, RecipeProjector, RecipeRole, RecipeView,
+    HarnessPosture, LoweringSource, ProjectionDisposition, ProjectionError, ProjectionOffered,
+    ProjectionRequest, ProjectionSink, RecipeBake, RecipeProjector, RecipeRole, RecipeView,
 };
 use macroonz_compiler::{
     CanonicalContent, CrateBinding, Destination, Door, GeneratedDelimiter, GeneratedRowRefusal,
@@ -74,6 +74,38 @@ pub mod door {
         absence(refused);
         projections {
             companions;
+        };
+    }
+}
+";
+
+const EXACT_DISPATCH_RECIPE: &str = r"
+pub mod door {
+    pub enum State {
+        Closed,
+        Open,
+    }
+
+    pub enum Event {
+        OpenDoor,
+    }
+
+    bake! {
+        vocabularies(State, Event);
+        transitions {
+            (Closed, OpenDoor) => Open with(crate::effects::open);
+        };
+        absence(refused);
+        projections {
+            dispatch {
+                #[inline]
+                pub fn advance<'a>(
+                    current: State,
+                    stimulus: Event,
+                ) -> Result<State, TransitionRefusal>
+                where
+                    State: 'a;
+            };
         };
     }
 }
@@ -533,6 +565,153 @@ fn a_caller_owned_dispatch_projector_uses_the_same_behavior_kernel_and_authority
         custom.projection().explain().identity()
     );
     assert_eq!(emitted_bytes(&standard), emitted_bytes(&custom));
+    Ok(())
+}
+
+#[test]
+fn dispatch_discloses_preset_configuration_and_exact_rust_on_one_seat() -> Result<(), ()> {
+    let preset_source = COMPANION_RECIPE.replace("companions;", "dispatch;");
+    let preset = bake(&preset_source)?;
+    let preset_effective = preset
+        .projection()
+        .plan()
+        .content()
+        .effective(RecipeRole::Dispatch)
+        .ok_or(())?;
+    assert_eq!(preset_effective.source(), LoweringSource::Preset);
+    assert_eq!(preset_effective.name(), None);
+    assert_eq!(preset_effective.exact_rust(), None);
+
+    let configured_source = COMPANION_RECIPE.replace("companions;", "dispatch(apply);");
+    let configured = bake(&configured_source)?;
+    let configured_effective = configured
+        .projection()
+        .plan()
+        .content()
+        .effective(RecipeRole::Dispatch)
+        .ok_or(())?;
+    assert_eq!(configured_effective.source(), LoweringSource::Configuration);
+    assert_eq!(configured_effective.name(), Some("apply"));
+    assert_eq!(configured_effective.exact_rust(), None);
+
+    let exact = bake(EXACT_DISPATCH_RECIPE)?;
+    let exact_effective = exact
+        .projection()
+        .plan()
+        .content()
+        .effective(RecipeRole::Dispatch)
+        .ok_or(())?;
+    assert_eq!(exact_effective.source(), LoweringSource::ExactRust);
+    assert_eq!(exact_effective.name(), Some("advance"));
+    let exact_readback = exact_effective
+        .exact_rust()
+        .map(GeneratedTree::inspected)
+        .ok_or(())?;
+    for fragment in [
+        "# [ inline ]",
+        "pub fn advance < 'a >",
+        "current : State",
+        "stimulus : Event",
+        "where State : 'a",
+    ] {
+        assert!(
+            exact_readback.contains(fragment),
+            "the exact readback omitted {fragment}: {exact_readback}"
+        );
+    }
+    let emitted = exact
+        .emit()
+        .tokens()
+        .map(GeneratedTree::inspected)
+        .ok_or(())?;
+    assert!(emitted.contains("use super :: State"));
+    assert!(emitted.contains("use super :: Event"));
+    assert!(
+        emitted.contains("match ( current , stimulus )"),
+        "the generated body did not use the exact bindings: {emitted}"
+    );
+    assert!(emitted.contains("pub fn advance < 'a >"));
+    Ok(())
+}
+
+#[test]
+fn exact_dispatch_signature_material_moves_recipe_identity() -> Result<(), ()> {
+    let first = bake(EXACT_DISPATCH_RECIPE)?;
+    let changed = EXACT_DISPATCH_RECIPE.replace("current: State", "source: State");
+    let second = bake(&changed)?;
+
+    assert_ne!(
+        first.projection().plan().identity(),
+        second.projection().plan().identity()
+    );
+    assert_ne!(
+        first.projection().identity(),
+        second.projection().identity()
+    );
+    assert_ne!(emitted_bytes(&first), emitted_bytes(&second));
+    Ok(())
+}
+
+#[test]
+fn commas_inside_exact_parameter_types_do_not_invent_parameter_rows() -> Result<(), ()> {
+    let nested_type = EXACT_DISPATCH_RECIPE.replace(
+        "current: State",
+        "current: core::result::Result<State, TransitionRefusal>",
+    );
+    let baked = bake(&nested_type)?;
+    let exact = baked
+        .projection()
+        .plan()
+        .content()
+        .effective(RecipeRole::Dispatch)
+        .and_then(|effective| effective.exact_rust())
+        .map(GeneratedTree::inspected)
+        .ok_or(())?;
+    assert!(exact.contains("Result < State , TransitionRefusal >"));
+    Ok(())
+}
+
+#[test]
+fn exact_dispatch_refusals_name_the_owned_repair() -> Result<(), ()> {
+    let not_function = EXACT_DISPATCH_RECIPE.replace(
+        "#[inline]\n                pub fn advance<'a>(\n                    current: State,\n                    stimulus: Event,\n                ) -> Result<State, TransitionRefusal>\n                where\n                    State: 'a;",
+        "pub const ADVANCE: usize = 1;",
+    );
+    assert!(refusal_summary(&not_function)?.contains(
+        "exact dispatch braces must contain one semicolon-terminated Rust function signature"
+    ));
+
+    let with_body = EXACT_DISPATCH_RECIPE.replace("State: 'a;", "State: 'a { unreachable!() }");
+    assert!(
+        refusal_summary(&with_body)?.contains("exact dispatch cannot carry a caller-authored body")
+    );
+
+    let one_parameter = EXACT_DISPATCH_RECIPE.replace(
+        "                    current: State,\n                    stimulus: Event,",
+        "                    current: State,",
+    );
+    assert!(
+        refusal_summary(&one_parameter)?
+            .contains("exact dispatch requires two parameters but the signature states 1")
+    );
+
+    let pattern = EXACT_DISPATCH_RECIPE.replace("current: State", "(current, _): (State, State)");
+    let read = TextCapture::read(&pattern).map_err(|_| ())?;
+    let refusal = macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
+        .err()
+        .ok_or(())?;
+    assert!(
+        refusal
+            .summary()
+            .contains("exact dispatch parameter 1 must use one simple identifier binding")
+    );
+    let repair = refusal.repairs().first().ok_or(())?;
+    assert!(
+        repair
+            .description
+            .shown()
+            .contains("write `dispatch { fn apply")
+    );
     Ok(())
 }
 

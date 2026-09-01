@@ -158,7 +158,30 @@ impl EffectiveProjection {
         name: Option<String>,
         source: LoweringSource,
     ) -> Self {
-        Self { role, name, source }
+        Self {
+            role,
+            name,
+            source,
+            exact_rust: None,
+            exact_dispatch_bindings: None,
+            exact_dispatch_imports: None,
+        }
+    }
+
+    pub(in crate::recipe) fn exact_dispatch(
+        name: String,
+        exact_rust: GeneratedTree,
+        bindings: [crate::token::GeneratedToken; 2],
+        imports: [bool; 2],
+    ) -> Self {
+        Self {
+            role: RecipeRole::Dispatch,
+            name: Some(name),
+            source: LoweringSource::ExactRust,
+            exact_rust: Some(exact_rust),
+            exact_dispatch_bindings: Some(bindings),
+            exact_dispatch_imports: Some(imports),
+        }
     }
 
     /// Reads the selected role.
@@ -177,6 +200,22 @@ impl EffectiveProjection {
     #[must_use]
     pub const fn source(&self) -> LoweringSource {
         self.source
+    }
+
+    /// Reads the exact caller-authored Rust that replaced this mechanical seat.
+    #[must_use]
+    pub const fn exact_rust(&self) -> Option<&GeneratedTree> {
+        self.exact_rust.as_ref()
+    }
+
+    pub(in crate::recipe) const fn exact_dispatch_bindings(
+        &self,
+    ) -> Option<&[crate::token::GeneratedToken; 2]> {
+        self.exact_dispatch_bindings.as_ref()
+    }
+
+    pub(in crate::recipe) const fn exact_dispatch_imports(&self) -> Option<&[bool; 2]> {
+        self.exact_dispatch_imports.as_ref()
     }
 }
 

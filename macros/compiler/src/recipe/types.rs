@@ -112,6 +112,8 @@ pub enum LoweringSource {
     Preset,
     /// A named recipe seat replaced the conventional spelling.
     Configuration,
+    /// Exact caller-authored Rust replaced the conventional mechanical seat.
+    ExactRust,
 }
 
 /// The effective mechanical configuration of one generated projection.
@@ -120,6 +122,9 @@ pub struct EffectiveProjection {
     role: RecipeRole,
     name: Option<String>,
     source: LoweringSource,
+    exact_rust: Option<GeneratedTree>,
+    exact_dispatch_bindings: Option<[GeneratedToken; 2]>,
+    exact_dispatch_imports: Option<[bool; 2]>,
 }
 
 /// What happened to one role in the recipe's complete projection account.
@@ -335,6 +340,20 @@ pub(super) enum RecipeIssue {
     },
     /// Exact captured Rust could not be preserved as generated tokens.
     FragmentNotGenerated,
+    /// Exact dispatch braces did not contain one semicolon-terminated function signature.
+    ExactDispatchFunctionRequired,
+    /// Exact dispatch supplied a caller-authored body that would bypass row accounting.
+    ExactDispatchBodyRefused,
+    /// Exact dispatch did not declare exactly two parameters.
+    ExactDispatchParameterCount {
+        /// The number of parameter rows supplied.
+        observed: usize,
+    },
+    /// One exact dispatch parameter did not use a simple identifier binding.
+    ExactDispatchParameterBinding {
+        /// The one-based parameter position.
+        position: usize,
+    },
 }
 
 /// The complete baked result: selected recipe projections plus the sealed declaration-site emission.

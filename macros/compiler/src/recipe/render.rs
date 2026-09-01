@@ -418,16 +418,28 @@ fn dispatch_function(
         arms.push(dispatch_arm(recipe, transition)?);
     }
     arms.push(absent_arm()?);
+    let bindings = effective.exact_dispatch_bindings();
+    let state = bindings.map_or_else(
+        || GeneratedToken::word("state"),
+        |bindings| bindings[0].clone(),
+    );
+    let event = bindings.map_or_else(
+        || GeneratedToken::word("event"),
+        |bindings| bindings[1].clone(),
+    );
     let body = match_expression(
         vec![group(
             GeneratedDelimiter::Parenthesis,
-            comma_separated(vec![
-                vec![GeneratedToken::word("state")],
-                vec![GeneratedToken::word("event")],
-            ]),
+            comma_separated(vec![vec![state], vec![event]]),
         )?],
         arms,
     )?;
+    if let Some(exact) = effective.exact_rust() {
+        let mut tokens = exact_dispatch_vocabulary_imports(recipe, effective);
+        tokens.extend(exact.tokens().iter().cloned());
+        tokens.push(group(GeneratedDelimiter::Brace, body)?);
+        return Ok(tokens);
+    }
     Ok(decorated(
         vec![documentation(
             "Applies one declared transition or returns typed absence.",
@@ -445,6 +457,23 @@ fn dispatch_function(
             body,
         )?,
     ))
+}
+
+fn exact_dispatch_vocabulary_imports(
+    recipe: &Recipe,
+    effective: &super::EffectiveProjection,
+) -> Vec<GeneratedToken> {
+    let Some([states, events]) = effective.exact_dispatch_imports().copied() else {
+        return Vec::new();
+    };
+    let mut imports = Vec::new();
+    if states {
+        imports.extend(use_item(super_path(recipe.states_name_token()), None));
+    }
+    if events && recipe.states_name() != recipe.events_name() {
+        imports.extend(use_item(super_path(recipe.events_name_token()), None));
+    }
+    imports
 }
 
 fn dispatch_arm(

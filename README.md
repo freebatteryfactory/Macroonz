@@ -86,6 +86,24 @@ One bake request admits progressively more precision without changing semantic m
 - An exact bake supplies caller-authored Rust for those same seats.
 - A caller-owned projector consumes the same informed account and constrained output protocol through the callable compiler or a caller-owned proc host.
 
+Projection syntax follows one grammar across the catalog:
+
+```rust
+dispatch; // documented conventional mechanics
+dispatch(apply); // one flat configured name
+dispatch {
+    /// Applies one caller-declared transition or returns typed absence.
+    pub fn advance(
+        current: State,
+        event: Event,
+    ) -> Result<State, TransitionRefusal>;
+}; // exact caller-authored Rust; Macroonz supplies only the checked body
+```
+
+Parentheses carry flat configuration names, while braces carry exact Rust material.
+An exact dispatch signature owns its attributes, visibility, qualifiers, name, generics, two simple caller-named parameter bindings and types, result, and where clause.
+The standard projector still owns the relation-accounted body; a caller-owned body belongs on the custom-projector road.
+
 Two values for one seat refuse.
 Semantic postures are stated once in the structural account and consumed by every projector that needs them.
 Safe presets emit safe Rust, while an exact caller-authored unsafe boundary may be preserved or repeated only as explicit caller authority.
@@ -145,7 +163,7 @@ The harness hands you the instruments — each independently callable, composed 
 
 Descriptors, trials, mutations, and benches live in your tests — written through the generic `macroonz::macros` attributes, through your own attributes, or by hand.
 The harness owns how they are judged, never what they mean.
-The stable coverage path remains one-package usage through `macroonz::harness::fuzz`; its [fuzz home](harness/src/fuzz/README.md#runnable-road) owns the runnable facade example and command.
+The stable coverage path remains one-package usage through `macroonz::harness::fuzz`; its [fuzz home](https://github.com/freebatteryfactory/Macroonz/blob/main/harness/src/fuzz/README.md#runnable-road) owns the runnable facade example and command.
 
 ---
 
@@ -153,13 +171,14 @@ The stable coverage path remains one-package usage through `macroonz::harness::f
 
 1. Pick a posture from [The three postures](#the-three-postures).
 2. Add `macroonz` with that command.
-3. Start with `macroonz::recipe!`, or follow the compiler README when you need a caller-owned projection algorithm.
+3. Start with `macroonz::recipe!`, or follow the [compiler README](https://github.com/freebatteryfactory/Macroonz/blob/main/macros/compiler/README.md) when you need a caller-owned projection algorithm.
 4. Use the harness directly or through an evidence bake when an independent judgment is part of the recipe.
 
-Runnable examples cover four distinct public roads:
+Runnable examples cross distinct public roads:
 
 | Journey | Command | What it establishes |
 | --- | --- | --- |
+| First recipe | `cargo run --example recipe` | Conventional, configured, and exact projection levels through the root facade entrance. |
 | Callable compiler | `cargo run -p macroonz-compiler --example callable_compiler` | One public compiler request plans, renders, closes, explains, binds, and emits a unit. |
 | Direct handwritten property | `cargo run -p macroonz-harness --example temporal_property` | Caller-owned state and transitions enter a temporal contract without a macro or subject trait. |
 | Exact compile contract | `cargo run --example compile_contract` | A caller-stated compiler observation is compared with an independently declared exact outcome. |
@@ -167,6 +186,8 @@ Runnable examples cover four distinct public roads:
 
 The compile-contract example is intentionally the pure comparison half.
 The caller that actually runs rustc or Cargo owns that effect, structured diagnostic extraction, and the provenance of the observation it supplies.
+
+The shipped [Macroonz agent skill](skills/macroonz/SKILL.md) is a one-page routing surface for agents authoring recipes from the packaged facade.
 
 Contribution procedure lives in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 Security reporting lives in [`SECURITY.md`](SECURITY.md).

@@ -443,7 +443,7 @@ fn the_generated_recipe_and_independent_carrier_are_callable() {
 const NO_HARNESS_PRODUCER: &str = r"#![forbid(unsafe_code)]
 #![deny(warnings)]
 
-fn record_open() {}
+const fn record_open() {}
 
 bakery::recipe! {
     /// A no-harness facade recipe.
@@ -472,7 +472,15 @@ bakery::recipe! {
             absence(refused);
             projections {
                 companions;
-                dispatch(apply);
+                dispatch {
+                    #[inline]
+                    pub const fn advance<'a>(
+                        current: crate::door::State,
+                        event: crate::door::Event,
+                    ) -> Result<crate::door::State, TransitionRefusal>
+                    where
+                        crate::door::State: 'a;
+                };
             };
             evidence {
                 trials unavailable;
@@ -492,7 +500,7 @@ const NO_HARNESS_CONSUMER: &str = r"#![forbid(unsafe_code)]
 #[test]
 fn the_no_harness_recipe_is_callable() {
     assert_eq!(
-        renamed_recipe_adopter::door::baked::apply(
+        renamed_recipe_adopter::door::baked::advance(
             renamed_recipe_adopter::door::State::Closed,
             renamed_recipe_adopter::door::Event::OpenDoor,
         ),

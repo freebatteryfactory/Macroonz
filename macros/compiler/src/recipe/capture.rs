@@ -215,7 +215,7 @@ fn read_bake(
     let requested = cursor
         .group(CapturedDelimiter::Brace)
         .map_err(grammar)?
-        .trailing_separated::<_, 5>(';', read_projection)
+        .trailing_separated::<_, 5>(';', |projection| read_projection(projection, issued))
         .map_err(grammar)?
         .as_slice()
         .to_vec();
@@ -226,7 +226,13 @@ fn read_bake(
     let requested_evidence = read_evidence_block(&mut cursor, issued)?;
     let support = read_support(&mut cursor)?;
     cursor.finish().map_err(grammar)?;
-    let projections = projections(&requested, &requested_evidence, harness)?;
+    let projections = projections(
+        &requested,
+        &requested_evidence,
+        harness,
+        &states.spelling,
+        &events.spelling,
+    )?;
     let evidence = evidence(&requested_evidence);
     support_matches_projections(&projections, support.as_ref(), declaration.last_span())?;
     Ok(BakeRead {
@@ -371,6 +377,7 @@ struct RequestedProjection {
     role: RecipeRole,
     name: Option<String>,
     source: LoweringSource,
+    exact: Option<CapturedInput>,
     at: crate::token::SpanHandle,
 }
 
@@ -481,31 +488,78 @@ fn read_evidence(
 /// Read one projection request.
 fn read_projection(
     cursor: &mut CaptureCursor<'_>,
+    issued: usize,
 ) -> Result<RequestedProjection, CaptureReadRefusal> {
     let (token, spelling) = cursor.identifier()?;
-    let (role, name, source) = match spelling {
-        "companions" => (RecipeRole::Companions, None, LoweringSource::Preset),
+    let (role, name, source, exact) = match spelling {
+        "companions" => (RecipeRole::Companions, None, LoweringSource::Preset, None),
         "dispatch" => {
-            let mut configured = cursor.group(CapturedDelimiter::Parenthesis)?;
-            let (configured_name, configured_spelling) = configured.identifier()?;
-            if configured_name.raw_identifier().is_some() {
+            let Some(next) = cursor.next_token() else {
+                return Ok(RequestedProjection {
+                    role: RecipeRole::Dispatch,
+                    name: None,
+                    source: LoweringSource::Preset,
+                    exact: None,
+                    at: token.span(),
+                });
+            };
+            if next.punct() == Some(';') {
+                (RecipeRole::Dispatch, None, LoweringSource::Preset, None)
+            } else if next
+                .group_fragment(CapturedDelimiter::Parenthesis)
+                .is_some()
+            {
+                let mut configured = cursor.group(CapturedDelimiter::Parenthesis)?;
+                let (configured_name, configured_spelling) = configured.identifier()?;
+                if configured_name.raw_identifier().is_some() {
+                    return Err(CaptureReadRefusal::projected(
+                        crate::token::CaptureReadIssue::Unexpected(
+                            crate::token::CaptureExpectation::Identifier,
+                        ),
+                        Some(configured_name.span()),
+                    ));
+                }
+                configured.finish()?;
+                (
+                    RecipeRole::Dispatch,
+                    Some(configured_spelling.to_owned()),
+                    LoweringSource::Configuration,
+                    None,
+                )
+            } else if let Some(fragment) = next.group_fragment(CapturedDelimiter::Brace) {
+                let at = next.span();
+                cursor.token()?;
+                let exact = CapturedInput::selected(fragment, issued).map_err(|_| {
+                    CaptureReadRefusal::projected(
+                        crate::token::CaptureReadIssue::SequenceUnbounded {
+                            limit: crate::token::CAPTURED_TOKEN_LIMIT,
+                        },
+                        Some(at),
+                    )
+                })?;
+                (
+                    RecipeRole::Dispatch,
+                    None,
+                    LoweringSource::ExactRust,
+                    Some(exact),
+                )
+            } else {
                 return Err(CaptureReadRefusal::projected(
                     crate::token::CaptureReadIssue::Unexpected(
-                        crate::token::CaptureExpectation::Identifier,
+                        crate::token::CaptureExpectation::Group(CapturedDelimiter::Parenthesis),
                     ),
-                    Some(configured_name.span()),
+                    Some(next.span()),
                 ));
             }
-            configured.finish()?;
-            (
-                RecipeRole::Dispatch,
-                Some(configured_spelling.to_owned()),
-                LoweringSource::Configuration,
-            )
         }
-        "compile_contract" => (RecipeRole::CompileContract, None, LoweringSource::Preset),
-        "property" => (RecipeRole::Property, None, LoweringSource::Preset),
-        "typestate" => (RecipeRole::Typestate, None, LoweringSource::Preset),
+        "compile_contract" => (
+            RecipeRole::CompileContract,
+            None,
+            LoweringSource::Preset,
+            None,
+        ),
+        "property" => (RecipeRole::Property, None, LoweringSource::Preset, None),
+        "typestate" => (RecipeRole::Typestate, None, LoweringSource::Preset, None),
         _ => {
             return Err(CaptureReadRefusal::projected(
                 crate::token::CaptureReadIssue::Unexpected(crate::token::CaptureExpectation::Word(
@@ -519,6 +573,7 @@ fn read_projection(
         role,
         name,
         source,
+        exact,
         at: token.span(),
     })
 }
@@ -528,6 +583,8 @@ fn projections(
     requested: &[RequestedProjection],
     evidence: &[RequestedEvidence],
     harness: HarnessPosture,
+    states: &str,
+    events: &str,
 ) -> Result<[ProjectionStanding; 10], RecipeError> {
     for (position, row) in requested.iter().enumerate() {
         if requested
@@ -568,11 +625,17 @@ fn projections(
         }
     }
     Ok([
-        standing(requested, RecipeRole::Companions, harness),
-        standing(requested, RecipeRole::Dispatch, harness),
-        standing(requested, RecipeRole::CompileContract, harness),
-        standing(requested, RecipeRole::Property, harness),
-        standing(requested, RecipeRole::Typestate, harness),
+        standing(requested, RecipeRole::Companions, harness, states, events)?,
+        standing(requested, RecipeRole::Dispatch, harness, states, events)?,
+        standing(
+            requested,
+            RecipeRole::CompileContract,
+            harness,
+            states,
+            events,
+        )?,
+        standing(requested, RecipeRole::Property, harness, states, events)?,
+        standing(requested, RecipeRole::Typestate, harness, states, events)?,
         evidence_standing(evidence, RecipeRole::Trials, harness),
         evidence_standing(evidence, RecipeRole::Mutation, harness),
         evidence_standing(evidence, RecipeRole::Benchmarks, harness),
@@ -585,23 +648,232 @@ fn standing(
     requested: &[RequestedProjection],
     role: RecipeRole,
     harness: HarnessPosture,
-) -> ProjectionStanding {
+    states: &str,
+    events: &str,
+) -> Result<ProjectionStanding, RecipeError> {
     if harness == HarnessPosture::Unavailable
         && matches!(role, RecipeRole::CompileContract | RecipeRole::Property)
         && !requested.iter().any(|row| row.role == role)
     {
-        return ProjectionStanding::FeatureUnavailable;
+        return Ok(ProjectionStanding::FeatureUnavailable);
     }
-    requested
+    let Some(row) = requested.iter().find(|row| row.role == role) else {
+        return Ok(ProjectionStanding::NotRequested);
+    };
+    if let Some(exact) = row.exact.as_ref() {
+        let (name, signature, bindings, imports) = exact_dispatch(exact, row.at, states, events)?;
+        return Ok(ProjectionStanding::Generated(
+            EffectiveProjection::exact_dispatch(name, signature, bindings, imports),
+        ));
+    }
+    Ok(ProjectionStanding::Generated(
+        EffectiveProjection::effective(role, row.name.clone(), row.source),
+    ))
+}
+
+fn exact_dispatch(
+    input: &CapturedInput,
+    at: crate::token::SpanHandle,
+    states: &str,
+    events: &str,
+) -> Result<
+    (
+        String,
+        crate::token::GeneratedTree,
+        [crate::token::GeneratedToken; 2],
+        [bool; 2],
+    ),
+    RecipeError,
+> {
+    let item = input.authored_item().map_err(|refusal| {
+        RecipeError::at(RecipeIssue::ExactDispatchFunctionRequired, refusal.token())
+    })?;
+    if item.kind() != AuthoredItemKind::Function {
+        return Err(RecipeError::at(
+            RecipeIssue::ExactDispatchFunctionRequired,
+            Some(item.kind_token().span()),
+        ));
+    }
+    if let Some((_, body)) = item.body() {
+        return Err(RecipeError::at(
+            RecipeIssue::ExactDispatchBodyRefused,
+            body.enclosing_span().or_else(|| body.first_span()),
+        ));
+    }
+    let Some((name_token, name)) = item.name() else {
+        return Err(RecipeError::at(
+            RecipeIssue::ExactDispatchFunctionRequired,
+            Some(item.kind_token().span()),
+        ));
+    };
+    let parameters = exact_dispatch_parameters(item, at)?;
+    let attributes = item
+        .attributes()
+        .generated()
+        .map_err(|refusal| fragment_refusal(refusal.token()))?;
+    let signature = item
+        .signature()
+        .generated()
+        .map_err(|refusal| fragment_refusal(refusal.token()))?;
+    let exact = attributes
+        .joined(&signature)
+        .map_err(|_| fragment_refusal(Some(name_token.span())))?;
+    let imports = [
+        uses_unqualified_name(item.signature().tokens(), states),
+        uses_unqualified_name(item.signature().tokens(), events),
+    ];
+    Ok((name.to_owned(), exact, parameters, imports))
+}
+
+fn uses_unqualified_name(tokens: &[CapturedTokenTree], sought: &str) -> bool {
+    tokens.iter().enumerate().any(|(position, token)| {
+        if let Some((_, members)) = token.group()
+            && uses_unqualified_name(members, sought)
+        {
+            return true;
+        }
+        let spelling = token.word().or_else(|| token.raw_identifier());
+        spelling == Some(sought)
+            && !preceded_by_path_separator(tokens, position)
+            && position
+                .checked_sub(1)
+                .and_then(|previous| tokens.get(previous))
+                .and_then(CapturedTokenTree::word)
+                != Some("fn")
+    })
+}
+
+fn preceded_by_path_separator(tokens: &[CapturedTokenTree], position: usize) -> bool {
+    let Some(first_colon) = position.checked_sub(2).and_then(|index| tokens.get(index)) else {
+        return false;
+    };
+    let Some(second_colon) = position.checked_sub(1).and_then(|index| tokens.get(index)) else {
+        return false;
+    };
+    first_colon.joint_punct() == Some(':') && second_colon.punct() == Some(':')
+}
+
+fn exact_dispatch_parameters(
+    item: crate::token::AuthoredItem<'_>,
+    at: crate::token::SpanHandle,
+) -> Result<[crate::token::GeneratedToken; 2], RecipeError> {
+    let Some(parameters) = function_parameters(item) else {
+        return Err(RecipeError::at(
+            RecipeIssue::ExactDispatchParameterCount { observed: 0 },
+            Some(at),
+        ));
+    };
+    let rows = comma_rows(parameters.tokens());
+    let [first, second] = rows.as_slice() else {
+        return Err(RecipeError::at(
+            RecipeIssue::ExactDispatchParameterCount {
+                observed: rows.len(),
+            },
+            parameters
+                .enclosing_span()
+                .or_else(|| parameters.first_span()),
+        ));
+    };
+    Ok([
+        simple_binding(first, 1, at)?,
+        simple_binding(second, 2, at)?,
+    ])
+}
+
+fn function_parameters(item: crate::token::AuthoredItem<'_>) -> Option<CapturedFragment<'_>> {
+    let signature = item.signature().tokens();
+    let (name, _) = item.name()?;
+    let after_name = signature
         .iter()
-        .find(|row| row.role == role)
-        .map_or(ProjectionStanding::NotRequested, |row| {
-            ProjectionStanding::Generated(EffectiveProjection::effective(
-                role,
-                row.name.clone(),
-                row.source,
-            ))
-        })
+        .position(|token| core::ptr::eq(token, name))?
+        .checked_add(1)?;
+    let start = item.generics().map_or(after_name, |generics| {
+        generics
+            .tokens()
+            .last()
+            .and_then(|last| {
+                signature
+                    .iter()
+                    .position(|token| core::ptr::eq(token, last))
+            })
+            .and_then(|position| position.checked_add(1))
+            .unwrap_or(after_name)
+    });
+    signature
+        .get(start)
+        .and_then(|token| token.group_fragment(CapturedDelimiter::Parenthesis))
+}
+
+fn comma_rows(tokens: &[CapturedTokenTree]) -> Vec<&[CapturedTokenTree]> {
+    let mut rows = Vec::new();
+    let mut opening = 0usize;
+    let mut angle_depth = 0usize;
+    for (position, token) in tokens.iter().enumerate() {
+        match token.punct().or_else(|| token.joint_punct()) {
+            Some('<') => angle_depth = angle_depth.saturating_add(1),
+            Some('>') if !thin_arrow_close(tokens, position) => {
+                angle_depth = angle_depth.saturating_sub(1);
+            }
+            Some(',') if angle_depth == 0 => {
+                push_comma_row(&mut rows, tokens, opening, position);
+                opening = position.saturating_add(1);
+            }
+            Some(_) | None => {}
+        }
+    }
+    push_comma_row(&mut rows, tokens, opening, tokens.len());
+    rows
+}
+
+fn thin_arrow_close(tokens: &[CapturedTokenTree], position: usize) -> bool {
+    position
+        .checked_sub(1)
+        .and_then(|previous| tokens.get(previous))
+        .and_then(CapturedTokenTree::joint_punct)
+        == Some('-')
+}
+
+fn push_comma_row<'tokens>(
+    rows: &mut Vec<&'tokens [CapturedTokenTree]>,
+    tokens: &'tokens [CapturedTokenTree],
+    opening: usize,
+    closing: usize,
+) {
+    let Some(row) = (opening < closing)
+        .then(|| tokens.get(opening..closing))
+        .flatten()
+    else {
+        return;
+    };
+    rows.push(row);
+}
+
+fn simple_binding(
+    row: &[CapturedTokenTree],
+    position: usize,
+    at: crate::token::SpanHandle,
+) -> Result<crate::token::GeneratedToken, RecipeError> {
+    let [binding, colon, rest @ ..] = row else {
+        return Err(simple_binding_refusal(row, position, at));
+    };
+    let Some(spelling) = binding.word().or_else(|| binding.raw_identifier()) else {
+        return Err(simple_binding_refusal(row, position, at));
+    };
+    if colon.punct() != Some(':') || rest.is_empty() {
+        return Err(simple_binding_refusal(row, position, at));
+    }
+    Ok(identifier_token(binding, spelling))
+}
+
+fn simple_binding_refusal(
+    row: &[CapturedTokenTree],
+    position: usize,
+    at: crate::token::SpanHandle,
+) -> RecipeError {
+    RecipeError::at(
+        RecipeIssue::ExactDispatchParameterBinding { position },
+        row.first().map(CapturedTokenTree::span).or(Some(at)),
+    )
 }
 
 fn evidence_standing(

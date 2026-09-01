@@ -19,6 +19,19 @@ Newtypes, markers and phantom carriers are ordinary data-item compositions rathe
 A transition names one state member, one event member, one target state member, and one ordinary Rust effect path.
 Macroonz checks membership and repeated relation seats, while rustc retains authority over the path, types, ownership, exhaustiveness, and final generated program.
 
+## Projection disclosure
+
+A standard projection has one progressively disclosed seat rather than separate beginner and expert APIs.
+The preset spelling names only the role, a parenthesized spelling carries flat mechanical configuration, and a braced spelling carries exact Rust material.
+
+For dispatch, those levels are `dispatch;`, `dispatch(apply);`, and a braced semicolon-terminated function signature.
+The exact signature preserves caller-authored attributes, visibility, qualifiers, name, generics, two simple caller-named parameter bindings and exact types, result, and where clause.
+The standard projector generates only the body accounted from the informed transition rows.
+A caller-authored function body is refused at that seat because an arbitrary body belongs to the caller-owned projector road.
+
+Every effective projection reads back whether its value came from a preset, named configuration, or exact Rust.
+The exact signature enters the recipe's canonical content, while producer-local spans remain outside semantic identity.
+
 ## Projection authority
 
 Every possible recipe role receives one explicit standing before rendering.

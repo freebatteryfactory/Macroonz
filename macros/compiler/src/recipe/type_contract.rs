@@ -32,6 +32,7 @@ impl LoweringSource {
         match self {
             Self::Preset => "preset",
             Self::Configuration => "configuration",
+            Self::ExactRust => "exact-rust",
         }
     }
 }
@@ -210,6 +211,20 @@ impl fmt::Display for RecipeIssue {
             Self::FragmentNotGenerated => into.write_str(
                 "captured caller-authored Rust could not be preserved as generated tokens",
             ),
+            Self::ExactDispatchFunctionRequired => into.write_str(
+                "exact dispatch braces must contain one semicolon-terminated Rust function signature",
+            ),
+            Self::ExactDispatchBodyRefused => into.write_str(
+                "exact dispatch cannot carry a caller-authored body because the standard projector owns the relation-accounted body",
+            ),
+            Self::ExactDispatchParameterCount { observed } => write!(
+                into,
+                "exact dispatch requires two parameters but the signature states {observed}"
+            ),
+            Self::ExactDispatchParameterBinding { position } => write!(
+                into,
+                "exact dispatch parameter {position} must use one simple identifier binding"
+            ),
         }
     }
 }
@@ -254,7 +269,11 @@ impl Refused for RecipeError {
             | RecipeIssue::AllowedAbsenceNeedsFallback
             | RecipeIssue::SupportAddressUnneeded
             | RecipeIssue::ReplacementUnplanned { .. }
-            | RecipeIssue::FragmentNotGenerated => Observed::ContractDisagreement,
+            | RecipeIssue::FragmentNotGenerated
+            | RecipeIssue::ExactDispatchFunctionRequired
+            | RecipeIssue::ExactDispatchBodyRefused
+            | RecipeIssue::ExactDispatchParameterCount { .. }
+            | RecipeIssue::ExactDispatchParameterBinding { .. } => Observed::ContractDisagreement,
         }
     }
 
@@ -283,6 +302,14 @@ impl Refused for RecipeError {
             }
             RecipeIssue::AllowedAbsenceNeedsFallback => human_projection!(
                 "declare typed refusal for absent rows or state an explicit caller-owned fallback before requesting dispatch"
+            ),
+            RecipeIssue::ExactDispatchBodyRefused => human_projection!(
+                "remove the exact function body and leave the semicolon-terminated signature for the standard dispatch projector to fill"
+            ),
+            RecipeIssue::ExactDispatchFunctionRequired
+            | RecipeIssue::ExactDispatchParameterCount { .. }
+            | RecipeIssue::ExactDispatchParameterBinding { .. } => human_projection!(
+                "write `dispatch { fn apply(state: State, event: Event) -> Result<State, TransitionRefusal>; };` with exactly two simple identifier bindings"
             ),
             RecipeIssue::DuplicateMember { .. }
             | RecipeIssue::DuplicateTransition { .. }

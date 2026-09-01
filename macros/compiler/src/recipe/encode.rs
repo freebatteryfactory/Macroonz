@@ -34,8 +34,7 @@ impl CanonicalContent for Recipe {
                 ProjectionStanding::NotRequested => into.push(0),
                 ProjectionStanding::Generated(lowering) => {
                     into.push(1);
-                    encode_bytes(lowering.source().name().as_bytes(), into);
-                    encode_optional_name(lowering.name(), into);
+                    encode_lowering(lowering, into);
                 }
                 ProjectionStanding::FeatureUnavailable => into.push(2),
                 ProjectionStanding::TargetUnavailable => into.push(3),
@@ -51,6 +50,15 @@ impl CanonicalContent for Recipe {
             }
         }
     }
+}
+
+fn encode_lowering(lowering: &super::EffectiveProjection, into: &mut Vec<u8>) {
+    encode_bytes(lowering.source().name().as_bytes(), into);
+    encode_optional_name(lowering.name(), into);
+    let Some(exact) = lowering.exact_rust() else {
+        return;
+    };
+    encode_bytes(&exact.canonical_bytes(), into);
 }
 
 fn encode_evidence(evidence: Option<&super::RecipeEvidence>, into: &mut Vec<u8>) {
