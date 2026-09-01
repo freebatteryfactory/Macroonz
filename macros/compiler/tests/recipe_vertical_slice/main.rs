@@ -7,7 +7,9 @@ use macroonz_compiler::recipe::{
 use macroonz_compiler::{
     CanonicalContent, CrateBinding, Destination, Door, GeneratedDelimiter, GeneratedToken,
     GeneratedTree, Producer, TextCapture, absolute_path, attribute, constant, decorated,
-    documentation, group, inline_module, tuple_struct, unit_struct, use_item,
+    documentation, enumeration, function_item, function_signature, group, inline_module, match_arm,
+    match_expression, result_type, tuple_struct, typed_parameter, unit_struct, unit_variant,
+    use_item,
 };
 
 const DOOR: Door = Door::declared(
@@ -78,6 +80,8 @@ pub mod door {
 
 struct MirroredCompanions;
 
+struct MirroredDispatch;
+
 struct MirroredTypestate;
 
 impl RecipeProjector for MirroredCompanions {
@@ -103,6 +107,103 @@ impl RecipeProjector for MirroredCompanions {
             recipe.events().members(),
         )?);
         tokens.extend(transition_constant(recipe)?);
+        sink.offer(GeneratedTree::assembled(tokens)?)
+    }
+}
+
+impl RecipeProjector for MirroredDispatch {
+    fn project(
+        &self,
+        view: RecipeView<'_>,
+        request: ProjectionRequest<'_>,
+        sink: ProjectionSink<'_, '_>,
+    ) -> Result<ProjectionOffered, ProjectionError> {
+        assert_eq!(request.role(), RecipeRole::Dispatch);
+        assert_eq!(request.effective().role(), RecipeRole::Dispatch);
+        let recipe = view.recipe();
+        let refusal = decorated(
+            vec![
+                documentation("Why generated dispatch did not find an admitted transition row.")?,
+                derived(&["Debug", "Clone", "Copy", "PartialEq", "Eq"])?,
+            ],
+            public(),
+            enumeration(
+                GeneratedToken::word("TransitionRefusal"),
+                Vec::new(),
+                Vec::new(),
+                vec![decorated(
+                    vec![documentation(
+                        "No declared transition occupies the supplied state and event seat.",
+                    )?],
+                    Vec::new(),
+                    unit_variant(GeneratedToken::word("Absent")),
+                )],
+            )?,
+        );
+        let parameters = vec![
+            typed_parameter(
+                vec![GeneratedToken::word("state")],
+                super_path(recipe.states_name_token()),
+            ),
+            typed_parameter(
+                vec![GeneratedToken::word("event")],
+                super_path(recipe.events_name_token()),
+            ),
+        ];
+        let result = result_type(
+            super_path(recipe.states_name_token()),
+            vec![GeneratedToken::word("TransitionRefusal")],
+        );
+        let mut arms = recipe
+            .transitions()
+            .members()
+            .map(|transition| dispatch_arm(recipe, transition))
+            .collect::<Result<Vec<_>, _>>()?;
+        arms.push(match_arm(
+            vec![GeneratedToken::word("_")],
+            None,
+            vec![
+                GeneratedToken::word("Err"),
+                group(
+                    GeneratedDelimiter::Parenthesis,
+                    vec![
+                        GeneratedToken::word("TransitionRefusal"),
+                        GeneratedToken::joint(':'),
+                        GeneratedToken::alone(':'),
+                        GeneratedToken::word("Absent"),
+                    ],
+                )?,
+            ],
+        ));
+        let body = match_expression(
+            vec![group(
+                GeneratedDelimiter::Parenthesis,
+                comma_separated(vec![
+                    vec![GeneratedToken::word("state")],
+                    vec![GeneratedToken::word("event")],
+                ]),
+            )?],
+            arms,
+        )?;
+        let function = decorated(
+            vec![documentation(
+                "Applies one declared transition or returns typed absence.",
+            )?],
+            public(),
+            function_item(
+                function_signature(
+                    Vec::new(),
+                    GeneratedToken::word(request.effective().name().unwrap_or("apply")),
+                    parameters,
+                    Vec::new(),
+                    Some(result),
+                    Vec::new(),
+                )?,
+                body,
+            )?,
+        );
+        let mut tokens = refusal;
+        tokens.extend(function);
         sink.offer(GeneratedTree::assembled(tokens)?)
     }
 }
@@ -206,6 +307,42 @@ fn a_caller_owned_projector_has_the_standard_clients_exact_authority() -> Result
         &DOOR,
         RecipeRole::Companions,
         &MirroredCompanions,
+    )
+    .map_err(|_| ())?;
+
+    assert_eq!(
+        standard.projection().identity(),
+        custom.projection().identity()
+    );
+    assert_eq!(
+        standard.projection().plan().identity(),
+        custom.projection().plan().identity()
+    );
+    assert_eq!(
+        standard.projection().closure().identity(),
+        custom.projection().closure().identity()
+    );
+    assert_eq!(
+        standard.projection().explain().identity(),
+        custom.projection().explain().identity()
+    );
+    assert_eq!(emitted_bytes(&standard), emitted_bytes(&custom));
+    Ok(())
+}
+
+#[test]
+fn a_caller_owned_dispatch_projector_uses_the_same_behavior_kernel_and_authority() -> Result<(), ()>
+{
+    let source = COMPANION_RECIPE.replace("companions;", "dispatch(apply);");
+    let read = TextCapture::read(&source).map_err(|_| ())?;
+    let standard = macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
+        .map_err(|_| ())?;
+    let custom = macroonz_compiler::recipe::bake_with(
+        read.input(),
+        HarnessPosture::Available,
+        &DOOR,
+        RecipeRole::Dispatch,
+        &MirroredDispatch,
     )
     .map_err(|_| ())?;
 
@@ -352,9 +489,45 @@ pub mod door {{
     Ok(())
 }
 
+#[test]
+fn malformed_behavior_structure_refuses_before_projection() -> Result<(), ()> {
+    let widened = COMPLETE_RECIPE.replace(
+        "(Closed, OpenDoor) => Open with(crate::effects::open);",
+        "(Missing, OpenDoor) => Open with(crate::effects::open);",
+    );
+    assert!(
+        refusal_summary(&widened)?
+            .contains("a transition names undeclared `State` member `Missing`")
+    );
+
+    let doubled_row = COMPLETE_RECIPE.replace(
+        "(Closed, OpenDoor) => Open with(crate::effects::open);",
+        "(Closed, OpenDoor) => Open with(crate::effects::open);\n            (Closed, OpenDoor) => Open with(crate::effects::open);",
+    );
+    assert!(
+        refusal_summary(&doubled_row)?
+            .contains("more than one transition occupies state `Closed` and event `OpenDoor`")
+    );
+
+    let doubled_posture = COMPLETE_RECIPE.replace(
+        "absence(refused);",
+        "absence(refused);\n        absence(refused);",
+    );
+    assert!(refusal_summary(&doubled_posture)?.contains("recipe grammar was not read"));
+    Ok(())
+}
+
 fn bake(source: &str) -> Result<RecipeBake, ()> {
     let read = TextCapture::read(source).map_err(|_| ())?;
     macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR).map_err(|_| ())
+}
+
+fn refusal_summary(source: &str) -> Result<String, ()> {
+    let read = TextCapture::read(source).map_err(|_| ())?;
+    macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
+        .err()
+        .map(|refusal| refusal.summary().to_owned())
+        .ok_or(())
 }
 
 fn cargo_bytes(
@@ -439,6 +612,34 @@ fn transition_constant(
         )?],
         public(),
         constant("TRANSITIONS", kind, value),
+    ))
+}
+
+fn dispatch_arm(
+    recipe: &macroonz_compiler::recipe::Recipe,
+    transition: &macroonz_compiler::recipe::RecipeTransition,
+) -> Result<Vec<GeneratedToken>, ProjectionError> {
+    let pattern = group(
+        GeneratedDelimiter::Parenthesis,
+        comma_separated(vec![
+            variant(recipe.states_name_token(), transition.source_name_token()),
+            variant(recipe.events_name_token(), transition.event_name_token()),
+        ]),
+    )?;
+    let mut body = transition.effect().tokens().to_vec();
+    body.push(group(GeneratedDelimiter::Parenthesis, Vec::new())?);
+    body.push(GeneratedToken::alone(';'));
+    body.extend([
+        GeneratedToken::word("Ok"),
+        group(
+            GeneratedDelimiter::Parenthesis,
+            variant(recipe.states_name_token(), transition.target_name_token()),
+        )?,
+    ]);
+    Ok(match_arm(
+        vec![pattern],
+        None,
+        vec![group(GeneratedDelimiter::Brace, body)?],
     ))
 }
 

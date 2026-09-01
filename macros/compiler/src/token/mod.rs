@@ -21,10 +21,12 @@ pub use generation::{
     FragmentGenerationIssue, FragmentGenerationRefusal, GENERATED_TOKEN_LIMIT, GeneratedDelimiter,
     GeneratedLiteral, GeneratedLiteralRefusal, GeneratedSpacing, GeneratedToken, GeneratedTree,
     absolute_path, and_all, attribute, bound_local, bound_path, call, comma, comma_many, constant,
-    decorated, documentation, enumeration, equality, function, generic_parameters, group,
-    inline_module, keyed_assignment_slice, keyed_roster_slice, metavariable, method_call,
-    method_chain, named_field, named_struct, named_variant, rendered_identifier, rendered_name,
-    result_type, roster, rust_keyword, text_pair, tuple_struct, tuple_variant, twin_path,
-    type_alias, unit_struct, unit_variant, use_item, where_clause,
+    consuming_receiver, decorated, documentation, enumeration, equality, exclusive_receiver,
+    function, function_item, function_signature, generic_parameters, group, inline_module,
+    keyed_assignment_slice, keyed_roster_slice, match_arm, match_expression, metavariable,
+    method_call, method_chain, named_field, named_struct, named_variant, pinned_receiver,
+    rendered_identifier, rendered_name, result_type, roster, rust_keyword, shared_receiver,
+    text_pair, tuple_struct, tuple_variant, twin_path, type_alias, typed_parameter, unit_struct,
+    unit_variant, use_item, where_clause,
 };
 pub(crate) use generation::{preserved_tokens, segmented_twin_path};

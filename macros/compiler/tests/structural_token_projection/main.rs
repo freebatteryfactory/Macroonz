@@ -2,6 +2,7 @@
 //!
 //! These claims fix ordering, exact byte parity, public paths, and the generated-token ceiling without making the projector an oracle over what one row means.
 
+mod behavior;
 mod items;
 
 use macroonz_compiler::token::{

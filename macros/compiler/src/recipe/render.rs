@@ -7,7 +7,8 @@ use super::{
 use crate::bounded::AbsencePosture;
 use crate::token::{
     GeneratedDelimiter, GeneratedToken, GeneratedTree, absolute_path, attribute, constant,
-    decorated, documentation, enumeration, group, inline_module, tuple_struct, unit_struct,
+    decorated, documentation, enumeration, function_item, function_signature, group, inline_module,
+    match_arm, match_expression, result_type, tuple_struct, typed_parameter, unit_struct,
     unit_variant, use_item,
 };
 
@@ -234,41 +235,52 @@ fn dispatch_function(
     effective: &super::EffectiveProjection,
 ) -> Result<Vec<GeneratedToken>, ProjectionError> {
     let name = effective.name().unwrap_or("apply");
-    let parameters = comma_separated(vec![
-        typed("state", super_path(recipe.states_name_token())),
-        typed("event", super_path(recipe.events_name_token())),
-    ]);
-    let mut result = absolute_path(&["core", "result", "Result"]);
-    result.push(GeneratedToken::alone('<'));
-    result.extend(super_path(recipe.states_name_token()));
-    result.push(GeneratedToken::alone(','));
-    result.push(GeneratedToken::word("TransitionRefusal"));
-    result.push(GeneratedToken::alone('>'));
+    let parameters = vec![
+        typed_parameter(
+            vec![GeneratedToken::word("state")],
+            super_path(recipe.states_name_token()),
+        ),
+        typed_parameter(
+            vec![GeneratedToken::word("event")],
+            super_path(recipe.events_name_token()),
+        ),
+    ];
+    let result = result_type(
+        super_path(recipe.states_name_token()),
+        vec![GeneratedToken::word("TransitionRefusal")],
+    );
     let mut arms = Vec::new();
     for transition in recipe.transitions().members() {
-        arms.extend(dispatch_arm(recipe, transition)?);
+        arms.push(dispatch_arm(recipe, transition)?);
     }
-    arms.extend(absent_arm()?);
-    let body = vec![
-        GeneratedToken::word("match"),
-        group(
+    arms.push(absent_arm()?);
+    let body = match_expression(
+        vec![group(
             GeneratedDelimiter::Parenthesis,
             comma_separated(vec![
                 vec![GeneratedToken::word("state")],
                 vec![GeneratedToken::word("event")],
             ]),
+        )?],
+        arms,
+    )?;
+    Ok(decorated(
+        vec![documentation(
+            "Applies one declared transition or returns typed absence.",
+        )?],
+        public(),
+        function_item(
+            function_signature(
+                Vec::new(),
+                GeneratedToken::word(name),
+                parameters,
+                Vec::new(),
+                Some(result),
+                Vec::new(),
+            )?,
+            body,
         )?,
-        group(GeneratedDelimiter::Brace, arms)?,
-    ];
-    let mut tokens = documentation("Applies one declared transition or returns typed absence.")?;
-    tokens.extend([GeneratedToken::word("pub"), GeneratedToken::word("fn")]);
-    tokens.push(GeneratedToken::word(name));
-    tokens.push(group(GeneratedDelimiter::Parenthesis, parameters)?);
-    tokens.push(GeneratedToken::joint('-'));
-    tokens.push(GeneratedToken::alone('>'));
-    tokens.extend(result);
-    tokens.push(group(GeneratedDelimiter::Brace, body)?);
-    Ok(tokens)
+    ))
 }
 
 fn dispatch_arm(
@@ -290,33 +302,30 @@ fn dispatch_arm(
         recipe.states_name_token(),
         transition.target_name_token(),
     )?);
-    let mut tokens = vec![
-        pattern,
-        GeneratedToken::joint('='),
-        GeneratedToken::alone('>'),
-    ];
-    tokens.push(group(GeneratedDelimiter::Brace, body)?);
-    tokens.push(GeneratedToken::alone(','));
-    Ok(tokens)
+    Ok(match_arm(
+        vec![pattern],
+        None,
+        vec![group(GeneratedDelimiter::Brace, body)?],
+    ))
 }
 
 fn absent_arm() -> Result<Vec<GeneratedToken>, ProjectionError> {
-    Ok(vec![
-        GeneratedToken::word("_"),
-        GeneratedToken::joint('='),
-        GeneratedToken::alone('>'),
-        GeneratedToken::word("Err"),
-        group(
-            GeneratedDelimiter::Parenthesis,
-            vec![
-                GeneratedToken::word("TransitionRefusal"),
-                GeneratedToken::joint(':'),
-                GeneratedToken::alone(':'),
-                GeneratedToken::word("Absent"),
-            ],
-        )?,
-        GeneratedToken::alone(','),
-    ])
+    Ok(match_arm(
+        vec![GeneratedToken::word("_")],
+        None,
+        vec![
+            GeneratedToken::word("Err"),
+            group(
+                GeneratedDelimiter::Parenthesis,
+                vec![
+                    GeneratedToken::word("TransitionRefusal"),
+                    GeneratedToken::joint(':'),
+                    GeneratedToken::alone(':'),
+                    GeneratedToken::word("Absent"),
+                ],
+            )?,
+        ],
+    ))
 }
 
 fn compile_contract(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError> {
@@ -351,11 +360,21 @@ fn property(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError> {
     for (position, transition) in recipe.transitions().members().enumerate() {
         body.extend(property_row(recipe, transition, position)?);
     }
-    let mut tokens = attribute(vec![GeneratedToken::word("test")])?;
-    tokens.push(GeneratedToken::word("fn"));
-    tokens.push(GeneratedToken::word("declared_recipe_rows_are_observed"));
-    tokens.push(group(GeneratedDelimiter::Parenthesis, Vec::new())?);
-    tokens.push(group(GeneratedDelimiter::Brace, body)?);
+    let tokens = decorated(
+        vec![attribute(vec![GeneratedToken::word("test")])?],
+        Vec::new(),
+        function_item(
+            function_signature(
+                Vec::new(),
+                GeneratedToken::word("declared_recipe_rows_are_observed"),
+                Vec::new(),
+                Vec::new(),
+                None,
+                Vec::new(),
+            )?,
+            body,
+        )?,
+    );
     GeneratedTree::assembled(tokens).map_err(ProjectionError::Tokens)
 }
 
@@ -522,12 +541,6 @@ fn extend_token_path(
         tokens.push(GeneratedToken::alone(':'));
         tokens.push(segment);
     }
-}
-
-fn typed(name: &str, kind: Vec<GeneratedToken>) -> Vec<GeneratedToken> {
-    let mut tokens = vec![GeneratedToken::word(name), GeneratedToken::alone(':')];
-    tokens.extend(kind);
-    tokens
 }
 
 fn call_variant(

@@ -13,6 +13,10 @@ They cover inline modules, imports and explicit reexports, aliases, unit, tuple 
 Newtypes, markers, phantom carriers and typestate data are compositions of those ordinary item forms rather than separate compiler concepts.
 The caller retains every exact Rust fragment and semantic choice, while these operations own only fixed punctuation, delimiter placement and selected order.
 
+The behavior composers project exact function signatures and bodies, conventional consuming, shared, exclusive and pinned receiver spellings, typed parameters, and match arms or expressions.
+Free functions, associated functions, constructors, synchronous or asynchronous functions, typed refusals and conversions are compositions over those operations rather than separate compiler theories.
+An explicitly supplied custom receiver or qualifier remains an exact caller-owned token run, and a safe preset never infers an unsafe boundary.
+
 [`CapturedFragment::generated`](crate::token::CapturedFragment::generated) projects an exact captured run into this vocabulary without inspecting or reparsing source text.
 Ordinary and raw identifiers, punctuation adjacency, all captured literal forms, written groups, and invisible compiler groups remain distinct.
 [`GeneratedLiteral`](crate::token::GeneratedLiteral) guards the exact literal forms whose older semantic constructors deliberately canonicalize differently.
