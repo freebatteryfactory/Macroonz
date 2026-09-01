@@ -499,6 +499,29 @@ fn the_callable_and_wrapper_hosts_emit_one_canonical_projection() -> Result<(), 
 }
 
 #[test]
+fn the_wrapper_carries_the_no_harness_posture_without_changing_the_recipe() -> Result<(), ()> {
+    let callable_capture = TextCapture::read(COMPANION_RECIPE).map_err(|_| ())?;
+    let callable = macroonz_compiler::recipe::bake(
+        callable_capture.input(),
+        HarnessPosture::Unavailable,
+        &DOOR,
+    )
+    .map_err(|_| ())?;
+    let wrapped_source =
+        format!("{{ macroonz }} __macroonz_test_carrier_unavailable {{ {COMPANION_RECIPE} }}");
+    let wrapped_capture = TextCapture::read(&wrapped_source).map_err(|_| ())?;
+    let wrapped =
+        macroonz_compiler::recipe::bake_wrapped(wrapped_capture.input(), &DOOR).map_err(|_| ())?;
+
+    assert_eq!(
+        callable.projection().identity(),
+        wrapped.projection().identity()
+    );
+    assert_eq!(emitted_bytes(&callable), emitted_bytes(&wrapped));
+    Ok(())
+}
+
+#[test]
 fn a_caller_owned_projector_has_the_standard_clients_exact_authority() -> Result<(), ()> {
     let read = TextCapture::read(COMPANION_RECIPE).map_err(|_| ())?;
     let standard = macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
@@ -672,6 +695,28 @@ fn commas_inside_exact_parameter_types_do_not_invent_parameter_rows() -> Result<
 }
 
 #[test]
+fn fully_qualified_exact_types_do_not_emit_unneeded_vocabulary_imports() -> Result<(), ()> {
+    let qualified = EXACT_DISPATCH_RECIPE
+        .replace("current: State", "current: crate::door::State")
+        .replace("stimulus: Event", "stimulus: crate::door::Event")
+        .replace(
+            "Result<State, TransitionRefusal>",
+            "Result<crate::door::State, TransitionRefusal>",
+        )
+        .replace("State: 'a", "crate::door::State: 'a");
+    let baked = bake(&qualified)?;
+    let emitted = baked
+        .emit()
+        .tokens()
+        .map(GeneratedTree::inspected)
+        .ok_or(())?;
+
+    assert!(!emitted.contains("use super :: State"), "{emitted}");
+    assert!(!emitted.contains("use super :: Event"), "{emitted}");
+    Ok(())
+}
+
+#[test]
 fn exact_dispatch_refusals_name_the_owned_repair() -> Result<(), ()> {
     let not_function = EXACT_DISPATCH_RECIPE.replace(
         "#[inline]\n                pub fn advance<'a>(\n                    current: State,\n                    stimulus: Event,\n                ) -> Result<State, TransitionRefusal>\n                where\n                    State: 'a;",
@@ -693,6 +738,12 @@ fn exact_dispatch_refusals_name_the_owned_repair() -> Result<(), ()> {
     assert!(
         refusal_summary(&one_parameter)?
             .contains("exact dispatch requires two parameters but the signature states 1")
+    );
+
+    let missing_type = EXACT_DISPATCH_RECIPE.replace("current: State", "current:");
+    assert!(
+        refusal_summary(&missing_type)?
+            .contains("exact dispatch parameter 1 must use one simple identifier binding")
     );
 
     let pattern = EXACT_DISPATCH_RECIPE.replace("current: State", "(current, _): (State, State)");
@@ -854,6 +905,19 @@ fn generated_evidence_refuses_without_the_harness_before_any_projector_runs() ->
             .summary()
             .contains("projection `trials` requires the facade harness feature")
     );
+    Ok(())
+}
+
+#[test]
+fn either_harness_projection_requires_one_declared_support_address() -> Result<(), ()> {
+    for role in ["compile_contract", "property"] {
+        let source = COMPANION_RECIPE.replace("companions", role);
+        let summary = refusal_summary(&source)?;
+        assert!(
+            summary.contains("support address"),
+            "{role} did not require its support address: {summary}"
+        );
+    }
     Ok(())
 }
 
