@@ -147,6 +147,47 @@ pub struct MemberContract {
     pub decode_road: &'static str,
 }
 
+/// The generated write operation one contract row selects.
+#[derive(Clone, Copy)]
+pub(super) enum WriteRoad {
+    /// Widen one count and write its big-endian bytes.
+    Count,
+    /// Borrow bytes through the declared trait road and frame them.
+    Bytes,
+    /// Borrow text through the declared trait road and frame its UTF-8 bytes.
+    Text,
+    /// Write the declared slot of one closed-choice arm.
+    ClosedChoice,
+    /// Call and frame one nested codec.
+    Nested,
+}
+
+/// The generated read operation one contract row selects.
+#[derive(Clone, Copy)]
+pub(super) enum ReadRoad {
+    /// Read and narrow one count.
+    Count,
+    /// Read framed bytes and ask the member type to admit them.
+    Bytes,
+    /// Read framed UTF-8 text and ask the member type to admit it.
+    Text,
+    /// Elect one arm from the owner's complete roster.
+    ClosedChoice,
+    /// Ask one nested codec to read its framed material.
+    Nested,
+}
+
+/// One authoritative contract row, with its public bill and the two internal operations that consume it.
+#[derive(Clone, Copy)]
+pub(super) struct RenderingContract {
+    /// The public statement of the member roads.
+    pub(super) bill: MemberContract,
+    /// The generated write operation.
+    pub(super) write: WriteRoad,
+    /// The generated read operation.
+    pub(super) read: ReadRoad,
+}
+
 /// One type path a rendered expression names.
 ///
 /// # Bounds

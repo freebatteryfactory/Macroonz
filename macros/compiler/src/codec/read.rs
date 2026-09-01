@@ -6,7 +6,8 @@ use super::spell::{
     associated, byte_sink, byte_slice, byte_width, empty_vector, framing_width, generics, mapped,
     member_refusal, qualified, reassigned, road_spelling, sole_refusal, statement, type_path,
 };
-use super::type_contract::{ReadRoad, rendering_contract};
+use super::type_contract::rendering_contract;
+use super::types::ReadRoad;
 use super::{AssemblyPosture, Cardinality, CodecMember, CodecShape, DecodeRefusal};
 use crate::bounded::Overflow;
 use crate::token::{
