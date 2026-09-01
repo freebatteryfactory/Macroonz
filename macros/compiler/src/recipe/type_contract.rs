@@ -44,7 +44,7 @@ impl Role for RecipeRole {
 
     fn destination(self) -> Destination {
         match self {
-            Self::Companions | Self::Dispatch => Destination::DeclarationSite,
+            Self::Companions | Self::Dispatch | Self::Typestate => Destination::DeclarationSite,
             Self::CompileContract | Self::Property => Destination::TestCarrier,
         }
     }

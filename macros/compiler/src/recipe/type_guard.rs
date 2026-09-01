@@ -16,14 +16,24 @@ use crate::support::SupportName;
 use crate::token::{GeneratedTree, SpanHandle};
 
 impl RecipeMember {
-    pub(in crate::recipe) fn authored(spelling: String, at: SpanHandle) -> Self {
-        Self { spelling, at }
+    pub(in crate::recipe) fn authored(
+        spelling: String,
+        name: crate::token::GeneratedToken,
+        at: SpanHandle,
+    ) -> Self {
+        Self { spelling, name, at }
     }
 
     /// Reads the authored member spelling.
     #[must_use]
     pub fn spelling(&self) -> &str {
         self.spelling.as_str()
+    }
+
+    /// Reads the exact ordinary or raw identifier token that names this member.
+    #[must_use]
+    pub const fn name_token(&self) -> &crate::token::GeneratedToken {
+        &self.name
     }
 
     /// Reads the captured producer span for this member.
@@ -35,16 +45,19 @@ impl RecipeMember {
 
 impl RecipeTransition {
     pub(in crate::recipe) fn authored(
-        from: String,
-        event: String,
-        to: String,
+        from: (String, crate::token::GeneratedToken),
+        event: (String, crate::token::GeneratedToken),
+        to: (String, crate::token::GeneratedToken),
         effect: GeneratedTree,
         at: SpanHandle,
     ) -> Self {
         Self {
-            from,
-            event,
-            to,
+            from: from.0,
+            from_name: from.1,
+            event: event.0,
+            event_name: event.1,
+            to: to.0,
+            to_name: to.1,
             effect,
             at,
         }
@@ -56,16 +69,34 @@ impl RecipeTransition {
         self.from.as_str()
     }
 
+    /// Reads the exact ordinary or raw identifier token for the source state.
+    #[must_use]
+    pub const fn source_name_token(&self) -> &crate::token::GeneratedToken {
+        &self.from_name
+    }
+
     /// Reads the event member.
     #[must_use]
     pub fn event(&self) -> &str {
         self.event.as_str()
     }
 
+    /// Reads the exact ordinary or raw identifier token for the event.
+    #[must_use]
+    pub const fn event_name_token(&self) -> &crate::token::GeneratedToken {
+        &self.event_name
+    }
+
     /// Reads the target-state member.
     #[must_use]
     pub fn to(&self) -> &str {
         self.to.as_str()
+    }
+
+    /// Reads the exact ordinary or raw identifier token for the target state.
+    #[must_use]
+    pub const fn target_name_token(&self) -> &crate::token::GeneratedToken {
+        &self.to_name
     }
 
     /// Reads the exact caller-authored effect path.
@@ -113,11 +144,14 @@ impl Recipe {
     pub(in crate::recipe) fn informed(parts: RecipeParts) -> Result<Self, RecipeError> {
         let RecipeParts {
             module_name,
+            module_name_token,
             module_head,
             authored_body,
             states_name,
+            states_name_token,
             state_members,
             events_name,
+            events_name_token,
             event_members,
             transitions,
             absence,
@@ -160,11 +194,14 @@ impl Recipe {
         }
         Ok(Self {
             module_name,
+            module_name_token,
             module_head,
             authored_body,
             states_name,
+            states_name_token,
             states,
             events_name,
+            events_name_token,
             events,
             transitions,
             absence,
@@ -177,6 +214,12 @@ impl Recipe {
     #[must_use]
     pub fn module_name(&self) -> &str {
         self.module_name.as_str()
+    }
+
+    /// Reads the exact ordinary or raw identifier token that names the recipe module.
+    #[must_use]
+    pub const fn module_name_token(&self) -> &crate::token::GeneratedToken {
+        &self.module_name_token
     }
 
     pub(in crate::recipe) const fn module_head(&self) -> &GeneratedTree {
@@ -193,6 +236,12 @@ impl Recipe {
         self.states_name.as_str()
     }
 
+    /// Reads the exact ordinary or raw identifier token that names the state vocabulary.
+    #[must_use]
+    pub const fn states_name_token(&self) -> &crate::token::GeneratedToken {
+        &self.states_name_token
+    }
+
     /// Reads the informed state roster in authored order.
     #[must_use]
     pub const fn states(&self) -> &KeyedRoster<RecipeMember, String, VOCABULARY_LIMIT> {
@@ -203,6 +252,12 @@ impl Recipe {
     #[must_use]
     pub fn events_name(&self) -> &str {
         self.events_name.as_str()
+    }
+
+    /// Reads the exact ordinary or raw identifier token that names the event vocabulary.
+    #[must_use]
+    pub const fn events_name_token(&self) -> &crate::token::GeneratedToken {
+        &self.events_name_token
     }
 
     /// Reads the informed event roster in authored order.
@@ -228,12 +283,13 @@ impl Recipe {
     /// Reads the complete standing for one projection role.
     #[must_use]
     pub(in crate::recipe) fn standing(&self, role: RecipeRole) -> &ProjectionStanding {
-        let [companions, dispatch, compile_contract, property] = &self.projections;
+        let [companions, dispatch, compile_contract, property, typestate] = &self.projections;
         match role {
             RecipeRole::Companions => companions,
             RecipeRole::Dispatch => dispatch,
             RecipeRole::CompileContract => compile_contract,
             RecipeRole::Property => property,
+            RecipeRole::Typestate => typestate,
         }
     }
 
@@ -367,13 +423,14 @@ impl RecipeShellContent {
     }
 }
 
-fn standing_in(projections: &[ProjectionStanding; 4], role: RecipeRole) -> &ProjectionStanding {
-    let [companions, dispatch, compile_contract, property] = projections;
+fn standing_in(projections: &[ProjectionStanding; 5], role: RecipeRole) -> &ProjectionStanding {
+    let [companions, dispatch, compile_contract, property, typestate] = projections;
     match role {
         RecipeRole::Companions => companions,
         RecipeRole::Dispatch => dispatch,
         RecipeRole::CompileContract => compile_contract,
         RecipeRole::Property => property,
+        RecipeRole::Typestate => typestate,
     }
 }
 

@@ -6,8 +6,9 @@ use super::{
 };
 use crate::bounded::AbsencePosture;
 use crate::token::{
-    GeneratedDelimiter, GeneratedToken, GeneratedTree, absolute_path, attribute, documentation,
-    group,
+    GeneratedDelimiter, GeneratedToken, GeneratedTree, absolute_path, attribute, constant,
+    decorated, documentation, enumeration, group, inline_module, tuple_struct, unit_struct,
+    unit_variant, use_item,
 };
 
 /// The built-in projector catalog used by the paved proc host.
@@ -25,9 +26,72 @@ impl RecipeProjector for StandardProjector {
             RecipeRole::Dispatch => dispatch(view.recipe(), request.effective())?,
             RecipeRole::CompileContract => compile_contract(view.recipe())?,
             RecipeRole::Property => property(view.recipe())?,
+            RecipeRole::Typestate => typestate(view.recipe())?,
         };
         sink.offer(tree)
     }
+}
+
+fn typestate(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError> {
+    let mut items = use_item(absolute_path(&["core", "marker", "PhantomData"]), None);
+    for member in recipe.states().members() {
+        items.extend(decorated(
+            vec![
+                documentation("One caller-declared typestate stage.")?,
+                derive(&["Debug", "Clone", "Copy", "PartialEq", "Eq", "Hash"])?,
+            ],
+            public(),
+            unit_struct(member.name_token().clone(), Vec::new(), Vec::new()),
+        ));
+    }
+    let marker = vec![GeneratedToken::word("Marker")];
+    let phantom = vec![
+        GeneratedToken::word("PhantomData"),
+        GeneratedToken::alone('<'),
+        GeneratedToken::word("Marker"),
+        GeneratedToken::alone('>'),
+    ];
+    items.extend(decorated(
+        vec![
+            documentation("A type-level carrier over one caller-declared stage.")?,
+            derive(&["Debug", "Clone", "Copy", "PartialEq", "Eq", "Hash"])?,
+        ],
+        public(),
+        tuple_struct(
+            GeneratedToken::word("Stage"),
+            vec![marker],
+            vec![decorated(Vec::new(), public(), phantom)],
+            Vec::new(),
+        )?,
+    ));
+    let projected = decorated(
+        vec![documentation(
+            "Type-level stages derived from the caller-authored state vocabulary.",
+        )?],
+        public(),
+        inline_module(GeneratedToken::word("typestate"), items)?,
+    );
+    GeneratedTree::assembled(projected).map_err(ProjectionError::Tokens)
+}
+
+fn public() -> Vec<GeneratedToken> {
+    vec![GeneratedToken::word("pub")]
+}
+
+fn derive(names: &[&str]) -> Result<Vec<GeneratedToken>, ProjectionError> {
+    attribute(vec![
+        GeneratedToken::word("derive"),
+        group(
+            GeneratedDelimiter::Parenthesis,
+            comma_separated(
+                names
+                    .iter()
+                    .map(|name| vec![GeneratedToken::word(name)])
+                    .collect(),
+            ),
+        )?,
+    ])
+    .map_err(ProjectionError::Tokens)
 }
 
 pub(super) fn project(
@@ -54,59 +118,57 @@ fn companions(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError> {
     let mut tokens = Vec::new();
     tokens.extend(roster_constant(
         "STATE_VARIANTS",
-        recipe.states_name(),
-        recipe.states().members().map(super::RecipeMember::spelling),
+        recipe.states_name_token(),
+        recipe.states().members(),
     )?);
     tokens.extend(roster_constant(
         "EVENT_VARIANTS",
-        recipe.events_name(),
-        recipe.events().members().map(super::RecipeMember::spelling),
+        recipe.events_name_token(),
+        recipe.events().members(),
     )?);
     tokens.extend(transition_constant(recipe)?);
     GeneratedTree::assembled(tokens).map_err(ProjectionError::Tokens)
 }
 
 fn roster_constant<'name>(
-    constant: &str,
-    vocabulary: &str,
-    members: impl Iterator<Item = &'name str>,
+    constant_name: &str,
+    vocabulary: &GeneratedToken,
+    members: impl Iterator<Item = &'name super::RecipeMember>,
 ) -> Result<Vec<GeneratedToken>, ProjectionError> {
-    let sentence = match constant {
+    let sentence = match constant_name {
         "STATE_VARIANTS" => "The state variants in caller-authored order.",
         "EVENT_VARIANTS" => "The event variants in caller-authored order.",
         _ => "The caller-authored vocabulary members in declared order.",
     };
-    let mut tokens = documentation(sentence)?;
-    tokens.extend([GeneratedToken::word("pub"), GeneratedToken::word("const")]);
-    tokens.push(GeneratedToken::word(constant));
-    tokens.push(GeneratedToken::alone(':'));
-    tokens.push(GeneratedToken::alone('&'));
-    tokens.push(group(GeneratedDelimiter::Bracket, super_path(vocabulary))?);
-    tokens.push(GeneratedToken::alone('='));
-    tokens.push(GeneratedToken::alone('&'));
-    let values = comma_separated(members.map(|member| variant(vocabulary, member)).collect());
-    tokens.push(group(GeneratedDelimiter::Bracket, values)?);
-    tokens.push(GeneratedToken::alone(';'));
-    Ok(tokens)
+    let mut kind = vec![GeneratedToken::alone('&')];
+    kind.push(group(GeneratedDelimiter::Bracket, super_path(vocabulary))?);
+    let mut value = vec![GeneratedToken::alone('&')];
+    value.push(group(
+        GeneratedDelimiter::Bracket,
+        comma_separated(
+            members
+                .map(|member| variant(vocabulary, member.name_token()))
+                .collect(),
+        ),
+    )?);
+    Ok(decorated(
+        vec![documentation(sentence)?],
+        public(),
+        constant(constant_name, kind, value),
+    ))
 }
 
 fn transition_constant(recipe: &Recipe) -> Result<Vec<GeneratedToken>, ProjectionError> {
-    let mut tokens = documentation("The informed transition rows in caller-authored order.")?;
-    tokens.extend([GeneratedToken::word("pub"), GeneratedToken::word("const")]);
-    tokens.push(GeneratedToken::word("TRANSITIONS"));
-    tokens.push(GeneratedToken::alone(':'));
-    tokens.push(GeneratedToken::alone('&'));
+    let mut kind = vec![GeneratedToken::alone('&')];
     let row = group(
         GeneratedDelimiter::Parenthesis,
         comma_separated(vec![
-            super_path(recipe.states_name()),
-            super_path(recipe.events_name()),
-            super_path(recipe.states_name()),
+            super_path(recipe.states_name_token()),
+            super_path(recipe.events_name_token()),
+            super_path(recipe.states_name_token()),
         ]),
     )?;
-    tokens.push(group(GeneratedDelimiter::Bracket, vec![row])?);
-    tokens.push(GeneratedToken::alone('='));
-    tokens.push(GeneratedToken::alone('&'));
+    kind.push(group(GeneratedDelimiter::Bracket, vec![row])?);
     let rows = recipe
         .transitions()
         .members()
@@ -114,16 +176,24 @@ fn transition_constant(recipe: &Recipe) -> Result<Vec<GeneratedToken>, Projectio
             group(
                 GeneratedDelimiter::Parenthesis,
                 comma_separated(vec![
-                    variant(recipe.states_name(), transition.from()),
-                    variant(recipe.events_name(), transition.event()),
-                    variant(recipe.states_name(), transition.to()),
+                    variant(recipe.states_name_token(), transition.source_name_token()),
+                    variant(recipe.events_name_token(), transition.event_name_token()),
+                    variant(recipe.states_name_token(), transition.target_name_token()),
                 ]),
             )
         })
         .collect::<Result<Vec<_>, _>>()?;
-    tokens.push(group(GeneratedDelimiter::Bracket, comma_tokens(rows))?);
-    tokens.push(GeneratedToken::alone(';'));
-    Ok(tokens)
+    let value = vec![
+        GeneratedToken::alone('&'),
+        group(GeneratedDelimiter::Bracket, comma_tokens(rows))?,
+    ];
+    Ok(decorated(
+        vec![documentation(
+            "The informed transition rows in caller-authored order.",
+        )?],
+        public(),
+        constant("TRANSITIONS", kind, value),
+    ))
 }
 
 fn dispatch(
@@ -135,33 +205,26 @@ fn dispatch(
             crate::render::RenderError::NothingRendered,
         ));
     }
-    let mut tokens =
-        documentation("Why generated dispatch did not find an admitted transition row.")?;
-    tokens.extend(attribute(vec![
-        GeneratedToken::word("derive"),
-        group(
-            GeneratedDelimiter::Parenthesis,
-            comma_separated(vec![
-                vec![GeneratedToken::word("Debug")],
-                vec![GeneratedToken::word("Clone")],
-                vec![GeneratedToken::word("Copy")],
-                vec![GeneratedToken::word("PartialEq")],
-                vec![GeneratedToken::word("Eq")],
-            ]),
+    let refusal = decorated(
+        vec![
+            documentation("Why generated dispatch did not find an admitted transition row.")?,
+            derive(&["Debug", "Clone", "Copy", "PartialEq", "Eq"])?,
+        ],
+        public(),
+        enumeration(
+            GeneratedToken::word("TransitionRefusal"),
+            Vec::new(),
+            Vec::new(),
+            vec![decorated(
+                vec![documentation(
+                    "No declared transition occupies the supplied state and event seat.",
+                )?],
+                Vec::new(),
+                unit_variant(GeneratedToken::word("Absent")),
+            )],
         )?,
-    ])?);
-    tokens.extend([
-        GeneratedToken::word("pub"),
-        GeneratedToken::word("enum"),
-        GeneratedToken::word("TransitionRefusal"),
-        group(GeneratedDelimiter::Brace, {
-            let mut body = documentation(
-                "No declared transition occupies the supplied state and event seat.",
-            )?;
-            body.extend([GeneratedToken::word("Absent"), GeneratedToken::alone(',')]);
-            body
-        })?,
-    ]);
+    );
+    let mut tokens = refusal;
     tokens.extend(dispatch_function(recipe, effective)?);
     GeneratedTree::assembled(tokens).map_err(ProjectionError::Tokens)
 }
@@ -172,12 +235,12 @@ fn dispatch_function(
 ) -> Result<Vec<GeneratedToken>, ProjectionError> {
     let name = effective.name().unwrap_or("apply");
     let parameters = comma_separated(vec![
-        typed("state", super_path(recipe.states_name())),
-        typed("event", super_path(recipe.events_name())),
+        typed("state", super_path(recipe.states_name_token())),
+        typed("event", super_path(recipe.events_name_token())),
     ]);
     let mut result = absolute_path(&["core", "result", "Result"]);
     result.push(GeneratedToken::alone('<'));
-    result.extend(super_path(recipe.states_name()));
+    result.extend(super_path(recipe.states_name_token()));
     result.push(GeneratedToken::alone(','));
     result.push(GeneratedToken::word("TransitionRefusal"));
     result.push(GeneratedToken::alone('>'));
@@ -215,14 +278,18 @@ fn dispatch_arm(
     let pattern = group(
         GeneratedDelimiter::Parenthesis,
         comma_separated(vec![
-            variant(recipe.states_name(), transition.from()),
-            variant(recipe.events_name(), transition.event()),
+            variant(recipe.states_name_token(), transition.source_name_token()),
+            variant(recipe.events_name_token(), transition.event_name_token()),
         ]),
     )?;
     let mut body = transition.effect().tokens().to_vec();
     body.push(group(GeneratedDelimiter::Parenthesis, Vec::new())?);
     body.push(GeneratedToken::alone(';'));
-    body.extend(call_variant("Ok", recipe.states_name(), transition.to())?);
+    body.extend(call_variant(
+        "Ok",
+        recipe.states_name_token(),
+        transition.target_name_token(),
+    )?);
     let mut tokens = vec![
         pattern,
         GeneratedToken::joint('='),
@@ -260,15 +327,15 @@ fn compile_contract(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError> {
     tokens.push(group(
         GeneratedDelimiter::Parenthesis,
         comma_separated(vec![
-            crate_recipe_path(recipe, recipe.states_name()),
-            crate_recipe_path(recipe, recipe.events_name()),
+            crate_recipe_path(recipe, recipe.states_name_token()),
+            crate_recipe_path(recipe, recipe.events_name_token()),
         ]),
     )?);
     tokens.push(GeneratedToken::joint('-'));
     tokens.push(GeneratedToken::alone('>'));
     let mut result = absolute_path(&["core", "result", "Result"]);
     result.push(GeneratedToken::alone('<'));
-    result.extend(crate_recipe_path(recipe, recipe.states_name()));
+    result.extend(crate_recipe_path(recipe, recipe.states_name_token()));
     result.push(GeneratedToken::alone(','));
     result.extend(crate_baked_path(recipe, "TransitionRefusal"));
     result.push(GeneratedToken::alone('>'));
@@ -303,15 +370,27 @@ fn property_row(
     applied.push(group(
         GeneratedDelimiter::Parenthesis,
         comma_separated(vec![
-            crate_recipe_variant(recipe, recipe.states_name(), transition.from()),
-            crate_recipe_variant(recipe, recipe.events_name(), transition.event()),
+            crate_recipe_variant(
+                recipe,
+                recipe.states_name_token(),
+                transition.source_name_token(),
+            ),
+            crate_recipe_variant(
+                recipe,
+                recipe.events_name_token(),
+                transition.event_name_token(),
+            ),
         ]),
     )?);
     let pattern = vec![
         GeneratedToken::word("Ok"),
         group(
             GeneratedDelimiter::Parenthesis,
-            crate_recipe_variant(recipe, recipe.states_name(), transition.to()),
+            crate_recipe_variant(
+                recipe,
+                recipe.states_name_token(),
+                transition.target_name_token(),
+            ),
         )?,
     ];
     let mut tokens = vec![
@@ -383,48 +462,65 @@ fn dispatch_name(recipe: &Recipe) -> &str {
         .unwrap_or("apply")
 }
 
-fn super_path(name: &str) -> Vec<GeneratedToken> {
+fn super_path(name: &GeneratedToken) -> Vec<GeneratedToken> {
     vec![
         GeneratedToken::word("super"),
         GeneratedToken::joint(':'),
         GeneratedToken::alone(':'),
-        GeneratedToken::word(name),
+        name.clone(),
     ]
 }
 
-fn variant(vocabulary: &str, member: &str) -> Vec<GeneratedToken> {
+fn variant(vocabulary: &GeneratedToken, member: &GeneratedToken) -> Vec<GeneratedToken> {
     let mut tokens = super_path(vocabulary);
     tokens.extend([
         GeneratedToken::joint(':'),
         GeneratedToken::alone(':'),
-        GeneratedToken::word(member),
+        member.clone(),
     ]);
     tokens
 }
 
-fn crate_recipe_path(recipe: &Recipe, name: &str) -> Vec<GeneratedToken> {
+fn crate_recipe_path(recipe: &Recipe, name: &GeneratedToken) -> Vec<GeneratedToken> {
     let mut tokens = crate::support::rooted_path(crate::support::CrateFacing::Declaring, &[]);
-    extend_path(&mut tokens, &[recipe.module_name(), name]);
+    extend_token_path(
+        &mut tokens,
+        [recipe.module_name_token().clone(), name.clone()],
+    );
     tokens
 }
 
 fn crate_baked_path(recipe: &Recipe, name: &str) -> Vec<GeneratedToken> {
     let mut tokens = crate::support::rooted_path(crate::support::CrateFacing::Declaring, &[]);
-    extend_path(&mut tokens, &[recipe.module_name(), "baked", name]);
+    extend_token_path(
+        &mut tokens,
+        [
+            recipe.module_name_token().clone(),
+            GeneratedToken::word("baked"),
+            GeneratedToken::word(name),
+        ],
+    );
     tokens
 }
 
-fn crate_recipe_variant(recipe: &Recipe, vocabulary: &str, member: &str) -> Vec<GeneratedToken> {
+fn crate_recipe_variant(
+    recipe: &Recipe,
+    vocabulary: &GeneratedToken,
+    member: &GeneratedToken,
+) -> Vec<GeneratedToken> {
     let mut tokens = crate_recipe_path(recipe, vocabulary);
-    extend_path(&mut tokens, &[member]);
+    extend_token_path(&mut tokens, [member.clone()]);
     tokens
 }
 
-fn extend_path(tokens: &mut Vec<GeneratedToken>, segments: &[&str]) {
+fn extend_token_path(
+    tokens: &mut Vec<GeneratedToken>,
+    segments: impl IntoIterator<Item = GeneratedToken>,
+) {
     for segment in segments {
         tokens.push(GeneratedToken::joint(':'));
         tokens.push(GeneratedToken::alone(':'));
-        tokens.push(GeneratedToken::word(segment));
+        tokens.push(segment);
     }
 }
 
@@ -436,8 +532,8 @@ fn typed(name: &str, kind: Vec<GeneratedToken>) -> Vec<GeneratedToken> {
 
 fn call_variant(
     constructor: &str,
-    vocabulary: &str,
-    member: &str,
+    vocabulary: &GeneratedToken,
+    member: &GeneratedToken,
 ) -> Result<Vec<GeneratedToken>, ProjectionError> {
     Ok(vec![
         GeneratedToken::word(constructor),

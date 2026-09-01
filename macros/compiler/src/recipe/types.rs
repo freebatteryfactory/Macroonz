@@ -6,7 +6,7 @@ use crate::expansion::Expansion;
 use crate::identity::OwnerFact;
 use crate::render::Output;
 use crate::support::SupportName;
-use crate::token::{GeneratedTree, SpanHandle};
+use crate::token::{GeneratedToken, GeneratedTree, SpanHandle};
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -39,6 +39,7 @@ pub enum HarnessPosture {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RecipeMember {
     spelling: String,
+    name: GeneratedToken,
     at: SpanHandle,
 }
 
@@ -46,8 +47,11 @@ pub struct RecipeMember {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RecipeTransition {
     from: String,
+    from_name: GeneratedToken,
     event: String,
+    event_name: GeneratedToken,
     to: String,
+    to_name: GeneratedToken,
     effect: GeneratedTree,
     at: SpanHandle,
 }
@@ -64,6 +68,8 @@ crate::roster! {
         CompileContract = "compile-contract",
         /// An independently invoked harness property carried to a test target.
         Property = "property",
+        /// Caller-declared state members projected as type-level stage markers.
+        Typestate = "typestate",
     }
 }
 
@@ -98,30 +104,36 @@ pub(super) enum ProjectionStanding {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Recipe {
     module_name: String,
+    module_name_token: GeneratedToken,
     module_head: GeneratedTree,
     authored_body: GeneratedTree,
     states_name: String,
+    states_name_token: GeneratedToken,
     states: KeyedRoster<RecipeMember, String, VOCABULARY_LIMIT>,
     events_name: String,
+    events_name_token: GeneratedToken,
     events: KeyedRoster<RecipeMember, String, VOCABULARY_LIMIT>,
     transitions: KeyedRoster<RecipeTransition, (String, String), TRANSITION_LIMIT>,
     absence: AbsencePosture,
-    projections: [ProjectionStanding; 4],
+    projections: [ProjectionStanding; 5],
     support: Option<SupportName>,
 }
 
 /// The mechanically read seats offered to the recipe invariant constructor.
 pub(super) struct RecipeParts {
     pub(super) module_name: String,
+    pub(super) module_name_token: GeneratedToken,
     pub(super) module_head: GeneratedTree,
     pub(super) authored_body: GeneratedTree,
     pub(super) states_name: String,
+    pub(super) states_name_token: GeneratedToken,
     pub(super) state_members: Vec<RecipeMember>,
     pub(super) events_name: String,
+    pub(super) events_name_token: GeneratedToken,
     pub(super) event_members: Vec<RecipeMember>,
     pub(super) transitions: Vec<RecipeTransition>,
     pub(super) absence: AbsencePosture,
-    pub(super) projections: [ProjectionStanding; 4],
+    pub(super) projections: [ProjectionStanding; 5],
     pub(super) support: Option<SupportName>,
 }
 

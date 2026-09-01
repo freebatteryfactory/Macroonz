@@ -49,8 +49,8 @@ impl Recipe {
         let (authored, declaration) = bake_suffix(body)?;
         collision_free(authored)?;
         let read = read_bake(declaration, harness)?;
-        let states = enum_members(authored, read.states_name.as_str())?;
-        let events = enum_members(authored, read.events_name.as_str())?;
+        let states = enum_members(authored, read.states.spelling.as_str())?;
+        let events = enum_members(authored, read.events.spelling.as_str())?;
 
         let attributes = item
             .attributes()
@@ -71,11 +71,14 @@ impl Recipe {
 
         Recipe::informed(RecipeParts {
             module_name: module_name.to_owned(),
+            module_name_token: identifier_token(name_token, module_name),
             module_head,
             authored_body,
-            states_name: read.states_name,
+            states_name: read.states.spelling,
+            states_name_token: read.states.token,
             state_members: states,
-            events_name: read.events_name,
+            events_name: read.events.spelling,
+            events_name_token: read.events.token,
             event_members: events,
             transitions: read.transitions,
             absence: read.absence,
@@ -87,12 +90,24 @@ impl Recipe {
 
 /// The mechanically read bake declaration before structural informing.
 struct BakeRead {
-    states_name: String,
-    events_name: String,
+    states: CapturedName,
+    events: CapturedName,
     transitions: Vec<RecipeTransition>,
     absence: AbsencePosture,
-    projections: [ProjectionStanding; 4],
+    projections: [ProjectionStanding; 5],
     support: Option<SupportName>,
+}
+
+/// One exact identifier read from recipe syntax before its structural role is informed.
+struct CapturedName {
+    spelling: String,
+    token: crate::token::GeneratedToken,
+}
+
+/// The two vocabularies named by one recipe declaration.
+struct VocabularyNames {
+    states: CapturedName,
+    events: CapturedName,
 }
 
 /// Split the required final `bake! { ... }` suffix from the authored module body.
@@ -179,7 +194,7 @@ fn read_bake(
     harness: HarnessPosture,
 ) -> Result<BakeRead, RecipeError> {
     let mut cursor = declaration.cursor();
-    let (states_name, events_name) = read_vocabularies(&mut cursor)?;
+    let VocabularyNames { states, events } = read_vocabularies(&mut cursor)?;
 
     cursor.word("transitions").map_err(grammar)?;
     let transitions = cursor
@@ -199,7 +214,7 @@ fn read_bake(
     let requested = cursor
         .group(CapturedDelimiter::Brace)
         .map_err(grammar)?
-        .trailing_separated::<_, 4>(';', read_projection)
+        .trailing_separated::<_, 5>(';', read_projection)
         .map_err(grammar)?
         .as_slice()
         .to_vec();
@@ -212,8 +227,8 @@ fn read_bake(
     let projections = projections(&requested, harness)?;
     support_matches_projections(&projections, support.as_ref(), declaration.last_span())?;
     Ok(BakeRead {
-        states_name: states_name.clone(),
-        events_name: events_name.clone(),
+        states,
+        events,
         transitions,
         absence,
         projections,
@@ -221,17 +236,26 @@ fn read_bake(
     })
 }
 
-fn read_vocabularies(cursor: &mut CaptureCursor<'_>) -> Result<(String, String), RecipeError> {
+fn read_vocabularies(cursor: &mut CaptureCursor<'_>) -> Result<VocabularyNames, RecipeError> {
     cursor.word("vocabularies").map_err(grammar)?;
     let mut vocabularies = cursor
         .group(CapturedDelimiter::Parenthesis)
         .map_err(grammar)?;
-    let (_, states_name) = vocabularies.identifier().map_err(grammar)?;
+    let (states_token, states_name) = vocabularies.identifier().map_err(grammar)?;
     vocabularies
         .punctuation(',', CapturedSpacing::Alone)
         .map_err(grammar)?;
-    let (_, events_name) = vocabularies.identifier().map_err(grammar)?;
-    let names = (states_name.to_owned(), events_name.to_owned());
+    let (events_token, events_name) = vocabularies.identifier().map_err(grammar)?;
+    let names = VocabularyNames {
+        states: CapturedName {
+            spelling: states_name.to_owned(),
+            token: identifier_token(states_token, states_name),
+        },
+        events: CapturedName {
+            spelling: events_name.to_owned(),
+            token: identifier_token(events_token, events_name),
+        },
+    };
     vocabularies.finish().map_err(grammar)?;
     cursor
         .punctuation(';', CapturedSpacing::Alone)
@@ -289,7 +313,7 @@ fn read_support(cursor: &mut CaptureCursor<'_>) -> Result<Option<SupportName>, R
 }
 
 fn support_matches_projections(
-    projections: &[ProjectionStanding; 4],
+    projections: &[ProjectionStanding; 5],
     support: Option<&SupportName>,
     at: Option<crate::token::SpanHandle>,
 ) -> Result<(), RecipeError> {
@@ -307,10 +331,10 @@ fn read_transition(cursor: &mut CaptureCursor<'_>) -> Result<RecipeTransition, C
     let mut endpoints = cursor.group(CapturedDelimiter::Parenthesis)?;
     let (from_token, from) = endpoints.identifier()?;
     endpoints.punctuation(',', CapturedSpacing::Alone)?;
-    let (_, event) = endpoints.identifier()?;
+    let (event_token, event) = endpoints.identifier()?;
     endpoints.finish()?;
     cursor.fat_arrow()?;
-    let (_, to) = cursor.identifier()?;
+    let (to_token, to) = cursor.identifier()?;
     cursor.word("with")?;
     let mut effect = cursor.group(CapturedDelimiter::Parenthesis)?;
     let (effect, ()) = effect.fragment(|path| {
@@ -329,9 +353,9 @@ fn read_transition(cursor: &mut CaptureCursor<'_>) -> Result<RecipeTransition, C
         )
     })?;
     Ok(RecipeTransition::authored(
-        from.to_owned(),
-        event.to_owned(),
-        to.to_owned(),
+        (from.to_owned(), identifier_token(from_token, from)),
+        (event.to_owned(), identifier_token(event_token, event)),
+        (to.to_owned(), identifier_token(to_token, to)),
         effect,
         from_token.span(),
     ))
@@ -373,6 +397,7 @@ fn read_projection(
         }
         "compile_contract" => (RecipeRole::CompileContract, None, LoweringSource::Preset),
         "property" => (RecipeRole::Property, None, LoweringSource::Preset),
+        "typestate" => (RecipeRole::Typestate, None, LoweringSource::Preset),
         _ => {
             return Err(CaptureReadRefusal::projected(
                 crate::token::CaptureReadIssue::Unexpected(crate::token::CaptureExpectation::Word(
@@ -394,7 +419,7 @@ fn read_projection(
 fn projections(
     requested: &[RequestedProjection],
     harness: HarnessPosture,
-) -> Result<[ProjectionStanding; 4], RecipeError> {
+) -> Result<[ProjectionStanding; 5], RecipeError> {
     for (position, row) in requested.iter().enumerate() {
         if requested
             .iter()
@@ -420,6 +445,7 @@ fn projections(
         standing(requested, RecipeRole::Dispatch),
         standing(requested, RecipeRole::CompileContract),
         standing(requested, RecipeRole::Property),
+        standing(requested, RecipeRole::Typestate),
     ])
 }
 
@@ -436,14 +462,15 @@ fn standing(requested: &[RequestedProjection], role: RecipeRole) -> ProjectionSt
         })
 }
 
-fn generated(projections: &[ProjectionStanding; 4], role: RecipeRole) -> bool {
-    let [companions, dispatch, compile_contract, property] = projections;
+fn generated(projections: &[ProjectionStanding; 5], role: RecipeRole) -> bool {
+    let [companions, dispatch, compile_contract, property, typestate] = projections;
     matches!(
         match role {
             RecipeRole::Companions => companions,
             RecipeRole::Dispatch => dispatch,
             RecipeRole::CompileContract => compile_contract,
             RecipeRole::Property => property,
+            RecipeRole::Typestate => typestate,
         },
         ProjectionStanding::Generated(_)
     )
@@ -533,8 +560,18 @@ fn member(row: &[CapturedTokenTree], vocabulary: &str) -> Result<RecipeMember, R
         }
     };
     spelling
-        .map(|name| RecipeMember::authored(name.to_owned(), token.span()))
+        .map(|name| {
+            RecipeMember::authored(name.to_owned(), identifier_token(token, name), token.span())
+        })
         .ok_or_else(|| variant_refusal(token, vocabulary))
+}
+
+fn identifier_token(token: &CapturedTokenTree, spelling: &str) -> crate::token::GeneratedToken {
+    if token.raw_identifier().is_some() {
+        crate::token::GeneratedToken::raw_identifier(spelling)
+    } else {
+        crate::token::GeneratedToken::word(spelling)
+    }
 }
 
 fn variant_rows(tokens: &[CapturedTokenTree]) -> Vec<&[CapturedTokenTree]> {

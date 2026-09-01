@@ -11,6 +11,10 @@ Its final `bake!` declaration names the two authored enum vocabularies Macroonz 
 The enum variants are read from the authored enums themselves.
 The caller does not restate a roster, and Macroonz does not reconstruct either enum as a parallel Rust model.
 
+The optional `typestate` projection treats the authored state members as caller-declared type-level stages.
+It generates one marker per member plus one generic `Stage<Marker>` phantom carrier inside `baked::typestate`, and it assigns no runtime transition meaning to those types.
+Newtypes, markers and phantom carriers are ordinary data-item compositions rather than separate compiler ontologies.
+
 A transition names one state member, one event member, one target state member, and one ordinary Rust effect path.
 Macroonz checks membership and repeated relation seats, while rustc retains authority over the path, types, ownership, exhaustiveness, and final generated program.
 

@@ -2,6 +2,8 @@
 //!
 //! These claims fix ordering, exact byte parity, public paths, and the generated-token ceiling without making the projector an oracle over what one row means.
 
+mod items;
+
 use macroonz_compiler::token::{
     keyed_assignment_slice as home_assignment_slice, keyed_roster_slice as home_roster_slice,
 };
