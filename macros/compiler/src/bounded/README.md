@@ -81,10 +81,28 @@ Passing one roster as both operands expresses a same-roster relation, while two 
 Exact total assignment remains [`KeyedRosterAssignment`].
 The sparse relation value does not duplicate its completeness, payload-seat uniqueness, or denominator-order machinery.
 
+## Posture and structural questions
+
+Posture values state caller choices such as authored or canonical order, open or closed membership, allowed or refused absence, and whether emptiness, repetition, self relation, cycles, partial coverage, or sparsity are permitted.
+They do not change a relation value or infer which answer is lawful.
+
+Pure question operations read an informed relation and report occupancy, repetition, left or right completeness, density, same-roster standing, self relation, reachability, and cycles.
+The same informed value may be read under different caller postures, and a caller omits a question by never stating a requirement for its answer.
+
+[`StructuralRequirement`] joins one explicit required answer to one computed answer and returns [`StructuralMismatch`] when they differ.
+It returns the typed answer rather than a boolean and never combines independent questions into a score.
+
+Reachability and cycle questions are available only where one relation proves that both endpoint sides are the same roster instance.
+A foreign reachability root and two distinct roster instances refuse under separate typed causes.
+
+Posture names are reusable structural vocabulary rather than canonical identity owned here.
+The semantic holder that includes a selected posture in its meaning includes that posture's declared name in its own canonical content, while an unselected question contributes nothing.
+
 There is no unchecked `Vec` conversion, mutable iterator, or dereference escape hatch.
 
 ## Ownership boundary
 
-This home owns cardinality shape, retained order, caller-key uniqueness, foreign-free roster references, duplicate-free relation promotion, exact denominator assignment, capping posture, and construction refusals.
+This home owns cardinality shape, retained order, caller-key uniqueness, foreign-free roster references, duplicate-free relation promotion, generic structural questions, exact denominator assignment, capping posture, and construction refusals.
+It computes structural answers but never selects which answer a caller must accept.
 It does not own a canonical byte encoding for arbitrary `T`.
 Each semantic holder that derives identity or bytes from one of these collections owns that encoding and consumes the public ordered readers.

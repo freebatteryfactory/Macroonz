@@ -28,10 +28,15 @@ pub mod request;
 pub mod host;
 
 pub use bounded::{
-    Bounded, Capped, Capping, DuplicateKey, Empty, ForeignRosterReference, KeyedRoster,
-    KeyedRosterAssignment, KeyedRosterAssignmentError, KeyedRosterError, KeyedRosterRelation,
-    KeyedRosterRows, KeyedRosterRowsError, NonEmpty, NonEmptyError, Overflow, RepeatedRelationPair,
-    RepeatedRelationPairs, UnassignedRosterMember,
+    AbsencePosture, Bounded, Capped, Capping, CompletenessPosture, CompletenessStanding,
+    CyclePosture, CycleStanding, DensityPosture, DensityStanding, DuplicateKey, Empty,
+    EmptyPosture, ForeignRosterReference, KeyedRoster, KeyedRosterAssignment,
+    KeyedRosterAssignmentError, KeyedRosterError, KeyedRosterRelation, KeyedRosterRows,
+    KeyedRosterRowsError, MembershipPosture, NonEmpty, NonEmptyError, OccupancyStanding, Overflow,
+    Reachability, ReachabilityError, RepeatedRelationPair, RepeatedRelationPairs,
+    RepetitionPosture, RepetitionStanding, RosterRelationStanding, RowOrder, SameRosterRequired,
+    SelfRelationPosture, SelfRelationStanding, StructuralMismatch, StructuralRequirement,
+    UnassignedRosterMember,
 };
 pub use closure::{
     CLOSURE_ISSUE_LIMIT, CarriedTokens, Closure, ClosureError, ClosureIssue, PartitionCargo,

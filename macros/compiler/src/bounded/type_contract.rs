@@ -4,7 +4,7 @@
 
 use super::{
     Empty, KeyedRosterAssignmentError, KeyedRosterError, KeyedRosterRowsError, NonEmptyError,
-    Overflow, RepeatedRelationPairs,
+    Overflow, ReachabilityError, RepeatedRelationPairs, SameRosterRequired, StructuralMismatch,
 };
 use core::error::Error;
 use core::fmt::{self, Display, Formatter};
@@ -189,3 +189,42 @@ impl<const N: usize> Display for RepeatedRelationPairs<N> {
 }
 
 impl<const N: usize> Error for RepeatedRelationPairs<N> {}
+
+impl<Answer> Display for StructuralMismatch<Answer> {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter
+            .write_str("the computed structural answer differs from the caller-required answer")
+    }
+}
+
+impl<Answer: fmt::Debug> Error for StructuralMismatch<Answer> {}
+
+impl Display for SameRosterRequired {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter.write_str(
+            "the structural question requires both relation sides to borrow one roster instance",
+        )
+    }
+}
+
+impl Error for SameRosterRequired {}
+
+impl<Key> Display for ReachabilityError<Key> {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::DifferentRosters(cause) => Display::fmt(cause, formatter),
+            Self::RootOutsideRoster { .. } => {
+                formatter.write_str("the reachability root is outside the shared roster")
+            }
+        }
+    }
+}
+
+impl<Key: fmt::Debug> Error for ReachabilityError<Key> {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::DifferentRosters(cause) => Some(cause),
+            Self::RootOutsideRoster { .. } => None,
+        }
+    }
+}
