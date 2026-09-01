@@ -3,7 +3,9 @@
 //! Declarations only, with every road that reaches a private field in `type_guard.rs`, this file's own child.
 
 use crate::closure::PartitionCargo;
-use crate::token::{CaptureBound, CaptureBuilder, LiteralReadCause, SpanHandle, TokenPath};
+use crate::token::{
+    CaptureBound, CaptureBuilder, LiteralReadCause, SpanHandle, SpanResolutionRefusal, TokenPath,
+};
 use proc_macro::Span;
 
 #[path = "type_guard.rs"]
@@ -53,6 +55,10 @@ pub enum EmissionError {
     },
     /// The proc-macro C-string literal API rejected already admitted C-string material.
     NulTerminatedTextRejected,
+    /// A generated tree's private source roster no longer matches its recursive token denominator.
+    SourceSpanRosterContradiction,
+    /// One preserved source handle does not resolve in the capture table supplied for emission.
+    SourceSpanUnresolved(SpanResolutionRefusal),
 }
 
 /// What one value answers to have its declaration-site cargo emitted.

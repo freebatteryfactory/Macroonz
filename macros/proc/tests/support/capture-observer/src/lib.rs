@@ -26,7 +26,7 @@ pub fn round_trip(input: TokenStream) -> TokenStream {
         Ok(generated) => generated,
         Err(refusal) => return refused(&refusal.to_string()),
     };
-    match emit_tree(&generated) {
+    match emit_tree(&generated, &spans) {
         Ok(emitted) => emitted,
         Err(refusal) => refused(&refusal.to_string()),
     }

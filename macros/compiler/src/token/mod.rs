@@ -31,4 +31,4 @@ pub use generation::{
     trait_declaration, tuple_struct, tuple_variant, twin_path, type_alias, typed_parameter,
     unit_struct, unit_variant, use_item, where_clause,
 };
-pub(crate) use generation::{preserved_tokens, segmented_twin_path};
+pub(crate) use generation::{preserved_tree, segmented_twin_path};

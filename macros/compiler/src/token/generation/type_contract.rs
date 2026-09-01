@@ -2,8 +2,30 @@
 
 use super::{
     FragmentGenerationIssue, FragmentGenerationRefusal, GeneratedLiteralRefusal,
-    GeneratedRowRefusal,
+    GeneratedRowRefusal, GeneratedTree,
 };
+
+impl core::fmt::Debug for GeneratedTree {
+    fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        into.debug_tuple("GeneratedTree")
+            .field(&self.tokens())
+            .finish()
+    }
+}
+
+impl PartialEq for GeneratedTree {
+    fn eq(&self, other: &Self) -> bool {
+        self.tokens() == other.tokens()
+    }
+}
+
+impl Eq for GeneratedTree {}
+
+impl core::hash::Hash for GeneratedTree {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        core::hash::Hash::hash(self.tokens(), state);
+    }
+}
 
 impl core::fmt::Display for GeneratedRowRefusal {
     fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

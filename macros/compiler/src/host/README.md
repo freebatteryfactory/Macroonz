@@ -41,6 +41,8 @@ Every sentence a person reads was composed inside the compiler, where the typed 
 
 An expansion's proved declaration-site cargo becomes a `TokenStream`, one delivery at a time.
 No third generated tree is assembled out of them here — a tree this host joined would be bytes no proof committed to — and a delivery that planned nothing emits nothing, because an absence is an answer a reader reads rather than tokens a compiler receives.
+Where a generated tree carries exact caller-authored tokens, the emitter resolves their nonsemantic source handles through the same [`Spans`] table that captured them and restores those producer spans before returning the stream.
+An unreachable preserved handle or a source-roster contradiction is a typed host emission error rather than a silent call-site fallback.
 An exact generated literal crosses through the matching stable proc-macro literal constructor, and an unexpected disagreement between the ordinary compiler's admission and that host constructor is a typed [`EmissionError`] placed at the invocation boundary.
 
 A diagnostic becomes a `compile_error!` at the token its site names.

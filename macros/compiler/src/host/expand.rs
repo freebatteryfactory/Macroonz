@@ -33,7 +33,7 @@ pub fn expand_emittable<E: Emittable>(
     let mut spans = Spans::empty();
     match capture(input, &mut spans) {
         Ok(captured) => match road(captured) {
-            Ok(expansion) => match emit(&expansion) {
+            Ok(expansion) => match emit(&expansion, &spans) {
                 Ok(tokens) => tokens,
                 Err(refusal) => super::place::emission_refused(&refusal),
             },
@@ -66,7 +66,7 @@ pub fn expand_on<K: Kind>(
         Err(refusal) => return refusal.placed(&spans),
     };
     match road(captured_body, captured_item) {
-        Ok(expansion) => match emit(&expansion) {
+        Ok(expansion) => match emit(&expansion, &spans) {
             Ok(tokens) => tokens,
             Err(refusal) => super::place::emission_refused(&refusal),
         },

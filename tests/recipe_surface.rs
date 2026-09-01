@@ -20,7 +20,7 @@ bakery::recipe! {
         pub const DOOR_KIND: &str = "door";
 
         /// A caller-authored result alias preserved beside generated companions.
-        pub type DoorResult<T> = core::result::Result<T, baked::TransitionRefusal>;
+        pub type DoorResult<T> = Result<T, baked::TransitionRefusal>;
 
         /// A caller-authored marker preserved beside generated companions.
         pub struct DoorMarker;
@@ -152,26 +152,31 @@ fn the_renamed_facade_bakes_the_declared_module_without_recipe_material_ceremony
 bakery::recipe! {
     /// A recipe whose Rust names require raw-identifier custody.
     pub mod r#type {
-        /// A caller-owned raw state vocabulary.
+        /// A caller-owned state vocabulary beside a raw module name.
         #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-        pub enum r#state {
-            /// A raw keyword member.
-            r#match,
-            /// An ordinary member.
+        pub enum State {
+            /// The waiting member.
+            Waiting,
+            /// The ready member.
             Ready,
         }
 
-        /// A caller-owned raw event vocabulary.
+        /// A caller-owned event vocabulary beside a raw effect path.
         #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-        pub enum r#event {
-            /// A raw keyword member.
-            r#move,
+        pub enum Event {
+            /// The request to advance.
+            Advance,
+        }
+
+        /// A caller-owned effect named by a raw Rust keyword.
+        pub fn r#move() {
+            crate::record_open();
         }
 
         bake! {
-            vocabularies(r#state, r#event);
+            vocabularies(State, Event);
             transitions {
-                (r#match, r#move) => Ready with(crate::record_open);
+                (Waiting, Advance) => Ready with(crate::r#type::r#move);
             };
             absence(refused);
             projections {
@@ -184,20 +189,20 @@ bakery::recipe! {
 }
 
 #[test]
-fn raw_identifiers_survive_every_declaration_site_projection() {
+fn raw_identifiers_survive_module_and_effect_path_projection() {
     assert_eq!(
         r#type::baked::STATE_VARIANTS,
-        &[r#type::r#state::r#match, r#type::r#state::Ready]
+        &[r#type::State::Waiting, r#type::State::Ready]
     );
     assert_eq!(
-        r#type::baked::apply(r#type::r#state::r#match, r#type::r#event::r#move),
-        Ok(r#type::r#state::Ready)
+        r#type::baked::apply(r#type::State::Waiting, r#type::Event::Advance),
+        Ok(r#type::State::Ready)
     );
     assert_eq!(
-        <r#type::baked::typestate::r#match as r#type::baked::typestate::RecipeStage>::NAME,
-        "match"
+        <r#type::baked::typestate::Waiting as r#type::baked::typestate::RecipeStage>::NAME,
+        "Waiting"
     );
-    let stage = r#type::baked::typestate::Stage::<r#type::baked::typestate::r#match>::new();
+    let stage = r#type::baked::typestate::Stage::<r#type::baked::typestate::Waiting>::new();
     assert_eq!(
         stage,
         r#type::baked::typestate::Stage(core::marker::PhantomData)

@@ -26,7 +26,7 @@ pub use items::{
     named_variant, tuple_struct, tuple_variant, type_alias, unit_struct, unit_variant, use_item,
     where_clause,
 };
-pub(crate) use preserve::preserved_tokens;
+pub(crate) use preserve::preserved_tree;
 pub use project::{keyed_assignment_items, keyed_roster_items};
 pub use project::{keyed_assignment_slice, keyed_roster_slice};
 pub use traits::{

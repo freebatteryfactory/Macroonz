@@ -84,6 +84,21 @@ fn observe_lawful_package(scratch: &Path) -> Result<(), String> {
         &cargo(scratch, &["test", "--locked", "--offline"])?,
     )?;
     require_success(
+        "advanced-Rust strict Clippy",
+        &cargo(
+            scratch,
+            &[
+                "clippy",
+                "--lib",
+                "--tests",
+                "--locked",
+                "--offline",
+                "--",
+                "-Dclippy::missing-safety-doc",
+            ],
+        )?,
+    )?;
+    require_success(
         "advanced-Rust Wasm posture",
         &cargo(
             scratch,
@@ -556,7 +571,9 @@ bakery::recipe! {
         }
 
         pub mod r#type {
-            pub const r#match: usize = 3;
+            pub const fn r#match() -> usize {
+                3
+            }
         }
 
         /// Reads one caller-owned pointer.
@@ -662,7 +679,7 @@ fn exact_advanced_rust_and_generated_typestate_share_one_recipe_room() -> Result
     let precise = advanced_recipe_adopter::advanced::precise(&12_u8);
     let _retained = precise;
     assert_eq!(advanced_recipe_adopter::advanced::map_for_all(&13_u8, same), &13);
-    assert_eq!(advanced_recipe_adopter::advanced::r#type::r#match, 3);
+    assert_eq!(advanced_recipe_adopter::advanced::r#type::r#match(), 3);
     assert_eq!(advanced_recipe_adopter::advanced::read_safe(&14_u8), 14);
     let raw = 15_u8;
     let pointer = &raw as *const u8;

@@ -238,11 +238,11 @@ fn final_tree(
     projection: &crate::expansion::Expansion<RecipeProjection>,
     support: Option<&crate::expansion::Expansion<SupportCarrier>>,
 ) -> Result<GeneratedTree, crate::bounded::Overflow> {
-    let mut root = Vec::new();
+    let mut root = GeneratedTree::assembled(Vec::new())?;
     if let Some(support) = support
         && let Some(tree) = support.emit().tokens()
     {
-        root.extend(tree.tokens().iter().cloned());
+        root = root.joined(tree)?;
     }
     for role in [
         RecipeRole::Trials,
@@ -250,10 +250,10 @@ fn final_tree(
         RecipeRole::Benchmarks,
     ] {
         if let Some(unit) = projection.closure().rendered().under(role) {
-            root.extend(unit.tree().tokens().iter().cloned());
+            root = root.joined(unit.tree())?;
         }
     }
-    let mut body = recipe.authored_body().tokens().to_vec();
+    let mut body = recipe.authored_body().clone();
     let mut companions = Vec::new();
     for role in [
         RecipeRole::Companions,
@@ -267,19 +267,20 @@ fn final_tree(
         }
     }
     if !companions.is_empty() {
-        body.extend(documentation(
+        let mut generated = documentation(
             "Generated companions selected by this recipe's informed projection account.",
-        )?);
-        body.extend([
+        )?;
+        generated.extend([
             GeneratedToken::word("pub"),
             GeneratedToken::word("mod"),
             GeneratedToken::word("baked"),
             group(GeneratedDelimiter::Brace, companions)?,
         ]);
+        body = body.joined(&GeneratedTree::assembled(generated)?)?;
     }
-    root.extend(recipe.module_head().tokens().iter().cloned());
-    root.push(group(GeneratedDelimiter::Brace, body)?);
-    GeneratedTree::assembled(root)
+    let grouped = body.grouped(GeneratedDelimiter::Brace, recipe.module_body_at())?;
+    let module = recipe.module_head().joined(&grouped)?;
+    root.joined(&module)
 }
 
 fn recipe_refused(refusal: &RecipeError, door: &Door) -> Diagnostic {

@@ -291,17 +291,18 @@ fn joined_cargo<R: Role>(
     rendered: &RenderedProjection<R>,
     destination: Destination,
 ) -> Result<PartitionCargo, ClosureIssue<R>> {
-    let mut tokens = Vec::new();
-    let mut occupied = false;
+    let mut joined: Option<GeneratedTree> = None;
     for unit in units_to(rendered, destination) {
-        occupied = true;
-        tokens.extend_from_slice(unit.tree().tokens());
+        joined = Some(match joined {
+            Some(tree) => tree
+                .joined(unit.tree())
+                .map_err(|_| ClosureIssue::JoinedTreeUnbounded { destination })?,
+            None => unit.tree().clone(),
+        });
     }
-    if !occupied {
+    let Some(tree) = joined else {
         return Ok(PartitionCargo::NothingPlanned);
-    }
-    let tree = GeneratedTree::assembled(tokens)
-        .map_err(|_| ClosureIssue::JoinedTreeUnbounded { destination })?;
+    };
     Ok(PartitionCargo::Carried(CarriedTokens::joined(
         plan,
         destination,

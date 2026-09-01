@@ -4,6 +4,7 @@ use super::types::{EmissionError, Emittable};
 use crate::closure::PartitionCargo;
 use crate::token::{
     GeneratedDelimiter, GeneratedLiteralForm, GeneratedSpacing, GeneratedToken, GeneratedTree,
+    SpanHandle,
 };
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 use std::ffi::CString;
@@ -17,19 +18,22 @@ use std::str::FromStr;
 /// # Errors
 ///
 /// Returns [`EmissionError`] where the stable proc-macro literal API rejects one exact literal the ordinary compiler already admitted.
-pub fn emit(emittable: &impl Emittable) -> Result<TokenStream, EmissionError> {
+pub fn emit(
+    emittable: &impl Emittable,
+    spans: &super::Spans,
+) -> Result<TokenStream, EmissionError> {
     let mut emitted = TokenStream::new();
     for cargo in emittable.cargos() {
-        emitted.extend(emit_cargo(cargo)?);
+        emitted.extend(emit_cargo(cargo, spans)?);
     }
     Ok(emitted)
 }
 
 /// One proved delivery as the compiler's tokens.
-fn emit_cargo(cargo: &PartitionCargo) -> Result<TokenStream, EmissionError> {
+fn emit_cargo(cargo: &PartitionCargo, spans: &super::Spans) -> Result<TokenStream, EmissionError> {
     cargo
         .tokens()
-        .map_or_else(|| Ok(TokenStream::new()), emit_tree)
+        .map_or_else(|| Ok(TokenStream::new()), |tree| emit_tree(tree, spans))
 }
 
 /// One generated tree as the compiler's tokens.
@@ -37,15 +41,31 @@ fn emit_cargo(cargo: &PartitionCargo) -> Result<TokenStream, EmissionError> {
 /// # Errors
 ///
 /// Returns [`EmissionError`] where the stable proc-macro literal API rejects one exact literal the ordinary compiler already admitted.
-pub fn emit_tree(tree: &GeneratedTree) -> Result<TokenStream, EmissionError> {
-    tree.tokens().iter().map(emit_token).collect()
+pub fn emit_tree(tree: &GeneratedTree, spans: &super::Spans) -> Result<TokenStream, EmissionError> {
+    let mut sources = tree.source_spans().iter();
+    let emitted = tree
+        .tokens()
+        .iter()
+        .map(|token| emit_token(token, &mut sources, spans))
+        .collect::<Result<TokenStream, _>>()?;
+    if sources.next().is_some() {
+        return Err(EmissionError::SourceSpanRosterContradiction);
+    }
+    Ok(emitted)
 }
 
 /// One generated token as the compiler's token.
 ///
 /// A renderer states a literal's value; the quoting, the escaping, and the absence of a suffix are settled here, at the one seat that writes a compiler literal.
-fn emit_token(token: &GeneratedToken) -> Result<TokenTree, EmissionError> {
-    let emitted = match token {
+fn emit_token(
+    token: &GeneratedToken,
+    sources: &mut core::slice::Iter<'_, Option<SpanHandle>>,
+    spans: &super::Spans,
+) -> Result<TokenTree, EmissionError> {
+    let source = *sources
+        .next()
+        .ok_or(EmissionError::SourceSpanRosterContradiction)?;
+    let mut emitted = match token {
         GeneratedToken::Word(word) => TokenTree::Ident(Ident::new(word, Span::call_site())),
         GeneratedToken::RawIdentifier(name) => {
             TokenTree::Ident(Ident::new_raw(name, Span::call_site()))
@@ -55,13 +75,22 @@ fn emit_token(token: &GeneratedToken) -> Result<TokenTree, EmissionError> {
         }
         GeneratedToken::Text(text) => TokenTree::Literal(Literal::string(text)),
         GeneratedToken::Group { delimiter, tokens } => {
-            let stream = tokens.iter().map(emit_token).collect::<Result<_, _>>()?;
+            let stream = tokens
+                .iter()
+                .map(|nested_token| emit_token(nested_token, sources, spans))
+                .collect::<Result<_, _>>()?;
             TokenTree::Group(Group::new(written_delimiter(*delimiter), stream))
         }
         GeneratedToken::ByteText(material) => TokenTree::Literal(Literal::byte_string(material)),
         GeneratedToken::Number(value) => TokenTree::Literal(Literal::u64_unsuffixed(*value)),
         GeneratedToken::Literal(literal) => TokenTree::Literal(emit_literal(literal.form())?),
     };
+    if let Some(handle) = source {
+        let authored_span = spans
+            .resolve(handle)
+            .map_err(EmissionError::SourceSpanUnresolved)?;
+        emitted.set_span(authored_span);
+    }
     Ok(emitted)
 }
 

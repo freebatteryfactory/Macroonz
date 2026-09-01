@@ -187,6 +187,7 @@ impl Recipe {
             module_name_token,
             module_head,
             authored_body,
+            module_body_at,
             states_name,
             states_name_token,
             state_members,
@@ -244,6 +245,7 @@ impl Recipe {
             module_name_token,
             module_head,
             authored_body,
+            module_body_at,
             states_name,
             states_name_token,
             states,
@@ -276,6 +278,10 @@ impl Recipe {
 
     pub(in crate::recipe) const fn authored_body(&self) -> &GeneratedTree {
         &self.authored_body
+    }
+
+    pub(in crate::recipe) const fn module_body_at(&self) -> Option<SpanHandle> {
+        self.module_body_at
     }
 
     /// Reads the state enum name.

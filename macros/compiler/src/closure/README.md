@@ -18,6 +18,7 @@ An expansion does not hand a compiler one stream.
 
 Material compiled at the declaration site, deferred to another target, or written to an address occupies a distinct delivery posture, and every seat names exactly one of them.
 So a closure does not join a rendering; it PARTITIONS one, and each joined delivery is built by walking the rendered units in roster order and reading the delivery each unit's seat declares.
+The join retains each tree's nonsemantic producer-span provenance while canonical bytes and delivery identity remain functions only of the rendered token material.
 
 Artifacts are never joined: two artifacts are two addresses, and one stream claiming to be both is what the address check refuses.
 A join that outgrows the token magnitude names the delivery it overran at, because each joined delivery is its own byte stream and a caller cutting another one has repaired nothing.

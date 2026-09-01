@@ -4,7 +4,7 @@
 //! Handles are issued in reading order and never reused, which is the whole invariant: a handle answers about the token it was issued for, or the table says it does not reach.
 
 use super::Spans;
-use crate::token::{CaptureBuilder, SpanHandle};
+use crate::token::{CaptureBuilder, SpanHandle, SpanResolutionRefusal};
 use proc_macro::Span;
 
 impl Spans {
@@ -27,12 +27,17 @@ impl Spans {
     /// Where the table does not reach, the invocation stands — never the declaration's first span, which is a real token the observation is not about and would read exactly like an answer.
     #[must_use]
     pub fn at(&self, handle: SpanHandle) -> Span {
-        match usize::try_from(handle.index())
+        self.resolve(handle).unwrap_or_else(|_| Span::call_site())
+    }
+
+    /// Resolve one preserved source handle for host emission without inventing a fallback span.
+    pub(crate) fn resolve(&self, handle: SpanHandle) -> Result<Span, SpanResolutionRefusal> {
+        usize::try_from(handle.index())
             .ok()
             .and_then(|index| self.builder.positions().get(index).copied())
-        {
-            Some(span) => span,
-            None => Span::call_site(),
-        }
+            .ok_or(SpanResolutionRefusal {
+                handle,
+                reaches: self.builder.positions().len(),
+            })
     }
 }

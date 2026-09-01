@@ -19,19 +19,23 @@ impl CapturedFragment<'_> {
     ///
     /// Returns the exact captured span where an admitted generated literal or generated-token magnitude refuses.
     pub fn generated(self) -> Result<GeneratedTree, FragmentGenerationRefusal> {
-        let tokens = preserved_tokens(self.tokens())?;
-        GeneratedTree::assembled(tokens).map_err(|_| FragmentGenerationRefusal {
-            issue: FragmentGenerationIssue::Unbounded,
-            at: self.first_span().or(self.enclosing_span()),
-        })
+        preserved_tree(self.tokens())
     }
 }
 
-/// Preserve one already bounded captured-token slice for a compiler-owned structural lens.
-pub(crate) fn preserved_tokens(
+/// Preserve one already bounded captured-token slice and its producer spans.
+pub(crate) fn preserved_tree(
     tokens: &[CapturedTokenTree],
-) -> Result<Vec<GeneratedToken>, FragmentGenerationRefusal> {
-    tokens.iter().map(preserved_token).collect()
+) -> Result<GeneratedTree, FragmentGenerationRefusal> {
+    let mut source_spans = Vec::new();
+    let generated = tokens
+        .iter()
+        .map(|token| preserved_token(token, &mut source_spans))
+        .collect::<Result<Vec<_>, _>>()?;
+    GeneratedTree::preserved(generated, source_spans).map_err(|_| FragmentGenerationRefusal {
+        issue: FragmentGenerationIssue::Unbounded,
+        at: tokens.first().map(CapturedTokenTree::span),
+    })
 }
 
 impl FragmentGenerationRefusal {
@@ -48,7 +52,11 @@ impl FragmentGenerationRefusal {
 }
 
 /// Preserve one captured token and every nested token below it.
-fn preserved_token(token: &CapturedTokenTree) -> Result<GeneratedToken, FragmentGenerationRefusal> {
+fn preserved_token(
+    token: &CapturedTokenTree,
+    source_spans: &mut Vec<Option<crate::token::SpanHandle>>,
+) -> Result<GeneratedToken, FragmentGenerationRefusal> {
+    source_spans.push(Some(token.span()));
     match token.payload() {
         CapturedPayload::Word(word) => Ok(GeneratedToken::word(word)),
         CapturedPayload::Punct(mark) => Ok(GeneratedToken::alone(*mark)),
@@ -57,7 +65,7 @@ fn preserved_token(token: &CapturedTokenTree) -> Result<GeneratedToken, Fragment
             .map(GeneratedToken::literal)
             .map_err(|issue| literal_refusal(issue, token)),
         CapturedPayload::Group { delimiter, trees } => {
-            preserved_group(*delimiter, trees.as_slice(), token)
+            preserved_group(*delimiter, trees.as_slice(), token, source_spans)
         }
         CapturedPayload::ByteText(material) => Ok(GeneratedToken::byte_text(material)),
         CapturedPayload::Character(character) => Ok(GeneratedToken::literal(
@@ -79,10 +87,11 @@ fn preserved_group(
     delimiter: CapturedDelimiter,
     members: &[CapturedTokenTree],
     source: &CapturedTokenTree,
+    source_spans: &mut Vec<Option<crate::token::SpanHandle>>,
 ) -> Result<GeneratedToken, FragmentGenerationRefusal> {
     let tokens = members
         .iter()
-        .map(preserved_token)
+        .map(|member| preserved_token(member, source_spans))
         .collect::<Result<Vec<_>, _>>()?;
     GeneratedToken::group(generated_delimiter(delimiter), tokens).map_err(|_| {
         FragmentGenerationRefusal {

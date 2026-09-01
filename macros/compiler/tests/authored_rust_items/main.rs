@@ -3,10 +3,12 @@
 //! The fixtures carry structural pressure from ordinary and advanced Rust without asking Macroonz to interpret what any item means.
 
 use core::convert::Infallible;
+use core::hash::{Hash, Hasher};
 use macroonz_compiler::{
     AuthoredItemKind, AuthoredItemReadIssue, CaptureBuildRefusal, CaptureBuilder, CapturedAtom,
     CapturedDelimiter, FragmentGenerationIssue, GeneratedLiteralRefusal, SpanHandle, TextCapture,
 };
+use std::collections::hash_map::DefaultHasher;
 
 /// Append one independently framed variable-width field.
 fn framed(material: &[u8], into: &mut Vec<u8>) -> Result<(), ()> {
@@ -279,7 +281,7 @@ fn cursor_read_and_exact_fragment_are_one_operation() -> Result<(), ()> {
     Ok(())
 }
 
-/// Producer-coordinate movement changes fragment spans but not authored or generated canonical bytes.
+/// Producer-coordinate movement changes fragment spans but not generated equality, hashing, canonical bytes, inspection, or debugging.
 #[test]
 fn span_only_movement_does_not_move_fragment_identity() -> Result<(), ()> {
     let first = one_word(7)?;
@@ -291,15 +293,21 @@ fn span_only_movement_does_not_move_fragment_identity() -> Result<(), ()> {
         first_fragment.canonical_bytes(),
         moved_fragment.canonical_bytes()
     );
+    let first_generated = first_fragment.generated().map_err(|_| ())?;
+    let moved_generated = moved_fragment.generated().map_err(|_| ())?;
+    assert_eq!(first_generated, moved_generated);
     assert_eq!(
-        first_fragment
-            .generated()
-            .map_err(|_| ())?
-            .canonical_bytes(),
-        moved_fragment
-            .generated()
-            .map_err(|_| ())?
-            .canonical_bytes()
+        standard_hash(&first_generated),
+        standard_hash(&moved_generated)
+    );
+    assert_eq!(
+        first_generated.canonical_bytes(),
+        moved_generated.canonical_bytes()
+    );
+    assert_eq!(first_generated.inspected(), moved_generated.inspected());
+    assert_eq!(
+        format!("{first_generated:?}"),
+        format!("{moved_generated:?}")
     );
     Ok(())
 }
@@ -382,4 +390,11 @@ fn one_word(prior: usize) -> Result<macroonz_compiler::CapturedInput, ()> {
         })
         .map_err(|_| ())?;
     Ok(level.finish())
+}
+
+/// One process-local observation of a generated tree's ordinary [`Hash`] contract.
+fn standard_hash(value: &impl Hash) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    value.hash(&mut hasher);
+    hasher.finish()
 }

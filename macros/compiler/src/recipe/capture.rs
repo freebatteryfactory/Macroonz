@@ -9,7 +9,7 @@ use crate::bounded::AbsencePosture;
 use crate::support::SupportName;
 use crate::token::{
     AuthoredItemKind, CaptureCursor, CaptureReadRefusal, CapturedDelimiter, CapturedFragment,
-    CapturedInput, CapturedSpacing, CapturedTokenTree, GeneratedTree, preserved_tokens,
+    CapturedInput, CapturedSpacing, CapturedTokenTree, preserved_tree,
 };
 
 /// The private suffix that declares one recipe inside its authored module.
@@ -60,20 +60,18 @@ impl Recipe {
             .signature()
             .generated()
             .map_err(|refusal| fragment_refusal(refusal.token()))?;
-        let mut head = attributes.tokens().to_vec();
-        head.extend(signature.tokens().iter().cloned());
-        let module_head = GeneratedTree::assembled(head)
+        let module_head = attributes
+            .joined(&signature)
             .map_err(|_| fragment_refusal(Some(name_token.span())))?;
-        let authored_body = GeneratedTree::assembled(
-            preserved_tokens(authored).map_err(|refusal| fragment_refusal(refusal.token()))?,
-        )
-        .map_err(|_| fragment_refusal(body.first_span()))?;
+        let authored_body =
+            preserved_tree(authored).map_err(|refusal| fragment_refusal(refusal.token()))?;
 
         Recipe::informed(RecipeParts {
             module_name: module_name.to_owned(),
             module_name_token: identifier_token(name_token, module_name),
             module_head,
             authored_body,
+            module_body_at: body.enclosing_span(),
             states_name: read.states.spelling,
             states_name_token: read.states.token,
             state_members: states,

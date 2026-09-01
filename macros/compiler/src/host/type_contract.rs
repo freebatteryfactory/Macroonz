@@ -53,11 +53,27 @@ impl fmt::Display for EmissionError {
             ),
             Self::NulTerminatedTextRejected => into
                 .write_str("the compiler host rejected admitted NUL-terminated literal material"),
+            Self::SourceSpanRosterContradiction => into.write_str(
+                "the generated tree's preserved source roster does not match its token denominator",
+            ),
+            Self::SourceSpanUnresolved(refusal) => write!(
+                into,
+                "the compiler host could not resolve one preserved source span: {refusal}"
+            ),
         }
     }
 }
 
-impl core::error::Error for EmissionError {}
+impl core::error::Error for EmissionError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+        match self {
+            Self::SourceSpanUnresolved(refusal) => Some(refusal),
+            Self::NumberRejected { .. }
+            | Self::NulTerminatedTextRejected
+            | Self::SourceSpanRosterContradiction => None,
+        }
+    }
+}
 
 impl<K: Kind> Emittable for Expansion<K> {
     /// One cargo: an expansion carries exactly one declaration-site delivery, the one its own closure proved.

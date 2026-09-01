@@ -136,7 +136,8 @@ pub enum GeneratedToken {
 }
 
 /// One generated token tree: the artifact a renderer produces.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone)]
 pub struct GeneratedTree {
     tokens: Bounded<GeneratedToken, GENERATED_TOKEN_LIMIT>,
+    source_spans: Vec<Option<SpanHandle>>,
 }

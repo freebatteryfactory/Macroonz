@@ -68,7 +68,8 @@ A renderer states what it means and never assembles punctuation by hand.
 The keyed slice projectors walk an informed [`KeyedRoster`](crate::KeyedRoster) or [`KeyedRosterAssignment`](crate::KeyedRosterAssignment) in its structural order while the renderer supplies every row's tokens and the ordinary Rust item surrounding the slice.
 
 Where generated output must repeat exact caller-authored Rust, [`CapturedFragment::generated`] projects the captured token structure directly into the generated vocabulary.
-The road never builds and reparses source text, retains invisible compiler groups, and uses a guarded [`GeneratedLiteral`] for numeric, character, byte, and C-string forms that require exact literal custody.
+The road never builds and reparses source text, retains invisible compiler groups, carries each producer span as nonsemantic emission provenance, and uses a guarded [`GeneratedLiteral`] for numeric, character, byte, and C-string forms that require exact literal custody.
+Producer spans do not enter equality, hashing, canonical bytes, or human inspection, and only the compiler host resolves them while materializing the declaration-site token stream.
 
 The written roster grows only at its end.
 Each arm's stable slot is one byte of the tree's canonical encoding, and those bytes are what a rendered unit's identity is derived over.
