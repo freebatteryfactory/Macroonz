@@ -1,27 +1,114 @@
 //! The ordered bake declaration clauses for vocabularies, transitions, posture, projections, and evidence.
 
+use super::codec::read_codecs;
 use super::evidence::{evidence, read_evidence_block, read_support, support_matches_projections};
 use super::projection::{projections, read_projection};
+use super::relation::{read_and_apply_postures, read_relations, read_vocabularies};
 use super::{
-    BakeRead, CapturedName, HarnessPosture, RecipeError, RecipeIssue, RecipeTransition,
-    VocabularyNames, grammar, identifier_token,
+    BakeRead, CapturedName, CapturedRelation, HarnessPosture, RecipeError, RecipeIssue, grammar,
+    identifier_token,
 };
+use crate::recipe::{RecipeRelationPayload, RecipeRelationRequirements, RecipeRelationRow};
 use crate::relation::AbsencePosture;
 use crate::token::{
     CaptureCursor, CaptureReadRefusal, CapturedDelimiter, CapturedFragment, CapturedSpacing,
 };
 
-/// Read the fixed first vertical-slice grammar from the bake group.
+/// Read the one ordered bake grammar from the bake group.
 pub(super) fn read_bake(
     declaration: CapturedFragment<'_>,
     harness: HarnessPosture,
     issued: usize,
 ) -> Result<BakeRead, RecipeError> {
     let mut cursor = declaration.cursor();
-    let VocabularyNames { states, events } = read_vocabularies(&mut cursor)?;
+    let vocabularies = if cursor.next_word() == Some("vocabularies") {
+        read_vocabularies(&mut cursor)?
+    } else {
+        Vec::new()
+    };
+    let transition = if cursor.next_word() == Some("transitions") {
+        Some(read_transition_relation(&mut cursor)?)
+    } else {
+        None
+    };
+    let transition_relation = transition
+        .as_ref()
+        .map(|relation| relation.name.spelling.clone());
+    let mut relations = transition.into_iter().collect::<Vec<_>>();
+    if cursor.next_word() == Some("relations") {
+        relations.extend(read_relations(&mut cursor)?);
+    }
+    if transition_relation.is_some() || cursor.next_word() == Some("absence") {
+        let absence_at = cursor
+            .next_token()
+            .map(crate::token::CapturedTokenTree::span);
+        let absence = read_absence(&mut cursor)?;
+        let Some(transition_relation_row) = relations
+            .iter_mut()
+            .find(|relation| transition_relation.as_deref() == Some(&relation.name.spelling))
+        else {
+            return Err(RecipeError::at(
+                RecipeIssue::RelationNotFound {
+                    name: "transitions".to_owned(),
+                },
+                absence_at,
+            ));
+        };
+        transition_relation_row.requirements = RecipeRelationRequirements::transitions(absence);
+    }
+    if cursor.next_word() == Some("postures") {
+        read_and_apply_postures(&mut cursor, &mut relations)?;
+    }
+    let codecs = read_codecs(&mut cursor)?;
+    let requested = read_projections(&mut cursor, issued)?;
+    let requested_evidence = read_evidence_block(&mut cursor, issued)?;
+    let support = read_support(&mut cursor)?;
+    cursor.finish().map_err(grammar)?;
+    let transition_subject = transition_relation.as_deref().and_then(|name| {
+        relations
+            .iter()
+            .find(|relation| relation.name.spelling == name)
+            .map(|relation| {
+                (
+                    relation.left.spelling.as_str(),
+                    relation.right.spelling.as_str(),
+                )
+            })
+    });
+    let projections = projections(
+        &requested,
+        &requested_evidence,
+        harness,
+        transition_subject,
+        &relations,
+    )?;
+    let evidence = evidence(&requested_evidence);
+    support_matches_projections(&projections, support.as_ref(), declaration.last_span())?;
+    Ok(BakeRead {
+        vocabularies,
+        relations,
+        transition_relation,
+        codecs,
+        projections,
+        evidence,
+        support,
+    })
+}
 
-    cursor.word("transitions").map_err(grammar)?;
-    let transitions = cursor
+fn read_transition_relation(
+    cursor: &mut CaptureCursor<'_>,
+) -> Result<CapturedRelation, RecipeError> {
+    let (name_token, name) = cursor.identifier().map_err(grammar)?;
+    let mut vocabularies = cursor
+        .group(CapturedDelimiter::Parenthesis)
+        .map_err(grammar)?;
+    let (left_token, left_name) = vocabularies.identifier().map_err(grammar)?;
+    vocabularies
+        .punctuation(',', CapturedSpacing::Alone)
+        .map_err(grammar)?;
+    let (right_token, right_name) = vocabularies.identifier().map_err(grammar)?;
+    vocabularies.finish().map_err(grammar)?;
+    let rows = cursor
         .group(CapturedDelimiter::Brace)
         .map_err(grammar)?
         .trailing_separated::<_, { super::super::TRANSITION_LIMIT }>(';', read_transition)
@@ -31,9 +118,34 @@ pub(super) fn read_bake(
     cursor
         .punctuation(';', CapturedSpacing::Alone)
         .map_err(grammar)?;
+    Ok(CapturedRelation {
+        name: CapturedName {
+            spelling: name.to_owned(),
+            token: identifier_token(name_token, name),
+            at: name_token.span(),
+        },
+        left: CapturedName {
+            spelling: left_name.to_owned(),
+            token: identifier_token(left_token, left_name),
+            at: left_token.span(),
+        },
+        right: CapturedName {
+            spelling: right_name.to_owned(),
+            token: identifier_token(right_token, right_name),
+            at: right_token.span(),
+        },
+        rows,
+        requirements: RecipeRelationRequirements::unspecified(),
+    })
+}
 
-    let absence = read_absence(&mut cursor)?;
-
+fn read_projections(
+    cursor: &mut CaptureCursor<'_>,
+    issued: usize,
+) -> Result<Vec<super::RequestedProjection>, RecipeError> {
+    if cursor.next_word() != Some("projections") {
+        return Ok(Vec::new());
+    }
     cursor.word("projections").map_err(grammar)?;
     let requested = cursor
         .group(CapturedDelimiter::Brace)
@@ -45,55 +157,7 @@ pub(super) fn read_bake(
     cursor
         .punctuation(';', CapturedSpacing::Alone)
         .map_err(grammar)?;
-
-    let requested_evidence = read_evidence_block(&mut cursor, issued)?;
-    let support = read_support(&mut cursor)?;
-    cursor.finish().map_err(grammar)?;
-    let projections = projections(
-        &requested,
-        &requested_evidence,
-        harness,
-        &states.spelling,
-        &events.spelling,
-    )?;
-    let evidence = evidence(&requested_evidence);
-    support_matches_projections(&projections, support.as_ref(), declaration.last_span())?;
-    Ok(BakeRead {
-        states,
-        events,
-        transitions,
-        absence,
-        projections,
-        evidence,
-        support,
-    })
-}
-
-fn read_vocabularies(cursor: &mut CaptureCursor<'_>) -> Result<VocabularyNames, RecipeError> {
-    cursor.word("vocabularies").map_err(grammar)?;
-    let mut vocabularies = cursor
-        .group(CapturedDelimiter::Parenthesis)
-        .map_err(grammar)?;
-    let (states_token, states_name) = vocabularies.identifier().map_err(grammar)?;
-    vocabularies
-        .punctuation(',', CapturedSpacing::Alone)
-        .map_err(grammar)?;
-    let (events_token, events_name) = vocabularies.identifier().map_err(grammar)?;
-    let names = VocabularyNames {
-        states: CapturedName {
-            spelling: states_name.to_owned(),
-            token: identifier_token(states_token, states_name),
-        },
-        events: CapturedName {
-            spelling: events_name.to_owned(),
-            token: identifier_token(events_token, events_name),
-        },
-    };
-    vocabularies.finish().map_err(grammar)?;
-    cursor
-        .punctuation(';', CapturedSpacing::Alone)
-        .map_err(grammar)?;
-    Ok(names)
+    Ok(requested)
 }
 
 fn read_absence(cursor: &mut CaptureCursor<'_>) -> Result<AbsencePosture, RecipeError> {
@@ -122,7 +186,9 @@ fn read_absence(cursor: &mut CaptureCursor<'_>) -> Result<AbsencePosture, Recipe
 }
 
 /// Read one relation row and preserve its effect path structurally.
-fn read_transition(cursor: &mut CaptureCursor<'_>) -> Result<RecipeTransition, CaptureReadRefusal> {
+fn read_transition(
+    cursor: &mut CaptureCursor<'_>,
+) -> Result<RecipeRelationRow, CaptureReadRefusal> {
     let mut endpoints = cursor.group(CapturedDelimiter::Parenthesis)?;
     let (from_token, from) = endpoints.identifier()?;
     endpoints.punctuation(',', CapturedSpacing::Alone)?;
@@ -147,11 +213,18 @@ fn read_transition(cursor: &mut CaptureCursor<'_>) -> Result<RecipeTransition, C
             refusal.token(),
         )
     })?;
-    Ok(RecipeTransition::authored(
-        (from.to_owned(), identifier_token(from_token, from)),
-        (event.to_owned(), identifier_token(event_token, event)),
-        (to.to_owned(), identifier_token(to_token, to)),
-        effect,
-        from_token.span(),
+    Ok(RecipeRelationRow::authored(
+        (
+            from.to_owned(),
+            identifier_token(from_token, from),
+            from_token.span(),
+        ),
+        (
+            event.to_owned(),
+            identifier_token(event_token, event),
+            event_token.span(),
+        ),
+        RecipeRelationPayload::transition(to.to_owned(), identifier_token(to_token, to), effect),
+        to_token.span(),
     ))
 }

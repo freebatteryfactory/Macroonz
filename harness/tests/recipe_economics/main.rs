@@ -83,55 +83,55 @@ struct Metrics {
 }
 
 const VOCABULARY: &[(u64, Metrics)] = &[
-    (2, Metrics::declared([253, 4, 2, 2, 1, 3_942, 1_016, 4_354])),
-    (4, Metrics::declared([335, 8, 4, 2, 1, 5_714, 1_322, 6_214])),
+    (2, Metrics::declared([253, 4, 2, 2, 1, 3_942, 1_206, 4_354])),
+    (4, Metrics::declared([335, 8, 4, 2, 1, 5_714, 1_514, 6_214])),
     (
         8,
-        Metrics::declared([499, 16, 8, 2, 1, 9_258, 1_934, 9_934]),
+        Metrics::declared([499, 16, 8, 2, 1, 9_258, 2_130, 9_934]),
     ),
     (
         16,
-        Metrics::declared([857, 32, 16, 2, 1, 16_394, 3_200, 17_434]),
+        Metrics::declared([857, 32, 16, 2, 1, 16_394, 3_404, 17_434]),
     ),
 ];
 const RELATION_DENSITY: &[(u64, Metrics)] = &[
-    (2, Metrics::declared([323, 4, 4, 2, 1, 5_338, 1_194, 5_750])),
+    (2, Metrics::declared([323, 4, 4, 2, 1, 5_338, 1_386, 5_750])),
     (
         4,
-        Metrics::declared([755, 8, 16, 2, 1, 14_090, 2_390, 14_590]),
+        Metrics::declared([755, 8, 16, 2, 1, 14_090, 2_594, 14_590]),
     ),
     (
         8,
-        Metrics::declared([2_459, 16, 64, 2, 1, 48_346, 6_918, 49_022]),
+        Metrics::declared([2_459, 16, 64, 2, 1, 48_346, 7_170, 49_022]),
     ),
 ];
 const SIGNATURE: &[(u64, Metrics)] = &[
-    (1, Metrics::declared([327, 4, 2, 1, 1, 1_944, 1_310, 2_356])),
-    (2, Metrics::declared([337, 4, 2, 1, 1, 1_991, 1_357, 2_403])),
-    (4, Metrics::declared([357, 4, 2, 1, 1, 2_085, 1_451, 2_497])),
-    (8, Metrics::declared([397, 4, 2, 1, 1, 2_273, 1_639, 2_685])),
+    (1, Metrics::declared([327, 4, 2, 1, 1, 1_944, 1_499, 2_356])),
+    (2, Metrics::declared([337, 4, 2, 1, 1, 1_991, 1_546, 2_403])),
+    (4, Metrics::declared([357, 4, 2, 1, 1, 2_085, 1_640, 2_497])),
+    (8, Metrics::declared([397, 4, 2, 1, 1, 2_273, 1_828, 2_685])),
 ];
 const PROJECTION_COUNT: &[(u64, Metrics)] = &[
-    (1, Metrics::declared([319, 8, 4, 1, 1, 2_850, 1_287, 3_350])),
-    (2, Metrics::declared([335, 8, 4, 2, 1, 5_714, 1_322, 6_214])),
+    (1, Metrics::declared([319, 8, 4, 1, 1, 2_850, 1_478, 3_350])),
+    (2, Metrics::declared([335, 8, 4, 2, 1, 5_714, 1_514, 6_214])),
     (
         3,
-        Metrics::declared([345, 8, 4, 3, 1, 9_575, 1_337, 10_075]),
+        Metrics::declared([345, 8, 4, 3, 1, 9_575, 1_543, 10_075]),
     ),
 ];
 const INVOCATION_COUNT: &[(u64, Metrics)] = &[
-    (1, Metrics::declared([335, 8, 4, 2, 1, 5_714, 1_322, 6_214])),
+    (1, Metrics::declared([335, 8, 4, 2, 1, 5_714, 1_514, 6_214])),
     (
         2,
-        Metrics::declared([670, 16, 8, 4, 2, 11_428, 2_644, 12_428]),
+        Metrics::declared([670, 16, 8, 4, 2, 11_428, 3_028, 12_428]),
     ),
     (
         4,
-        Metrics::declared([1_340, 32, 16, 8, 4, 22_856, 5_288, 24_856]),
+        Metrics::declared([1_340, 32, 16, 8, 4, 22_856, 6_056, 24_856]),
     ),
     (
         8,
-        Metrics::declared([2_680, 64, 32, 16, 8, 45_712, 10_576, 49_712]),
+        Metrics::declared([2_680, 64, 32, 16, 8, 45_712, 12_112, 49_712]),
     ),
 ];
 
@@ -226,6 +226,11 @@ fn final_recipe_work_is_typed_and_repeated_work_is_distinguished() -> Result<(),
         }
     }
     Ok(())
+}
+
+#[test]
+fn retained_recipe_coordinates_match_the_final_source() -> Result<(), String> {
+    preflight()
 }
 
 #[test]
@@ -523,6 +528,7 @@ fn preflight_call(_: &Invocation) -> TrialConclusion {
 }
 
 fn preflight() -> Result<(), String> {
+    let mut mismatches = Vec::new();
     for family in [
         Family::Vocabulary,
         Family::RelationDensity,
@@ -533,14 +539,18 @@ fn preflight() -> Result<(), String> {
         for (axis, expected) in family.coordinates() {
             let observed = observe_family(family, *axis)?;
             if observed != *expected {
-                return Err(format!(
+                mismatches.push(format!(
                     "{} axis {axis} moved from {expected:?} to {observed:?}",
                     family.stem()
                 ));
             }
         }
     }
-    Ok(())
+    if mismatches.is_empty() {
+        Ok(())
+    } else {
+        Err(mismatches.join("\n"))
+    }
 }
 
 fn observe_family(family: Family, axis: u64) -> Result<Metrics, String> {
@@ -631,16 +641,24 @@ impl Metrics {
             .emit()
             .tokens()
             .map_or(0, |tree| tree.canonical_bytes().len());
-        let vocabulary_members = recipe
-            .states()
+        let transition = recipe
+            .transition_relation()
+            .ok_or_else(|| String::from("the economics recipe has no transition relation"))?;
+        let states = recipe
+            .vocabulary(transition.left_vocabulary())
+            .ok_or_else(|| String::from("the economics recipe has no state vocabulary"))?;
+        let events = recipe
+            .vocabulary(transition.right_vocabulary())
+            .ok_or_else(|| String::from("the economics recipe has no event vocabulary"))?;
+        let vocabulary_members = states
             .members()
             .count()
-            .checked_add(recipe.events().members().count())
+            .checked_add(events.members().count())
             .ok_or_else(|| String::from("vocabulary count overflow"))?;
         Ok(Self::declared([
             u64::try_from(source.len()).map_err(debug)?,
             u64::try_from(vocabulary_members).map_err(debug)?,
-            u64::try_from(recipe.transitions().members().count()).map_err(debug)?,
+            u64::try_from(transition.row_count()).map_err(debug)?,
             u64::try_from(selected).map_err(debug)?,
             1,
             u64::try_from(generated_bytes).map_err(debug)?,
@@ -659,7 +677,7 @@ fn recipe_source(vocabulary: usize, shape: Shape, generics: usize, projections: 
     for member in 0..vocabulary {
         push_indexed(&mut source, 'E', member, ",");
     }
-    source.push_str("}\nbake! {\nvocabularies(State, Event);\ntransitions {");
+    source.push_str("}\nbake! {\nvocabularies { State; Event; };\ntransitions(State, Event) {");
     match shape {
         Shape::Sparse => sparse_rows(&mut source, vocabulary),
         Shape::Dense => dense_rows(&mut source, vocabulary),
@@ -673,7 +691,7 @@ fn recipe_source(vocabulary: usize, shape: Shape, generics: usize, projections: 
             source.push_str("dispatch(apply);");
         }
         if projections >= 3 {
-            source.push_str("typestate;");
+            source.push_str("typestate(State);");
         }
     }
     source.push_str("};\n}\n}\n");

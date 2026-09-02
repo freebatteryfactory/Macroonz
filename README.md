@@ -79,6 +79,42 @@ A name collision refuses the request before partial output, and no ordinary gene
 An evidence bake may carry an explicitly named support macro because Rust exports such macros at the declaring crate root.
 That caller-authored address is the exception rather than an automatic reexport: its cargo stays inert, and the external test or bench target must invoke it with both the declaring-crate path and the harness path before any judgment exists.
 
+The generic shape is ordinary Rust plus only the accounts a projection needs:
+
+```rust
+macroonz::recipe! {
+    pub mod access {
+        pub enum Stage { Draft, Published }
+        pub enum Capability { Read, Write }
+
+        bake! {
+            vocabularies { Stage; Capability; };
+            relations {
+                policy(Stage, Capability) {
+                    (Draft, Read);
+                    (Published, Read);
+                };
+            };
+            postures {
+                policy { repetition(refused); };
+            };
+            projections {
+                companions;
+                relation_tables { policy; };
+                typestate(Stage);
+            };
+        }
+    }
+}
+```
+
+The relation remains a structural account: Macroonz knows that each endpoint belongs to its declared roster and that repetition is refused, but it does not know what a stage, capability, or allowed policy means.
+The preset relation table projects `baked::policy::contains(&Stage, &Capability)`, so ordinary code can use that checked account without rebuilding its membership loop.
+Payload-bearing relations require an exact caller-authored lookup signature because the payload type remains caller authority; Macroonz supplies only the row-accounted `Some` or `None` body.
+A same-roster evolution graph, a labeled many-to-many matrix, and a codec-only record use this same recipe entrance without pretending to be transitions.
+When a recipe names `codecs`, those declarations select the existing compiler codec owner and its canonical methods rather than a parallel recipe encoding system.
+When the ergonomic transition spelling is used, it lowers into one typed generic relation and unlocks the transition-specific dispatch projector.
+
 One bake request admits progressively more precision without changing semantic models:
 
 - A conventional bake supplies documented mechanical choices.

@@ -1,10 +1,13 @@
 //! Recipe behavior observed through callable, wrapper, projector, and refusal claims.
 
 mod caller_rust;
+mod diagnostic_custody;
 mod dispatch_contract;
 mod evidence_contract;
+mod generic_account;
 mod host_parity;
 mod projector_authority;
+mod readback_contract;
 mod refusal_contract;
 mod structural_refusals;
 mod support;

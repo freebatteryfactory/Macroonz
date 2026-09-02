@@ -121,10 +121,12 @@ fn prepared_tree(
             emitted(&expansion, door)
         }
         RecipeRole::Companions
+        | RecipeRole::RelationTables
         | RecipeRole::Dispatch
         | RecipeRole::CompileContract
         | RecipeRole::Property
-        | RecipeRole::Typestate => Err(nothing_rendered(door)),
+        | RecipeRole::Typestate
+        | RecipeRole::Codec => Err(nothing_rendered(door)),
     }
 }
 
@@ -183,14 +185,16 @@ fn identifier_key(spelling: &str) -> &str {
 
 fn mutation_order(
     recipe: &Recipe,
-    target: Option<EvidenceTarget>,
+    target: Option<&EvidenceTarget>,
     door: &Door,
 ) -> Result<Vec<String>, Diagnostic> {
-    let members = match target {
-        Some(EvidenceTarget::States) => recipe.states().members().collect::<Vec<_>>(),
-        Some(EvidenceTarget::Events) => recipe.events().members().collect::<Vec<_>>(),
-        None => return Err(nothing_rendered(door)),
-    };
+    let vocabulary_name = target
+        .map(EvidenceTarget::name)
+        .ok_or_else(|| nothing_rendered(door))?;
+    let vocabulary = recipe
+        .vocabulary(vocabulary_name)
+        .ok_or_else(|| nothing_rendered(door))?;
+    let members = vocabulary.members().members().collect::<Vec<_>>();
     if members.is_empty() {
         return Err(nothing_rendered(door));
     }

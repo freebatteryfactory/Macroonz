@@ -1,11 +1,14 @@
 //! Reading the one inline-module recipe grammar into informed structural values.
 
-use super::types::{ProjectionStanding, RecipeError, RecipeIssue, RecipeParts};
-use super::{
-    EVIDENCE_LIMIT, EffectiveProjection, EvidenceTarget, HarnessPosture, LoweringSource, Recipe,
-    RecipeEvidence, RecipeMember, RecipeRole, RecipeTransition,
+use super::types::{
+    PROJECTION_LIMIT, ProjectionStanding, RecipeCodec, RecipeError, RecipeIssue, RecipeParts,
+    RecipeRelationParts, RecipeVocabularyParts,
 };
-use crate::relation::AbsencePosture;
+use super::{
+    EVIDENCE_LIMIT, EffectiveProjection, EvidenceTarget, HarnessPosture, LoweringSource,
+    RELATION_TABLE_LIMIT, Recipe, RecipeEvidence, RecipeMember, RecipeRelationRequirements,
+    RecipeRelationRow, RecipeRole, RelationTableProjection,
+};
 use crate::support::SupportName;
 use crate::token::{
     AuthoredItemKind, CaptureReadRefusal, CapturedDelimiter, CapturedInput, CapturedTokenTree,
@@ -14,6 +17,8 @@ use crate::token::{
 
 #[path = "capture_bake.rs"]
 mod bake;
+#[path = "capture_codec.rs"]
+mod codec;
 #[path = "capture_dispatch.rs"]
 mod dispatch;
 #[path = "capture_evidence.rs"]
@@ -22,9 +27,11 @@ mod evidence;
 mod module;
 #[path = "capture_projection.rs"]
 mod projection;
+#[path = "capture_relation.rs"]
+mod relation;
 
 use bake::read_bake;
-use module::{bake_suffix, collision_free, enum_members};
+use module::{authored_record, bake_suffix, collision_free, enum_members};
 
 /// The private suffix that declares one recipe inside its authored module.
 const BAKE: &str = "bake";
@@ -63,8 +70,46 @@ impl Recipe {
         let (authored, declaration) = bake_suffix(body)?;
         collision_free(authored)?;
         let read = read_bake(declaration, harness, input.issued())?;
-        let states = enum_members(authored, read.states.spelling.as_str())?;
-        let events = enum_members(authored, read.events.spelling.as_str())?;
+        for codec in &read.codecs {
+            let Some(owner) = codec.content().shape.owner().segments().last() else {
+                return Err(RecipeError::at(
+                    RecipeIssue::CodecOwnerNotRecord {
+                        codec: codec.name().to_owned(),
+                        owner: "<missing>".to_owned(),
+                    },
+                    body.enclosing_span(),
+                ));
+            };
+            authored_record(authored, codec.name(), owner)?;
+        }
+        let vocabularies = read
+            .vocabularies
+            .into_iter()
+            .map(|vocabulary| {
+                let members = enum_members(authored, vocabulary.spelling.as_str())?;
+                Ok(RecipeVocabularyParts {
+                    name: vocabulary.spelling,
+                    name_token: vocabulary.token,
+                    members,
+                    at: vocabulary.at,
+                })
+            })
+            .collect::<Result<Vec<_>, RecipeError>>()?;
+        let relations = read
+            .relations
+            .into_iter()
+            .map(|relation| RecipeRelationParts {
+                name: relation.name.spelling,
+                name_token: relation.name.token,
+                name_at: relation.name.at,
+                left_vocabulary: relation.left.spelling,
+                left_vocabulary_at: relation.left.at,
+                right_vocabulary: relation.right.spelling,
+                right_vocabulary_at: relation.right.at,
+                rows: relation.rows,
+                requirements: relation.requirements,
+            })
+            .collect();
 
         let attributes = item
             .attributes()
@@ -86,14 +131,10 @@ impl Recipe {
             module_head,
             authored_body,
             module_body_at: body.enclosing_span(),
-            states_name: read.states.spelling,
-            states_name_token: read.states.token,
-            state_members: states,
-            events_name: read.events.spelling,
-            events_name_token: read.events.token,
-            event_members: events,
-            transitions: read.transitions,
-            absence: read.absence,
+            vocabularies,
+            relations,
+            transition_relation: read.transition_relation,
+            codecs: read.codecs,
             projections: read.projections,
             evidence: read.evidence,
             support: read.support,
@@ -103,25 +144,31 @@ impl Recipe {
 
 /// The mechanically read bake declaration before structural informing.
 struct BakeRead {
-    states: CapturedName,
-    events: CapturedName,
-    transitions: Vec<RecipeTransition>,
-    absence: AbsencePosture,
-    projections: [ProjectionStanding; 10],
+    vocabularies: Vec<CapturedName>,
+    relations: Vec<CapturedRelation>,
+    transition_relation: Option<String>,
+    codecs: Vec<RecipeCodec>,
+    projections: [ProjectionStanding; PROJECTION_LIMIT],
     evidence: [Option<RecipeEvidence>; EVIDENCE_LIMIT],
     support: Option<SupportName>,
 }
 
+/// One mechanically read named relation before its endpoint references are informed.
+#[derive(Clone)]
+struct CapturedRelation {
+    name: CapturedName,
+    left: CapturedName,
+    right: CapturedName,
+    rows: Vec<RecipeRelationRow>,
+    requirements: RecipeRelationRequirements,
+}
+
 /// One exact identifier read from recipe syntax before its structural role is informed.
+#[derive(Clone)]
 struct CapturedName {
     spelling: String,
     token: crate::token::GeneratedToken,
-}
-
-/// The two vocabularies named by one recipe declaration.
-struct VocabularyNames {
-    states: CapturedName,
-    events: CapturedName,
+    at: crate::token::SpanHandle,
 }
 
 /// One requested role with its mechanical configuration.
@@ -129,6 +176,18 @@ struct VocabularyNames {
 struct RequestedProjection {
     role: RecipeRole,
     name: Option<String>,
+    subject: Option<String>,
+    source: LoweringSource,
+    exact: Option<CapturedInput>,
+    relation_tables: Option<Vec<RequestedRelationTable>>,
+    at: crate::token::SpanHandle,
+}
+
+/// One mechanically requested relation-table surface before its relation is informed.
+#[derive(Clone)]
+struct RequestedRelationTable {
+    relation: String,
+    function: Option<String>,
     source: LoweringSource,
     exact: Option<CapturedInput>,
     at: crate::token::SpanHandle,
@@ -138,7 +197,7 @@ struct RequestedProjection {
 #[derive(Clone)]
 struct RequestedEvidence {
     role: RecipeRole,
-    target: Option<EvidenceTarget>,
+    target: Option<String>,
     body: Option<CapturedInput>,
     at: crate::token::SpanHandle,
 }

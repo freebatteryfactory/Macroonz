@@ -4,10 +4,13 @@ mod bake;
 mod capture;
 mod encode;
 mod evidence;
+mod names;
 mod render;
 mod render_companions;
+mod render_codec;
 mod render_dispatch;
 mod render_evidence;
+mod render_relation_tables;
 mod render_tokens;
 mod render_typestate;
 mod type_contract;
@@ -19,8 +22,11 @@ pub(crate) use types::{ConfiguredEvidence, EvidenceCompiler, PreparedEvidence};
 
 pub use bake::{bake, bake_with, bake_wrapped};
 pub use types::{
-    EVIDENCE_LIMIT, EffectiveProjection, EvidenceTarget, HarnessPosture, LoweringSource,
-    ProjectionDisposition, ProjectionError, ProjectionOffered, ProjectionRequest, ProjectionSink,
-    Recipe, RecipeBake, RecipeEvidence, RecipeMember, RecipeProjection, RecipeProjector,
-    RecipeRole, RecipeTransition, RecipeView, TRANSITION_LIMIT, VOCABULARY_LIMIT,
+    CODEC_LIMIT, EVIDENCE_LIMIT, EffectiveProjection, EvidenceTarget, HarnessPosture,
+    LoweringSource, PROJECTION_LIMIT, ProjectionDisposition, ProjectionError, ProjectionOffered,
+    ProjectionRequest, ProjectionSink, RELATION_LIMIT, RELATION_ROW_LIMIT, RELATION_TABLE_LIMIT,
+    Recipe, RecipeBake, RecipeCodec, RecipeEvidence, RecipeMember, RecipeProjection,
+    RecipeProjector, RecipeRelation, RecipeRelationPayload, RecipeRelationPayloadKind,
+    RecipeRelationRequirements, RecipeRelationRow, RecipeRole, RecipeView, RecipeVocabulary,
+    RelationTableProjection, TRANSITION_LIMIT, VOCABULARY_LIMIT,
 };

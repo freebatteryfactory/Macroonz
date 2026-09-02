@@ -16,7 +16,7 @@ const DOOR: Door = Door::declared(
     },
 );
 
-const REPAIR: &str = "write one inline module whose final bake declaration names authored enum vocabularies, checked transitions, one absence posture, and every requested projection";
+const REPAIR: &str = "write one inline module whose final bake declaration names only the vocabularies, relations, codecs, postures, evidence, support, and projections the recipe actually uses";
 
 fn refusal(source: &str) -> Result<Diagnostic, ()> {
     let read = TextCapture::read(source).map_err(|_| ())?;
@@ -93,4 +93,65 @@ fn an_authored_item_after_bake_refuses_at_that_item() -> Result<(), ()> {
         "the recipe module must end with exactly one `bake!` declaration",
         captured_token,
     )
+}
+
+#[test]
+fn near_bake_suffixes_never_select_the_recipe_declaration() -> Result<(), ()> {
+    for source in [
+        "pub mod door { cake! {} }",
+        "pub mod door { bake {} }",
+        "pub mod door { bake! () }",
+        "pub mod door { bake! [] }",
+        "pub mod door { bake! {}, }",
+    ] {
+        assert_envelope_refusal(
+            source,
+            "the recipe module must end with exactly one `bake!` declaration",
+            captured_token,
+        )?;
+    }
+    Ok(())
+}
+
+#[test]
+fn near_bake_prefixes_remain_ordinary_authored_material() -> Result<(), ()> {
+    for prefix in ["cake! {}", "bake? {}", "bake! ()"] {
+        let source =
+            format!("pub mod door {{ {prefix}; bake! {{ projections {{ companions; }}; }} }}");
+        let read = TextCapture::read(source.as_str()).map_err(|_| ())?;
+        let _baked =
+            macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
+                .map_err(|_| ())?;
+    }
+    Ok(())
+}
+
+#[test]
+fn malformed_discriminants_and_attribute_prefixes_never_become_unit_variants() -> Result<(), ()> {
+    for row in ["Draft =", "Draft ? 1", "marker [cfg] Draft"] {
+        let source = format!(
+            "pub mod door {{ pub enum Stage {{ {row} }} bake! {{ vocabularies {{ Stage; }}; projections {{ companions; }}; }} }}"
+        );
+        let refused = refusal(source.as_str())?;
+        assert!(
+            refused.summary().contains("is not a unit variant"),
+            "{}",
+            refused.summary()
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn the_final_bake_accepts_exactly_its_two_terminator_forms() -> Result<(), ()> {
+    for source in [
+        "pub mod door { bake! { projections { companions; }; } }",
+        "pub mod door { bake! { projections { companions; }; }; }",
+    ] {
+        let read = TextCapture::read(source).map_err(|_| ())?;
+        let _baked =
+            macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
+                .map_err(|_| ())?;
+    }
+    Ok(())
 }

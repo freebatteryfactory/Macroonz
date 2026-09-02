@@ -15,6 +15,15 @@ The paved recipe road and the raw callable road meet at the same informed struct
 A recipe hands the compiler caller-owned Rust items, explicit structural facts and postures, ordinary Rust paths, and requested projections.
 The compiler informs only the structure it must account over, offers each planned projection to a standard or caller-owned projector, and carries accepted generated tokens through the existing request road.
 
+The recipe account is intentionally zero-or-more across independent structural families.
+An authored module may name only one vocabulary, several vocabularies, same-roster or cross-roster relations, an existing-owner codec, or any lawful composition of those families without inventing a state machine to satisfy the parser.
+The transition spelling is a paved lowering into one typed generic relation rather than the compiler's universal model.
+
+Generic relation rows may be unlabeled, carry an ordinary Rust path, or carry exact Rust material, while caller-declared posture selects which structural questions are requirements.
+Selected relation tables turn those informed rows into typed membership or payload lookup functions inside relation-named modules without teaching the compiler what either endpoint or payload means.
+An unlabeled table has a borrowed `contains` preset, while a payload table requires an exact caller-authored signature and receives only the row-accounted body.
+A codec recipe reuses `codec::CodecContent` and its canonical encode/decode renderers; the recipe home does not clone their type, cardinality, assembly, or byte semantics.
+
 The caller owns grammar meaning, vocabularies, relations, effects, policies, lawful answers, exact Rust fragments, and every independent claim.
 The compiler owns generic capture, membership and duplicate refusal, checked references, exact seat accounting, projection disposition, token construction, planning, closure, explanation, and expansion.
 Rustc owns path resolution, visibility, typing, ownership, borrowing, lifetimes, coherence, exhaustiveness, and the final legality of the generated Rust.

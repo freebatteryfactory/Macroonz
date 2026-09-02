@@ -1,24 +1,44 @@
 //! The standard roster and transition companion projection.
 
+use super::names::companion_constant;
 use super::render_tokens::{comma_separated, comma_tokens, public, super_path, variant};
-use super::{ProjectionError, Recipe, RecipeMember};
+use super::{
+    ProjectionError, Recipe, RecipeMember, RecipeRelation, RecipeRelationPayload,
+    RecipeRelationPayloadKind, RecipeRelationRow, RecipeVocabulary,
+};
 use crate::token::{
     GeneratedDelimiter, GeneratedToken, GeneratedTree, constant, decorated, documentation, group,
 };
 
 pub(super) fn companions(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError> {
+    let transition = recipe.transition_account();
     let mut tokens = Vec::new();
-    tokens.extend(roster_constant(
-        "STATE_VARIANTS",
-        recipe.states_name_token(),
-        recipe.states().members(),
-    )?);
-    tokens.extend(roster_constant(
-        "EVENT_VARIANTS",
-        recipe.events_name_token(),
-        recipe.events().members(),
-    )?);
-    tokens.extend(transition_constant(recipe)?);
+    for vocabulary in recipe.vocabularies() {
+        let name = companion_constant(vocabulary.name(), "VARIANTS");
+        tokens.extend(roster_constant(
+            name.as_str(),
+            vocabulary.name_token(),
+            vocabulary.members().members(),
+        )?);
+    }
+    for relation in recipe.relations() {
+        if let Some((states, events, transition_relation)) = transition
+            && relation.name() == transition_relation.name()
+        {
+            tokens.extend(transition_constant(states, events, relation.rows())?);
+            continue;
+        }
+        let Some(left) = recipe.vocabulary(relation.left_vocabulary()) else {
+            return Err(nothing_rendered());
+        };
+        let Some(right) = recipe.vocabulary(relation.right_vocabulary()) else {
+            return Err(nothing_rendered());
+        };
+        tokens.extend(relation_constant(left, right, relation)?);
+        if relation.payload_kind() != RecipeRelationPayloadKind::Unlabeled {
+            tokens.extend(relation_payload_constant(relation)?);
+        }
+    }
     GeneratedTree::assembled(tokens).map_err(ProjectionError::Tokens)
 }
 
@@ -27,11 +47,7 @@ fn roster_constant<'name>(
     vocabulary: &GeneratedToken,
     members: impl Iterator<Item = &'name RecipeMember>,
 ) -> Result<Vec<GeneratedToken>, ProjectionError> {
-    let sentence = match constant_name {
-        "STATE_VARIANTS" => "The state variants in caller-authored order.",
-        "EVENT_VARIANTS" => "The event variants in caller-authored order.",
-        _ => "The caller-authored vocabulary members in declared order.",
-    };
+    let sentence = "The caller-authored vocabulary variants in declared order.";
     let mut kind = vec![GeneratedToken::alone('&')];
     kind.push(group(GeneratedDelimiter::Bracket, super_path(vocabulary))?);
     let mut value = vec![GeneratedToken::alone('&')];
@@ -50,29 +66,36 @@ fn roster_constant<'name>(
     ))
 }
 
-fn transition_constant(recipe: &Recipe) -> Result<Vec<GeneratedToken>, ProjectionError> {
+fn transition_constant<'rows>(
+    states: &RecipeVocabulary,
+    events: &RecipeVocabulary,
+    rows: impl Iterator<Item = &'rows RecipeRelationRow>,
+) -> Result<Vec<GeneratedToken>, ProjectionError> {
     let mut kind = vec![GeneratedToken::alone('&')];
-    let row = group(
+    let row_type = group(
         GeneratedDelimiter::Parenthesis,
         comma_separated(vec![
-            super_path(recipe.states_name_token()),
-            super_path(recipe.events_name_token()),
-            super_path(recipe.states_name_token()),
+            super_path(states.name_token()),
+            super_path(events.name_token()),
+            super_path(states.name_token()),
         ]),
     )?;
-    kind.push(group(GeneratedDelimiter::Bracket, vec![row])?);
-    let rows = recipe
-        .transitions()
-        .members()
-        .map(|transition| {
-            group(
+    kind.push(group(GeneratedDelimiter::Bracket, vec![row_type])?);
+    let rows = rows
+        .map(|row| {
+            let Some((_target, target_name, _effect)) = row.payload().transition_parts() else {
+                return Err(ProjectionError::Render(
+                    crate::render::RenderError::NothingRendered,
+                ));
+            };
+            Ok(group(
                 GeneratedDelimiter::Parenthesis,
                 comma_separated(vec![
-                    variant(recipe.states_name_token(), transition.source_name_token()),
-                    variant(recipe.events_name_token(), transition.event_name_token()),
-                    variant(recipe.states_name_token(), transition.target_name_token()),
+                    variant(states.name_token(), row.left_name_token()),
+                    variant(events.name_token(), row.right_name_token()),
+                    variant(states.name_token(), target_name),
                 ]),
-            )
+            )?)
         })
         .collect::<Result<Vec<_>, _>>()?;
     let value = vec![
@@ -86,4 +109,95 @@ fn transition_constant(recipe: &Recipe) -> Result<Vec<GeneratedToken>, Projectio
         public(),
         constant("TRANSITIONS", kind, value),
     ))
+}
+
+fn relation_constant(
+    left: &RecipeVocabulary,
+    right: &RecipeVocabulary,
+    relation: &RecipeRelation,
+) -> Result<Vec<GeneratedToken>, ProjectionError> {
+    let mut kind = vec![GeneratedToken::alone('&')];
+    let row_type = group(
+        GeneratedDelimiter::Parenthesis,
+        comma_separated(vec![
+            super_path(left.name_token()),
+            super_path(right.name_token()),
+        ]),
+    )?;
+    kind.push(group(GeneratedDelimiter::Bracket, vec![row_type])?);
+    let rows = relation
+        .rows()
+        .map(|row| {
+            group(
+                GeneratedDelimiter::Parenthesis,
+                comma_separated(vec![
+                    variant(left.name_token(), row.left_name_token()),
+                    variant(right.name_token(), row.right_name_token()),
+                ]),
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let value = vec![
+        GeneratedToken::alone('&'),
+        group(GeneratedDelimiter::Bracket, comma_tokens(rows))?,
+    ];
+    let name = companion_constant(relation.name(), "ROWS");
+    Ok(decorated(
+        vec![documentation(
+            "The informed relation endpoint rows in caller-authored order.",
+        )?],
+        public(),
+        constant(name.as_str(), kind, value),
+    ))
+}
+
+fn relation_payload_constant(
+    relation: &RecipeRelation,
+) -> Result<Vec<GeneratedToken>, ProjectionError> {
+    let mut kind = vec![GeneratedToken::alone('&')];
+    kind.push(group(
+        GeneratedDelimiter::Bracket,
+        vec![GeneratedToken::alone('&'), GeneratedToken::word("str")],
+    )?);
+    let rows = relation
+        .rows()
+        .map(|row| {
+            let payload = match row.payload() {
+                RecipeRelationPayload::Path(path) | RecipeRelationPayload::ExactRust(path) => {
+                    path.tokens().to_vec()
+                }
+                RecipeRelationPayload::Transition {
+                    target_name,
+                    effect,
+                    ..
+                } => {
+                    let mut tokens = vec![target_name.clone(), GeneratedToken::alone(',')];
+                    tokens.extend(effect.tokens().iter().cloned());
+                    tokens
+                }
+                RecipeRelationPayload::Unlabeled => return Err(nothing_rendered()),
+            };
+            Ok(vec![
+                GeneratedToken::word("stringify"),
+                GeneratedToken::alone('!'),
+                group(GeneratedDelimiter::Parenthesis, payload)?,
+            ])
+        })
+        .collect::<Result<Vec<_>, ProjectionError>>()?;
+    let value = vec![
+        GeneratedToken::alone('&'),
+        group(GeneratedDelimiter::Bracket, comma_separated(rows))?,
+    ];
+    let name = companion_constant(relation.name(), "PAYLOADS");
+    Ok(decorated(
+        vec![documentation(
+            "The exact caller-authored relation payloads as Rust spellings.",
+        )?],
+        public(),
+        constant(name.as_str(), kind, value),
+    ))
+}
+
+const fn nothing_rendered() -> ProjectionError {
+    ProjectionError::Render(crate::render::RenderError::NothingRendered)
 }

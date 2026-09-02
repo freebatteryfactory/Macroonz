@@ -32,15 +32,15 @@ bakery::recipe! {
         fn observe() {}
 
         bake! {
-            vocabularies(State, Event);
-            transitions {
+            vocabularies { State; Event; };
+            transitions(State, Event) {
                 (Ready, Observe) => Observed with(super::observe);
             };
             absence(refused);
             projections {
                 companions;
                 dispatch(apply);
-                typestate;
+                typestate(State);
                 compile_contract;
                 property;
             };
@@ -117,8 +117,8 @@ bakery::recipe! {
         }
 
         bake! {
-            vocabularies(Version, Upgrade);
-            transitions {
+            vocabularies { Version; Upgrade; };
+            transitions(Version, Upgrade) {
                 (V1, V1ToV2) => V2 with(super::v1_to_v2);
                 (V2, V2ToV3) => V3 with(super::v2_to_v3);
             };
@@ -126,7 +126,7 @@ bakery::recipe! {
             projections {
                 companions;
                 dispatch(advance);
-                typestate;
+                typestate(Version);
                 compile_contract;
                 property;
             };
@@ -205,8 +205,8 @@ bakery::recipe! {
         }
 
         bake! {
-            vocabularies(Standing, Event);
-            transitions {
+            vocabularies { Standing; Event; };
+            transitions(Standing, Event) {
                 (Idle, Arm) => Armed with(super::arm);
                 (Armed, Finish) => Done with(super::finish);
             };

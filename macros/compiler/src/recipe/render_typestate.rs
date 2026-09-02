@@ -9,10 +9,19 @@ use crate::token::{
 };
 
 pub(super) fn typestate(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError> {
+    let Some(subject) = recipe
+        .effective(super::RecipeRole::Typestate)
+        .and_then(super::EffectiveProjection::subject)
+        .and_then(|name| recipe.vocabulary(name))
+    else {
+        return Err(ProjectionError::Render(
+            crate::render::RenderError::NothingRendered,
+        ));
+    };
     let mut items = use_item(absolute_path(&["core", "marker", "PhantomData"]), None);
     items.extend(stage_trait()?);
     items.extend(
-        keyed_roster_items(recipe.states(), |_position, spelling, member| {
+        keyed_roster_items(subject.members(), |_position, spelling, member| {
             stage_member(spelling, member)
         })
         .map_err(row_projection_error)?,

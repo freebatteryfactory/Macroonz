@@ -2,6 +2,8 @@
 
 #[path = "recipe_facade_crossing/carrier_contract.rs"]
 mod carrier_contract;
+#[path = "recipe_facade_crossing/generic_recipe.rs"]
+mod generic_recipe;
 #[path = "recipe_facade_crossing/harness_posture.rs"]
 mod harness_posture;
 #[path = "recipe_facade_crossing/historical_subjects.rs"]

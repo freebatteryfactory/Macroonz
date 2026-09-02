@@ -3,13 +3,18 @@
 use super::render_tokens::{
     comma_separated, crate_baked_path, crate_recipe_path, crate_recipe_variant, dispatch_name,
 };
-use super::{ProjectionError, Recipe, RecipeTransition};
+use super::{ProjectionError, Recipe, RecipeRelationRow, RecipeVocabulary};
 use crate::token::{
     GeneratedDelimiter, GeneratedToken, GeneratedTree, attribute, decorated, function_item,
     function_signature, group,
 };
 
 pub(super) fn compile_contract(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError> {
+    let Some((states, events, _relation)) = recipe.transition_account() else {
+        return Err(ProjectionError::Render(
+            crate::render::RenderError::NothingRendered,
+        ));
+    };
     let name = dispatch_name(recipe);
     let mut tokens = vec![GeneratedToken::word("const"), GeneratedToken::word("_")];
     tokens.push(GeneratedToken::alone(':'));
@@ -17,15 +22,15 @@ pub(super) fn compile_contract(recipe: &Recipe) -> Result<GeneratedTree, Project
     tokens.push(group(
         GeneratedDelimiter::Parenthesis,
         comma_separated(vec![
-            crate_recipe_path(recipe, recipe.states_name_token()),
-            crate_recipe_path(recipe, recipe.events_name_token()),
+            crate_recipe_path(recipe, states.name_token()),
+            crate_recipe_path(recipe, events.name_token()),
         ]),
     )?);
     tokens.push(GeneratedToken::joint('-'));
     tokens.push(GeneratedToken::alone('>'));
     let mut result = crate::token::absolute_path(&["core", "result", "Result"]);
     result.push(GeneratedToken::alone('<'));
-    result.extend(crate_recipe_path(recipe, recipe.states_name_token()));
+    result.extend(crate_recipe_path(recipe, states.name_token()));
     result.push(GeneratedToken::alone(','));
     result.extend(crate_baked_path(recipe, "TransitionRefusal"));
     result.push(GeneratedToken::alone('>'));
@@ -37,9 +42,14 @@ pub(super) fn compile_contract(recipe: &Recipe) -> Result<GeneratedTree, Project
 }
 
 pub(super) fn property(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError> {
+    let Some((states, events, relation)) = recipe.transition_account() else {
+        return Err(ProjectionError::Render(
+            crate::render::RenderError::NothingRendered,
+        ));
+    };
     let mut body = Vec::new();
-    for (position, transition) in recipe.transitions().members().enumerate() {
-        body.extend(property_row(recipe, transition, position)?);
+    for (position, row) in relation.rows().enumerate() {
+        body.extend(property_row(recipe, states, events, row, position)?);
     }
     let tokens = decorated(
         vec![attribute(vec![GeneratedToken::word("test")])?],
@@ -61,36 +71,31 @@ pub(super) fn property(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError
 
 fn property_row(
     recipe: &Recipe,
-    transition: &RecipeTransition,
+    states: &RecipeVocabulary,
+    events: &RecipeVocabulary,
+    row: &RecipeRelationRow,
     position: usize,
 ) -> Result<Vec<GeneratedToken>, ProjectionError> {
+    let Some((_target, target_name, _effect)) = row.payload().transition_parts() else {
+        return Err(ProjectionError::Render(
+            crate::render::RenderError::NothingRendered,
+        ));
+    };
     let observed = format!("observed_{position}");
     let conclusion = format!("conclusion_{position}");
     let mut applied = crate_baked_path(recipe, dispatch_name(recipe));
     applied.push(group(
         GeneratedDelimiter::Parenthesis,
         comma_separated(vec![
-            crate_recipe_variant(
-                recipe,
-                recipe.states_name_token(),
-                transition.source_name_token(),
-            ),
-            crate_recipe_variant(
-                recipe,
-                recipe.events_name_token(),
-                transition.event_name_token(),
-            ),
+            crate_recipe_variant(recipe, states.name_token(), row.left_name_token()),
+            crate_recipe_variant(recipe, events.name_token(), row.right_name_token()),
         ]),
     )?);
     let pattern = vec![
         GeneratedToken::word("Ok"),
         group(
             GeneratedDelimiter::Parenthesis,
-            crate_recipe_variant(
-                recipe,
-                recipe.states_name_token(),
-                transition.target_name_token(),
-            ),
+            crate_recipe_variant(recipe, states.name_token(), target_name),
         )?,
     ];
     let mut tokens = vec![

@@ -8,26 +8,32 @@ description: Author or extend Macroonz 0.2 Rust recipes, choose built-in versus 
 Use this skill when working from the packaged `macroonz` facade.
 Read the [facade README](../../README.md) for product posture and run the complete [first recipe](../../examples/recipe.rs) before inventing syntax.
 
-## Write one recipe
+## Write one generic recipe
 
 Start with ordinary Rust inside `macroonz::recipe!`.
 Keep `bake!` last in the inline module.
 
 ```rust
 macroonz::recipe! {
-    pub mod door {
-        pub enum State { Closed, Open }
-        pub enum Event { OpenDoor }
+    pub mod access {
+        pub enum Stage { Draft, Published }
+        pub enum Capability { Read, Write }
 
         bake! {
-            vocabularies(State, Event);
-            transitions {
-                (Closed, OpenDoor) => Open with(crate::record_open);
+            vocabularies { Stage; Capability; };
+            relations {
+                policy(Stage, Capability) {
+                    (Draft, Read);
+                    (Published, Read);
+                };
             };
-            absence(refused);
+            postures {
+                policy { repetition(refused); };
+            };
             projections {
                 companions;
-                dispatch(apply);
+                relation_tables { policy; };
+                typestate(Stage);
             };
         }
     }
@@ -37,6 +43,36 @@ macroonz::recipe! {
 The caller owns the Rust items, relations, effect paths, postures, and requested projections.
 Use an ordinary Rust path unless Macroonz must enumerate the referenced members.
 Read generated declaration-site companions under the recipe module's `baked` child; do not assume a crate-root reexport.
+
+Use only the clause families the recipe needs, in this order when present: `vocabularies`, `transitions`, `relations`, `absence`, `postures`, `codecs`, `projections`, `evidence`, then `support`.
+A codec-only record needs `codecs` and `projections`, not a fake vocabulary or relation.
+Transitions are one paved lowering: use `vocabularies { State; Event; };`, `transitions(State, Event)`, `absence`, and `projections` when the requested output is genuinely transition dispatch.
+
+## Project typed relation behavior
+
+Use `relation_tables { policy; };` for the conventional borrowed `baked::policy::contains(&left, &right) -> bool` surface over an unlabeled relation.
+Use `policy(function_name);` to change only that flat function name.
+When rows carry path or exact-Rust payloads, use a braced semicolon-terminated function signature returning the caller-owned payload shape; Macroonz supplies only the complete row lookup body.
+Do not select a transition lowering as a generic relation table; request `dispatch` for transition behavior.
+
+## Reuse the codec owner
+
+```rust
+codecs {
+    ledger(Ledger) {
+        direction(round_trip);
+        refusal(LedgerDecodeError);
+        assembly(assembled, total);
+        members {
+            count: u16 => count(required);
+        };
+    };
+};
+projections { codec; };
+```
+
+`Ledger` must be a record-shaped struct authored in the same recipe module, and `assembled` is its caller-owned assembly road.
+The codec declaration selects the existing compiler codec contract; do not build a recipe-local encoder or decoder beside it.
 
 ## Add precision without changing modes
 

@@ -26,8 +26,8 @@ pub mod boulangerie {
     }
 
     bake! {
-        vocabularies(État, Événement);
-        transitions {
+        vocabularies { État; Événement; };
+        transitions(État, Événement) {
             (Fermé, Ouvrir) => Ouvert with(crate::ouvrir);
         };
         absence(refused);

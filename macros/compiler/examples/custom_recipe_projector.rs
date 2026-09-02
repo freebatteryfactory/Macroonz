@@ -2,7 +2,8 @@
 
 use macroonz_compiler::recipe::{
     HarnessPosture, LoweringSource, ProjectionError, ProjectionOffered, ProjectionRequest,
-    ProjectionSink, RecipeProjector, RecipeRole, RecipeView, TRANSITION_LIMIT, VOCABULARY_LIMIT,
+    ProjectionSink, RecipeProjector, RecipeRelationPayload, RecipeRole, RecipeView,
+    TRANSITION_LIMIT, VOCABULARY_LIMIT,
 };
 use macroonz_compiler::{
     CrateBinding, Destination, Door, GeneratedDelimiter, GeneratedToken, GeneratedTree, Overflow,
@@ -34,8 +35,8 @@ pub mod inventory {
     }
 
     bake! {
-        vocabularies(Left, Right);
-        transitions {
+        vocabularies { Left; Right; };
+        transitions(Left, Right) {
             (First, Alpha) => Second with(crate::observe);
             (Second, Beta) => First with(crate::observe);
         };
@@ -61,9 +62,16 @@ impl RecipeProjector for StructuralDimensions {
         assert_eq!(request.effective().source(), LoweringSource::Preset);
 
         let recipe = view.recipe();
-        let state_count = recipe.states().count();
-        let event_count = recipe.events().count();
-        let transition_count = recipe.transitions().count();
+        let relation = recipe.transition_relation().ok_or(nothing_rendered())?;
+        let states = recipe
+            .vocabulary(relation.left_vocabulary())
+            .ok_or(nothing_rendered())?;
+        let events = recipe
+            .vocabulary(relation.right_vocabulary())
+            .ok_or(nothing_rendered())?;
+        let state_count = states.members().count();
+        let event_count = events.members().count();
+        let transition_count = relation.row_count();
         let values = [
             generated_count(state_count, VOCABULARY_LIMIT)?,
             generated_count(event_count, VOCABULARY_LIMIT)?,
@@ -87,18 +95,19 @@ impl RecipeProjector for StructuralDimensions {
 fn effect_paths(
     recipe: &macroonz_compiler::recipe::Recipe,
 ) -> Result<Vec<GeneratedToken>, ProjectionError> {
+    let relation = recipe.transition_relation().ok_or(nothing_rendered())?;
     let mut values = Vec::new();
-    for (position, transition) in recipe.transitions().members().enumerate() {
+    for (position, row) in relation.rows().enumerate() {
+        let RecipeRelationPayload::Transition { effect, .. } = row.payload() else {
+            return Err(nothing_rendered());
+        };
         if position > 0 {
             values.push(GeneratedToken::alone(','));
         }
         values.extend([
             GeneratedToken::word("stringify"),
             GeneratedToken::alone('!'),
-            group(
-                GeneratedDelimiter::Parenthesis,
-                transition.effect().tokens().to_vec(),
-            )?,
+            group(GeneratedDelimiter::Parenthesis, effect.tokens().to_vec())?,
         ]);
     }
     Ok(constant(
@@ -115,6 +124,10 @@ fn effect_paths(
             group(GeneratedDelimiter::Bracket, values)?,
         ],
     ))
+}
+
+const fn nothing_rendered() -> ProjectionError {
+    ProjectionError::Render(macroonz_compiler::RenderError::NothingRendered)
 }
 
 fn generated_count(value: usize, limit: usize) -> Result<GeneratedToken, ProjectionError> {

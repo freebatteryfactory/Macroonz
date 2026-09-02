@@ -144,6 +144,53 @@ pub(super) fn enum_members(
     unit_variants(body, sought)
 }
 
+/// Establish that one codec owner names an authored record-shaped structure.
+pub(super) fn authored_record(
+    authored: &[CapturedTokenTree],
+    codec: &str,
+    sought: &str,
+) -> Result<(), RecipeError> {
+    let found = authored.windows(2).position(|pair| {
+        matches!(pair, [kind, name]
+            if kind.word() == Some("struct")
+                && name
+                    .word()
+                    .or_else(|| name.raw_identifier())
+                    .is_some_and(|spelling| spelling == sought))
+    });
+    let Some(position) = found else {
+        return Err(codec_owner_refusal(authored, codec, sought));
+    };
+    let Some(after_name) = authored.get(position.saturating_add(2)..) else {
+        return Err(codec_owner_refusal(authored, codec, sought));
+    };
+    let mut generic_depth = 0usize;
+    for token in after_name {
+        match token.punct() {
+            Some('<') => generic_depth = generic_depth.saturating_add(1),
+            Some('>') => generic_depth = generic_depth.saturating_sub(1),
+            Some(';') => {
+                return Err(codec_owner_refusal(authored, codec, sought));
+            }
+            Some(_) | None => {}
+        }
+        if generic_depth == 0 && token.group_fragment(CapturedDelimiter::Brace).is_some() {
+            return Ok(());
+        }
+    }
+    Err(codec_owner_refusal(authored, codec, sought))
+}
+
+fn codec_owner_refusal(authored: &[CapturedTokenTree], codec: &str, owner: &str) -> RecipeError {
+    RecipeError::at(
+        RecipeIssue::CodecOwnerNotRecord {
+            codec: codec.to_owned(),
+            owner: owner.to_owned(),
+        },
+        authored.first().map(CapturedTokenTree::span),
+    )
+}
+
 fn unit_variants(
     body: CapturedFragment<'_>,
     vocabulary: &str,

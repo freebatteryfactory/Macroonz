@@ -1,7 +1,7 @@
 //! Descriptor-native evidence clauses, support address posture, and evidence standings.
 
 use super::{
-    EVIDENCE_LIMIT, EffectiveProjection, EvidenceTarget, HarnessPosture, LoweringSource,
+    EVIDENCE_LIMIT, EffectiveProjection, HarnessPosture, LoweringSource, PROJECTION_LIMIT,
     ProjectionStanding, RecipeError, RecipeEvidence, RecipeIssue, RecipeRole, RequestedEvidence,
     grammar,
 };
@@ -62,21 +62,9 @@ fn read_evidence(
     }
     let target = if role == RecipeRole::Mutation {
         let mut selected = cursor.group(CapturedDelimiter::Parenthesis)?;
-        let (target_token, target) = selected.identifier()?;
-        let target = match target {
-            "states" => EvidenceTarget::States,
-            "events" => EvidenceTarget::Events,
-            _ => {
-                return Err(CaptureReadRefusal::projected(
-                    crate::token::CaptureReadIssue::Unexpected(
-                        crate::token::CaptureExpectation::Word("states or events".to_owned()),
-                    ),
-                    Some(target_token.span()),
-                ));
-            }
-        };
+        let (_target_token, target) = selected.identifier()?;
         selected.finish()?;
-        Some(target)
+        Some(target.to_owned())
     } else {
         None
     };
@@ -132,7 +120,7 @@ pub(super) fn read_support(
 }
 
 pub(super) fn support_matches_projections(
-    projections: &[ProjectionStanding; 10],
+    projections: &[ProjectionStanding; PROJECTION_LIMIT],
     support: Option<&SupportName>,
     at: Option<crate::token::SpanHandle>,
 ) -> Result<(), RecipeError> {
@@ -161,6 +149,7 @@ pub(super) fn evidence_standing(
                 ProjectionStanding::Generated(EffectiveProjection::effective(
                     role,
                     None,
+                    None,
                     LoweringSource::Configuration,
                 ))
             } else {
@@ -176,7 +165,12 @@ pub(super) fn evidence(
         let role = evidence_role(position)?;
         let row = requested.iter().find(|candidate| candidate.role == role)?;
         let body = row.body.clone()?;
-        Some(RecipeEvidence::captured(row.role, row.target, body, row.at))
+        Some(RecipeEvidence::captured(
+            row.role,
+            row.target.clone().map(super::EvidenceTarget::named),
+            body,
+            row.at,
+        ))
     })
 }
 
@@ -191,9 +185,10 @@ const fn evidence_role(position: usize) -> Option<RecipeRole> {
     }
 }
 
-fn generated(projections: &[ProjectionStanding; 10], role: RecipeRole) -> bool {
+fn generated(projections: &[ProjectionStanding; PROJECTION_LIMIT], role: RecipeRole) -> bool {
     let [
         companions,
+        relation_tables,
         dispatch,
         compile_contract,
         property,
@@ -203,10 +198,12 @@ fn generated(projections: &[ProjectionStanding; 10], role: RecipeRole) -> bool {
         benchmarks,
         network,
         concurrency,
+        codec,
     ] = projections;
     matches!(
         match role {
             RecipeRole::Companions => companions,
+            RecipeRole::RelationTables => relation_tables,
             RecipeRole::Dispatch => dispatch,
             RecipeRole::CompileContract => compile_contract,
             RecipeRole::Property => property,
@@ -216,6 +213,7 @@ fn generated(projections: &[ProjectionStanding; 10], role: RecipeRole) -> bool {
             RecipeRole::Benchmarks => benchmarks,
             RecipeRole::Network => network,
             RecipeRole::Concurrency => concurrency,
+            RecipeRole::Codec => codec,
         },
         ProjectionStanding::Generated(_)
     )

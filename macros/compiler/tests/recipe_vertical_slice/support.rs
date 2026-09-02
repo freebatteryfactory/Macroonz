@@ -2,7 +2,8 @@
 
 use macroonz_compiler::recipe::{
     ProjectionError, ProjectionOffered, ProjectionRequest, ProjectionSink, RecipeProjector,
-    RecipeRole, RecipeView,
+    RecipeRelation, RecipeRelationPayload, RecipeRelationPayloadKind, RecipeRelationRow,
+    RecipeRole, RecipeView, RecipeVocabulary,
 };
 use macroonz_compiler::{
     GeneratedDelimiter, GeneratedRowRefusal, GeneratedToken, GeneratedTree, NonEmptyError,
@@ -15,15 +16,19 @@ use macroonz_compiler::{
 #[path = "support/fixtures.rs"]
 mod fixtures;
 pub(super) use fixtures::{
-    CALLER_OWNED_TRIAL_RECIPE, COMPANION_RECIPE, COMPLETE_RECIPE, DOOR, EVIDENCE_RECIPE,
-    EXACT_DISPATCH_RECIPE, TARGET_UNAVAILABLE_RECIPE,
+    CALLER_OWNED_TRIAL_RECIPE, CODEC_RECIPE, COMPANION_RECIPE, COMPLETE_RECIPE, DOOR,
+    EVIDENCE_RECIPE, EXACT_DISPATCH_RECIPE, TARGET_UNAVAILABLE_RECIPE,
 };
 
 pub(super) struct MirroredCompanions;
 
 pub(super) struct MirroredDispatch;
 
+pub(super) struct MirroredRelationTables;
+
 pub(super) struct MirroredTypestate;
+
+pub(super) struct MirroredCodec;
 
 pub(super) struct CallerOwnedTrials;
 
@@ -60,19 +65,24 @@ impl RecipeProjector for MirroredCompanions {
         assert_eq!(request.role(), RecipeRole::Companions);
         assert_eq!(request.effective().role(), RecipeRole::Companions);
         let recipe = view.recipe();
+        let (states, events, relation) = transition_account(recipe)?;
+        let states_name = companion_constant(states.name(), "VARIANTS");
         let mut tokens = roster_constant(
-            "STATE_VARIANTS",
-            "The state variants in caller-authored order.",
-            recipe.states_name_token(),
-            recipe.states().members(),
+            states_name.as_str(),
+            "The caller-authored vocabulary variants in declared order.",
+            states.name_token(),
+            states.members().members(),
         )?;
-        tokens.extend(roster_constant(
-            "EVENT_VARIANTS",
-            "The event variants in caller-authored order.",
-            recipe.events_name_token(),
-            recipe.events().members(),
-        )?);
-        tokens.extend(transition_constant(recipe)?);
+        if states.name() != events.name() {
+            let events_name = companion_constant(events.name(), "VARIANTS");
+            tokens.extend(roster_constant(
+                events_name.as_str(),
+                "The caller-authored vocabulary variants in declared order.",
+                events.name_token(),
+                events.members().members(),
+            )?);
+        }
+        tokens.extend(transition_constant(states, events, relation)?);
         sink.offer(GeneratedTree::assembled(tokens)?)
     }
 }
@@ -87,6 +97,7 @@ impl RecipeProjector for MirroredDispatch {
         assert_eq!(request.role(), RecipeRole::Dispatch);
         assert_eq!(request.effective().role(), RecipeRole::Dispatch);
         let recipe = view.recipe();
+        let (states, events, relation) = transition_account(recipe)?;
         let refusal = decorated(
             vec![
                 documentation("Why generated dispatch did not find an admitted transition row.")?,
@@ -109,21 +120,20 @@ impl RecipeProjector for MirroredDispatch {
         let parameters = vec![
             typed_parameter(
                 vec![GeneratedToken::word("state")],
-                super_path(recipe.states_name_token()),
+                super_path(states.name_token()),
             ),
             typed_parameter(
                 vec![GeneratedToken::word("event")],
-                super_path(recipe.events_name_token()),
+                super_path(events.name_token()),
             ),
         ];
         let result = result_type(
-            super_path(recipe.states_name_token()),
+            super_path(states.name_token()),
             vec![GeneratedToken::word("TransitionRefusal")],
         );
-        let mut arms = recipe
-            .transitions()
-            .members()
-            .map(|transition| dispatch_arm(recipe, transition))
+        let mut arms = relation
+            .rows()
+            .map(|row| dispatch_arm(states, events, row))
             .collect::<Result<Vec<_>, _>>()?;
         arms.push(match_arm(
             vec![GeneratedToken::word("_")],
@@ -174,6 +184,42 @@ impl RecipeProjector for MirroredDispatch {
     }
 }
 
+impl RecipeProjector for MirroredRelationTables {
+    fn project(
+        &self,
+        view: RecipeView<'_>,
+        request: ProjectionRequest<'_>,
+        sink: ProjectionSink<'_, '_>,
+    ) -> Result<ProjectionOffered, ProjectionError> {
+        assert_eq!(request.role(), RecipeRole::RelationTables);
+        let recipe = view.recipe();
+        let mut tokens = Vec::new();
+        for table in request.effective().relation_tables() {
+            let relation = recipe
+                .relation(table.relation())
+                .ok_or_else(nothing_rendered)?;
+            if relation.payload_kind() != RecipeRelationPayloadKind::Unlabeled
+                || table.exact_rust().is_some()
+            {
+                return Err(nothing_rendered());
+            }
+            let left = recipe
+                .vocabulary(relation.left_vocabulary())
+                .ok_or_else(nothing_rendered)?;
+            let right = recipe
+                .vocabulary(relation.right_vocabulary())
+                .ok_or_else(nothing_rendered)?;
+            tokens.extend(mirrored_relation_table(
+                left,
+                right,
+                relation,
+                table.function(),
+            )?);
+        }
+        sink.offer(GeneratedTree::assembled(tokens)?)
+    }
+}
+
 impl RecipeProjector for MirroredTypestate {
     fn project(
         &self,
@@ -182,10 +228,11 @@ impl RecipeProjector for MirroredTypestate {
         sink: ProjectionSink<'_, '_>,
     ) -> Result<ProjectionOffered, ProjectionError> {
         assert_eq!(request.role(), RecipeRole::Typestate);
+        let (states, _events, _relation) = transition_account(view.recipe())?;
         let mut items = use_item(absolute_path(&["core", "marker", "PhantomData"]), None);
         items.extend(mirrored_stage_trait()?);
         items.extend(
-            keyed_roster_items(view.recipe().states(), |_position, spelling, member| {
+            keyed_roster_items(states.members(), |_position, spelling, member| {
                 mirrored_stage_member(spelling, member)
             })
             .map_err(mirrored_row_projection_error)?,
@@ -225,6 +272,30 @@ impl RecipeProjector for MirroredTypestate {
     }
 }
 
+impl RecipeProjector for MirroredCodec {
+    fn project(
+        &self,
+        view: RecipeView<'_>,
+        request: ProjectionRequest<'_>,
+        sink: ProjectionSink<'_, '_>,
+    ) -> Result<ProjectionOffered, ProjectionError> {
+        assert_eq!(request.role(), RecipeRole::Codec);
+        let mut rendered = GeneratedTree::assembled(Vec::new())?;
+        let mut observed = false;
+        for declaration in view.recipe().codecs() {
+            observed = true;
+            let next = macroonz_compiler::codec::codec_surface(declaration.content())?;
+            rendered = rendered.joined(&next)?;
+        }
+        if !observed {
+            return Err(ProjectionError::Render(
+                macroonz_compiler::RenderError::NothingRendered,
+            ));
+        }
+        sink.offer(rendered)
+    }
+}
+
 #[path = "support/observe.rs"]
 mod observe;
 pub(super) use observe::{bake, cargo_bytes, emitted_bytes, refusal_summary};
@@ -254,7 +325,9 @@ fn roster_constant<'name>(
 }
 
 fn transition_constant(
-    recipe: &macroonz_compiler::recipe::Recipe,
+    states: &RecipeVocabulary,
+    events: &RecipeVocabulary,
+    relation: &RecipeRelation,
 ) -> Result<Vec<GeneratedToken>, ProjectionError> {
     let mut kind = vec![GeneratedToken::alone('&')];
     kind.push(group(
@@ -262,24 +335,25 @@ fn transition_constant(
         vec![group(
             GeneratedDelimiter::Parenthesis,
             comma_separated(vec![
-                super_path(recipe.states_name_token()),
-                super_path(recipe.events_name_token()),
-                super_path(recipe.states_name_token()),
+                super_path(states.name_token()),
+                super_path(events.name_token()),
+                super_path(states.name_token()),
             ]),
         )?],
     )?);
-    let rows = recipe
-        .transitions()
-        .members()
-        .map(|transition| {
+    let rows = relation
+        .rows()
+        .map(|row| {
+            let (target_name, _effect) = transition_payload(row)?;
             group(
                 GeneratedDelimiter::Parenthesis,
                 comma_separated(vec![
-                    variant(recipe.states_name_token(), transition.source_name_token()),
-                    variant(recipe.events_name_token(), transition.event_name_token()),
-                    variant(recipe.states_name_token(), transition.target_name_token()),
+                    variant(states.name_token(), row.left_name_token()),
+                    variant(events.name_token(), row.right_name_token()),
+                    variant(states.name_token(), target_name),
                 ]),
             )
+            .map_err(ProjectionError::Tokens)
         })
         .collect::<Result<Vec<_>, _>>()?;
     let mut separated = Vec::new();
@@ -299,25 +373,101 @@ fn transition_constant(
     ))
 }
 
-fn dispatch_arm(
-    recipe: &macroonz_compiler::recipe::Recipe,
-    transition: &macroonz_compiler::recipe::RecipeTransition,
+fn mirrored_relation_table(
+    left: &RecipeVocabulary,
+    right: &RecipeVocabulary,
+    relation: &RecipeRelation,
+    function: &str,
 ) -> Result<Vec<GeneratedToken>, ProjectionError> {
+    let parameters = vec![
+        typed_parameter(
+            vec![GeneratedToken::word("left")],
+            borrowed(super_super_path(left.name_token())),
+        ),
+        typed_parameter(
+            vec![GeneratedToken::word("right")],
+            borrowed(super_super_path(right.name_token())),
+        ),
+    ];
+    let mut arms = relation
+        .rows()
+        .map(|row| {
+            let pattern = group(
+                GeneratedDelimiter::Parenthesis,
+                comma_separated(vec![
+                    super_super_variant(left.name_token(), row.left_name_token()),
+                    super_super_variant(right.name_token(), row.right_name_token()),
+                ]),
+            )?;
+            Ok(match_arm(
+                vec![pattern],
+                None,
+                vec![GeneratedToken::word("true")],
+            ))
+        })
+        .collect::<Result<Vec<_>, macroonz_compiler::Overflow>>()?;
+    arms.push(match_arm(
+        vec![GeneratedToken::word("_")],
+        None,
+        vec![GeneratedToken::word("false")],
+    ));
+    let body = match_expression(
+        vec![group(
+            GeneratedDelimiter::Parenthesis,
+            comma_separated(vec![
+                vec![GeneratedToken::word("left")],
+                vec![GeneratedToken::word("right")],
+            ]),
+        )?],
+        arms,
+    )?;
+    let function = decorated(
+        vec![documentation(
+            "Reports whether the supplied endpoints occupy one declared relation row.",
+        )?],
+        public(),
+        function_item(
+            function_signature(
+                vec![GeneratedToken::word("const")],
+                GeneratedToken::word(function),
+                parameters,
+                Vec::new(),
+                Some(vec![GeneratedToken::word("bool")]),
+                Vec::new(),
+            )?,
+            body,
+        )?,
+    );
+    Ok(decorated(
+        vec![documentation(
+            "Typed behavior projected from one caller-named relation.",
+        )?],
+        public(),
+        inline_module(relation.name_token().clone(), function)?,
+    ))
+}
+
+fn dispatch_arm(
+    states: &RecipeVocabulary,
+    events: &RecipeVocabulary,
+    row: &RecipeRelationRow,
+) -> Result<Vec<GeneratedToken>, ProjectionError> {
+    let (target_name, effect) = transition_payload(row)?;
     let pattern = group(
         GeneratedDelimiter::Parenthesis,
         comma_separated(vec![
-            variant(recipe.states_name_token(), transition.source_name_token()),
-            variant(recipe.events_name_token(), transition.event_name_token()),
+            variant(states.name_token(), row.left_name_token()),
+            variant(events.name_token(), row.right_name_token()),
         ]),
     )?;
-    let mut body = transition.effect().tokens().to_vec();
+    let mut body = effect.tokens().to_vec();
     body.push(group(GeneratedDelimiter::Parenthesis, Vec::new())?);
     body.push(GeneratedToken::alone(';'));
     body.extend([
         GeneratedToken::word("Ok"),
         group(
             GeneratedDelimiter::Parenthesis,
-            variant(recipe.states_name_token(), transition.target_name_token()),
+            variant(states.name_token(), target_name),
         )?,
     ]);
     Ok(match_arm(
@@ -327,6 +477,41 @@ fn dispatch_arm(
     ))
 }
 
+fn transition_account(
+    recipe: &macroonz_compiler::recipe::Recipe,
+) -> Result<(&RecipeVocabulary, &RecipeVocabulary, &RecipeRelation), ProjectionError> {
+    let relation = recipe.transition_relation().ok_or(ProjectionError::Render(
+        macroonz_compiler::RenderError::NothingRendered,
+    ))?;
+    let states = recipe
+        .vocabulary(relation.left_vocabulary())
+        .ok_or(ProjectionError::Render(
+            macroonz_compiler::RenderError::NothingRendered,
+        ))?;
+    let events = recipe
+        .vocabulary(relation.right_vocabulary())
+        .ok_or(ProjectionError::Render(
+            macroonz_compiler::RenderError::NothingRendered,
+        ))?;
+    Ok((states, events, relation))
+}
+
+fn transition_payload(
+    row: &RecipeRelationRow,
+) -> Result<(&GeneratedToken, &GeneratedTree), ProjectionError> {
+    let RecipeRelationPayload::Transition {
+        target_name,
+        effect,
+        ..
+    } = row.payload()
+    else {
+        return Err(ProjectionError::Render(
+            macroonz_compiler::RenderError::NothingRendered,
+        ));
+    };
+    Ok((target_name, effect))
+}
+
 fn super_path(name: &GeneratedToken) -> Vec<GeneratedToken> {
     vec![
         GeneratedToken::word("super"),
@@ -334,6 +519,40 @@ fn super_path(name: &GeneratedToken) -> Vec<GeneratedToken> {
         GeneratedToken::alone(':'),
         name.clone(),
     ]
+}
+
+fn super_super_path(name: &GeneratedToken) -> Vec<GeneratedToken> {
+    vec![
+        GeneratedToken::word("super"),
+        GeneratedToken::joint(':'),
+        GeneratedToken::alone(':'),
+        GeneratedToken::word("super"),
+        GeneratedToken::joint(':'),
+        GeneratedToken::alone(':'),
+        name.clone(),
+    ]
+}
+
+fn super_super_variant(
+    vocabulary: &GeneratedToken,
+    member: &GeneratedToken,
+) -> Vec<GeneratedToken> {
+    let mut tokens = super_super_path(vocabulary);
+    tokens.extend([
+        GeneratedToken::joint(':'),
+        GeneratedToken::alone(':'),
+        member.clone(),
+    ]);
+    tokens
+}
+
+fn borrowed(mut kind: Vec<GeneratedToken>) -> Vec<GeneratedToken> {
+    kind.insert(0, GeneratedToken::alone('&'));
+    kind
+}
+
+const fn nothing_rendered() -> ProjectionError {
+    ProjectionError::Render(macroonz_compiler::RenderError::NothingRendered)
 }
 
 fn variant(vocabulary: &GeneratedToken, member: &GeneratedToken) -> Vec<GeneratedToken> {
@@ -494,6 +713,24 @@ fn comma_separated(parts: Vec<Vec<GeneratedToken>>) -> Vec<GeneratedToken> {
         tokens.extend(part);
     }
     tokens
+}
+
+fn companion_constant(name: &str, suffix: &str) -> String {
+    let name = name.strip_prefix("r#").unwrap_or(name);
+    let mut generated = String::new();
+    let mut previous_lowercase = false;
+    for character in name.chars() {
+        if character.is_uppercase() && previous_lowercase {
+            generated.push('_');
+        }
+        for uppercase in character.to_uppercase() {
+            generated.push(uppercase);
+        }
+        previous_lowercase = character.is_lowercase() || character.is_numeric();
+    }
+    generated.push('_');
+    generated.push_str(suffix);
+    generated
 }
 
 fn public() -> Vec<GeneratedToken> {

@@ -75,15 +75,15 @@ bakery::recipe! {
         }
 
         bake! {
-            vocabularies(State, Event);
-            transitions {
+            vocabularies { State; Event; };
+            transitions(State, Event) {
                 (Closed, OpenDoor) => Open with(crate::record_open);
             };
             absence(refused);
             projections {
                 companions;
                 dispatch(apply);
-                typestate;
+                typestate(State);
             };
         }
     }
@@ -174,15 +174,15 @@ bakery::recipe! {
         }
 
         bake! {
-            vocabularies(State, Event);
-            transitions {
+            vocabularies { State; Event; };
+            transitions(State, Event) {
                 (Waiting, Advance) => Ready with(crate::r#type::r#move);
             };
             absence(refused);
             projections {
                 companions;
                 dispatch(apply);
-                typestate;
+                typestate(State);
             };
         }
     }

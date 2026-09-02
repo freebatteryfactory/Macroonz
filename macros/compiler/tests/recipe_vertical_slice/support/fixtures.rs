@@ -27,8 +27,8 @@ pub mod door {
     }
 
     bake! {
-        vocabularies(State, Event);
-        transitions {
+        vocabularies { State; Event; };
+        transitions(State, Event) {
             (Closed, OpenDoor) => Open with(crate::effects::open);
         };
         absence(refused);
@@ -37,7 +37,7 @@ pub mod door {
             dispatch(apply);
             compile_contract;
             property;
-            typestate;
+            typestate(State);
         };
         support(door_recipe_support);
     }
@@ -56,13 +56,81 @@ pub mod door {
     }
 
     bake! {
-        vocabularies(State, Event);
-        transitions {
+        vocabularies { State; Event; };
+        transitions(State, Event) {
             (Closed, OpenDoor) => Open with(crate::effects::open);
         };
         absence(refused);
         projections {
             companions;
+        };
+    }
+}
+";
+
+pub(crate) const CODEC_RECIPE: &str = r"
+pub mod ledger {
+    pub enum Seat {
+        Primary,
+    }
+
+    pub struct Payload;
+
+    pub enum Choice {
+        First,
+        Second,
+    }
+
+    pub struct Nested;
+
+    pub struct Ledger {
+        pub count: u16,
+        pub payload: Payload,
+        pub label: Option<String>,
+        pub modes: Vec<Choice>,
+        pub child: Nested,
+    }
+
+    impl Ledger {
+        pub fn assembled(
+            count: u16,
+            payload: Payload,
+            label: Option<String>,
+            modes: Vec<Choice>,
+            child: Nested,
+        ) -> Self {
+            Self {
+                count,
+                payload,
+                label,
+                modes,
+                child,
+            }
+        }
+    }
+
+    bake! {
+        vocabularies {
+            Seat;
+        };
+        relations {
+        };
+        codecs {
+            ledger(Ledger) {
+                direction(round_trip);
+                refusal(LedgerDecodeError);
+                assembly(assembled, total);
+                members {
+                    count: u16 => count(required);
+                    payload: Payload => bytes(required);
+                    label: String => text(optional);
+                    modes: Choice => closed_choice(repeated);
+                    child: Nested => nested(required);
+                };
+            };
+        };
+        projections {
+            codec;
         };
     }
 }
@@ -80,8 +148,8 @@ pub mod door {
     }
 
     bake! {
-        vocabularies(State, Event);
-        transitions {
+        vocabularies { State; Event; };
+        transitions(State, Event) {
             (Closed, OpenDoor) => Open with(crate::effects::open);
         };
         absence(refused);
@@ -114,8 +182,8 @@ pub mod door {
     }
 
     bake! {
-        vocabularies(State, Event);
-        transitions {
+        vocabularies { State; Event; };
+        transitions(State, Event) {
             (Closed, OpenDoor) => Open with(crate::effects::open);
             (Open, CloseDoor) => Closed with(crate::effects::close);
         };
@@ -137,7 +205,7 @@ pub mod door {
                     },
                 },
             };
-            mutation(states) {
+            mutation(State) {
                 module = recipe_mutations,
                 refusal = RecipeMutationRefusal,
                 support = recipe_mutation_support,
@@ -201,8 +269,8 @@ pub mod door {
     }
 
     bake! {
-        vocabularies(State, Event);
-        transitions {
+        vocabularies { State; Event; };
+        transitions(State, Event) {
             (Closed, OpenDoor) => Open with(crate::effects::open);
         };
         absence(refused);
@@ -228,8 +296,8 @@ pub mod door {
     }
 
     bake! {
-        vocabularies(State, Event);
-        transitions {
+        vocabularies { State; Event; };
+        transitions(State, Event) {
             (Closed, OpenDoor) => Open with(crate::effects::open);
         };
         absence(refused);

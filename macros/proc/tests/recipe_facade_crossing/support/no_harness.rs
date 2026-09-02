@@ -25,8 +25,8 @@ bakery::recipe! {
         }
 
         bake! {
-            vocabularies(State, Event);
-            transitions {
+            vocabularies { State; Event; };
+            transitions(State, Event) {
                 (Closed, OpenDoor) => Open with(crate::record_open);
             };
             absence(refused);

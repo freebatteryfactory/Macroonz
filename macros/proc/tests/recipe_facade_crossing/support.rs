@@ -2,6 +2,8 @@
 
 #[path = "support/harness_refusal.rs"]
 mod harness_refusal;
+#[path = "support/generic_recipe.rs"]
+mod generic_recipe;
 #[path = "support/historical_subjects.rs"]
 mod historical_subjects;
 #[path = "support/no_harness.rs"]
@@ -9,6 +11,7 @@ mod no_harness;
 #[path = "support/renamed_facade.rs"]
 mod renamed_facade;
 
+use generic_recipe::{GENERIC_CONSUMER, GENERIC_PRODUCER, GENERIC_REFUSALS};
 use harness_refusal::{EMPTY_CONSUMER, HARNESS_REFUSAL_PRODUCER};
 use historical_subjects::{SUBJECT_JOURNEYS_CONSUMER, SUBJECT_JOURNEYS_PRODUCER};
 use no_harness::{NO_HARNESS_CONSUMER, NO_HARNESS_PRODUCER};
@@ -235,6 +238,56 @@ pub(super) fn observe_subject_journeys(scratch: &Path) -> Result<(), String> {
     )?;
     if !wasm.status.success() {
         return Err(command_refusal("subject-journey Wasm posture", &wasm));
+    }
+    Ok(())
+}
+
+pub(super) fn observe_generic_crossing(scratch: &Path) -> Result<(), String> {
+    write_specimen(scratch, "", GENERIC_PRODUCER, GENERIC_CONSUMER)?;
+    let locked = cargo(scratch, &["generate-lockfile", "--offline"])?;
+    if !locked.status.success() {
+        return Err(command_refusal("generic-recipe lock generation", &locked));
+    }
+    let tested = cargo(scratch, &["test", "--locked", "--offline"])?;
+    if !tested.status.success() {
+        return Err(command_refusal("generic-recipe qualification", &tested));
+    }
+    let wasm = cargo(
+        scratch,
+        &[
+            "check",
+            "--lib",
+            "--locked",
+            "--offline",
+            "--target",
+            "wasm32-unknown-unknown",
+        ],
+    )?;
+    if !wasm.status.success() {
+        return Err(command_refusal("generic-recipe Wasm posture", &wasm));
+    }
+    Ok(())
+}
+
+pub(super) fn observe_generic_refusals(scratch: &Path) -> Result<(), String> {
+    let Some((_, first, _)) = GENERIC_REFUSALS.first() else {
+        return Err("the generic-refusal denominator is empty".to_owned());
+    };
+    write_specimen(scratch, "", first, "")?;
+    let locked = cargo(scratch, &["generate-lockfile", "--offline"])?;
+    if !locked.status.success() {
+        return Err(command_refusal("generic-refusal lock generation", &locked));
+    }
+    for (label, producer, expected) in GENERIC_REFUSALS {
+        std::fs::write(scratch.join("src/lib.rs"), producer).map_err(|error| error.to_string())?;
+        let checked = cargo(scratch, &["check", "--lib", "--locked", "--offline"])?;
+        if checked.status.success() {
+            return Err(format!("generic refusal `{label}` compiled successfully"));
+        }
+        let stderr = String::from_utf8_lossy(&checked.stderr);
+        if !stderr.contains(expected) {
+            return Err(command_refusal(label, &checked));
+        }
     }
     Ok(())
 }

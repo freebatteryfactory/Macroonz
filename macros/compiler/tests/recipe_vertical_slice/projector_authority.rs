@@ -1,8 +1,8 @@
 //! Caller-owned projectors observed against the standard projector authority ceiling.
 
 use super::support::{
-    COMPANION_RECIPE, DOOR, MirroredCompanions, MirroredDispatch, MirroredTypestate, bake,
-    emitted_bytes,
+    CODEC_RECIPE, COMPANION_RECIPE, DOOR, MirroredCodec, MirroredCompanions, MirroredDispatch,
+    MirroredRelationTables, MirroredTypestate, bake, emitted_bytes,
 };
 use macroonz_compiler::recipe::{HarnessPosture, RecipeRole};
 use macroonz_compiler::{CanonicalContent, TextCapture};
@@ -78,8 +78,55 @@ fn a_caller_owned_dispatch_projector_uses_the_same_behavior_kernel_and_authority
 }
 
 #[test]
+fn a_caller_owned_relation_table_uses_the_same_account_and_authority() -> Result<(), ()> {
+    let source = r"
+pub mod graph {
+    pub enum Stage { Draft, Published }
+
+    bake! {
+        vocabularies { Stage; };
+        relations {
+            evolution(Stage, Stage) {
+                (Draft, Published);
+            };
+        };
+        projections {
+            relation_tables { evolution; };
+        };
+    }
+}
+";
+    let read = TextCapture::read(source).map_err(|_| ())?;
+    let standard = macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
+        .map_err(|_| ())?;
+    let custom = macroonz_compiler::recipe::bake_with(
+        read.input(),
+        HarnessPosture::Available,
+        &DOOR,
+        RecipeRole::RelationTables,
+        &MirroredRelationTables,
+    )
+    .map_err(|_| ())?;
+
+    assert_eq!(
+        standard.projection().identity(),
+        custom.projection().identity()
+    );
+    assert_eq!(
+        standard.projection().plan().identity(),
+        custom.projection().plan().identity()
+    );
+    assert_eq!(
+        standard.projection().closure().identity(),
+        custom.projection().closure().identity()
+    );
+    assert_eq!(emitted_bytes(&standard), emitted_bytes(&custom));
+    Ok(())
+}
+
+#[test]
 fn a_caller_owned_typestate_projector_uses_the_same_item_kernel_and_authority() -> Result<(), ()> {
-    let source = COMPANION_RECIPE.replace("companions;", "typestate;");
+    let source = COMPANION_RECIPE.replace("companions;", "typestate(State);");
     let read = TextCapture::read(&source).map_err(|_| ())?;
     let standard = macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
         .map_err(|_| ())?;
@@ -95,6 +142,37 @@ fn a_caller_owned_typestate_projector_uses_the_same_item_kernel_and_authority() 
     assert_eq!(
         standard.projection().identity(),
         custom.projection().identity()
+    );
+    assert_eq!(
+        standard.projection().closure().identity(),
+        custom.projection().closure().identity()
+    );
+    assert_eq!(emitted_bytes(&standard), emitted_bytes(&custom));
+    Ok(())
+}
+
+#[test]
+fn a_caller_owned_codec_projector_uses_the_existing_codec_owner_and_same_authority()
+-> Result<(), ()> {
+    let read = TextCapture::read(CODEC_RECIPE).map_err(|_| ())?;
+    let standard = macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
+        .map_err(|_| ())?;
+    let custom = macroonz_compiler::recipe::bake_with(
+        read.input(),
+        HarnessPosture::Available,
+        &DOOR,
+        RecipeRole::Codec,
+        &MirroredCodec,
+    )
+    .map_err(|_| ())?;
+
+    assert_eq!(
+        standard.projection().identity(),
+        custom.projection().identity()
+    );
+    assert_eq!(
+        standard.projection().plan().identity(),
+        custom.projection().plan().identity()
     );
     assert_eq!(
         standard.projection().closure().identity(),

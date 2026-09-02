@@ -8,8 +8,7 @@ use crate::token::{
 pub(super) fn exact_dispatch(
     input: &CapturedInput,
     at: crate::token::SpanHandle,
-    states: &str,
-    events: &str,
+    transition_subject: Option<(&str, &str)>,
 ) -> Result<
     (
         String,
@@ -19,28 +18,67 @@ pub(super) fn exact_dispatch(
     ),
     RecipeError,
 > {
-    let item = input.authored_item().map_err(|refusal| {
-        RecipeError::at(RecipeIssue::ExactDispatchFunctionRequired, refusal.token())
-    })?;
+    exact_function(input, at, transition_subject, ExactFunctionSeat::Dispatch)
+}
+
+pub(super) fn exact_relation_table(
+    input: &CapturedInput,
+    at: crate::token::SpanHandle,
+    subject: (&str, &str),
+) -> Result<
+    (
+        String,
+        crate::token::GeneratedTree,
+        [crate::token::GeneratedToken; 2],
+        [bool; 2],
+    ),
+    RecipeError,
+> {
+    exact_function(input, at, Some(subject), ExactFunctionSeat::RelationTable)
+}
+
+#[derive(Clone, Copy)]
+enum ExactFunctionSeat {
+    Dispatch,
+    RelationTable,
+}
+
+fn exact_function(
+    input: &CapturedInput,
+    at: crate::token::SpanHandle,
+    subject: Option<(&str, &str)>,
+    seat: ExactFunctionSeat,
+) -> Result<
+    (
+        String,
+        crate::token::GeneratedTree,
+        [crate::token::GeneratedToken; 2],
+        [bool; 2],
+    ),
+    RecipeError,
+> {
+    let item = input
+        .authored_item()
+        .map_err(|refusal| RecipeError::at(seat.function_required(), refusal.token()))?;
     if item.kind() != AuthoredItemKind::Function {
         return Err(RecipeError::at(
-            RecipeIssue::ExactDispatchFunctionRequired,
+            seat.function_required(),
             Some(item.kind_token().span()),
         ));
     }
     if let Some((_, body)) = item.body() {
         return Err(RecipeError::at(
-            RecipeIssue::ExactDispatchBodyRefused,
+            seat.body_refused(),
             body.enclosing_span().or_else(|| body.first_span()),
         ));
     }
     let Some((name_token, name)) = item.name() else {
         return Err(RecipeError::at(
-            RecipeIssue::ExactDispatchFunctionRequired,
+            seat.function_required(),
             Some(item.kind_token().span()),
         ));
     };
-    let parameters = exact_dispatch_parameters(item, at)?;
+    let parameters = exact_parameters(item, at, seat)?;
     let attributes = item
         .attributes()
         .generated()
@@ -52,11 +90,43 @@ pub(super) fn exact_dispatch(
     let exact = attributes
         .joined(&signature)
         .map_err(|_| fragment_refusal(Some(name_token.span())))?;
-    let imports = [
-        uses_unqualified_name(item.signature().tokens(), states),
-        uses_unqualified_name(item.signature().tokens(), events),
-    ];
+    let imports = subject.map_or([false, false], |(left, right)| {
+        [
+            uses_unqualified_name(item.signature().tokens(), left),
+            uses_unqualified_name(item.signature().tokens(), right),
+        ]
+    });
     Ok((name.to_owned(), exact, parameters, imports))
+}
+
+impl ExactFunctionSeat {
+    const fn function_required(self) -> RecipeIssue {
+        match self {
+            Self::Dispatch => RecipeIssue::ExactDispatchFunctionRequired,
+            Self::RelationTable => RecipeIssue::ExactRelationTableFunctionRequired,
+        }
+    }
+
+    const fn body_refused(self) -> RecipeIssue {
+        match self {
+            Self::Dispatch => RecipeIssue::ExactDispatchBodyRefused,
+            Self::RelationTable => RecipeIssue::ExactRelationTableBodyRefused,
+        }
+    }
+
+    const fn parameter_count(self, observed: usize) -> RecipeIssue {
+        match self {
+            Self::Dispatch => RecipeIssue::ExactDispatchParameterCount { observed },
+            Self::RelationTable => RecipeIssue::ExactRelationTableParameterCount { observed },
+        }
+    }
+
+    const fn parameter_binding(self, position: usize) -> RecipeIssue {
+        match self {
+            Self::Dispatch => RecipeIssue::ExactDispatchParameterBinding { position },
+            Self::RelationTable => RecipeIssue::ExactRelationTableParameterBinding { position },
+        }
+    }
 }
 
 fn uses_unqualified_name(tokens: &[CapturedTokenTree], sought: &str) -> bool {
@@ -87,30 +157,26 @@ fn preceded_by_path_separator(tokens: &[CapturedTokenTree], position: usize) -> 
     first_colon.joint_punct() == Some(':') && second_colon.punct() == Some(':')
 }
 
-fn exact_dispatch_parameters(
+fn exact_parameters(
     item: crate::token::AuthoredItem<'_>,
     at: crate::token::SpanHandle,
+    seat: ExactFunctionSeat,
 ) -> Result<[crate::token::GeneratedToken; 2], RecipeError> {
     let Some(parameters) = function_parameters(item) else {
-        return Err(RecipeError::at(
-            RecipeIssue::ExactDispatchParameterCount { observed: 0 },
-            Some(at),
-        ));
+        return Err(RecipeError::at(seat.parameter_count(0), Some(at)));
     };
     let rows = comma_rows(parameters.tokens());
     let [first, second] = rows.as_slice() else {
         return Err(RecipeError::at(
-            RecipeIssue::ExactDispatchParameterCount {
-                observed: rows.len(),
-            },
+            seat.parameter_count(rows.len()),
             parameters
                 .enclosing_span()
                 .or_else(|| parameters.first_span()),
         ));
     };
     Ok([
-        simple_binding(first, 1, at)?,
-        simple_binding(second, 2, at)?,
+        simple_binding(first, 1, at, seat)?,
+        simple_binding(second, 2, at, seat)?,
     ])
 }
 
@@ -186,15 +252,16 @@ fn simple_binding(
     row: &[CapturedTokenTree],
     position: usize,
     at: crate::token::SpanHandle,
+    seat: ExactFunctionSeat,
 ) -> Result<crate::token::GeneratedToken, RecipeError> {
     let [binding, colon, rest @ ..] = row else {
-        return Err(simple_binding_refusal(row, position, at));
+        return Err(simple_binding_refusal(row, position, at, seat));
     };
     let Some(spelling) = binding.word().or_else(|| binding.raw_identifier()) else {
-        return Err(simple_binding_refusal(row, position, at));
+        return Err(simple_binding_refusal(row, position, at, seat));
     };
     if colon.punct() != Some(':') || rest.is_empty() {
-        return Err(simple_binding_refusal(row, position, at));
+        return Err(simple_binding_refusal(row, position, at, seat));
     }
     Ok(identifier_token(binding, spelling))
 }
@@ -203,9 +270,10 @@ fn simple_binding_refusal(
     row: &[CapturedTokenTree],
     position: usize,
     at: crate::token::SpanHandle,
+    seat: ExactFunctionSeat,
 ) -> RecipeError {
     RecipeError::at(
-        RecipeIssue::ExactDispatchParameterBinding { position },
+        seat.parameter_binding(position),
         row.first().map(CapturedTokenTree::span).or(Some(at)),
     )
 }

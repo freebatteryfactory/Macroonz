@@ -258,6 +258,8 @@ fn final_tree(
     let mut companions = Vec::new();
     for role in [
         RecipeRole::Companions,
+        RecipeRole::RelationTables,
+        RecipeRole::Codec,
         RecipeRole::Dispatch,
         RecipeRole::Typestate,
         RecipeRole::Network,

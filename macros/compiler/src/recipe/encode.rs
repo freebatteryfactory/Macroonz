@@ -1,7 +1,7 @@
 //! Canonical recipe and final-emission content.
 
-use super::types::{ProjectionStanding, RecipeShellContent};
-use super::{Recipe, RecipeRole};
+use super::types::{ProjectionStanding, RecipeRelationPayload, RecipeShellContent};
+use super::{Recipe, RecipeRelationRequirements, RecipeRole};
 use crate::identity::{encode_bytes, encode_length};
 use crate::kind::{CanonicalContent, Role};
 
@@ -10,24 +10,37 @@ impl CanonicalContent for Recipe {
         encode_bytes(self.module_name().as_bytes(), into);
         encode_bytes(&self.module_head().canonical_bytes(), into);
         encode_bytes(&self.authored_body().canonical_bytes(), into);
-        encode_bytes(self.states_name().as_bytes(), into);
-        encode_length(self.states().count(), into);
-        for member in self.states().members() {
-            encode_bytes(member.spelling().as_bytes(), into);
+        encode_length(self.vocabularies().count(), into);
+        for vocabulary in self.vocabularies() {
+            encode_bytes(vocabulary.name().as_bytes(), into);
+            encode_length(vocabulary.members().count(), into);
+            for member in vocabulary.members().members() {
+                encode_bytes(member.spelling().as_bytes(), into);
+            }
         }
-        encode_bytes(self.events_name().as_bytes(), into);
-        encode_length(self.events().count(), into);
-        for member in self.events().members() {
-            encode_bytes(member.spelling().as_bytes(), into);
+        encode_length(self.relations().count(), into);
+        for relation in self.relations() {
+            encode_bytes(relation.name().as_bytes(), into);
+            encode_bytes(relation.left_vocabulary().as_bytes(), into);
+            encode_bytes(relation.right_vocabulary().as_bytes(), into);
+            encode_bytes(relation.payload_kind().name().as_bytes(), into);
+            encode_length(relation.row_count(), into);
+            for row in relation.rows() {
+                encode_bytes(row.left().as_bytes(), into);
+                encode_bytes(row.right().as_bytes(), into);
+                encode_relation_payload(row.payload(), into);
+            }
+            encode_relation_requirements(relation.requirements(), into);
         }
-        encode_length(self.transitions().count(), into);
-        for transition in self.transitions().members() {
-            encode_bytes(transition.from().as_bytes(), into);
-            encode_bytes(transition.event().as_bytes(), into);
-            encode_bytes(transition.to().as_bytes(), into);
-            encode_bytes(&transition.effect().canonical_bytes(), into);
+        encode_length(self.codecs().count(), into);
+        for codec in self.codecs() {
+            encode_bytes(codec.name().as_bytes(), into);
+            encode_bytes(&codec.content().canonical_content_bytes(), into);
         }
-        encode_bytes(self.absence().name().as_bytes(), into);
+        encode_optional_name(
+            self.transition_relation().map(super::RecipeRelation::name),
+            into,
+        );
         for role in RecipeRole::ALL {
             encode_bytes(role.name().as_bytes(), into);
             match self.standing(*role) {
@@ -52,9 +65,106 @@ impl CanonicalContent for Recipe {
     }
 }
 
+fn encode_relation_payload(payload: &RecipeRelationPayload, into: &mut Vec<u8>) {
+    match payload {
+        RecipeRelationPayload::Unlabeled => into.push(0),
+        RecipeRelationPayload::Path(path) => {
+            into.push(1);
+            encode_bytes(&path.canonical_bytes(), into);
+        }
+        RecipeRelationPayload::ExactRust(exact) => {
+            into.push(2);
+            encode_bytes(&exact.canonical_bytes(), into);
+        }
+        RecipeRelationPayload::Transition { target, effect, .. } => {
+            into.push(3);
+            encode_bytes(target.as_bytes(), into);
+            encode_bytes(&effect.canonical_bytes(), into);
+        }
+    }
+}
+
+fn encode_relation_requirements(requirements: &RecipeRelationRequirements, into: &mut Vec<u8>) {
+    encode_optional_name(
+        requirements
+            .empty()
+            .map(crate::relation::EmptyPosture::name),
+        into,
+    );
+    encode_optional_name(
+        requirements
+            .repetition()
+            .map(crate::relation::RepetitionPosture::name),
+        into,
+    );
+    encode_optional_name(
+        requirements
+            .left_membership()
+            .map(crate::relation::MembershipPosture::name),
+        into,
+    );
+    encode_optional_name(
+        requirements
+            .right_membership()
+            .map(crate::relation::MembershipPosture::name),
+        into,
+    );
+    encode_optional_name(
+        requirements
+            .left_completeness()
+            .map(crate::relation::CompletenessPosture::name),
+        into,
+    );
+    encode_optional_name(
+        requirements
+            .right_completeness()
+            .map(crate::relation::CompletenessPosture::name),
+        into,
+    );
+    encode_optional_name(
+        requirements
+            .density()
+            .map(crate::relation::DensityPosture::name),
+        into,
+    );
+    encode_optional_name(
+        requirements
+            .absence()
+            .map(crate::relation::AbsencePosture::name),
+        into,
+    );
+    encode_optional_name(
+        requirements
+            .self_relation()
+            .map(crate::relation::SelfRelationPosture::name),
+        into,
+    );
+    encode_optional_name(
+        requirements
+            .cycle()
+            .map(crate::relation::CyclePosture::name),
+        into,
+    );
+}
+
 fn encode_lowering(lowering: &super::EffectiveProjection, into: &mut Vec<u8>) {
     encode_bytes(lowering.source().name().as_bytes(), into);
     encode_optional_name(lowering.name(), into);
+    encode_optional_name(lowering.subject(), into);
+    let relation_tables = lowering.relation_tables().collect::<Vec<_>>();
+    encode_length(relation_tables.len(), into);
+    for table in relation_tables {
+        encode_bytes(table.relation().as_bytes(), into);
+        encode_bytes(table.function().as_bytes(), into);
+        encode_bytes(table.source().name().as_bytes(), into);
+        match table.exact_rust() {
+            None => into.push(0),
+            Some(exact) => {
+                into.push(1);
+                encode_bytes(&exact.canonical_bytes(), into);
+            }
+        }
+    }
     let Some(exact) = lowering.exact_rust() else {
         return;
     };

@@ -1,8 +1,10 @@
 //! Projection through the one capability shared by standard and caller-owned projectors.
 
+use super::render_codec::codec;
 use super::render_companions::companions;
 use super::render_dispatch::dispatch;
 use super::render_evidence::{compile_contract, property};
+use super::render_relation_tables::relation_tables;
 use super::render_typestate::typestate;
 use super::types::StandardProjector;
 use super::{
@@ -27,10 +29,12 @@ impl RecipeProjector for StandardProjector<'_> {
     ) -> Result<super::ProjectionOffered, ProjectionError> {
         let tree = match request.role() {
             RecipeRole::Companions => companions(view.recipe())?,
+            RecipeRole::RelationTables => relation_tables(view.recipe(), request.effective())?,
             RecipeRole::Dispatch => dispatch(view.recipe(), request.effective())?,
             RecipeRole::CompileContract => compile_contract(view.recipe())?,
             RecipeRole::Property => property(view.recipe())?,
             RecipeRole::Typestate => typestate(view.recipe())?,
+            RecipeRole::Codec => codec(view.recipe())?,
             RecipeRole::Trials
             | RecipeRole::Mutation
             | RecipeRole::Benchmarks

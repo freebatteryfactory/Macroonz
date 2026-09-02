@@ -25,9 +25,11 @@ pub(crate) const fn evidence_position(role: RecipeRole) -> Option<usize> {
         RecipeRole::Network => Some(3),
         RecipeRole::Concurrency => Some(4),
         RecipeRole::Companions
+        | RecipeRole::RelationTables
         | RecipeRole::Dispatch
         | RecipeRole::CompileContract
         | RecipeRole::Property
-        | RecipeRole::Typestate => None,
+        | RecipeRole::Typestate
+        | RecipeRole::Codec => None,
     }
 }
