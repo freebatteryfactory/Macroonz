@@ -4,8 +4,8 @@ use super::{COMPANION_RECIPE, COMPLETE_RECIPE, DOOR, bake};
 use macroonz_compiler::host::Emittable;
 use macroonz_compiler::recipe::{
     HarnessPosture, LoweringSource, ProjectionDisposition, ProjectionError, ProjectionOffered,
-    ProjectionRequest, ProjectionSink, RecipeProjector, RecipeRelationPayload, RecipeRole,
-    RecipeView,
+    ProjectionRequest, ProjectionSink, ProjectorReplacement, RecipeProjector,
+    RecipeRelationPayload, RecipeRole, RecipeView,
 };
 use macroonz_compiler::{
     AbsencePosture, CompletenessPosture, CyclePosture, DensityPosture, EmptyPosture,
@@ -184,8 +184,10 @@ fn caller_owned_projection_reads_every_declared_relation_requirement() -> Result
         read.input(),
         HarnessPosture::Available,
         &DOOR,
-        RecipeRole::RelationTables,
-        &ReadbackProjector,
+        &[ProjectorReplacement::for_role(
+            RecipeRole::RelationTables,
+            &ReadbackProjector,
+        )],
     )
     .map(|_| ())
     .map_err(|_| ())

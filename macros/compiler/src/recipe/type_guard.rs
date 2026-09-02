@@ -2,8 +2,8 @@
 
 use super::{
     EffectiveProjection, LoweringSource, ProjectionError, ProjectionOffered, ProjectionRequest,
-    ProjectionSink, RELATION_TABLE_LIMIT, Recipe, RecipeBake, RecipeError, RecipeIssue,
-    RecipeProjection, RecipeRole, RecipeShell, RecipeShellContent, RecipeView,
+    ProjectionSink, ProjectorReplacement, RELATION_TABLE_LIMIT, Recipe, RecipeBake, RecipeError,
+    RecipeIssue, RecipeProjection, RecipeRole, RecipeShell, RecipeShellContent, RecipeView,
     RelationTableProjection,
 };
 use crate::bounded::Bounded;
@@ -189,6 +189,27 @@ impl<'recipe> RecipeView<'recipe> {
     #[must_use]
     pub const fn recipe(self) -> &'recipe Recipe {
         self.recipe
+    }
+}
+
+impl<'projector> ProjectorReplacement<'projector> {
+    /// Bind one caller-owned projector to one selected role for one bake.
+    #[must_use]
+    pub const fn for_role(
+        role: RecipeRole,
+        projector: &'projector dyn super::RecipeProjector,
+    ) -> Self {
+        Self { role, projector }
+    }
+
+    /// Reads the selected role this caller-owned projector replaces.
+    #[must_use]
+    pub const fn role(self) -> RecipeRole {
+        self.role
+    }
+
+    pub(in crate::recipe) const fn projector(self) -> &'projector dyn super::RecipeProjector {
+        self.projector
     }
 }
 

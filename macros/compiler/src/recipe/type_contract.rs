@@ -4,8 +4,8 @@
 use super::RecipeBake;
 use super::types::{RECIPE_FACT, RecipeError, RecipeIssue, RecipeShell, RecipeShellContent};
 use super::{
-    HarnessPosture, LoweringSource, ProjectionDisposition, ProjectionError, Recipe,
-    RecipeProjection, RecipeRelationPayloadKind, RecipeRole,
+    HarnessPosture, LoweringSource, PROJECTION_LIMIT, ProjectionDisposition, ProjectionError,
+    Recipe, RecipeProjection, RecipeRelationPayloadKind, RecipeRole,
 };
 use crate::bounded::{Bounded, Overflow};
 use crate::diagnostic::{LineBody, Observed, Phase, REPAIR_LIMIT, RefusalClass, Refused, Repair};
@@ -229,6 +229,8 @@ impl RecipeIssue {
             | Self::SupportAddressRequired
             | Self::SupportAddressUnneeded
             | Self::ReplacementUnplanned { .. }
+            | Self::DuplicateReplacement { .. }
+            | Self::ReplacementRosterUnbounded { .. }
             | Self::FragmentNotGenerated
             | Self::ExactDispatchFunctionRequired
             | Self::ExactDispatchBodyRefused
@@ -306,6 +308,8 @@ impl RecipeIssue {
             | Self::SupportAddressRequired
             | Self::SupportAddressUnneeded
             | Self::ReplacementUnplanned { .. }
+            | Self::DuplicateReplacement { .. }
+            | Self::ReplacementRosterUnbounded { .. }
             | Self::FragmentNotGenerated
             | Self::ExactDispatchFunctionRequired
             | Self::ExactDispatchBodyRefused
@@ -369,6 +373,15 @@ impl RecipeIssue {
                 into,
                 "a caller-owned projector was supplied for unselected role `{}`",
                 role.name()
+            ),
+            Self::DuplicateReplacement { role } => write!(
+                into,
+                "caller-owned projector role `{}` is replaced more than once",
+                role.name()
+            ),
+            Self::ReplacementRosterUnbounded { observed } => write!(
+                into,
+                "{observed} caller-owned projectors were supplied where at most {PROJECTION_LIMIT} fit"
             ),
             Self::FragmentNotGenerated => into.write_str(
                 "captured caller-authored Rust could not be preserved as generated tokens",
@@ -471,6 +484,8 @@ impl RecipeIssue {
             | Self::SupportAddressRequired
             | Self::SupportAddressUnneeded
             | Self::ReplacementUnplanned { .. }
+            | Self::DuplicateReplacement { .. }
+            | Self::ReplacementRosterUnbounded { .. }
             | Self::FragmentNotGenerated => {
                 unreachable!("recipe issue category must be formatted exactly once")
             }
@@ -545,6 +560,7 @@ impl Refused for RecipeError {
             | RecipeIssue::DuplicateRelationQuestion { .. }
             | RecipeIssue::DuplicateProjection { .. }
             | RecipeIssue::DuplicateRelationTable { .. }
+            | RecipeIssue::DuplicateReplacement { .. }
             | RecipeIssue::GeneratedNameCollision { .. } => Observed::IdentityDisagreement,
             RecipeIssue::GeneratedNameNotIdentifier { .. }
             | RecipeIssue::Grammar(_)
@@ -553,6 +569,7 @@ impl Refused for RecipeError {
             | RecipeIssue::AllowedAbsenceNeedsFallback
             | RecipeIssue::SupportAddressUnneeded
             | RecipeIssue::ReplacementUnplanned { .. }
+            | RecipeIssue::ReplacementRosterUnbounded { .. }
             | RecipeIssue::FragmentNotGenerated
             | RecipeIssue::ExactDispatchFunctionRequired
             | RecipeIssue::ExactDispatchBodyRefused
@@ -623,6 +640,10 @@ impl Refused for RecipeError {
             ),
             RecipeIssue::RelationTableTransitionUnsupported { .. } => human_projection!(
                 "request dispatch for the transition lowering or select a non-transition relation for a typed relation table"
+            ),
+            RecipeIssue::DuplicateReplacement { .. }
+            | RecipeIssue::ReplacementRosterUnbounded { .. } => human_projection!(
+                "supply at most one caller-owned projector for each selected recipe role"
             ),
             RecipeIssue::DuplicateMember { .. }
             | RecipeIssue::DuplicateVocabulary { .. }

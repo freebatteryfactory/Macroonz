@@ -2,8 +2,8 @@
 
 use macroonz_compiler::recipe::{
     HarnessPosture, LoweringSource, ProjectionError, ProjectionOffered, ProjectionRequest,
-    ProjectionSink, RecipeProjector, RecipeRelationPayload, RecipeRole, RecipeTransitionEffect,
-    RecipeView, TRANSITION_LIMIT, VOCABULARY_LIMIT,
+    ProjectionSink, ProjectorReplacement, RecipeProjector, RecipeRelationPayload, RecipeRole,
+    RecipeTransitionEffect, RecipeView, TRANSITION_LIMIT, VOCABULARY_LIMIT,
 };
 use macroonz_compiler::{
     CrateBinding, Destination, Door, GeneratedDelimiter, GeneratedToken, GeneratedTree, Overflow,
@@ -165,8 +165,10 @@ fn main() -> Result<(), String> {
         captured.input(),
         HarnessPosture::Available,
         &RECIPE_DOOR,
-        RecipeRole::Companions,
-        &StructuralDimensions,
+        &[ProjectorReplacement::for_role(
+            RecipeRole::Companions,
+            &StructuralDimensions,
+        )],
     )
     .map_err(|diagnostic| diagnostic.summary().to_owned())?;
     let emitted = baked

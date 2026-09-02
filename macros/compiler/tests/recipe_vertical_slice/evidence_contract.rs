@@ -4,7 +4,9 @@ use super::{
     CALLER_OWNED_TRIAL_RECIPE, COMPANION_RECIPE, CallerOwnedTrials, DOOR, EVIDENCE_RECIPE,
     TARGET_UNAVAILABLE_RECIPE, bake, emitted_bytes, refusal_summary,
 };
-use macroonz_compiler::recipe::{HarnessPosture, ProjectionDisposition, RecipeRole};
+use macroonz_compiler::recipe::{
+    HarnessPosture, ProjectionDisposition, ProjectorReplacement, RecipeRole,
+};
 use macroonz_compiler::{GeneratedTree, TextCapture};
 
 #[test]
@@ -149,8 +151,10 @@ fn a_caller_owned_evidence_projector_uses_the_common_sink_without_standard_privi
         read.input(),
         HarnessPosture::Available,
         &DOOR,
-        RecipeRole::Trials,
-        &CallerOwnedTrials,
+        &[ProjectorReplacement::for_role(
+            RecipeRole::Trials,
+            &CallerOwnedTrials,
+        )],
     )
     .map_err(|_| ())?;
     let text = custom

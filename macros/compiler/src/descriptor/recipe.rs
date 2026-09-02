@@ -21,7 +21,7 @@ pub(crate) fn prepared(
     capture: &CapturedInput,
     recipe: &Recipe,
     door: &Door,
-    replaced: Option<RecipeRole>,
+    replaced: &[RecipeRole],
 ) -> Result<PreparedEvidence, Diagnostic> {
     let producer = door.producer();
     let emitter = Emitter {
@@ -32,7 +32,7 @@ pub(crate) fn prepared(
     let mut trees: [Option<GeneratedTree>; EVIDENCE_LIMIT] = core::array::from_fn(|_| None);
     let mut names = PreparedNames::over(recipe);
     for role in evidence_roles() {
-        if replaced == Some(role) {
+        if replaced.contains(&role) {
             continue;
         }
         let Some(evidence) = recipe.evidence(role) else {

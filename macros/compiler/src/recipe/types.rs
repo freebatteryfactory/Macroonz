@@ -249,7 +249,7 @@ pub(crate) trait EvidenceCompiler {
         capture: &CapturedInput,
         recipe: &Recipe,
         door: &Door,
-        replaced: Option<RecipeRole>,
+        replaced: &[RecipeRole],
     ) -> Result<PreparedEvidence, Diagnostic>;
 }
 
@@ -414,6 +414,13 @@ pub trait RecipeProjector {
         request: ProjectionRequest<'_>,
         sink: ProjectionSink<'_, '_>,
     ) -> Result<ProjectionOffered, ProjectionError>;
+}
+
+/// One caller-owned projector bound to one selected recipe role for one bake.
+#[derive(Clone, Copy)]
+pub struct ProjectorReplacement<'projector> {
+    role: RecipeRole,
+    projector: &'projector dyn RecipeProjector,
 }
 
 /// The built-in projector catalog used by the paved proc host.
@@ -625,6 +632,16 @@ pub(super) enum RecipeIssue {
     ReplacementUnplanned {
         /// The unselected role.
         role: RecipeRole,
+    },
+    /// More than one caller-owned projector was offered for the same selected role.
+    DuplicateReplacement {
+        /// The role with more than one caller-owned projector.
+        role: RecipeRole,
+    },
+    /// One bake offered more caller-owned projectors than the complete role vocabulary can hold.
+    ReplacementRosterUnbounded {
+        /// The number of caller-owned projectors offered.
+        observed: usize,
     },
     /// Exact captured Rust could not be preserved as generated tokens.
     FragmentNotGenerated,

@@ -31,7 +31,7 @@ impl recipe::EvidenceCompiler for recipe::ConfiguredEvidence {
         capture: &CapturedInput,
         recipe: &recipe::Recipe,
         door: &Door,
-        replaced: Option<recipe::RecipeRole>,
+        replaced: &[recipe::RecipeRole],
     ) -> Result<recipe::PreparedEvidence, Diagnostic> {
         descriptor::recipe::prepared(capture, recipe, door, replaced)
     }

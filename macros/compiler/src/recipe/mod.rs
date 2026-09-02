@@ -24,9 +24,10 @@ pub use bake::{bake, bake_with, bake_wrapped};
 pub use types::{
     CODEC_LIMIT, EVIDENCE_LIMIT, EffectiveProjection, EvidenceTarget, HarnessPosture,
     LoweringSource, PROJECTION_LIMIT, ProjectionDisposition, ProjectionError, ProjectionOffered,
-    ProjectionRequest, ProjectionSink, RELATION_LIMIT, RELATION_ROW_LIMIT, RELATION_TABLE_LIMIT,
-    Recipe, RecipeBake, RecipeCodec, RecipeEvidence, RecipeMember, RecipeProjection,
-    RecipeProjector, RecipeRelation, RecipeRelationPayload, RecipeRelationPayloadKind,
-    RecipeRelationRequirements, RecipeRelationRow, RecipeRole, RecipeTransitionEffect, RecipeView,
-    RecipeVocabulary, RelationTableProjection, TRANSITION_LIMIT, VOCABULARY_LIMIT,
+    ProjectionRequest, ProjectionSink, ProjectorReplacement, RELATION_LIMIT, RELATION_ROW_LIMIT,
+    RELATION_TABLE_LIMIT, Recipe, RecipeBake, RecipeCodec, RecipeEvidence, RecipeMember,
+    RecipeProjection, RecipeProjector, RecipeRelation, RecipeRelationPayload,
+    RecipeRelationPayloadKind, RecipeRelationRequirements, RecipeRelationRow, RecipeRole,
+    RecipeTransitionEffect, RecipeView, RecipeVocabulary, RelationTableProjection,
+    TRANSITION_LIMIT, VOCABULARY_LIMIT,
 };
