@@ -2,6 +2,7 @@
 
 use super::support::CODEC_RECIPE;
 use super::{COMPANION_RECIPE, COMPLETE_RECIPE, DOOR, EVIDENCE_RECIPE, bake};
+#[cfg(feature = "host")]
 use macroonz_compiler::host::Emittable;
 use macroonz_compiler::recipe::{
     HarnessPosture, LoweringSource, ProjectionDisposition, ProjectionError, ProjectionOffered,
@@ -356,6 +357,7 @@ fn unavailable_harness_roles_keep_their_exact_public_dispositions() -> Result<()
 }
 
 #[test]
+#[cfg(feature = "host")]
 fn projection_errors_and_host_cargos_retain_their_public_cause_chain() -> Result<(), ()> {
     let error = ProjectionError::Render(RenderError::NothingRendered);
     assert!(core::error::Error::source(&error).is_some());

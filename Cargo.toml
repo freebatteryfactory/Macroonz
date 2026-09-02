@@ -59,6 +59,11 @@ name = "facade_harness_surface"
 path = "tests/facade_harness_surface.rs"
 required-features = ["harness"]
 
+[[test]]
+name = "recipe_surface"
+path = "tests/recipe_surface.rs"
+required-features = ["harness"]
+
 [[example]]
 name = "rustc_coverage"
 path = "examples/rustc_coverage.rs"
