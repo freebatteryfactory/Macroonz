@@ -1,5 +1,8 @@
 //! Final recipe work curves, qualified through the existing benchmark owner.
 
+mod breadth;
+mod breadth_bench;
+
 use macroonz_compiler::recipe::{HarnessPosture, RecipeBake, RecipeRole};
 use macroonz_compiler::{CanonicalContent, CrateBinding, Door, Producer, TextCapture};
 use macroonz_harness::bench::{
