@@ -55,8 +55,8 @@ Preset, configured and exact-Rust spellings exist only where their mechanical di
 Every selected role still receives one identity-bearing request, one role-owned destination, one explicit disposition and the same bounded projection capability, whether the implementation is standard or caller-owned.
 Unavailable feature or target postures remain typed dispositions or refusals rather than placeholder output.
 
-One recipe declaration remains bounded as a readable compilation unit.
-A broad catalog composes several cohesive recipe declarations and carrier tables rather than weakening the generated-byte ceiling or inventing an unbounded aggregate declaration.
+One recipe declaration remains bounded while admitting the complete projection and evidence catalog.
+The grammar's count maxima and the rendered-output home own independent resource bounds, and exact boundary controls refuse work beyond either bound without partial output.
 
 ## Projection disclosure
 
@@ -77,6 +77,9 @@ The transition lowering remains owned by dispatch and refuses generic relation-t
 
 Every effective projection reads back whether its value came from a preset, named configuration, or exact Rust.
 The exact signature enters the recipe's canonical content, while producer-local spans remain outside semantic identity.
+Exact Rust seats retain caller-authored material through the token home's bounded capture and generated-tree paths.
+Those paths bound nesting depth and token counts but do not independently bound the byte width of one token spelling, so the render home applies its derived canonical-byte ceiling to every completed unit.
+An over-limit exact fragment therefore refuses at capture or rendering according to the bound it exceeds; no caller-configurable or unbounded road exists.
 
 ## Projection authority
 

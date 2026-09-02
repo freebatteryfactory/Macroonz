@@ -22,6 +22,10 @@ The tree remains the sole holder of those bytes; inspection text is a human proj
 A rendered projection is the non-empty, bounded sequence of units one renderer wrote.
 It preserves rendering order as observation material while also offering roster-ordered readings to the proof and delivery owners downstream.
 
+The canonical-byte ceiling is derived from declared token-source magnitudes rather than fitted to one current projection catalog.
+Exact boundary controls establish the renderer's own admission law, while one catalog-bearing maximal-load recipe crosses the grammar's interacting top-level maxima with explicit headroom and each independent count maximum has its own boundary witness.
+Growth in a projector or an admitted grammar maximum therefore reaches a tracked witness before it reaches an adopter as an unexplained resource refusal.
+
 ## Composition
 
 The request road gives the renderer a sink over one plan and then hands the finished rendering to closure.

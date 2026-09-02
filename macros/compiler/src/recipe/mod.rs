@@ -24,11 +24,11 @@ pub(crate) use types::{ConfiguredEvidence, EvidenceCompiler, PreparedEvidence};
 pub use bake::{bake, bake_with, bake_wrapped};
 pub use types::{
     CODEC_LIMIT, EVIDENCE_LIMIT, EffectiveProjection, EvidenceTarget, HarnessPosture,
-    LoweringSource, PROJECTION_LIMIT, ProjectionDisposition, ProjectionError, ProjectionOffered,
-    ProjectionRequest, ProjectionSink, ProjectorReplacement, RELATION_LIMIT, RELATION_ROW_LIMIT,
-    RELATION_TABLE_LIMIT, Recipe, RecipeBake, RecipeCodec, RecipeEvidence, RecipeMember,
-    RecipeProjection, RecipeProjector, RecipeRelation, RecipeRelationPayload,
-    RecipeRelationPayloadKind, RecipeRelationRequirements, RecipeRelationRow, RecipeRole,
-    RecipeTransitionEffect, RecipeView, RecipeVocabulary, RelationTableProjection,
-    TRANSITION_LIMIT, VOCABULARY_LIMIT,
+    LoweringSource, PROJECTION_CLAUSE_LIMIT, PROJECTION_LIMIT, ProjectionDisposition,
+    ProjectionError, ProjectionOffered, ProjectionRequest, ProjectionSink, ProjectorReplacement,
+    RELATION_LIMIT, RELATION_QUESTION_LIMIT, RELATION_ROW_LIMIT, RELATION_TABLE_LIMIT, Recipe,
+    RecipeBake, RecipeCodec, RecipeEvidence, RecipeMember, RecipeProjection, RecipeProjector,
+    RecipeRelation, RecipeRelationPayload, RecipeRelationPayloadKind, RecipeRelationRequirements,
+    RecipeRelationRow, RecipeRole, RecipeTransitionEffect, RecipeView, RecipeVocabulary,
+    RelationTableProjection, TRANSITION_LIMIT, VOCABULARY_LIMIT,
 };

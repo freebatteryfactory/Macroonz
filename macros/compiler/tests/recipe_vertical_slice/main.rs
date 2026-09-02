@@ -7,6 +7,7 @@ mod dispatch_contract;
 mod evidence_contract;
 mod generic_account;
 mod host_parity;
+mod limit_contract;
 mod projector_authority;
 mod readback_contract;
 mod refusal_contract;

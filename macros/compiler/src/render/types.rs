@@ -8,15 +8,24 @@ use crate::identity::{self, Identity, OwnerIdentity, Profile};
 use crate::kind::{Kind, Role};
 use crate::origin::OriginTrail;
 use crate::plan::{MEMBERSHIP_LIMIT, Plan};
-use crate::token::GeneratedTree;
+use crate::token::{
+    CAPTURED_TOKEN_LIMIT, GeneratedTree, TEXT_SOURCE_BYTE_LIMIT, TOKEN_PATH_DEPTH_LIMIT,
+};
 
 #[path = "type_guard.rs"]
 mod guard;
 
+const CAPTURED_TOKENS_PER_PATH_LEVEL: usize = CAPTURED_TOKEN_LIMIT
+    .checked_div(TOKEN_PATH_DEPTH_LIMIT)
+    .expect("the nonzero token-path depth divides the captured-token magnitude");
+
 /// Bytes one rendered unit may carry.
 ///
+/// Derived from the complete callable source magnitude and per-level token magnitude, amortized across the declared nesting depth.
+/// The limit applies to canonical output bytes independently of which capture road supplied the declaration.
+///
 /// A renderer that would emit past this refuses rather than materializing part of a unit.
-pub const RENDERED_BYTE_LIMIT: usize = 65_536;
+pub const RENDERED_BYTE_LIMIT: usize = TEXT_SOURCE_BYTE_LIMIT * CAPTURED_TOKENS_PER_PATH_LEVEL;
 
 /// One unit a renderer actually materialized.
 ///

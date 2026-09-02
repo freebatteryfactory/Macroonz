@@ -1,8 +1,8 @@
 //! The one complete account of syntax, availability, destination, and placement for every recipe role.
 
 use super::types::{
-    ProjectionStanding, RecipeRoleAvailability, RecipeRoleEntrance, RecipeRoleOutput,
-    RecipeRolePlacement, RecipeRoleProfile,
+    EVIDENCE_ROLES, PROJECTION_ROLES, ProjectionStanding, RecipeRoleAvailability,
+    RecipeRoleEntrance, RecipeRoleOutput, RecipeRolePlacement, RecipeRoleProfile,
 };
 use super::{PROJECTION_LIMIT, RecipeRole};
 use crate::kind::Destination;
@@ -29,10 +29,14 @@ impl RecipeRole {
     }
 
     pub(super) fn from_syntax(spelling: &str, entrance: RecipeRoleEntrance) -> Option<Self> {
-        Self::ALL.iter().copied().find(|role| {
-            let profile = role.profile();
-            profile.entrance == entrance && profile.syntax == spelling
-        })
+        let roles = match entrance {
+            RecipeRoleEntrance::Projection => PROJECTION_ROLES,
+            RecipeRoleEntrance::Evidence => EVIDENCE_ROLES,
+        };
+        roles
+            .iter()
+            .copied()
+            .find(|role| role.profile().syntax == spelling)
     }
 
     pub(super) fn roles_at(placement: RecipeRolePlacement) -> impl Iterator<Item = Self> {
@@ -46,10 +50,7 @@ impl RecipeRole {
     }
 
     pub(super) fn evidence_roles() -> impl Iterator<Item = Self> {
-        Self::ALL
-            .iter()
-            .copied()
-            .filter(|role| role.profile().entrance == RecipeRoleEntrance::Evidence)
+        EVIDENCE_ROLES.iter().copied()
     }
 
     pub(super) fn standing(

@@ -72,6 +72,17 @@ fn spelled(word: &str) -> Result<GeneratedTree, ()> {
     GeneratedTree::assembled(vec![GeneratedToken::word(word)]).map_err(|_refusal| ())
 }
 
+/// One word tree whose canonical encoding has exactly the requested magnitude.
+fn canonical_word_tree(bytes: usize) -> Result<GeneratedTree, ()> {
+    const WORD_FRAMING_BYTES: usize = 9;
+    let spelling_bytes = bytes.checked_sub(WORD_FRAMING_BYTES).ok_or(())?;
+    let tree = spelled(&"x".repeat(spelling_bytes))?;
+    if tree.canonical_bytes().len() != bytes {
+        return Err(());
+    }
+    Ok(tree)
+}
+
 /// The lawful expansion this lane uses as its plan and rendering fixture.
 fn lawful() -> Result<Expansion<RenderKind>, ()> {
     let read = TextCapture::read(DECLARATION).map_err(|_refusal| ())?;
@@ -230,9 +241,12 @@ fn every_render_magnitude_refuses_at_its_own_boundary() -> Result<(), ()> {
     let bound = lawful()?;
     let planned = bound.plan().membership().under(Seat::Head).ok_or(())?;
 
-    let oversized_tree =
-        GeneratedTree::assembled(vec![GeneratedToken::word(&"x".repeat(RENDERED_BYTE_LIMIT))])
-            .map_err(|_| ())?;
+    RootRenderedUnit::materialized(planned, canonical_word_tree(RENDERED_BYTE_LIMIT - 1)?)
+        .map_err(|_| ())?;
+    RootRenderedUnit::materialized(planned, canonical_word_tree(RENDERED_BYTE_LIMIT)?)
+        .map_err(|_| ())?;
+
+    let oversized_tree = canonical_word_tree(RENDERED_BYTE_LIMIT + 1)?;
     let observed_bytes = oversized_tree.canonical_bytes().len();
     let bytes_refusal = RootRenderedUnit::materialized(planned, oversized_tree)
         .err()

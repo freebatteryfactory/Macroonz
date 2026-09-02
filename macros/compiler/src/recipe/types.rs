@@ -39,14 +39,22 @@ pub const RELATION_TABLE_LIMIT: usize = RELATION_LIMIT;
 /// Transition syntax is one ergonomic lowering over the generic relation-row ceiling.
 pub const TRANSITION_LIMIT: usize = RELATION_ROW_LIMIT;
 
-/// The complete number of descriptor-native evidence forms one recipe may carry.
-pub const EVIDENCE_LIMIT: usize = 5;
+/// The complete number of structural questions one relation posture may answer.
+pub const RELATION_QUESTION_LIMIT: usize = RELATION_QUESTION_NAMES.len();
 
 /// The maximum number of codec declarations carried by one recipe.
 pub const CODEC_LIMIT: usize = 16;
 
-/// The complete number of fixed recipe projection families.
-pub const PROJECTION_LIMIT: usize = RecipeRole::ALL.len();
+pub(super) const RELATION_QUESTION_NAMES: &[&str] = &[
+    "empty",
+    "repetition",
+    "membership",
+    "completeness",
+    "density",
+    "absence",
+    "self_relation",
+    "cycle",
+];
 
 /// The diagnostic family owned by the recipe declaration.
 pub(super) const RECIPE_FAMILY: Family = Family::declared("macroonz/recipe");
@@ -223,6 +231,33 @@ crate::roster! {
         Codec = "codec",
     }
 }
+
+pub(super) const PROJECTION_ROLES: &[RecipeRole] = &[
+    RecipeRole::Companions,
+    RecipeRole::RelationTables,
+    RecipeRole::Dispatch,
+    RecipeRole::CompileContract,
+    RecipeRole::DeclarationConformance,
+    RecipeRole::Typestate,
+    RecipeRole::Codec,
+];
+
+pub(super) const EVIDENCE_ROLES: &[RecipeRole] = &[
+    RecipeRole::Trials,
+    RecipeRole::Mutation,
+    RecipeRole::Benchmarks,
+    RecipeRole::Network,
+    RecipeRole::Concurrency,
+];
+
+/// The complete number of fixed recipe projection families.
+pub const PROJECTION_LIMIT: usize = RecipeRole::ALL.len();
+
+/// The complete number of projection clauses one recipe may carry.
+pub const PROJECTION_CLAUSE_LIMIT: usize = PROJECTION_ROLES.len();
+
+/// The complete number of descriptor-native evidence forms one recipe may carry.
+pub const EVIDENCE_LIMIT: usize = EVIDENCE_ROLES.len();
 
 /// Which grammar entrance admits one recipe role.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

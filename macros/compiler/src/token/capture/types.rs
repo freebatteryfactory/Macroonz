@@ -16,10 +16,11 @@ pub const TOKEN_PATH_DEPTH_LIMIT: usize = 32;
 /// Token trees one captured input may carry at any one nesting level.
 pub const CAPTURED_TOKEN_LIMIT: usize = 4096;
 
-/// Tokens one captured input may carry across the whole tree, and positions one span table may hold.
+/// Tokens one captured input may retain across the whole tree, and positions one span table may hold.
 ///
-/// The level bound and the depth bound multiply, so the total is bounded in its own right rather than left as the product of two other magnitudes; a table is not a level, so it stands here too.
-pub const CAPTURED_TREE_TOKEN_LIMIT: usize = 16_384;
+/// The capture-work budget owns the denominator.
+/// One complete nesting level remains available for examined material that does not become a retained token.
+pub const CAPTURED_TREE_TOKEN_LIMIT: usize = CAPTURE_WORK_LIMIT - CAPTURED_TOKEN_LIMIT;
 
 /// Units of capture work one walk may spend, one unit per examined token.
 ///

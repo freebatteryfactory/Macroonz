@@ -204,7 +204,10 @@ fn read_posture(cursor: &mut CaptureCursor<'_>) -> Result<CapturedPosture, Captu
     let (token, relation) = cursor.identifier()?;
     let clauses = cursor
         .group(CapturedDelimiter::Brace)?
-        .trailing_separated::<_, 10>(';', read_posture_clause)?
+        .trailing_separated::<_, { super::super::RELATION_QUESTION_LIMIT }>(
+            ';',
+            read_posture_clause,
+        )?
         .as_slice()
         .to_vec();
     Ok(CapturedPosture {
@@ -218,6 +221,14 @@ fn read_posture_clause(
     cursor: &mut CaptureCursor<'_>,
 ) -> Result<CapturedPostureClause, CaptureReadRefusal> {
     let (token, question) = cursor.identifier()?;
+    if !crate::recipe::types::RELATION_QUESTION_NAMES.contains(&question) {
+        return Err(CaptureReadRefusal::projected(
+            CaptureReadIssue::Unexpected(CaptureExpectation::Word(
+                "a structural relation question".to_owned(),
+            )),
+            Some(token.span()),
+        ));
+    }
     let value = match question {
         "empty" => read_single(cursor, empty_posture).map(PostureClause::Empty),
         "repetition" => read_single(cursor, repetition_posture).map(PostureClause::Repetition),
@@ -231,12 +242,7 @@ fn read_posture_clause(
             read_single(cursor, self_relation_posture).map(PostureClause::SelfRelation)
         }
         "cycle" => read_single(cursor, cycle_posture).map(PostureClause::Cycle),
-        _ => Err(CaptureReadRefusal::projected(
-            CaptureReadIssue::Unexpected(CaptureExpectation::Word(
-                "a structural relation question".to_owned(),
-            )),
-            Some(token.span()),
-        )),
+        _ => unreachable!("the complete relation-question roster guards this match"),
     }?;
     Ok(CapturedPostureClause {
         value,

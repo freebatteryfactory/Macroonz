@@ -150,7 +150,7 @@ fn read_projections(
     let requested = cursor
         .group(CapturedDelimiter::Brace)
         .map_err(grammar)?
-        .trailing_separated::<_, { super::super::PROJECTION_LIMIT }>(';', |projection| {
+        .trailing_separated::<_, { super::super::PROJECTION_CLAUSE_LIMIT }>(';', |projection| {
             read_projection(projection, issued)
         })
         .map_err(grammar)?
