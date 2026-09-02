@@ -1,0 +1,8 @@
+error: macroonz: the declaration was not read: the recipe module must end with exactly one `bake!` declaration (at semantic-origin position 11)
+ --> tests/compile_refusals/compile-fail/a-recipe-without-bake-points-at-its-last-authored-item.rs:6:28
+  |
+6 |               pub enum State {
+  |  ____________________________^
+7 | |                 Closed,
+8 | |             }
+  | |_____________^

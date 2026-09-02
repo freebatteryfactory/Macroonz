@@ -1,0 +1,5 @@
+error: macroonz: the declaration was not read: a relation row names undeclared `Capability` member `Missing` (at semantic-origin position 39)
+  --> tests/compile_refusals/compile-fail/a-recipe-foreign-relation-endpoint-points-at-the-member.rs:13:33
+   |
+13 |                         (Draft, Missing);
+   |                                 ^^^^^^^

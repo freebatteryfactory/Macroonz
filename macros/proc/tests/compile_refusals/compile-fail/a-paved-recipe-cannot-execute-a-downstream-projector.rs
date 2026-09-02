@@ -15,8 +15,8 @@ macroonz_macros::__macroonz_recipe_carrier! {
             }
 
             bake! {
-                vocabularies(Left, Right);
-                transitions {
+                vocabularies { Left; Right; };
+                transitions(Left, Right) {
                     (First, Alpha) => Second with(crate::observe);
                 };
                 absence(refused);

@@ -1,0 +1,5 @@
+error[E0433]: cannot find `Later` in `crate`
+ --> tests/compile_refusals/compile-fail/a-recipe-authored-path-keeps-its-own-source-span.rs:7:24
+  |
+7 |                 crate::Later::missing();
+  |                        ^^^^^ could not find `Later` in the crate root

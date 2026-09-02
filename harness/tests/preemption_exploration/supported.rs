@@ -1,6 +1,6 @@
 //! Supported-backend claims over the preemption road.
 //!
-//! The models are written directly against loom's shadow types, which is the adopter's own posture; the pin lane holds the declared [`LOOM_PIN`] and the workspace manifest's `=`-requirement together, so the evidence row and the compiled scheduler cannot drift apart in silence.
+//! The models are written directly against loom's shadow types, which is the adopter's own posture; the pin lane holds the declared [`LOOM_PIN`] and the harness manifest's `=`-requirement together, so the evidence row and the compiled scheduler cannot drift apart in silence.
 
 use loom::sync::Arc;
 use loom::sync::atomic::{AtomicUsize, Ordering};
@@ -14,8 +14,8 @@ use macroonz_harness::report::{FailureClass, InfrastructureFault, RunAttempt, Tr
 use std::io::Write;
 use std::process::{Command, Output};
 
-/// The workspace manifest, read at compile time, where the loom pin is declared.
-const ROOT_MANIFEST: &str = include_str!("../../../Cargo.toml");
+/// The harness manifest, read at compile time, where the loom pin is declared.
+const HARNESS_MANIFEST: &str = include_str!("../../Cargo.toml");
 
 /// The ignored exact child that observes intentional branch exhaustion without backtrace generation.
 const BRANCH_EXHAUSTION_CHILD: &str = "supported::branch_exhaustion_is_typed_child";
@@ -403,8 +403,8 @@ fn a_zero_branch_budget_refuses() {
 fn the_declared_pin_mirrors_the_manifest() {
     let requirement = format!("loom = {{ version = \"={LOOM_PIN}\"");
     assert!(
-        ROOT_MANIFEST.contains(&requirement),
-        "the workspace manifest does not declare loom at the pinned {LOOM_PIN}"
+        HARNESS_MANIFEST.contains(&requirement),
+        "the harness manifest does not declare loom at the pinned {LOOM_PIN}"
     );
     assert_eq!(loom::MAX_THREADS, 5usize);
 }

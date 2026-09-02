@@ -1,4 +1,4 @@
-error: macroonz: the declaration was not read: the recipe grammar was not read: the next captured token is not the ordinary word `a recipe projection` (at semantic-origin position 54)
+error: macroonz: the declaration was not read: the recipe grammar was not read: the next captured token is not the ordinary word `a recipe projection` (at semantic-origin position 59)
   --> tests/compile_refusals/compile-fail/a-paved-recipe-cannot-execute-a-downstream-projector.rs:24:21
    |
 24 |                     custom(crate::DownstreamProjector);

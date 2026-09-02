@@ -1,12 +1,23 @@
 //! The informed recipe, its projection vocabulary, and the capability boundary shared by both execution hosts.
 
-use crate::bounded::{AbsencePosture, KeyedRoster};
-use crate::diagnostic::Family;
+use crate::bounded::{Bounded, KeyedRoster};
+use crate::diagnostic::{Diagnostic, Family};
 use crate::expansion::Expansion;
 use crate::identity::OwnerFact;
+use crate::relation::{
+    AbsencePosture, CompletenessPosture, CyclePosture, DensityPosture, EmptyPosture,
+    MembershipPosture, RepetitionPosture, SelfRelationPosture,
+};
 use crate::render::Output;
+use crate::request::Door;
 use crate::support::SupportName;
 use crate::token::{CapturedInput, GeneratedToken, GeneratedTree, SpanHandle};
+
+#[path = "account.rs"]
+mod account;
+
+#[path = "relation_account.rs"]
+mod relation_account;
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -14,11 +25,36 @@ mod guard;
 /// The maximum number of members in one recipe vocabulary.
 pub const VOCABULARY_LIMIT: usize = 64;
 
-/// The maximum number of transition rows in one recipe.
-pub const TRANSITION_LIMIT: usize = 128;
+/// The maximum number of named relations in one recipe.
+pub const RELATION_LIMIT: usize = 64;
 
-/// The complete number of descriptor-native evidence forms one recipe may carry.
-pub const EVIDENCE_LIMIT: usize = 5;
+/// The maximum number of rows in one recipe relation.
+pub const RELATION_ROW_LIMIT: usize = 128;
+
+/// The maximum number of relation tables selected by one projection family.
+pub const RELATION_TABLE_LIMIT: usize = RELATION_LIMIT;
+
+/// The maximum number of transition rows in one recipe.
+///
+/// Transition syntax is one ergonomic lowering over the generic relation-row ceiling.
+pub const TRANSITION_LIMIT: usize = RELATION_ROW_LIMIT;
+
+/// The complete number of structural questions one relation posture may answer.
+pub const RELATION_QUESTION_LIMIT: usize = RELATION_QUESTION_NAMES.len();
+
+/// The maximum number of codec declarations carried by one recipe.
+pub const CODEC_LIMIT: usize = 16;
+
+pub(super) const RELATION_QUESTION_NAMES: &[&str] = &[
+    "empty",
+    "repetition",
+    "membership",
+    "completeness",
+    "density",
+    "absence",
+    "self_relation",
+    "cycle",
+];
 
 /// The diagnostic family owned by the recipe declaration.
 pub(super) const RECIPE_FAMILY: Family = Family::declared("macroonz/recipe");
@@ -46,17 +82,124 @@ pub struct RecipeMember {
     at: SpanHandle,
 }
 
-/// One informed transition row.
+/// One caller-named vocabulary and its informed authored members.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct RecipeTransition {
-    from: String,
-    from_name: GeneratedToken,
-    event: String,
-    event_name: GeneratedToken,
-    to: String,
-    to_name: GeneratedToken,
-    effect: GeneratedTree,
+pub struct RecipeVocabulary {
+    name: String,
+    name_token: GeneratedToken,
+    members: KeyedRoster<RecipeMember, String, VOCABULARY_LIMIT>,
     at: SpanHandle,
+}
+
+/// The optional caller-owned material attached to one relation row.
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum RecipeRelationPayload {
+    /// The row states only its two endpoints.
+    Unlabeled,
+    /// The row carries one ordinary caller-owned Rust path.
+    Path(GeneratedTree),
+    /// The row carries exact caller-authored Rust material.
+    ExactRust(GeneratedTree),
+    /// The row carries the target and effect required by the transition lowering.
+    Transition {
+        /// The target member spelling.
+        target: String,
+        /// The exact ordinary or raw identifier token naming the target member.
+        target_name: GeneratedToken,
+        /// The caller-authored execution form for this admitted row.
+        effect: RecipeTransitionEffect,
+    },
+}
+
+/// The caller-owned execution material attached to one informed transition row.
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum RecipeTransitionEffect {
+    /// Call one ordinary Rust path with no arguments, then return the declared target.
+    Path(GeneratedTree),
+    /// Evaluate exact caller-authored Rust with the declared target bound under one caller name.
+    ExactRust {
+        /// The caller-chosen binding for the structurally declared target value.
+        target_binding: GeneratedToken,
+        /// The exact caller-authored row body evaluated by the generated match arm.
+        body: GeneratedTree,
+    },
+}
+
+/// Which one row-payload contract every row in one relation follows.
+#[non_exhaustive]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RecipeRelationPayloadKind {
+    /// Relation rows carry endpoints only.
+    Unlabeled,
+    /// Relation rows carry ordinary caller-owned paths.
+    Path,
+    /// Relation rows carry exact caller-authored Rust material.
+    ExactRust,
+    /// Relation rows carry the target and effect required by transition lowering.
+    Transition,
+}
+
+/// One informed row in a caller-named binary relation.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RecipeRelationRow {
+    left: String,
+    left_name: GeneratedToken,
+    left_at: SpanHandle,
+    right: String,
+    right_name: GeneratedToken,
+    right_at: SpanHandle,
+    payload: RecipeRelationPayload,
+    payload_at: SpanHandle,
+    effect_binding_at: Option<SpanHandle>,
+}
+
+/// The structural questions one relation declaration chose to answer.
+///
+/// An absent field means the recipe did not ask that question.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct RecipeRelationRequirements {
+    empty: Option<EmptyPosture>,
+    repetition: Option<RepetitionPosture>,
+    membership: Option<[MembershipPosture; 2]>,
+    completeness: Option<[CompletenessPosture; 2]>,
+    density: Option<DensityPosture>,
+    absence: Option<AbsencePosture>,
+    self_relation: Option<SelfRelationPosture>,
+    cycle: Option<CyclePosture>,
+}
+
+/// One caller-named binary relation over two informed vocabularies.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RecipeRelation {
+    name: String,
+    name_token: GeneratedToken,
+    name_at: SpanHandle,
+    left_vocabulary: String,
+    right_vocabulary: String,
+    rows: Bounded<RecipeRelationRow, RELATION_ROW_LIMIT>,
+    payload_kind: RecipeRelationPayloadKind,
+    requirements: RecipeRelationRequirements,
+}
+
+/// Whether one generic relation came from the paved transition lowering.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum RelationLowering {
+    /// The caller declared one generic relation directly.
+    Generic,
+    /// The caller used the ergonomic transition grammar.
+    Transition,
+}
+
+/// One caller-named codec declaration owned semantically by the compiler codec home.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RecipeCodec {
+    name: String,
+    content: crate::codec::CodecContent,
+    at: SpanHandle,
+    refusal_at: SpanHandle,
+    direction_at: SpanHandle,
 }
 
 crate::roster! {
@@ -65,13 +208,15 @@ crate::roster! {
     pub enum RecipeRole {
         /// Enum-member and relation companions inside the generated child module.
         Companions = "companions",
+        /// Typed membership and payload lookup tables over selected relations.
+        RelationTables = "relation-tables",
         /// The generated sparse dispatch function and typed absence refusal.
         Dispatch = "dispatch",
         /// Rustc-owned compile-contract material carried to a test target.
         CompileContract = "compile-contract",
-        /// An independently invoked harness property carried to a test target.
-        Property = "property",
-        /// Caller-declared state members projected as type-level stage markers.
+        /// A generated check that the dispatch output agrees with its declaring transition rows.
+        DeclarationConformance = "declaration-conformance",
+        /// One selected vocabulary projected as type-level stage markers.
         Typestate = "typestate",
         /// One existing descriptor trial carrier over caller-declared rows.
         Trials = "trials",
@@ -83,16 +228,90 @@ crate::roster! {
         Network = "network",
         /// One existing descriptor concurrency module over caller-declared exploration rows.
         Concurrency = "concurrency",
+        /// Canonical encode and decode roads from one or more existing-owner codec declarations.
+        Codec = "codec",
     }
 }
 
+pub(super) const PROJECTION_ROLES: &[RecipeRole] = &[
+    RecipeRole::Companions,
+    RecipeRole::RelationTables,
+    RecipeRole::Dispatch,
+    RecipeRole::CompileContract,
+    RecipeRole::DeclarationConformance,
+    RecipeRole::Typestate,
+    RecipeRole::Codec,
+];
+
+pub(super) const EVIDENCE_ROLES: &[RecipeRole] = &[
+    RecipeRole::Trials,
+    RecipeRole::Mutation,
+    RecipeRole::Benchmarks,
+    RecipeRole::Network,
+    RecipeRole::Concurrency,
+];
+
+/// The complete number of fixed recipe projection families.
+pub const PROJECTION_LIMIT: usize = RecipeRole::ALL.len();
+
+/// The complete number of projection clauses one recipe may carry.
+pub const PROJECTION_CLAUSE_LIMIT: usize = PROJECTION_ROLES.len();
+
+/// The complete number of descriptor-native evidence forms one recipe may carry.
+pub const EVIDENCE_LIMIT: usize = EVIDENCE_ROLES.len();
+
+/// Which grammar entrance admits one recipe role.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum RecipeRoleEntrance {
+    /// The role is named inside the `projections` block.
+    Projection,
+    /// The role is named inside the `evidence` block.
+    Evidence,
+}
+
+/// Which package posture owns one recipe role.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum RecipeRoleAvailability {
+    /// The role is available in every facade posture.
+    Always,
+    /// The role requires the optional harness package.
+    Harness,
+}
+
+/// Where one generated role is assembled into the final recipe emission.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum RecipeRolePlacement {
+    /// The generated unit is emitted beside the authored recipe module.
+    DeclarationRoot,
+    /// The generated unit is emitted inside the recipe module's `baked` child.
+    BakedModule,
+    /// The generated unit is carried through the recipe's explicit support address.
+    SupportCarrier,
+}
+
+/// The output seat and final assembly order owned by one recipe role.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct RecipeRoleOutput {
+    pub(super) destination: crate::kind::Destination,
+    pub(super) placement: RecipeRolePlacement,
+    pub(super) placement_position: Option<usize>,
+}
+
+/// The complete compiler-owned facts for one recipe role.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct RecipeRoleProfile {
+    pub(super) position: usize,
+    pub(super) syntax: &'static str,
+    pub(super) entrance: RecipeRoleEntrance,
+    pub(super) availability: RecipeRoleAvailability,
+    pub(super) output: RecipeRoleOutput,
+    pub(super) evidence_position: Option<usize>,
+}
+
 /// Which informed recipe vocabulary a mutation evidence block presses.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum EvidenceTarget {
-    /// The caller-authored state vocabulary.
-    States,
-    /// The caller-authored event vocabulary.
-    Events,
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct EvidenceTarget {
+    vocabulary: String,
 }
 
 /// One exact descriptor-native evidence declaration carried by the recipe.
@@ -103,6 +322,25 @@ pub struct RecipeEvidence {
     body: CapturedInput,
     at: SpanHandle,
 }
+
+/// The already sealed output for each selected standard evidence projection.
+pub(crate) struct PreparedEvidence {
+    pub(super) trees: [Option<GeneratedTree>; EVIDENCE_LIMIT],
+}
+
+/// The one crate-internal preparation capability the composition root supplies.
+pub(crate) trait EvidenceCompiler {
+    /// Prepare every selected standard evidence projection without giving the recipe home adapter vocabulary.
+    fn prepared(
+        capture: &CapturedInput,
+        recipe: &Recipe,
+        door: &Door,
+        replaced: &[RecipeRole],
+    ) -> Result<PreparedEvidence, Diagnostic>;
+}
+
+/// The sealed marker whose sole implementation lives at the crate composition root.
+pub(crate) struct ConfiguredEvidence;
 
 /// Where one effective mechanical projection value came from.
 #[non_exhaustive]
@@ -121,10 +359,26 @@ pub enum LoweringSource {
 pub struct EffectiveProjection {
     role: RecipeRole,
     name: Option<String>,
+    subject: Option<String>,
     source: LoweringSource,
     exact_rust: Option<GeneratedTree>,
     exact_dispatch_bindings: Option<[GeneratedToken; 2]>,
+    exact_dispatch_binding_names: Option<Box<[String; 2]>>,
     exact_dispatch_imports: Option<[bool; 2]>,
+    relation_tables: Option<Box<Bounded<RelationTableProjection, RELATION_TABLE_LIMIT>>>,
+    at: SpanHandle,
+}
+
+/// One selected typed relation table and its effective function surface.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RelationTableProjection {
+    relation: String,
+    function: String,
+    source: LoweringSource,
+    exact_rust: Option<GeneratedTree>,
+    bindings: Option<[GeneratedToken; 2]>,
+    imports: Option<[bool; 2]>,
+    at: SpanHandle,
 }
 
 /// What happened to one role in the recipe's complete projection account.
@@ -153,23 +407,20 @@ pub enum ProjectionDisposition {
     TargetUnavailable,
 }
 
-/// One informed recipe over two caller-owned enum vocabularies.
+/// One informed recipe over caller-owned vocabularies, relations, and selected projections.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Recipe {
     module_name: String,
     module_name_token: GeneratedToken,
     module_head: GeneratedTree,
     authored_body: GeneratedTree,
+    authored_declaration: GeneratedTree,
     module_body_at: Option<SpanHandle>,
-    states_name: String,
-    states_name_token: GeneratedToken,
-    states: KeyedRoster<RecipeMember, String, VOCABULARY_LIMIT>,
-    events_name: String,
-    events_name_token: GeneratedToken,
-    events: KeyedRoster<RecipeMember, String, VOCABULARY_LIMIT>,
-    transitions: KeyedRoster<RecipeTransition, (String, String), TRANSITION_LIMIT>,
-    absence: AbsencePosture,
-    projections: [ProjectionStanding; 10],
+    vocabularies: Option<KeyedRoster<RecipeVocabulary, String, VOCABULARY_LIMIT>>,
+    relations: Option<KeyedRoster<RecipeRelation, String, RELATION_LIMIT>>,
+    transition_relation: Option<String>,
+    codecs: Option<KeyedRoster<RecipeCodec, String, CODEC_LIMIT>>,
+    projections: [ProjectionStanding; PROJECTION_LIMIT],
     evidence: [Option<RecipeEvidence>; EVIDENCE_LIMIT],
     support: Option<SupportName>,
 }
@@ -180,18 +431,36 @@ pub(super) struct RecipeParts {
     pub(super) module_name_token: GeneratedToken,
     pub(super) module_head: GeneratedTree,
     pub(super) authored_body: GeneratedTree,
+    pub(super) authored_declaration: GeneratedTree,
     pub(super) module_body_at: Option<SpanHandle>,
-    pub(super) states_name: String,
-    pub(super) states_name_token: GeneratedToken,
-    pub(super) state_members: Vec<RecipeMember>,
-    pub(super) events_name: String,
-    pub(super) events_name_token: GeneratedToken,
-    pub(super) event_members: Vec<RecipeMember>,
-    pub(super) transitions: Vec<RecipeTransition>,
-    pub(super) absence: AbsencePosture,
-    pub(super) projections: [ProjectionStanding; 10],
+    pub(super) vocabularies: Vec<RecipeVocabularyParts>,
+    pub(super) relations: Vec<RecipeRelationParts>,
+    pub(super) transition_relation: Option<String>,
+    pub(super) codecs: Vec<RecipeCodec>,
+    pub(super) projections: [ProjectionStanding; PROJECTION_LIMIT],
     pub(super) evidence: [Option<RecipeEvidence>; EVIDENCE_LIMIT],
     pub(super) support: Option<SupportName>,
+}
+
+/// The mechanically read seats offered to one vocabulary constructor.
+pub(super) struct RecipeVocabularyParts {
+    pub(super) name: String,
+    pub(super) name_token: GeneratedToken,
+    pub(super) members: Vec<RecipeMember>,
+    pub(super) at: SpanHandle,
+}
+
+/// The mechanically read seats offered to one relation constructor.
+pub(super) struct RecipeRelationParts {
+    pub(super) name: String,
+    pub(super) name_token: GeneratedToken,
+    pub(super) name_at: SpanHandle,
+    pub(super) left_vocabulary: String,
+    pub(super) left_vocabulary_at: SpanHandle,
+    pub(super) right_vocabulary: String,
+    pub(super) right_vocabulary_at: SpanHandle,
+    pub(super) rows: Vec<RecipeRelationRow>,
+    pub(super) requirements: RecipeRelationRequirements,
 }
 
 /// The kind whose selected roles are the recipe's generated projections.
@@ -237,6 +506,18 @@ pub trait RecipeProjector {
     ) -> Result<ProjectionOffered, ProjectionError>;
 }
 
+/// One caller-owned projector bound to one selected recipe role for one bake.
+#[derive(Clone, Copy)]
+pub struct ProjectorReplacement<'projector> {
+    role: RecipeRole,
+    projector: &'projector dyn RecipeProjector,
+}
+
+/// The built-in projector catalog used by the paved proc host.
+pub(super) struct StandardProjector<'evidence> {
+    pub(super) evidence: &'evidence PreparedEvidence,
+}
+
 /// Why one projector invocation produced no admitted unit.
 #[must_use = "a projection refusal states why the selected role was not filled"]
 #[non_exhaustive]
@@ -280,7 +561,12 @@ pub(super) enum RecipeIssue {
         /// The requested enum name.
         name: String,
     },
-    /// One vocabulary enum carries a variant shape this first projection does not enumerate.
+    /// One named vocabulary resolves to an authored enum with no variants.
+    VocabularyEmpty {
+        /// The authored enum name.
+        name: String,
+    },
+    /// One selected vocabulary carries an enum variant shape the generic roster does not enumerate.
     VariantNotUnit {
         /// The enum name.
         vocabulary: String,
@@ -293,6 +579,11 @@ pub(super) enum RecipeIssue {
         vocabulary: String,
         /// The repeated member spelling.
         member: String,
+    },
+    /// One vocabulary name was declared more than once in the recipe account.
+    DuplicateVocabulary {
+        /// The repeated vocabulary name.
+        name: String,
     },
     /// One transition names a member outside its declared vocabulary.
     ForeignMember {
@@ -308,10 +599,102 @@ pub(super) enum RecipeIssue {
         /// The event member spelling.
         event: String,
     },
+    /// Two rows occupy the same relation endpoint seat while repetition is refused.
+    DuplicateRelationRow {
+        /// The relation carrying the repeated endpoint pair.
+        relation: String,
+        /// The left endpoint member spelling.
+        left: String,
+        /// The right endpoint member spelling.
+        right: String,
+    },
+    /// One relation name was declared more than once in the recipe account.
+    DuplicateRelation {
+        /// The repeated relation name.
+        name: String,
+    },
+    /// One codec declaration name was stated more than once.
+    DuplicateCodec {
+        /// The repeated codec declaration name.
+        name: String,
+    },
+    /// One codec declaration was refused by the existing codec owner.
+    CodecDeclaration {
+        /// The caller-owned codec declaration name.
+        name: String,
+        /// The exact codec-owner refusal.
+        reason: String,
+    },
+    /// One codec owner does not name an authored record-shaped structure in the recipe module.
+    CodecOwnerNotRecord {
+        /// The caller-owned codec declaration name.
+        codec: String,
+        /// The owner spelling the declaration selected.
+        owner: String,
+    },
+    /// One posture block names no declared relation.
+    RelationNotFound {
+        /// The unavailable relation name.
+        name: String,
+    },
+    /// One relation posture block was declared more than once.
+    DuplicateRelationPosture {
+        /// The relation with repeated posture declarations.
+        relation: String,
+    },
+    /// One structural question was answered more than once for one relation.
+    DuplicateRelationQuestion {
+        /// The relation carrying the repeated answer.
+        relation: String,
+        /// The repeated structural question.
+        question: &'static str,
+    },
+    /// One caller-required structural answer disagrees with the computed relation answer.
+    RelationPostureMismatch {
+        /// The relation whose structural question disagreed.
+        relation: String,
+        /// The structural question that was settled.
+        question: &'static str,
+        /// The caller-required answer.
+        required: &'static str,
+        /// The independently computed answer.
+        observed: &'static str,
+    },
+    /// One same-roster structural question was asked of a cross-roster relation.
+    RelationPostureInapplicable {
+        /// The relation whose structural question has no lawful subject.
+        relation: String,
+        /// The same-roster structural question that was requested.
+        question: &'static str,
+    },
+    /// Rows in one relation disagree about which payload contract they carry.
+    RelationPayloadShapeMismatch {
+        /// The relation carrying mixed payload shapes.
+        relation: String,
+        /// The first row's payload contract.
+        expected: RecipeRelationPayloadKind,
+        /// The later row's disagreeing payload contract.
+        observed: RecipeRelationPayloadKind,
+    },
     /// One projection was requested more than once.
     DuplicateProjection {
         /// The repeated role.
         role: RecipeRole,
+    },
+    /// One relation was selected more than once inside the relation-table family.
+    DuplicateRelationTable {
+        /// The relation carrying the repeated table request.
+        relation: String,
+    },
+    /// One payload-bearing relation table omitted its exact result contract.
+    RelationTableExactRequired {
+        /// The relation whose payload type remains caller authority.
+        relation: String,
+    },
+    /// A transition payload was offered to the generic relation-table projector.
+    RelationTableTransitionUnsupported {
+        /// The transition relation that already has a dedicated dispatch projection.
+        relation: String,
     },
     /// The recipe selected no projection at all.
     ProjectionRequired,
@@ -321,6 +704,13 @@ pub(super) enum RecipeIssue {
         role: RecipeRole,
         /// The role it requires.
         required: RecipeRole,
+    },
+    /// One selected projection has no structural subject it can lawfully consume.
+    ProjectionSubjectRequired {
+        /// The projection without a subject.
+        role: RecipeRole,
+        /// The structural subject family the projection requires.
+        expected: &'static str,
     },
     /// Sparse dispatch cannot infer what an allowed absent row means.
     AllowedAbsenceNeedsFallback,
@@ -338,6 +728,16 @@ pub(super) enum RecipeIssue {
         /// The unselected role.
         role: RecipeRole,
     },
+    /// More than one caller-owned projector was offered for the same selected role.
+    DuplicateReplacement {
+        /// The role with more than one caller-owned projector.
+        role: RecipeRole,
+    },
+    /// One bake offered more caller-owned projectors than the complete role vocabulary can hold.
+    ReplacementRosterUnbounded {
+        /// The number of caller-owned projectors offered.
+        observed: usize,
+    },
     /// Exact captured Rust could not be preserved as generated tokens.
     FragmentNotGenerated,
     /// Exact dispatch braces did not contain one semicolon-terminated function signature.
@@ -351,6 +751,25 @@ pub(super) enum RecipeIssue {
     },
     /// One exact dispatch parameter did not use a simple identifier binding.
     ExactDispatchParameterBinding {
+        /// The one-based parameter position.
+        position: usize,
+    },
+    /// One exact dispatch selector did not name a simple parameter binding in its signature.
+    ExactDispatchBindingAbsent {
+        /// The selector spelling absent from the exact signature.
+        binding: String,
+    },
+    /// Exact relation-table braces did not contain one semicolon-terminated function signature.
+    ExactRelationTableFunctionRequired,
+    /// Exact relation-table syntax supplied a body that would bypass row accounting.
+    ExactRelationTableBodyRefused,
+    /// Exact relation-table syntax did not declare exactly two parameters.
+    ExactRelationTableParameterCount {
+        /// The number of parameter rows supplied.
+        observed: usize,
+    },
+    /// One exact relation-table parameter did not use a simple identifier binding.
+    ExactRelationTableParameterBinding {
         /// The one-based parameter position.
         position: usize,
     },

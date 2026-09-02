@@ -1,11 +1,13 @@
 //! The paved and callable walks over one informed recipe and one projection protocol.
 
-use super::evidence::{ConfiguredEvidence, EvidenceCompiler};
-use super::render::{self, StandardProjector};
-use super::types::{RECIPE_FACT, RecipeError, RecipeIssue, RecipeShell, RecipeShellContent};
+use super::render;
+use super::types::{
+    RECIPE_FACT, RecipeError, RecipeIssue, RecipeRolePlacement, RecipeShell, RecipeShellContent,
+    StandardProjector,
+};
 use super::{
-    HarnessPosture, ProjectionSink, Recipe, RecipeBake, RecipeProjection, RecipeProjector,
-    RecipeRole,
+    ConfiguredEvidence, EvidenceCompiler, HarnessPosture, PROJECTION_LIMIT, ProjectionSink,
+    ProjectorReplacement, Recipe, RecipeBake, RecipeProjection, RecipeProjector, RecipeRole,
 };
 use crate::closure::PartitionCargo;
 use crate::diagnostic::{Diagnostic, Placement, Refused};
@@ -29,7 +31,7 @@ pub fn bake(
     harness: HarnessPosture,
     door: &Door,
 ) -> Result<RecipeBake, Diagnostic> {
-    walked(capture, harness, door, None)
+    walked(capture, harness, door, &[])
 }
 
 /// Bake the facade wrapper's fixed posture envelope through the same recipe road.
@@ -43,42 +45,36 @@ pub fn bake(
 pub fn bake_wrapped(capture: &CapturedInput, door: &Door) -> Result<RecipeBake, Diagnostic> {
     let (harness, inner) =
         wrapper_input(capture).map_err(|refusal| recipe_refused(&refusal, door))?;
-    walked(&inner, harness, door, None)
+    walked(&inner, harness, door, &[])
 }
 
-/// Bake one recipe while replacing one selected standard projection with a caller-owned projector.
+/// Bake one recipe while replacing selected standard projections with caller-owned projectors.
 ///
-/// The replacement receives the same informed view, selected request, and one-use output sink as the standard projector.
+/// Every replacement receives the same informed view, selected request, and one-use output sink as the standard projector.
+/// Replacement slice order does not change invocation order; selected roles always run in the closed [`RecipeRole`] order.
 ///
 /// # Errors
 ///
-/// Returns the same diagnostics as [`bake`], plus the typed recipe refusal where the replacement names an unselected role.
+/// Returns the same diagnostics as [`bake`], plus a typed recipe refusal where the roster is unbounded, repeats a role, or names an unselected role.
 pub fn bake_with(
     capture: &CapturedInput,
     harness: HarnessPosture,
     door: &Door,
-    role: RecipeRole,
-    projector: &dyn RecipeProjector,
+    replacements: &[ProjectorReplacement<'_>],
 ) -> Result<RecipeBake, Diagnostic> {
-    walked(capture, harness, door, Some((role, projector)))
+    walked(capture, harness, door, replacements)
 }
 
 fn walked(
     capture: &CapturedInput,
     harness: HarnessPosture,
     door: &Door,
-    replacement: Option<(RecipeRole, &dyn RecipeProjector)>,
+    replacements: &[ProjectorReplacement<'_>],
 ) -> Result<RecipeBake, Diagnostic> {
     let recipe =
         Recipe::read(capture, harness).map_err(|refusal| recipe_refused(&refusal, door))?;
-    if let Some((role, _)) = replacement
-        && !recipe.selected_roles().any(|selected| selected == role)
-    {
-        return Err(recipe_refused(
-            &RecipeError::at(RecipeIssue::ReplacementUnplanned { role }, None),
-            door,
-        ));
-    }
+    validate_replacements(&recipe, replacements)
+        .map_err(|refusal| recipe_refused(&refusal, door))?;
     let selected = recipe.selected_roles().collect::<Vec<_>>();
     let Some((&first, rest)) = selected.split_first() else {
         return Err(recipe_refused(
@@ -86,17 +82,24 @@ fn walked(
             door,
         ));
     };
-    let prepared =
-        ConfiguredEvidence::prepared(capture, &recipe, door, replacement.map(|(role, _)| role))?;
+    let replaced = replacements
+        .iter()
+        .map(|replacement| replacement.role())
+        .collect::<Vec<_>>();
+    let prepared = ConfiguredEvidence::prepared(capture, &recipe, door, replaced.as_slice())?;
     let standard = StandardProjector::over(&prepared);
     let projection = Request::<RecipeProjection>::over(capture.clone(), recipe.clone(), door)
         .selecting(first, rest.to_vec())
         .assuming(vec![RECIPE_FACT])
         .render(|_, output| {
             for role in selected.iter().copied() {
+                let replacement = replacements
+                    .iter()
+                    .copied()
+                    .find(|replacement| replacement.role() == role);
                 let projector: &dyn RecipeProjector = match replacement {
-                    Some((replaced, custom)) if replaced == role => custom,
-                    Some((_, _)) | None => &standard,
+                    Some(replacement) => replacement.projector(),
+                    None => &standard,
                 };
                 render::project(
                     &recipe,
@@ -110,6 +113,46 @@ fn walked(
     let support = support(capture, &recipe, &projection, door)?;
     let emitted = final_emission(capture, &recipe, &projection, support.as_ref(), door)?;
     Ok(RecipeBake::baked(projection, emitted))
+}
+
+fn validate_replacements(
+    recipe: &Recipe,
+    replacements: &[ProjectorReplacement<'_>],
+) -> Result<(), RecipeError> {
+    if replacements.len() > PROJECTION_LIMIT {
+        return Err(RecipeError::at(
+            RecipeIssue::ReplacementRosterUnbounded {
+                observed: replacements.len(),
+            },
+            None,
+        ));
+    }
+    for (position, replacement) in replacements.iter().copied().enumerate() {
+        if replacements
+            .iter()
+            .take(position)
+            .any(|earlier| earlier.role() == replacement.role())
+        {
+            return Err(RecipeError::at(
+                RecipeIssue::DuplicateReplacement {
+                    role: replacement.role(),
+                },
+                None,
+            ));
+        }
+        if !recipe
+            .selected_roles()
+            .any(|selected| selected == replacement.role())
+        {
+            return Err(RecipeError::at(
+                RecipeIssue::ReplacementUnplanned {
+                    role: replacement.role(),
+                },
+                None,
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn wrapper_input(capture: &CapturedInput) -> Result<(HarnessPosture, CapturedInput), RecipeError> {
@@ -244,24 +287,14 @@ fn final_tree(
     {
         root = root.joined(tree)?;
     }
-    for role in [
-        RecipeRole::Trials,
-        RecipeRole::Mutation,
-        RecipeRole::Benchmarks,
-    ] {
+    for role in RecipeRole::roles_at(RecipeRolePlacement::DeclarationRoot) {
         if let Some(unit) = projection.closure().rendered().under(role) {
             root = root.joined(unit.tree())?;
         }
     }
     let mut body = recipe.authored_body().clone();
     let mut companions = Vec::new();
-    for role in [
-        RecipeRole::Companions,
-        RecipeRole::Dispatch,
-        RecipeRole::Typestate,
-        RecipeRole::Network,
-        RecipeRole::Concurrency,
-    ] {
+    for role in RecipeRole::roles_at(RecipeRolePlacement::BakedModule) {
         if let Some(unit) = projection.closure().rendered().under(role) {
             companions.extend(unit.tree().tokens().iter().cloned());
         }
@@ -280,7 +313,8 @@ fn final_tree(
     }
     let grouped = body.grouped(GeneratedDelimiter::Brace, recipe.module_body_at())?;
     let module = recipe.module_head().joined(&grouped)?;
-    root.joined(&module)
+    let assembled = root.joined(&module)?;
+    Ok(recipe.restore_authored_references(&assembled))
 }
 
 fn recipe_refused(refusal: &RecipeError, door: &Door) -> Diagnostic {
@@ -297,9 +331,13 @@ fn recipe_refused(refusal: &RecipeError, door: &Door) -> Diagnostic {
     }
 }
 
-pub(crate) fn generated_name_collision(name: String, door: &Door) -> Diagnostic {
+pub(crate) fn generated_name_collision(
+    name: String,
+    at: crate::token::SpanHandle,
+    door: &Door,
+) -> Diagnostic {
     recipe_refused(
-        &RecipeError::at(RecipeIssue::GeneratedNameCollision { name }, None),
+        &RecipeError::at(RecipeIssue::GeneratedNameCollision { name }, Some(at)),
         door,
     )
 }

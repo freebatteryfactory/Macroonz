@@ -1,0 +1,5 @@
+error: macroonz: the declaration was not read: authored enum `Empty` states no variants (at semantic-origin position 17)
+ --> tests/compile_refusals/compile-fail/a-recipe-empty-vocabulary-points-at-the-enum-name.rs:9:32
+  |
+9 |                 vocabularies { Empty; };
+  |                                ^^^^^

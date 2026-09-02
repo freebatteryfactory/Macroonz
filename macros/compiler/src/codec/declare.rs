@@ -49,18 +49,17 @@ fn variant(
 
 /// `{ member: &'static str, }` — the seat a member-bearing arm names its member through.
 fn member_seat() -> Result<GeneratedToken, Overflow> {
-    group(
-        GeneratedDelimiter::Brace,
-        vec![
-            GeneratedToken::word(MEMBER_SEAT),
-            GeneratedToken::alone(':'),
-            GeneratedToken::alone('&'),
-            GeneratedToken::joint('\''),
-            GeneratedToken::word("static"),
-            GeneratedToken::word("str"),
-            GeneratedToken::alone(','),
-        ],
-    )
+    let mut tokens = documentation("The declared member at which decoding refused.")?;
+    tokens.extend([
+        GeneratedToken::word(MEMBER_SEAT),
+        GeneratedToken::alone(':'),
+        GeneratedToken::alone('&'),
+        GeneratedToken::joint('\''),
+        GeneratedToken::word("static"),
+        GeneratedToken::word("str"),
+        GeneratedToken::alone(','),
+    ]);
+    group(GeneratedDelimiter::Brace, tokens)
 }
 
 /// The decode refusal one shape's surface declares.

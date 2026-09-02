@@ -96,6 +96,16 @@ pub struct InterleavedSequence<Command> {
     commands: Vec<Command>,
 }
 
+/// One realized walk: the canonical choices, the merged commands, and how many live strands each step chose among.
+pub(super) struct Realization<Command> {
+    /// The canonical choice string: which strand stepped, per step.
+    pub(super) choices: Vec<u8>,
+    /// The commands, in merged order.
+    pub(super) commands: Vec<Command>,
+    /// The live-strand count each step's byte picked among, which is the radix the enumerator advances under.
+    pub(super) radixes: Vec<usize>,
+}
+
 /// Why one interleaving could not be written as material over a strand set.
 #[must_use = "a refusal is the reason an interleaving was not encoded"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

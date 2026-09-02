@@ -5,7 +5,8 @@ use super::spell::{
     borrowed_self_member, byte_sink, byte_slice, empty_vector, framed_length, generics, qualified,
     road_spelling, self_member, statement, type_path,
 };
-use super::type_contract::{WriteRoad, rendering_contract};
+use super::type_contract::rendering_contract;
+use super::types::WriteRoad;
 use super::{Cardinality, CodecMember, CodecShape};
 use crate::bounded::Overflow;
 use crate::token::{

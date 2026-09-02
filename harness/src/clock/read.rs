@@ -1,36 +1,12 @@
 //! The effect boundary: one source read opens a measurement, a second finishes it.
 
 use super::elapsed::elapsed;
+use super::types::{Opening, Reader, Source};
 use super::{
     ClockFailure, ClockReadRefusal, HarnessClock, MeasurementReading, MeasurementStart,
     MeasurementTick,
 };
 use std::panic::catch_unwind;
-
-/// What a caller declared: a reader, or nothing at all.
-#[derive(Debug, Clone, Copy)]
-pub(in crate::clock) enum Source {
-    Unavailable,
-    Available(Reader),
-}
-
-/// The two shapes a caller's reading function may take.
-#[derive(Debug, Clone, Copy)]
-pub(in crate::clock) enum Reader {
-    Infallible(fn() -> u64),
-    Fallible(fn() -> Result<u64, ClockReadRefusal>),
-}
-
-/// What an opening left behind, including the reader a successful one retained.
-#[derive(Debug)]
-pub(in crate::clock) enum Opening {
-    Unavailable,
-    Failed(ClockFailure),
-    Opened {
-        reader: Reader,
-        tick: MeasurementTick,
-    },
-}
 
 /// What one call into a caller's reader produced.
 enum ReadOutcome {

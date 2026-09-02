@@ -36,7 +36,6 @@ repository = "https://github.com/freebatteryfactory/Macroonz"
 arbitrary = { version = "=1.4.2", default-features = false }
 syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }
 blake3 = { version = "=1.8.6", default-features = false }
-loom = { version = "=0.7.2", default-features = false, features = ["futures"] }
 ra-ap-rustc_lexer = { version = "=0.174.0", default-features = false }
 trybuild = "=1.0.120"
 macroonz-compiler = { path = "macros/compiler", version = "=0.2.0" }
@@ -57,6 +56,11 @@ macroonz-macros = { workspace = true }
 [[test]]
 name = "facade_harness_surface"
 path = "tests/facade_harness_surface.rs"
+required-features = ["harness"]
+
+[[test]]
+name = "recipe_surface"
+path = "tests/recipe_surface.rs"
 required-features = ["harness"]
 
 [[example]]

@@ -1,9 +1,25 @@
 //! The declared clock, the readings it produces, and why a reading can fail.
 
-use super::read::{Opening, Source};
-
 #[path = "type_guard.rs"]
 mod guard;
+
+/// What a caller declared: a reader, or nothing at all.
+#[derive(Debug, Clone, Copy)]
+pub(in crate::clock) enum Source {
+    /// The caller declared no wall source.
+    Unavailable,
+    /// The caller declared this reading function.
+    Available(Reader),
+}
+
+/// The two shapes a caller's reading function may take.
+#[derive(Debug, Clone, Copy)]
+pub(in crate::clock) enum Reader {
+    /// A source that states one reading directly.
+    Infallible(fn() -> u64),
+    /// A source that may refuse one read.
+    Fallible(fn() -> Result<u64, ClockReadRefusal>),
+}
 
 /// The wall-measurement source a caller declares for one run.
 ///
@@ -22,6 +38,22 @@ pub struct HarnessClock {
 #[derive(Debug)]
 pub struct MeasurementStart {
     pub(in crate::clock) opening: Opening,
+}
+
+/// What an opening left behind, including the reader a successful one retained.
+#[derive(Debug)]
+pub(in crate::clock) enum Opening {
+    /// No measurement source was declared.
+    Unavailable,
+    /// The opening read failed.
+    Failed(ClockFailure),
+    /// The opening retained the source and its admitted tick.
+    Opened {
+        /// The exact source that must close the measurement.
+        reader: Reader,
+        /// The admitted opening tick.
+        tick: MeasurementTick,
+    },
 }
 
 /// One admitted reading in nanoseconds, on the caller source's own origin.

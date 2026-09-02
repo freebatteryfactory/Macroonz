@@ -5,9 +5,9 @@
 
 use super::assemble::{run_report, trial_report};
 use super::resolve::trial_identity;
-use super::select::{Admission, admission};
+use super::select::admission;
 use super::types::{
-    Invocation, ReportRecordingRefusal, SelectionPlan, TrialBinding, TrialTableView,
+    Admission, Invocation, ReportRecordingRefusal, SelectionPlan, TrialBinding, TrialTableView,
 };
 use crate::report::{HostTrialRecord, RunReport, TrialId, TrialReport};
 use std::collections::{BTreeMap, BTreeSet};

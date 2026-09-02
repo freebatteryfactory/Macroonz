@@ -1,0 +1,5 @@
+error: macroonz: the declaration was not read: the recipe grammar was not read: the captured sequence carries more members than its declared magnitude of 64 (at semantic-origin position 140)
+  --> tests/compile_refusals/compile-fail/a-recipe-vocabulary-magnitude-points-at-the-first-excess-variant.rs:71:17
+   |
+71 |                 V64,
+   |                 ^^^

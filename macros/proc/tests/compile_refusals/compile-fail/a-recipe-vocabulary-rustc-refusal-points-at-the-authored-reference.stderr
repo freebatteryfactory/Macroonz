@@ -1,0 +1,27 @@
+error[E0433]: cannot find `State` in `super`
+  --> tests/compile_refusals/compile-fail/a-recipe-vocabulary-rustc-refusal-points-at-the-authored-reference.rs:10:32
+   |
+10 |                 vocabularies { State; };
+   |                                ^^^^^ could not find `State` in `super`
+   |
+note: found an item that was configured out
+  --> tests/compile_refusals/compile-fail/a-recipe-vocabulary-rustc-refusal-points-at-the-authored-reference.rs:7:22
+   |
+ 6 |             #[cfg(any())]
+   |                      -- the item is gated here
+ 7 |             pub enum State { Closed }
+   |                      ^^^^^
+
+error[E0425]: cannot find type `State` in module `super`
+  --> tests/compile_refusals/compile-fail/a-recipe-vocabulary-rustc-refusal-points-at-the-authored-reference.rs:10:32
+   |
+10 |                 vocabularies { State; };
+   |                                ^^^^^ not found in `super`
+   |
+note: found an item that was configured out
+  --> tests/compile_refusals/compile-fail/a-recipe-vocabulary-rustc-refusal-points-at-the-authored-reference.rs:7:22
+   |
+ 6 |             #[cfg(any())]
+   |                      -- the item is gated here
+ 7 |             pub enum State { Closed }
+   |                      ^^^^^

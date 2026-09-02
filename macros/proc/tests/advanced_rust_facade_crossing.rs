@@ -637,15 +637,15 @@ bakery::recipe! {
         fn fill() {}
 
         bake! {
-            vocabularies(Stage, Action);
-            transitions {
+            vocabularies { Stage; Action; };
+            transitions(Stage, Action) {
                 (Empty, Fill) => Full with(super::fill);
             };
             absence(refused);
             projections {
                 companions;
                 dispatch(apply);
-                typestate;
+                typestate(Stage);
             };
         }
     }

@@ -1,10 +1,9 @@
 //! Declaring a clock, admitting a tick, and reading a finished measurement.
 
 use super::{
-    ClockFailure, ClockReadRefusal, HarnessClock, MeasurementReading, MeasurementTick,
-    RecordedDuration,
+    ClockFailure, ClockReadRefusal, HarnessClock, MeasurementReading, MeasurementTick, Reader,
+    RecordedDuration, Source,
 };
-use crate::clock::read::{Reader, Source};
 
 impl HarnessClock {
     /// Declare an infallible caller function as the source.

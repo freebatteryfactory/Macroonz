@@ -75,18 +75,26 @@ bakery::recipe! {
         }
 
         bake! {
-            vocabularies(State, Event);
-            transitions {
+            vocabularies { State; Event; };
+            transitions(State, Event) {
                 (Closed, OpenDoor) => Open with(crate::record_open);
             };
             absence(refused);
             projections {
                 companions;
                 dispatch(apply);
-                typestate;
+                compile_contract;
+                declaration_conformance;
+                typestate(State);
             };
+            support(door_recipe_support);
         }
     }
+}
+
+door_recipe_support! {
+    declaring: crate,
+    harness: bakery::harness,
 }
 
 #[test]
@@ -150,6 +158,95 @@ fn the_renamed_facade_bakes_the_declared_module_without_recipe_material_ceremony
 }
 
 bakery::recipe! {
+    /// A codec whose authored field name also names generated local bindings.
+    pub mod hygiene_codec {
+        /// One caller-owned counted record.
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        pub struct Ledger {
+            /// The recorded count.
+            pub count: u16,
+        }
+
+        impl Ledger {
+            /// Assembles one decoded ledger.
+            #[must_use]
+            pub const fn assembled(count: u16) -> Self {
+                Self { count }
+            }
+        }
+
+        bake! {
+            codecs {
+                ledger(Ledger) {
+                    direction(round_trip);
+                    refusal(LedgerDecodeError);
+                    assembly(assembled, total);
+                    members {
+                        count: u16 => count(required);
+                    };
+                };
+            };
+            projections {
+                codec;
+            };
+        }
+    }
+}
+
+bakery::recipe! {
+    /// A transition recipe whose exact signature chooses its parameter names.
+    pub mod hygiene_exact {
+        /// The caller-owned state vocabulary.
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        pub enum State {
+            /// The closed state.
+            Closed,
+            /// The open state.
+            Open,
+        }
+
+        /// The caller-owned event vocabulary.
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        pub enum Event {
+            /// The request to open.
+            OpenDoor,
+        }
+
+        bake! {
+            vocabularies { State; Event; };
+            transitions(State, Event) {
+                (Closed, OpenDoor) => Open with(target) {
+                    crate::record_open();
+                    Ok(target)
+                };
+            };
+            absence(refused);
+            projections {
+                dispatch {
+                    /// Applies one caller-declared transition or returns typed absence.
+                    pub fn advance(
+                        source: State,
+                        stimulus: Event,
+                    ) -> Result<State, TransitionRefusal>;
+                };
+            };
+        }
+    }
+}
+
+#[test]
+fn authored_reference_spans_do_not_change_generated_binding_hygiene() {
+    let ledger = hygiene_codec::Ledger { count: 7u16 };
+    let mut bytes = Vec::new();
+    ledger.encode_canonical(&mut bytes);
+    assert_eq!(hygiene_codec::Ledger::decode_canonical(&bytes), Ok(ledger));
+    assert_eq!(
+        hygiene_exact::baked::advance(hygiene_exact::State::Closed, hygiene_exact::Event::OpenDoor,),
+        Ok(hygiene_exact::State::Open)
+    );
+}
+
+bakery::recipe! {
     /// A recipe whose Rust names require raw-identifier custody.
     pub mod r#type {
         /// A caller-owned state vocabulary beside a raw module name.
@@ -174,15 +271,15 @@ bakery::recipe! {
         }
 
         bake! {
-            vocabularies(State, Event);
-            transitions {
+            vocabularies { State; Event; };
+            transitions(State, Event) {
                 (Waiting, Advance) => Ready with(crate::r#type::r#move);
             };
             absence(refused);
             projections {
                 companions;
                 dispatch(apply);
-                typestate;
+                typestate(State);
             };
         }
     }

@@ -1,0 +1,11 @@
+error: macroonz: the declaration was not read: a recipe must contain exactly one inline Rust module
+ --> tests/compile_refusals/compile-fail/an-empty-recipe-refuses-at-the-invocation.rs:1:1
+  |
+1 | / macroonz_macros::__macroonz_recipe_carrier! {
+2 | |     { macroonz_macros }
+3 | |     __macroonz_test_carrier_available
+4 | |     {}
+5 | | }
+  | |_^
+  |
+  = note: this error originates in the macro `macroonz_macros::__macroonz_recipe_carrier` (in Nightly builds, run with -Z macro-backtrace for more info)

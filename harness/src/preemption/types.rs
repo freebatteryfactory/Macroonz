@@ -15,7 +15,7 @@ const CAUSE_FAMILY: &str = "macroonz.preemption";
 /// This cause is minted only from [`PreemptionModelFailure`], never inferred from a foreign backend unwind.
 pub const MODEL_BROKE: FindingCause = FindingCause::named(CAUSE_FAMILY, "model-broke");
 
-/// The exact loom requirement the workspace manifest declares.
+/// The exact loom requirement the harness manifest declares.
 ///
 /// A mirror of the manifest's `=`-pin, held here so evidence can spell which scheduler semantics a reading ran under; the preemption lane holds the two spellings together.
 pub const LOOM_PIN: &str = "0.7.2";

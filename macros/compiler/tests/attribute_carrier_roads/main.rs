@@ -208,6 +208,22 @@ fn the_trial_matcher_binds_every_spelled_metavariable() -> Result<(), ()> {
     Ok(())
 }
 
+/// A local support address preserves the macro-invocation separator after Rust's hygienic crate root.
+#[test]
+fn a_local_support_address_keeps_its_macro_invocation_path() -> Result<(), ()> {
+    let local = trials(TRIAL_BODY).ok_or(())?.ok().ok_or(())?;
+    let local_text = emitted(&local).ok_or(())?;
+    assert!(
+        local_text.contains("$crate :: __macroonz_support_"),
+        "{local_text}"
+    );
+    assert!(
+        !local_text.contains("$crate __macroonz_support_"),
+        "{local_text}"
+    );
+    Ok(())
+}
+
 /// A trial body missing a required clause refuses at capture, and no carrier exists.
 #[test]
 fn a_trial_body_missing_its_support_clause_refuses() -> Result<(), ()> {

@@ -53,6 +53,14 @@ pub enum Selection {
     BySubjectRoute(BTreeSet<SubjectRoute>),
 }
 
+/// What one selection says about one row of the denominator.
+pub(super) enum Admission {
+    /// The selection named this row.
+    Selected,
+    /// The selection passed this row over, for a stated reason.
+    NotSelected(crate::report::NotSelectedReason),
+}
+
 /// A selection joined to what the run expects that selection to match.
 ///
 /// The engine takes this rather than a bare [`Selection`], so every run states its anti-vacuity posture and no run is missing one.

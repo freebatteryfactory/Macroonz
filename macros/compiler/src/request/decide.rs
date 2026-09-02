@@ -6,7 +6,7 @@
 
 use super::Door;
 use super::SELECTION_FACT;
-use super::types::Selection;
+use super::types::{Selection, Statements};
 use crate::bounded::{Bounded, Overflow};
 use crate::identity::{
     self, Identity, OwnerFact, OwnerIdentity, Profile, Transcript, encode_bytes,
@@ -22,13 +22,6 @@ use crate::plan::{
 };
 use crate::request::Producer;
 use crate::token::CapturedInput;
-
-/// The already stated request facts planning reads together.
-pub(super) struct Statements<'request, R: Role> {
-    assumptions: &'request [OwnerFact],
-    addresses: &'request [(R, OwnerIdentity)],
-    selection: &'request Selection<R>,
-}
 
 impl<'request, R: Role> Statements<'request, R> {
     /// Borrows the request facts planning consumes without minting another owner for them.

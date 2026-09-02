@@ -2,7 +2,7 @@
 
 use super::build_refuses;
 use core::error::Error;
-use macroonz_compiler::bounded::StructuralRequirement as HomeStructuralRequirement;
+use macroonz_compiler::relation::StructuralRequirement as HomeStructuralRequirement;
 use macroonz_compiler::{
     AbsencePosture, CanonicalContent, CompletenessPosture, CompletenessStanding, CyclePosture,
     CycleStanding, DensityPosture, DensityStanding, EmptyPosture, KeyedRoster, KeyedRosterRows,

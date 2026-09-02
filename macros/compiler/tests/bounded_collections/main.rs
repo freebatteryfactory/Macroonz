@@ -1,4 +1,4 @@
-//! Cardinality-bearing compiler collections observed through their public roads.
+//! Cardinality-bearing collections and checked relations observed through their public roads.
 //!
 //! The lane asks each constructor at, below, and beyond its ceiling, then pairs every refusal with a lawful control.
 //! It also proves that retained order, capping posture, and error chaining remain readable without reaching any private field.

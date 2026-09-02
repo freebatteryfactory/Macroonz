@@ -34,7 +34,7 @@ fn nested(groups: usize) -> String {
     format!("{}x{}", "(".repeat(groups), ")".repeat(groups))
 }
 
-/// A text of `groups` sibling groups, each carrying `per_level` word tokens.
+/// A text of `groups` sibling groups, each carrying `per_level` punctuation tokens.
 ///
 /// The whole tree carries `groups * (per_level + 1)` tokens and no level carries more than the larger of the two counts, which is what lets a caller reach the whole-tree magnitude without going near the per-level one.
 fn wide(groups: usize, per_level: usize) -> String {
@@ -42,9 +42,9 @@ fn wide(groups: usize, per_level: usize) -> String {
     for _ in 0..groups {
         text.push('(');
         for _ in 0..per_level {
-            text.push_str("a ");
+            text.push(';');
         }
-        text.push_str(") ");
+        text.push(')');
     }
     text
 }
@@ -283,7 +283,7 @@ fn a_tree_past_the_declared_token_magnitude_refuses() {
     let control = TextCapture::read(DECLARATION).map_err(|_| ());
     assert!(control.is_ok_and(|read| !read.input().is_empty()));
 
-    let per_level = CAPTURED_TOKEN_LIMIT.saturating_sub(1);
+    let per_level = CAPTURED_TOKEN_LIMIT.saturating_sub(2);
     let group_width = per_level.saturating_add(1);
     let counted = |groups: usize| groups.saturating_mul(group_width);
 

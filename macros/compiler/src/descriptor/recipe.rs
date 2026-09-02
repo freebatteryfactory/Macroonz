@@ -9,7 +9,7 @@ use crate::recipe::{
 };
 use crate::render::RenderError;
 use crate::request::Door;
-use crate::token::{CapturedInput, GeneratedTree};
+use crate::token::{CapturedInput, GeneratedTree, SpanHandle};
 
 struct PreparedNames {
     root_macros: Vec<String>,
@@ -21,7 +21,7 @@ pub(crate) fn prepared(
     capture: &CapturedInput,
     recipe: &Recipe,
     door: &Door,
-    replaced: Option<RecipeRole>,
+    replaced: &[RecipeRole],
 ) -> Result<PreparedEvidence, Diagnostic> {
     let producer = door.producer();
     let emitter = Emitter {
@@ -31,8 +31,12 @@ pub(crate) fn prepared(
     };
     let mut trees: [Option<GeneratedTree>; EVIDENCE_LIMIT] = core::array::from_fn(|_| None);
     let mut names = PreparedNames::over(recipe);
-    for role in evidence_roles() {
-        if replaced == Some(role) {
+    for role in RecipeRole::ALL
+        .iter()
+        .copied()
+        .filter(|role| crate::recipe::evidence_position(*role).is_some())
+    {
+        if replaced.contains(&role) {
             continue;
         }
         let Some(evidence) = recipe.evidence(role) else {
@@ -69,7 +73,7 @@ fn prepared_tree(
                 emitter,
                 door,
             )?;
-            names.support(&expansion, door)?;
+            names.support(&expansion, evidence.at(), door)?;
             emitted(&expansion, door)
         }
         RecipeRole::Mutation => {
@@ -84,7 +88,7 @@ fn prepared_tree(
                 },
                 door,
             )?;
-            names.support(&expansion, door)?;
+            names.support(&expansion, evidence.at(), door)?;
             emitted(&expansion, door)
         }
         RecipeRole::Benchmarks => {
@@ -95,7 +99,7 @@ fn prepared_tree(
                 emitter,
                 door,
             )?;
-            names.support(&expansion, door)?;
+            names.support(&expansion, evidence.at(), door)?;
             emitted(&expansion, door)
         }
         RecipeRole::Network => {
@@ -106,7 +110,7 @@ fn prepared_tree(
                 },
                 door,
             )?;
-            names.baked_type(expansion.plan().content().module(), door)?;
+            names.baked_type(expansion.plan().content().module(), evidence.at(), door)?;
             emitted(&expansion, door)
         }
         RecipeRole::Concurrency => {
@@ -117,14 +121,16 @@ fn prepared_tree(
                 },
                 door,
             )?;
-            names.baked_type(expansion.plan().content().module(), door)?;
+            names.baked_type(expansion.plan().content().module(), evidence.at(), door)?;
             emitted(&expansion, door)
         }
         RecipeRole::Companions
+        | RecipeRole::RelationTables
         | RecipeRole::Dispatch
         | RecipeRole::CompileContract
-        | RecipeRole::Property
-        | RecipeRole::Typestate => Err(nothing_rendered(door)),
+        | RecipeRole::DeclarationConformance
+        | RecipeRole::Typestate
+        | RecipeRole::Codec => Err(nothing_rendered(door)),
     }
 }
 
@@ -134,13 +140,7 @@ impl PreparedNames {
             .support()
             .map(|support| vec![support.spelling().to_owned()])
             .unwrap_or_default();
-        let mut baked_types = Vec::new();
-        if recipe.effective(RecipeRole::Dispatch).is_some() {
-            baked_types.push("TransitionRefusal".to_owned());
-        }
-        if recipe.effective(RecipeRole::Typestate).is_some() {
-            baked_types.push("typestate".to_owned());
-        }
+        let baked_types = recipe.baked_type_names();
         Self {
             root_macros,
             baked_types,
@@ -150,26 +150,33 @@ impl PreparedNames {
     fn support(
         &mut self,
         expansion: &Expansion<crate::support::SupportCarrier>,
+        at: SpanHandle,
         door: &Door,
     ) -> Result<(), Diagnostic> {
         let Some(address) = expansion.plan().content().address() else {
             return Err(nothing_rendered(door));
         };
-        admit_name(&mut self.root_macros, address.spelling(), door)
+        admit_name(&mut self.root_macros, address.spelling(), at, door)
     }
 
-    fn baked_type(&mut self, name: &str, door: &Door) -> Result<(), Diagnostic> {
-        admit_name(&mut self.baked_types, name, door)
+    fn baked_type(&mut self, name: &str, at: SpanHandle, door: &Door) -> Result<(), Diagnostic> {
+        admit_name(&mut self.baked_types, name, at, door)
     }
 }
 
-fn admit_name(names: &mut Vec<String>, name: &str, door: &Door) -> Result<(), Diagnostic> {
+fn admit_name(
+    names: &mut Vec<String>,
+    name: &str,
+    at: SpanHandle,
+    door: &Door,
+) -> Result<(), Diagnostic> {
     if names
         .iter()
         .any(|occupied| identifier_key(occupied) == identifier_key(name))
     {
         return Err(crate::recipe::generated_name_collision(
             name.to_owned(),
+            at,
             door,
         ));
     }
@@ -183,14 +190,16 @@ fn identifier_key(spelling: &str) -> &str {
 
 fn mutation_order(
     recipe: &Recipe,
-    target: Option<EvidenceTarget>,
+    target: Option<&EvidenceTarget>,
     door: &Door,
 ) -> Result<Vec<String>, Diagnostic> {
-    let members = match target {
-        Some(EvidenceTarget::States) => recipe.states().members().collect::<Vec<_>>(),
-        Some(EvidenceTarget::Events) => recipe.events().members().collect::<Vec<_>>(),
-        None => return Err(nothing_rendered(door)),
-    };
+    let vocabulary_name = target
+        .map(EvidenceTarget::name)
+        .ok_or_else(|| nothing_rendered(door))?;
+    let vocabulary = recipe
+        .vocabulary(vocabulary_name)
+        .ok_or_else(|| nothing_rendered(door))?;
+    let members = vocabulary.members().members().collect::<Vec<_>>();
     if members.is_empty() {
         return Err(nothing_rendered(door));
     }
@@ -214,14 +223,4 @@ fn nothing_rendered(door: &Door) -> Diagnostic {
         door,
         &Placement::WholeDeclaration,
     )
-}
-
-const fn evidence_roles() -> [RecipeRole; EVIDENCE_LIMIT] {
-    [
-        RecipeRole::Trials,
-        RecipeRole::Mutation,
-        RecipeRole::Benchmarks,
-        RecipeRole::Network,
-        RecipeRole::Concurrency,
-    ]
 }

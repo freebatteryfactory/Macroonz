@@ -15,8 +15,8 @@ macroonz_macros::__macroonz_recipe_carrier! {
             }
 
             bake! {
-                vocabularies(State, Event);
-                transitions {
+                vocabularies { State; Event; };
+                transitions(State, Event) {
                     (Closed, OpenDoor) => Closed with(crate::record_open);
                 };
                 absence(refused);
