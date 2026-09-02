@@ -81,8 +81,8 @@ No ambient scan or cross-recipe registry is performed, and no ordinary generated
 An evidence bake may carry an explicitly named support macro because Rust exports such macros at the declaring crate root.
 That caller-authored address is the exception rather than an automatic reexport: its cargo stays inert, and the external test or bench target must invoke it with both the declaring-crate path and the harness path before any judgment exists.
 
-The `declaration_conformance;` projection generates a check that every declared transition row agrees with the generated dispatcher, while `compile_contract;` carries the generated signature contract to an external rustc crossing.
-Neither projection establishes that the declaration means what its author intended; independent semantic judgment remains a caller-authored harness property, oracle, or model comparison.
+The compiler's [recipe home](https://github.com/freebatteryfactory/Macroonz/blob/main/macros/compiler/src/recipe/README.md#evidence-projections) owns the exact contract for `declaration_conformance;` and `compile_contract;`.
+Use a caller-authored harness property, oracle, or model comparison when judgment must be independent of the declaration.
 
 The generic shape is ordinary Rust plus only the accounts a projection needs:
 

@@ -28,8 +28,7 @@ The caller owns grammar meaning, vocabularies, relations, effects, policies, law
 The compiler owns generic capture, membership and duplicate refusal, checked references, exact seat accounting, projection disposition, token construction, planning, closure, explanation, and expansion.
 Rustc owns path resolution, visibility, typing, ownership, borrowing, lifetimes, coherence, exhaustiveness, and the final legality of the generated Rust.
 
-The declaration-conformance projection establishes only that the generated dispatcher agrees with the transition rows the same recipe declared.
-A compile-contract projection carries generated signature material to an external rustc crossing, while independent semantic claims remain caller-owned harness properties, oracles, or models.
+The [`recipe` home](src/recipe/README.md#evidence-projections) owns the exact ceilings on generated evidence, while the harness owns independent semantic judgment.
 
 Complete caller-authored items retain one token reading and one checked structural lens into the positions the recipe needs to enumerate or augment.
 The compiler does not reconstruct those items as a second public Rust model, and it does not inspect source strings to rediscover facts the caller already declared.

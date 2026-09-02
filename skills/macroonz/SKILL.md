@@ -107,8 +107,7 @@ Do not try to name downstream executable projector code inside `macroonz::recipe
 ## Judge independently
 
 Generated Rust is not its own oracle.
-Request `declaration_conformance;` only when you want a generated check that the dispatcher agrees with the transition rows from the same recipe; do not describe that check as an independent property.
-Request `compile_contract;` only for generated signature conformance that an external rustc crossing will exercise; do not treat it as semantic judgment.
+Read the compiler [recipe home's evidence contract](https://github.com/freebatteryfactory/Macroonz/blob/main/macros/compiler/src/recipe/README.md#evidence-projections) before requesting `declaration_conformance;` or `compile_contract;`.
 Exercise it from an external test and compare it with a handwritten model, a direct `macroonz::harness` property or oracle, or an explicitly invoked generated evidence carrier.
 The packaged `macroonz-harness` example `temporal_property.rs` is the direct judgment reference.
 An uninvoked carrier is inert material, not evidence.
