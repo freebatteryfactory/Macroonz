@@ -9,7 +9,7 @@ use crate::recipe::{
 };
 use crate::render::RenderError;
 use crate::request::Door;
-use crate::token::{CapturedInput, GeneratedTree};
+use crate::token::{CapturedInput, GeneratedTree, SpanHandle};
 
 struct PreparedNames {
     root_macros: Vec<String>,
@@ -73,7 +73,7 @@ fn prepared_tree(
                 emitter,
                 door,
             )?;
-            names.support(&expansion, door)?;
+            names.support(&expansion, evidence.at(), door)?;
             emitted(&expansion, door)
         }
         RecipeRole::Mutation => {
@@ -88,7 +88,7 @@ fn prepared_tree(
                 },
                 door,
             )?;
-            names.support(&expansion, door)?;
+            names.support(&expansion, evidence.at(), door)?;
             emitted(&expansion, door)
         }
         RecipeRole::Benchmarks => {
@@ -99,7 +99,7 @@ fn prepared_tree(
                 emitter,
                 door,
             )?;
-            names.support(&expansion, door)?;
+            names.support(&expansion, evidence.at(), door)?;
             emitted(&expansion, door)
         }
         RecipeRole::Network => {
@@ -110,7 +110,7 @@ fn prepared_tree(
                 },
                 door,
             )?;
-            names.baked_type(expansion.plan().content().module(), door)?;
+            names.baked_type(expansion.plan().content().module(), evidence.at(), door)?;
             emitted(&expansion, door)
         }
         RecipeRole::Concurrency => {
@@ -121,7 +121,7 @@ fn prepared_tree(
                 },
                 door,
             )?;
-            names.baked_type(expansion.plan().content().module(), door)?;
+            names.baked_type(expansion.plan().content().module(), evidence.at(), door)?;
             emitted(&expansion, door)
         }
         RecipeRole::Companions
@@ -140,13 +140,7 @@ impl PreparedNames {
             .support()
             .map(|support| vec![support.spelling().to_owned()])
             .unwrap_or_default();
-        let mut baked_types = Vec::new();
-        if recipe.effective(RecipeRole::Dispatch).is_some() {
-            baked_types.push("TransitionRefusal".to_owned());
-        }
-        if recipe.effective(RecipeRole::Typestate).is_some() {
-            baked_types.push("typestate".to_owned());
-        }
+        let baked_types = recipe.baked_type_names();
         Self {
             root_macros,
             baked_types,
@@ -156,26 +150,33 @@ impl PreparedNames {
     fn support(
         &mut self,
         expansion: &Expansion<crate::support::SupportCarrier>,
+        at: SpanHandle,
         door: &Door,
     ) -> Result<(), Diagnostic> {
         let Some(address) = expansion.plan().content().address() else {
             return Err(nothing_rendered(door));
         };
-        admit_name(&mut self.root_macros, address.spelling(), door)
+        admit_name(&mut self.root_macros, address.spelling(), at, door)
     }
 
-    fn baked_type(&mut self, name: &str, door: &Door) -> Result<(), Diagnostic> {
-        admit_name(&mut self.baked_types, name, door)
+    fn baked_type(&mut self, name: &str, at: SpanHandle, door: &Door) -> Result<(), Diagnostic> {
+        admit_name(&mut self.baked_types, name, at, door)
     }
 }
 
-fn admit_name(names: &mut Vec<String>, name: &str, door: &Door) -> Result<(), Diagnostic> {
+fn admit_name(
+    names: &mut Vec<String>,
+    name: &str,
+    at: SpanHandle,
+    door: &Door,
+) -> Result<(), Diagnostic> {
     if names
         .iter()
         .any(|occupied| identifier_key(occupied) == identifier_key(name))
     {
         return Err(crate::recipe::generated_name_collision(
             name.to_owned(),
+            at,
             door,
         ));
     }

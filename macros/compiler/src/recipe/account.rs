@@ -361,6 +361,29 @@ impl Recipe {
         let position = evidence_position(role)?;
         self.evidence.get(position).and_then(Option::as_ref)
     }
+
+    pub(crate) fn baked_type_names(&self) -> Vec<String> {
+        let mut names = self
+            .effective(RecipeRole::RelationTables)
+            .into_iter()
+            .flat_map(EffectiveProjection::relation_tables)
+            .map(|table| table.relation().to_owned())
+            .collect::<Vec<_>>();
+        if self.effective(RecipeRole::Codec).is_some() {
+            names.extend(
+                self.codecs()
+                    .filter(|codec| codec.content().direction.reads())
+                    .map(|codec| codec.content().shape.refusal().to_owned()),
+            );
+        }
+        if self.effective(RecipeRole::Dispatch).is_some() {
+            names.push("TransitionRefusal".to_owned());
+        }
+        if self.effective(RecipeRole::Typestate).is_some() {
+            names.push("typestate".to_owned());
+        }
+        names
+    }
 }
 
 fn informed_vocabularies(
@@ -687,24 +710,37 @@ fn codec_surface_collision(
     projections: &[ProjectionStanding; PROJECTION_LIMIT],
 ) -> Option<(String, SpanHandle)> {
     let declarations = codecs.members().collect::<Vec<_>>();
-    let dispatch = matches!(
+    let mut reserved_types = Vec::new();
+    if let ProjectionStanding::Generated(effective) =
+        RecipeRole::RelationTables.standing(projections)
+    {
+        reserved_types.extend(
+            effective
+                .relation_tables()
+                .map(super::RelationTableProjection::relation),
+        );
+    }
+    if matches!(
         RecipeRole::Dispatch.standing(projections),
         ProjectionStanding::Generated(_)
-    );
-    let typestate = matches!(
+    ) {
+        reserved_types.push("TransitionRefusal");
+    }
+    if matches!(
         RecipeRole::Typestate.standing(projections),
         ProjectionStanding::Generated(_)
-    );
+    ) {
+        reserved_types.push("typestate");
+    }
     for declaration in &declarations {
         let content = declaration.content();
-        if content.direction.reads() {
-            let refusal = content.shape.refusal();
-            if dispatch && identifier_key(refusal) == "TransitionRefusal" {
-                return Some((refusal.to_owned(), declaration.refusal_at()));
-            }
-            if typestate && identifier_key(refusal) == "typestate" {
-                return Some((refusal.to_owned(), declaration.refusal_at()));
-            }
+        let refusal = content.shape.refusal();
+        if content.direction.reads()
+            && reserved_types
+                .iter()
+                .any(|reserved| identifier_key(reserved) == identifier_key(refusal))
+        {
+            return Some((refusal.to_owned(), declaration.refusal_at()));
         }
     }
     for (position, first) in declarations.iter().enumerate() {

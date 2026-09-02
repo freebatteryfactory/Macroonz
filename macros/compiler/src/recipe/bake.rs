@@ -330,9 +330,13 @@ fn recipe_refused(refusal: &RecipeError, door: &Door) -> Diagnostic {
     }
 }
 
-pub(crate) fn generated_name_collision(name: String, door: &Door) -> Diagnostic {
+pub(crate) fn generated_name_collision(
+    name: String,
+    at: crate::token::SpanHandle,
+    door: &Door,
+) -> Diagnostic {
     recipe_refused(
-        &RecipeError::at(RecipeIssue::GeneratedNameCollision { name }, None),
+        &RecipeError::at(RecipeIssue::GeneratedNameCollision { name }, Some(at)),
         door,
     )
 }

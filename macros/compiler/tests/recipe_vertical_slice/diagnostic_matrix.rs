@@ -86,6 +86,15 @@ fn first_word(source: &str, word: &str) -> Result<SpanHandle, ()> {
         .ok_or(())
 }
 
+fn word_occurrence(source: &str, word: &str, occurrence: usize) -> Result<SpanHandle, ()> {
+    flattened(source)?
+        .into_iter()
+        .filter(|tree| tree.word() == Some(word))
+        .nth(occurrence)
+        .map(|tree| tree.span())
+        .ok_or(())
+}
+
 fn narrow_group_containing(source: &str, word: &str) -> Result<SpanHandle, ()> {
     let read = TextCapture::read(source).map_err(|_| ())?;
     find_group(read.input().trees(), word).ok_or(())
@@ -485,6 +494,68 @@ pub mod codec_collision {
         RefusalClass::DeclarationNotRead,
         Observed::IdentityDisagreement,
         last_word(codec, "SharedDecodeError")?,
+        DUPLICATE_REPAIR,
+    )
+}
+
+#[test]
+fn cross_family_type_collisions_point_at_the_second_generated_owner() -> Result<(), ()> {
+    let codec = r"
+pub mod combined {
+    pub enum Left { A }
+    pub enum Right { B }
+    pub struct Ledger { pub count: u16 }
+    bake! {
+        vocabularies { Left; Right; };
+        relations { policy(Left, Right) { (A, B); }; };
+        codecs {
+            ledger(Ledger) {
+                direction(decode);
+                refusal(policy);
+                assembly(assembled, total);
+                members { count: u16 => count(required); };
+            };
+        };
+        projections { relation_tables { policy; }; codec; };
+    }
+}
+";
+    assert_refusal(
+        &refusal(codec, HarnessPosture::Available)?,
+        "generated recipe name `policy` is already occupied",
+        RefusalClass::DeclarationNotRead,
+        Observed::IdentityDisagreement,
+        word_occurrence(codec, "policy", 1)?,
+        DUPLICATE_REPAIR,
+    )?;
+
+    let network = r#"
+pub mod combined {
+    pub enum Left { A }
+    pub enum Right { B }
+    bake! {
+        vocabularies { Left; Right; };
+        relations { policy(Left, Right) { (A, B); }; };
+        projections { relation_tables { policy; }; };
+        evidence {
+            network {
+                harness = macroonz::harness,
+                module = policy,
+                namespace = "collision",
+                nodes = [left, right],
+                link forward = left to right,
+                schedule quiet = [],
+            };
+        };
+    }
+}
+"#;
+    assert_refusal(
+        &refusal(network, HarnessPosture::Available)?,
+        "generated recipe name `policy` is already occupied",
+        RefusalClass::DeclarationNotRead,
+        Observed::IdentityDisagreement,
+        last_word(network, "network")?,
         DUPLICATE_REPAIR,
     )
 }

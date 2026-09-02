@@ -284,3 +284,62 @@ pub mod codecs {
     let _distinct_read_refusals = bake(distinct_read_refusals.as_str())?;
     Ok(())
 }
+
+#[test]
+fn generated_type_names_collide_across_standard_and_direct_evidence_families() -> Result<(), ()> {
+    let codec_and_relation = r"
+pub mod combined {
+    pub enum Left { A }
+    pub enum Right { B }
+    pub struct Ledger { pub count: u16 }
+    bake! {
+        vocabularies { Left; Right; };
+        relations { policy(Left, Right) { (A, B); }; };
+        codecs {
+            ledger(Ledger) {
+                direction(decode);
+                refusal(policy);
+                assembly(assembled, total);
+                members { count: u16 => count(required); };
+            };
+        };
+        projections {
+            relation_tables { policy; };
+            codec;
+        };
+    }
+}
+";
+    assert!(
+        refusal_summary(codec_and_relation)?
+            .contains("generated recipe name `policy` is already occupied")
+    );
+
+    let relation_and_network = r#"
+pub mod combined {
+    pub enum Left { A }
+    pub enum Right { B }
+    bake! {
+        vocabularies { Left; Right; };
+        relations { policy(Left, Right) { (A, B); }; };
+        projections { relation_tables { policy; }; };
+        evidence {
+            network {
+                harness = macroonz::harness,
+                module = policy,
+                namespace = "collision",
+                nodes = [left, right],
+                link forward = left to right,
+                schedule quiet = [],
+            };
+        };
+    }
+}
+"#;
+    let summary = refusal_summary(relation_and_network)?;
+    assert!(
+        summary.contains("generated recipe name `policy` is already occupied"),
+        "{summary}"
+    );
+    Ok(())
+}
