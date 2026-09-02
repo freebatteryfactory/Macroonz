@@ -1,6 +1,7 @@
 //! Stable recipe readback observed through public and caller-owned projection roads.
 
-use super::{COMPANION_RECIPE, COMPLETE_RECIPE, DOOR, bake};
+use super::support::CODEC_RECIPE;
+use super::{COMPANION_RECIPE, COMPLETE_RECIPE, DOOR, EVIDENCE_RECIPE, bake};
 use macroonz_compiler::host::Emittable;
 use macroonz_compiler::recipe::{
     HarnessPosture, LoweringSource, ProjectionDisposition, ProjectionError, ProjectionOffered,
@@ -8,8 +9,8 @@ use macroonz_compiler::recipe::{
     RecipeRelationPayload, RecipeRole, RecipeView,
 };
 use macroonz_compiler::{
-    AbsencePosture, CompletenessPosture, CyclePosture, DensityPosture, EmptyPosture,
-    GeneratedToken, GeneratedTree, MembershipPosture, RenderError, RepetitionPosture,
+    AbsencePosture, CompletenessPosture, CyclePosture, DensityPosture, Destination, EmptyPosture,
+    GeneratedToken, GeneratedTree, MembershipPosture, RenderError, RepetitionPosture, Role,
     SelfRelationPosture, TextCapture, unit_struct,
 };
 
@@ -156,7 +157,7 @@ fn public_recipe_names_are_exact_and_stable() {
     let names = RecipeRole::ALL
         .iter()
         .copied()
-        .map(<RecipeRole as macroonz_compiler::Role>::name)
+        .map(<RecipeRole as Role>::name)
         .collect::<Vec<_>>();
     assert_eq!(
         names,
@@ -175,6 +176,74 @@ fn public_recipe_names_are_exact_and_stable() {
             "codec",
         ]
     );
+
+    let destinations = RecipeRole::ALL
+        .iter()
+        .copied()
+        .map(Role::destination)
+        .collect::<Vec<_>>();
+    assert_eq!(
+        destinations,
+        [
+            Destination::DeclarationSite,
+            Destination::DeclarationSite,
+            Destination::DeclarationSite,
+            Destination::TestCarrier,
+            Destination::TestCarrier,
+            Destination::DeclarationSite,
+            Destination::DeclarationSite,
+            Destination::DeclarationSite,
+            Destination::DeclarationSite,
+            Destination::DeclarationSite,
+            Destination::DeclarationSite,
+            Destination::DeclarationSite,
+        ]
+    );
+}
+
+#[test]
+fn every_declared_role_reaches_one_selected_recipe_account() -> Result<(), ()> {
+    let recipes = vec![
+        bake(COMPLETE_RECIPE)?,
+        bake(EVIDENCE_RECIPE)?,
+        bake(CODEC_RECIPE)?,
+        bake(POSTURE_RECIPE)?,
+    ]
+    .into_boxed_slice();
+    for role in RecipeRole::ALL.iter().copied() {
+        assert!(recipes.iter().any(|baked| {
+            baked
+                .projection()
+                .plan()
+                .content()
+                .projection_disposition(role)
+                == ProjectionDisposition::Generated
+        }));
+    }
+    Ok(())
+}
+
+#[test]
+fn generated_roles_retain_their_declared_root_and_baked_placement_order() -> Result<(), ()> {
+    let baked = bake(EVIDENCE_RECIPE)?;
+    let text = baked.emit().tokens().ok_or(())?.inspected();
+    let trials = token_position(&text, "recipe_trials_support")?;
+    let mutation = token_position(&text, "recipe_mutation_support")?;
+    let benchmarks = token_position(&text, "recipe_bench_support")?;
+    let recipe_module = token_position(&text, "pub mod door")?;
+    let baked_module = token_position(&text, "pub mod baked")?;
+    let companions = token_position(&text, "STATE_VARIANTS")?;
+    let network = token_position(&text, "recipe_network")?;
+    let concurrency = token_position(&text, "recipe_concurrency")?;
+
+    assert!(trials < mutation);
+    assert!(mutation < benchmarks);
+    assert!(benchmarks < recipe_module);
+    assert!(recipe_module < baked_module);
+    assert!(baked_module < companions);
+    assert!(companions < network);
+    assert!(network < concurrency);
+    Ok(())
 }
 
 #[test]
@@ -199,22 +268,24 @@ fn unavailable_harness_roles_keep_their_exact_public_dispositions() -> Result<()
     let baked = macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Unavailable, &DOOR)
         .map_err(|_| ())?;
     let recipe = baked.projection().plan().content();
-    assert_eq!(
-        recipe.projection_disposition(RecipeRole::Companions),
-        ProjectionDisposition::Generated
-    );
-    assert_eq!(
-        recipe.projection_disposition(RecipeRole::CompileContract),
-        ProjectionDisposition::FeatureUnavailable
-    );
-    assert_eq!(
-        recipe.projection_disposition(RecipeRole::Property),
-        ProjectionDisposition::FeatureUnavailable
-    );
-    assert_eq!(
-        recipe.projection_disposition(RecipeRole::Dispatch),
-        ProjectionDisposition::NotRequested
-    );
+    let expected_dispositions = [
+        ProjectionDisposition::Generated,
+        ProjectionDisposition::NotRequested,
+        ProjectionDisposition::NotRequested,
+        ProjectionDisposition::FeatureUnavailable,
+        ProjectionDisposition::FeatureUnavailable,
+        ProjectionDisposition::NotRequested,
+        ProjectionDisposition::FeatureUnavailable,
+        ProjectionDisposition::FeatureUnavailable,
+        ProjectionDisposition::FeatureUnavailable,
+        ProjectionDisposition::FeatureUnavailable,
+        ProjectionDisposition::FeatureUnavailable,
+        ProjectionDisposition::NotRequested,
+    ];
+    assert_eq!(RecipeRole::ALL.len(), expected_dispositions.len());
+    for (role, expected_disposition) in RecipeRole::ALL.iter().copied().zip(expected_dispositions) {
+        assert_eq!(recipe.projection_disposition(role), expected_disposition);
+    }
     Ok(())
 }
 
@@ -234,4 +305,8 @@ fn projection_errors_and_host_cargos_retain_their_public_cause_chain() -> Result
     let emitted = supported.emit().tokens().ok_or(())?.inspected();
     assert!(emitted.contains("door_recipe_support"));
     Ok(())
+}
+
+fn token_position(text: &str, needle: &str) -> Result<usize, ()> {
+    text.find(needle).ok_or(())
 }

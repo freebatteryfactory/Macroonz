@@ -31,7 +31,11 @@ pub(crate) fn prepared(
     };
     let mut trees: [Option<GeneratedTree>; EVIDENCE_LIMIT] = core::array::from_fn(|_| None);
     let mut names = PreparedNames::over(recipe);
-    for role in evidence_roles() {
+    for role in RecipeRole::ALL
+        .iter()
+        .copied()
+        .filter(|role| crate::recipe::evidence_position(*role).is_some())
+    {
         if replaced.contains(&role) {
             continue;
         }
@@ -218,14 +222,4 @@ fn nothing_rendered(door: &Door) -> Diagnostic {
         door,
         &Placement::WholeDeclaration,
     )
-}
-
-const fn evidence_roles() -> [RecipeRole; EVIDENCE_LIMIT] {
-    [
-        RecipeRole::Trials,
-        RecipeRole::Mutation,
-        RecipeRole::Benchmarks,
-        RecipeRole::Network,
-        RecipeRole::Concurrency,
-    ]
 }

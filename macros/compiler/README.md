@@ -36,7 +36,7 @@ Every projector can offer output only for a planned role and destination, while 
 
 ## Raw callable road
 
-A caller who wants the informed recipe road but needs a projection algorithm Macroonz does not ship implements `recipe::RecipeProjector` and supplies it to `recipe::bake_with` for one selected role.
+A caller who wants the informed recipe road but needs projection algorithms Macroonz does not ship implements `recipe::RecipeProjector` and binds one or more selected roles through `recipe::ProjectorReplacement` and `recipe::bake_with`.
 The projector reads `RecipeView` and `ProjectionRequest`, offers one `GeneratedTree` through its consuming `ProjectionSink`, and receives no planning, closure, identity, sidecar, or completion authority.
 
 The package ships that exact journey at `examples/custom_recipe_projector.rs`; run `cargo run -p macroonz-compiler --example custom_recipe_projector` from the workspace root.

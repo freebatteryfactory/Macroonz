@@ -6,6 +6,7 @@ mod encode;
 mod evidence;
 mod names;
 mod render;
+mod role;
 mod render_companions;
 mod render_codec;
 mod render_dispatch;

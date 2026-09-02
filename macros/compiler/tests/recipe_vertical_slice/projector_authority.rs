@@ -349,7 +349,7 @@ fn caller_owned_projector_rosters_refuse_duplicate_and_unbounded_roles_before_pr
     assert!(observed.borrow().is_empty());
 
     let at_limit = [replacement; PROJECTION_LIMIT];
-    let refusal = macroonz_compiler::recipe::bake_with(
+    let at_limit_refusal = macroonz_compiler::recipe::bake_with(
         read.input(),
         HarnessPosture::Available,
         &DOOR,
@@ -358,14 +358,14 @@ fn caller_owned_projector_rosters_refuse_duplicate_and_unbounded_roles_before_pr
     .err()
     .ok_or(())?;
     assert!(
-        refusal
+        at_limit_refusal
             .summary()
             .contains("caller-owned projector role `companions` is replaced more than once")
     );
     assert!(observed.borrow().is_empty());
 
     let unbounded = [replacement; PROJECTION_LIMIT + 1];
-    let refusal = macroonz_compiler::recipe::bake_with(
+    let unbounded_refusal = macroonz_compiler::recipe::bake_with(
         read.input(),
         HarnessPosture::Available,
         &DOOR,
@@ -374,7 +374,7 @@ fn caller_owned_projector_rosters_refuse_duplicate_and_unbounded_roles_before_pr
     .err()
     .ok_or(())?;
     assert!(
-        refusal
+        unbounded_refusal
             .summary()
             .contains("caller-owned projectors were supplied where at most 12 fit")
     );

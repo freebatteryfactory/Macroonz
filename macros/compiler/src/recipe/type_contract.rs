@@ -71,19 +71,7 @@ impl Role for RecipeRole {
     }
 
     fn destination(self) -> Destination {
-        match self {
-            Self::Companions
-            | Self::RelationTables
-            | Self::Dispatch
-            | Self::Typestate
-            | Self::Trials
-            | Self::Mutation
-            | Self::Benchmarks
-            | Self::Network
-            | Self::Concurrency
-            | Self::Codec => Destination::DeclarationSite,
-            Self::CompileContract | Self::Property => Destination::TestCarrier,
-        }
+        self.profile().output.destination
     }
 }
 

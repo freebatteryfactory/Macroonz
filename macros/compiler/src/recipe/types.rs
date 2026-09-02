@@ -46,7 +46,7 @@ pub const EVIDENCE_LIMIT: usize = 5;
 pub const CODEC_LIMIT: usize = 16;
 
 /// The complete number of fixed recipe projection families.
-pub const PROJECTION_LIMIT: usize = 12;
+pub const PROJECTION_LIMIT: usize = RecipeRole::ALL.len();
 
 /// The diagnostic family owned by the recipe declaration.
 pub(super) const RECIPE_FAMILY: Family = Family::declared("macroonz/recipe");
@@ -220,6 +220,54 @@ crate::roster! {
         /// Canonical encode and decode roads from one or more existing-owner codec declarations.
         Codec = "codec",
     }
+}
+
+/// Which grammar entrance admits one recipe role.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum RecipeRoleEntrance {
+    /// The role is named inside the `projections` block.
+    Projection,
+    /// The role is named inside the `evidence` block.
+    Evidence,
+}
+
+/// Which package posture owns one recipe role.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum RecipeRoleAvailability {
+    /// The role is available in every facade posture.
+    Always,
+    /// The role requires the optional harness package.
+    Harness,
+}
+
+/// Where one generated role is assembled into the final recipe emission.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum RecipeRolePlacement {
+    /// The generated unit is emitted beside the authored recipe module.
+    DeclarationRoot,
+    /// The generated unit is emitted inside the recipe module's `baked` child.
+    BakedModule,
+    /// The generated unit is carried through the recipe's explicit support address.
+    SupportCarrier,
+}
+
+/// The output seat and final assembly order owned by one recipe role.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct RecipeRoleOutput {
+    pub(super) destination: crate::kind::Destination,
+    pub(super) placement: RecipeRolePlacement,
+    pub(super) placement_position: Option<usize>,
+}
+
+/// The complete compiler-owned facts for one recipe role.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct RecipeRoleProfile {
+    pub(super) position: usize,
+    pub(super) syntax: &'static str,
+    pub(super) entrance: RecipeRoleEntrance,
+    pub(super) availability: RecipeRoleAvailability,
+    pub(super) output: RecipeRoleOutput,
+    pub(super) evidence_position: Option<usize>,
 }
 
 /// Which informed recipe vocabulary a mutation evidence block presses.

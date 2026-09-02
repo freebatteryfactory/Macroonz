@@ -1,5 +1,6 @@
 //! Projection selection and the complete projection standing account.
 
+use super::super::types::{RecipeRoleAvailability, RecipeRoleEntrance};
 use super::dispatch::{exact_dispatch, exact_relation_table};
 use super::evidence::evidence_standing;
 use super::{
@@ -19,20 +20,29 @@ pub(super) fn read_projection(
 ) -> Result<RequestedProjection, CaptureReadRefusal> {
     let (token, spelling) = cursor.identifier()?;
     let at = token.span();
-    match spelling {
-        "companions" => Ok(simple(RecipeRole::Companions, at)),
-        "relation_tables" => read_relation_tables(cursor, issued, at),
-        "dispatch" => read_dispatch(cursor, issued, at),
-        "compile_contract" => Ok(simple(RecipeRole::CompileContract, at)),
-        "property" => Ok(simple(RecipeRole::Property, at)),
-        "typestate" => read_typestate(cursor, at),
-        "codec" => Ok(simple(RecipeRole::Codec, at)),
-        _ => Err(CaptureReadRefusal::projected(
+    let Some(role) = RecipeRole::from_syntax(spelling, RecipeRoleEntrance::Projection) else {
+        return Err(CaptureReadRefusal::projected(
             crate::token::CaptureReadIssue::Unexpected(crate::token::CaptureExpectation::Word(
                 "a recipe projection".to_owned(),
             )),
             Some(at),
-        )),
+        ));
+    };
+    match role {
+        RecipeRole::RelationTables => read_relation_tables(cursor, issued, at),
+        RecipeRole::Dispatch => read_dispatch(cursor, issued, at),
+        RecipeRole::Typestate => read_typestate(cursor, at),
+        RecipeRole::Companions
+        | RecipeRole::CompileContract
+        | RecipeRole::Property
+        | RecipeRole::Codec => Ok(simple(role, at)),
+        RecipeRole::Trials
+        | RecipeRole::Mutation
+        | RecipeRole::Benchmarks
+        | RecipeRole::Network
+        | RecipeRole::Concurrency => {
+            unreachable!("the role profile admits only projection roles through this reader")
+        }
     }
 }
 
@@ -355,7 +365,7 @@ fn ensure_requested_admission(
             ));
         }
         if harness == HarnessPosture::Unavailable
-            && matches!(row.role, RecipeRole::CompileContract | RecipeRole::Property)
+            && row.role.profile().availability == RecipeRoleAvailability::Harness
         {
             return Err(RecipeError::at(
                 RecipeIssue::HarnessUnavailable { role: row.role },
@@ -381,7 +391,10 @@ fn ensure_evidence_admission(
                 Some(row.at),
             ));
         }
-        if harness == HarnessPosture::Unavailable && row.body.is_some() {
+        if harness == HarnessPosture::Unavailable
+            && row.role.profile().availability == RecipeRoleAvailability::Harness
+            && row.body.is_some()
+        {
             return Err(RecipeError::at(
                 RecipeIssue::HarnessUnavailable { role: row.role },
                 Some(row.at),
@@ -398,62 +411,20 @@ fn projection_standings(
     transition_subject: Option<(&str, &str)>,
     relations: &[CapturedRelation],
 ) -> Result<[ProjectionStanding; PROJECTION_LIMIT], RecipeError> {
-    Ok([
-        standing(
-            requested,
-            RecipeRole::Companions,
-            harness,
-            transition_subject,
-            relations,
-        )?,
-        standing(
-            requested,
-            RecipeRole::RelationTables,
-            harness,
-            transition_subject,
-            relations,
-        )?,
-        standing(
-            requested,
-            RecipeRole::Dispatch,
-            harness,
-            transition_subject,
-            relations,
-        )?,
-        standing(
-            requested,
-            RecipeRole::CompileContract,
-            harness,
-            transition_subject,
-            relations,
-        )?,
-        standing(
-            requested,
-            RecipeRole::Property,
-            harness,
-            transition_subject,
-            relations,
-        )?,
-        standing(
-            requested,
-            RecipeRole::Typestate,
-            harness,
-            transition_subject,
-            relations,
-        )?,
-        evidence_standing(evidence, RecipeRole::Trials, harness),
-        evidence_standing(evidence, RecipeRole::Mutation, harness),
-        evidence_standing(evidence, RecipeRole::Benchmarks, harness),
-        evidence_standing(evidence, RecipeRole::Network, harness),
-        evidence_standing(evidence, RecipeRole::Concurrency, harness),
-        standing(
-            requested,
-            RecipeRole::Codec,
-            harness,
-            transition_subject,
-            relations,
-        )?,
-    ])
+    let mut standings = Vec::with_capacity(PROJECTION_LIMIT);
+    for role in RecipeRole::ALL.iter().copied() {
+        let standing = match role.profile().entrance {
+            RecipeRoleEntrance::Projection => {
+                standing(requested, role, harness, transition_subject, relations)?
+            }
+            RecipeRoleEntrance::Evidence => evidence_standing(evidence, role, harness),
+        };
+        standings.push(standing);
+    }
+    let Ok(standings) = standings.try_into() else {
+        unreachable!("the complete role roster has the projection-account magnitude")
+    };
+    Ok(standings)
 }
 
 fn standing(
@@ -464,7 +435,7 @@ fn standing(
     relations: &[CapturedRelation],
 ) -> Result<ProjectionStanding, RecipeError> {
     if harness == HarnessPosture::Unavailable
-        && matches!(role, RecipeRole::CompileContract | RecipeRole::Property)
+        && role.profile().availability == RecipeRoleAvailability::Harness
         && !requested.iter().any(|row| row.role == role)
     {
         return Ok(ProjectionStanding::FeatureUnavailable);

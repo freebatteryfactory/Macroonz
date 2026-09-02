@@ -11,25 +11,13 @@ impl PreparedEvidence {
 
     /// Reads the sealed output for one descriptor-native role.
     pub(crate) fn tree(&self, role: RecipeRole) -> Option<&GeneratedTree> {
-        evidence_position(role)
+        role.profile()
+            .evidence_position
             .and_then(|position| self.trees.get(position))
             .and_then(Option::as_ref)
     }
 }
 
-pub(crate) const fn evidence_position(role: RecipeRole) -> Option<usize> {
-    match role {
-        RecipeRole::Trials => Some(0),
-        RecipeRole::Mutation => Some(1),
-        RecipeRole::Benchmarks => Some(2),
-        RecipeRole::Network => Some(3),
-        RecipeRole::Concurrency => Some(4),
-        RecipeRole::Companions
-        | RecipeRole::RelationTables
-        | RecipeRole::Dispatch
-        | RecipeRole::CompileContract
-        | RecipeRole::Property
-        | RecipeRole::Typestate
-        | RecipeRole::Codec => None,
-    }
+pub(crate) fn evidence_position(role: RecipeRole) -> Option<usize> {
+    role.profile().evidence_position
 }

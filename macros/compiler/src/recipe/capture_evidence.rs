@@ -1,5 +1,6 @@
 //! Descriptor-native evidence clauses, support address posture, and evidence standings.
 
+use super::super::types::{RecipeRoleEntrance, RecipeRolePlacement};
 use super::{
     EVIDENCE_LIMIT, EffectiveProjection, HarnessPosture, LoweringSource, PROJECTION_LIMIT,
     ProjectionStanding, RecipeError, RecipeEvidence, RecipeIssue, RecipeRole, RequestedEvidence,
@@ -36,20 +37,13 @@ fn read_evidence(
     issued: usize,
 ) -> Result<RequestedEvidence, CaptureReadRefusal> {
     let (token, spelling) = cursor.identifier()?;
-    let role = match spelling {
-        "trials" => RecipeRole::Trials,
-        "mutation" => RecipeRole::Mutation,
-        "benchmarks" => RecipeRole::Benchmarks,
-        "network" => RecipeRole::Network,
-        "concurrency" => RecipeRole::Concurrency,
-        _ => {
-            return Err(CaptureReadRefusal::projected(
-                crate::token::CaptureReadIssue::Unexpected(crate::token::CaptureExpectation::Word(
-                    "a descriptor-native evidence projection".to_owned(),
-                )),
-                Some(token.span()),
-            ));
-        }
+    let Some(role) = RecipeRole::from_syntax(spelling, RecipeRoleEntrance::Evidence) else {
+        return Err(CaptureReadRefusal::projected(
+            crate::token::CaptureReadIssue::Unexpected(crate::token::CaptureExpectation::Word(
+                "a descriptor-native evidence projection".to_owned(),
+            )),
+            Some(token.span()),
+        ));
     };
     if cursor.next_word() == Some("unavailable") {
         cursor.word("unavailable")?;
@@ -124,8 +118,10 @@ pub(super) fn support_matches_projections(
     support: Option<&SupportName>,
     at: Option<crate::token::SpanHandle>,
 ) -> Result<(), RecipeError> {
-    let evidence = generated(projections, RecipeRole::CompileContract)
-        || generated(projections, RecipeRole::Property);
+    let evidence = RecipeRole::ALL.iter().copied().any(|role| {
+        role.profile().output.placement == RecipeRolePlacement::SupportCarrier
+            && generated(projections, role)
+    });
     match (evidence, support.is_some()) {
         (true, false) => Err(RecipeError::at(RecipeIssue::SupportAddressRequired, at)),
         (false, true) => Err(RecipeError::at(RecipeIssue::SupportAddressUnneeded, at)),
@@ -162,7 +158,8 @@ pub(super) fn evidence(
     requested: &[RequestedEvidence],
 ) -> [Option<RecipeEvidence>; EVIDENCE_LIMIT] {
     core::array::from_fn(|position| {
-        let role = evidence_role(position)?;
+        let role = RecipeRole::evidence_roles()
+            .find(|role| role.profile().evidence_position == Some(position))?;
         let row = requested.iter().find(|candidate| candidate.role == role)?;
         let body = row.body.clone()?;
         Some(RecipeEvidence::captured(
@@ -174,47 +171,6 @@ pub(super) fn evidence(
     })
 }
 
-const fn evidence_role(position: usize) -> Option<RecipeRole> {
-    match position {
-        0 => Some(RecipeRole::Trials),
-        1 => Some(RecipeRole::Mutation),
-        2 => Some(RecipeRole::Benchmarks),
-        3 => Some(RecipeRole::Network),
-        4 => Some(RecipeRole::Concurrency),
-        _ => None,
-    }
-}
-
 fn generated(projections: &[ProjectionStanding; PROJECTION_LIMIT], role: RecipeRole) -> bool {
-    let [
-        companions,
-        relation_tables,
-        dispatch,
-        compile_contract,
-        property,
-        typestate,
-        trials,
-        mutation,
-        benchmarks,
-        network,
-        concurrency,
-        codec,
-    ] = projections;
-    matches!(
-        match role {
-            RecipeRole::Companions => companions,
-            RecipeRole::RelationTables => relation_tables,
-            RecipeRole::Dispatch => dispatch,
-            RecipeRole::CompileContract => compile_contract,
-            RecipeRole::Property => property,
-            RecipeRole::Typestate => typestate,
-            RecipeRole::Trials => trials,
-            RecipeRole::Mutation => mutation,
-            RecipeRole::Benchmarks => benchmarks,
-            RecipeRole::Network => network,
-            RecipeRole::Concurrency => concurrency,
-            RecipeRole::Codec => codec,
-        },
-        ProjectionStanding::Generated(_)
-    )
+    matches!(role.standing(projections), ProjectionStanding::Generated(_))
 }

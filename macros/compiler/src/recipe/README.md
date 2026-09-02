@@ -85,8 +85,9 @@ An external target invokes the carrier and the harness owns the resulting judgme
 
 ## Caller-owned projectors
 
-A caller-owned projector implements `RecipeProjector` and is selected for one already requested role through `bake_with`.
-It receives a copyable read-only `RecipeView`, a copyable `ProjectionRequest` carrying the role's effective mechanical configuration, and one consuming `ProjectionSink`.
+A caller-owned projector implements `RecipeProjector` and is bound to one already requested role through `ProjectorReplacement` and `bake_with`.
+One bake may replace several selected roles, but slice order never changes execution order and every replacement receives the same copyable read-only `RecipeView`, role-specific `ProjectionRequest`, and one consuming `ProjectionSink`.
+An unbounded roster, repeated role, or unselected role refuses before any projector executes.
 
 The view exposes only informed recipe facts and exact captured fragments required to generate that role.
 The request exposes the selected role, its role-owned destination, and its effective configuration.

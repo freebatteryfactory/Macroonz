@@ -2,7 +2,8 @@
 
 use super::render;
 use super::types::{
-    RECIPE_FACT, RecipeError, RecipeIssue, RecipeShell, RecipeShellContent, StandardProjector,
+    RECIPE_FACT, RecipeError, RecipeIssue, RecipeRolePlacement, RecipeShell, RecipeShellContent,
+    StandardProjector,
 };
 use super::{
     ConfiguredEvidence, EvidenceCompiler, HarnessPosture, PROJECTION_LIMIT, ProjectionSink,
@@ -286,26 +287,14 @@ fn final_tree(
     {
         root = root.joined(tree)?;
     }
-    for role in [
-        RecipeRole::Trials,
-        RecipeRole::Mutation,
-        RecipeRole::Benchmarks,
-    ] {
+    for role in RecipeRole::roles_at(RecipeRolePlacement::DeclarationRoot) {
         if let Some(unit) = projection.closure().rendered().under(role) {
             root = root.joined(unit.tree())?;
         }
     }
     let mut body = recipe.authored_body().clone();
     let mut companions = Vec::new();
-    for role in [
-        RecipeRole::Companions,
-        RecipeRole::RelationTables,
-        RecipeRole::Codec,
-        RecipeRole::Dispatch,
-        RecipeRole::Typestate,
-        RecipeRole::Network,
-        RecipeRole::Concurrency,
-    ] {
+    for role in RecipeRole::roles_at(RecipeRolePlacement::BakedModule) {
         if let Some(unit) = projection.closure().rendered().under(role) {
             companions.extend(unit.tree().tokens().iter().cloned());
         }

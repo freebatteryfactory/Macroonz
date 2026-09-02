@@ -300,34 +300,7 @@ impl Recipe {
     /// Reads the complete standing for one projection role.
     #[must_use]
     pub(in crate::recipe) fn standing(&self, role: RecipeRole) -> &ProjectionStanding {
-        let [
-            companions,
-            relation_tables,
-            dispatch,
-            compile_contract,
-            property,
-            typestate,
-            trials,
-            mutation,
-            benchmarks,
-            network,
-            concurrency,
-            codec,
-        ] = &self.projections;
-        match role {
-            RecipeRole::Companions => companions,
-            RecipeRole::RelationTables => relation_tables,
-            RecipeRole::Dispatch => dispatch,
-            RecipeRole::CompileContract => compile_contract,
-            RecipeRole::Property => property,
-            RecipeRole::Typestate => typestate,
-            RecipeRole::Trials => trials,
-            RecipeRole::Mutation => mutation,
-            RecipeRole::Benchmarks => benchmarks,
-            RecipeRole::Network => network,
-            RecipeRole::Concurrency => concurrency,
-            RecipeRole::Codec => codec,
-        }
+        role.standing(&self.projections)
     }
 
     /// Reads the complete public disposition of one possible projection.
@@ -483,12 +456,7 @@ fn selected_roles(projections: &[ProjectionStanding; PROJECTION_LIMIT]) -> Vec<R
     RecipeRole::ALL
         .iter()
         .copied()
-        .filter(|role| {
-            matches!(
-                standing_in(projections, *role),
-                ProjectionStanding::Generated(_)
-            )
-        })
+        .filter(|role| matches!(role.standing(projections), ProjectionStanding::Generated(_)))
         .collect()
 }
 
@@ -516,8 +484,7 @@ fn ensure_relation_table_projection(
     if !selected.contains(&RecipeRole::RelationTables) {
         return Ok(());
     }
-    let ProjectionStanding::Generated(effective) =
-        standing_in(projections, RecipeRole::RelationTables)
+    let ProjectionStanding::Generated(effective) = RecipeRole::RelationTables.standing(projections)
     else {
         return Err(RecipeError::at(
             RecipeIssue::ProjectionSubjectRequired {
@@ -660,11 +627,11 @@ fn standard_name_collision(
     transition_relation: Option<&str>,
 ) -> Option<String> {
     let companions = matches!(
-        standing_in(projections, RecipeRole::Companions),
+        RecipeRole::Companions.standing(projections),
         ProjectionStanding::Generated(_)
     );
     let relation_tables = matches!(
-        standing_in(projections, RecipeRole::RelationTables),
+        RecipeRole::RelationTables.standing(projections),
         ProjectionStanding::Generated(_)
     );
     if !companions && !relation_tables {
@@ -676,7 +643,7 @@ fn standard_name_collision(
         Vec::new()
     };
     if let ProjectionStanding::Generated(effective) =
-        standing_in(projections, RecipeRole::RelationTables)
+        RecipeRole::RelationTables.standing(projections)
     {
         names.extend(
             effective
@@ -685,7 +652,7 @@ fn standard_name_collision(
         );
     }
     if matches!(
-        standing_in(projections, RecipeRole::Typestate),
+        RecipeRole::Typestate.standing(projections),
         ProjectionStanding::Generated(_)
     ) {
         names.push("typestate".to_owned());
@@ -699,8 +666,7 @@ fn standard_name_collision(
             return Some(name.clone());
         }
     }
-    let ProjectionStanding::Generated(dispatch) = standing_in(projections, RecipeRole::Dispatch)
-    else {
+    let ProjectionStanding::Generated(dispatch) = RecipeRole::Dispatch.standing(projections) else {
         return None;
     };
     let name = dispatch.name().unwrap_or("apply");
@@ -716,11 +682,11 @@ fn codec_surface_collision(
 ) -> Option<String> {
     let declarations = codecs.members().collect::<Vec<_>>();
     let dispatch = matches!(
-        standing_in(projections, RecipeRole::Dispatch),
+        RecipeRole::Dispatch.standing(projections),
         ProjectionStanding::Generated(_)
     );
     let typestate = matches!(
-        standing_in(projections, RecipeRole::Typestate),
+        RecipeRole::Typestate.standing(projections),
         ProjectionStanding::Generated(_)
     );
     for declaration in &declarations {
@@ -793,8 +759,7 @@ fn resolve_typestate_subject(
     projections: &mut [ProjectionStanding; PROJECTION_LIMIT],
     vocabularies: Option<&KeyedRoster<super::RecipeVocabulary, String, VOCABULARY_LIMIT>>,
 ) -> Result<(), RecipeError> {
-    let ProjectionStanding::Generated(effective) =
-        standing_in_mut(projections, RecipeRole::Typestate)
+    let ProjectionStanding::Generated(effective) = RecipeRole::Typestate.standing_mut(projections)
     else {
         return Ok(());
     };
@@ -902,73 +867,5 @@ fn codec_account_refusal(
                 at,
             )
         }
-    }
-}
-
-fn standing_in(
-    projections: &[ProjectionStanding; PROJECTION_LIMIT],
-    role: RecipeRole,
-) -> &ProjectionStanding {
-    let [
-        companions,
-        relation_tables,
-        dispatch,
-        compile_contract,
-        property,
-        typestate,
-        trials,
-        mutation,
-        benchmarks,
-        network,
-        concurrency,
-        codec,
-    ] = projections;
-    match role {
-        RecipeRole::Companions => companions,
-        RecipeRole::RelationTables => relation_tables,
-        RecipeRole::Dispatch => dispatch,
-        RecipeRole::CompileContract => compile_contract,
-        RecipeRole::Property => property,
-        RecipeRole::Typestate => typestate,
-        RecipeRole::Trials => trials,
-        RecipeRole::Mutation => mutation,
-        RecipeRole::Benchmarks => benchmarks,
-        RecipeRole::Network => network,
-        RecipeRole::Concurrency => concurrency,
-        RecipeRole::Codec => codec,
-    }
-}
-
-fn standing_in_mut(
-    projections: &mut [ProjectionStanding; PROJECTION_LIMIT],
-    role: RecipeRole,
-) -> &mut ProjectionStanding {
-    let [
-        companions,
-        relation_tables,
-        dispatch,
-        compile_contract,
-        property,
-        typestate,
-        trials,
-        mutation,
-        benchmarks,
-        network,
-        concurrency,
-        codec,
-    ] = projections;
-    match role {
-        RecipeRole::Companions => companions,
-        RecipeRole::RelationTables => relation_tables,
-        RecipeRole::Dispatch => dispatch,
-        RecipeRole::CompileContract => compile_contract,
-        RecipeRole::Property => property,
-        RecipeRole::Typestate => typestate,
-        RecipeRole::Trials => trials,
-        RecipeRole::Mutation => mutation,
-        RecipeRole::Benchmarks => benchmarks,
-        RecipeRole::Network => network,
-        RecipeRole::Concurrency => concurrency,
-        RecipeRole::Codec => codec,
     }
 }
