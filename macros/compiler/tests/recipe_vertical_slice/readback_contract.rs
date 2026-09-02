@@ -57,6 +57,46 @@ pub mod structure {
 }
 ";
 
+const ALL_STANDARD_PROJECTIONS_RECIPE: &str = r"
+pub mod catalog {
+    pub enum State { Closed, Open }
+    pub enum Event { OpenDoor }
+    pub enum Capability { Read }
+    pub struct Ledger { pub value: u16 }
+
+    bake! {
+        vocabularies { State; Event; Capability; };
+        transitions(State, Event) {
+            (Closed, OpenDoor) => Open with(crate::open);
+        };
+        relations {
+            policy(State, Capability) {
+                (Closed, Read);
+            };
+        };
+        absence(refused);
+        codecs {
+            ledger(Ledger) {
+                direction(encode);
+                refusal(LedgerError);
+                assembly(assembled, total);
+                members { value: u16 => count(required); };
+            };
+        };
+        projections {
+            companions;
+            relation_tables { policy; };
+            dispatch(apply);
+            compile_contract;
+            declaration_conformance;
+            typestate(State);
+            codec;
+        };
+        support(recipe_support);
+    }
+}
+";
+
 struct ReadbackProjector;
 
 impl RecipeProjector for ReadbackProjector {
@@ -220,6 +260,32 @@ fn every_declared_role_reaches_one_selected_recipe_account() -> Result<(), ()> {
                 == ProjectionDisposition::Generated
         }));
     }
+    Ok(())
+}
+
+#[test]
+fn every_standard_projection_fits_one_recipe_selection() -> Result<(), ()> {
+    let baked = bake(ALL_STANDARD_PROJECTIONS_RECIPE)?;
+    let recipe = baked.projection().plan().content();
+    let selected = [
+        RecipeRole::Companions,
+        RecipeRole::RelationTables,
+        RecipeRole::Dispatch,
+        RecipeRole::CompileContract,
+        RecipeRole::DeclarationConformance,
+        RecipeRole::Typestate,
+        RecipeRole::Codec,
+    ];
+    for role in selected {
+        assert_eq!(
+            recipe.projection_disposition(role),
+            ProjectionDisposition::Generated
+        );
+    }
+    assert_eq!(
+        baked.projection().closure().rendered().count(),
+        selected.len()
+    );
     Ok(())
 }
 
