@@ -98,6 +98,7 @@ fn read_row(cursor: &mut CaptureCursor<'_>) -> Result<RecipeRelationRow, Capture
         (right.spelling, right.token, right.at),
         payload,
         payload_at,
+        None,
     ))
 }
 

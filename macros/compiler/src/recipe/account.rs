@@ -422,7 +422,13 @@ fn restore_row_reference(tree: &GeneratedTree, row: &RecipeRelationRow) -> Gener
         }
         RecipeRelationPayload::Transition { effect, .. } => match effect {
             RecipeTransitionEffect::Path(path) => tree.restored_from(path),
-            RecipeTransitionEffect::ExactRust { .. } => tree.clone(),
+            RecipeTransitionEffect::ExactRust {
+                target_binding,
+                body,
+            } => row.effect_binding_at().map_or_else(
+                || tree.restored_from(body),
+                |binding_at| tree.restored_body_from(body, target_binding, binding_at),
+            ),
         },
     }
 }

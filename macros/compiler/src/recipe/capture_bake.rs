@@ -200,9 +200,10 @@ fn read_transition(
     let (to_token, to) = cursor.identifier()?;
     cursor.word("with")?;
     let mut effect = cursor.group(CapturedDelimiter::Parenthesis)?;
-    let (effect, (binding, segments)) = effect.fragment(|path| {
+    let (effect, (binding, binding_at, segments)) = effect.fragment(|path| {
         let (first, name) = path.identifier()?;
         let binding = identifier_token(first, name);
+        let binding_at = first.span();
         let mut segments = 1usize;
         while !path.is_finished() {
             path.punctuation(':', CapturedSpacing::Joint)?;
@@ -210,7 +211,7 @@ fn read_transition(
             path.identifier()?;
             segments = segments.saturating_add(1);
         }
-        Ok((binding, segments))
+        Ok((binding, binding_at, segments))
     })?;
     let effect = effect.generated().map_err(|refusal| {
         CaptureReadRefusal::projected(
@@ -218,7 +219,7 @@ fn read_transition(
             refusal.token(),
         )
     })?;
-    let (payload, payload_at) = if let Some(body) = cursor
+    let (payload, payload_at, effect_binding_at) = if let Some(body) = cursor
         .next_token()
         .and_then(|token| token.group_fragment(CapturedDelimiter::Brace))
     {
@@ -245,6 +246,7 @@ fn read_transition(
                 body,
             ),
             body_at,
+            Some(binding_at),
         )
     } else {
         (
@@ -254,6 +256,7 @@ fn read_transition(
                 effect,
             ),
             to_token.span(),
+            None,
         )
     };
     Ok(RecipeRelationRow::authored(
@@ -269,5 +272,6 @@ fn read_transition(
         ),
         payload,
         payload_at,
+        effect_binding_at,
     ))
 }

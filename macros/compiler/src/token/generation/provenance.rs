@@ -65,6 +65,38 @@ impl GeneratedTree {
         restored
     }
 
+    /// Restore one exact caller-authored body together with its nearest matching generated binding.
+    #[must_use]
+    pub(crate) fn restored_body_from(
+        &self,
+        source: &Self,
+        binding: &GeneratedToken,
+        binding_span: SpanHandle,
+    ) -> Self {
+        let mut target_tokens = Vec::new();
+        preorder_tokens(self.tokens.as_slice(), &mut target_tokens);
+        let mut source_tokens = Vec::new();
+        preorder_tokens(source.tokens.as_slice(), &mut source_tokens);
+        let Some(opening) = restoration_opening(self, &target_tokens, source, &source_tokens)
+        else {
+            return self.clone();
+        };
+        let mut restored = self.restored_run(source, opening);
+        let Some(binding_position) = (0..opening).rev().find(|position| {
+            target_tokens
+                .get(*position)
+                .is_some_and(|token| *token == binding)
+        }) else {
+            return restored;
+        };
+        if let Some(target_span) = restored.source_spans.get_mut(binding_position)
+            && target_span.is_none()
+        {
+            *target_span = Some(binding_span);
+        }
+        restored
+    }
+
     /// Restore caller-authored identifiers onto generated paths and caller-named item declarations.
     #[must_use]
     pub(crate) fn restored_references_from(&self, source: &Self) -> Self {

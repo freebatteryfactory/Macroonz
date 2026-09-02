@@ -24,6 +24,7 @@ const RECIPE_REFERENCE_SPANS_RESTORED: bool =
 
             pub enum CustodyEvent {
                 CustodyOpenDoor,
+                CustodyExactDoor,
             }
 
             fn custody_effect() {}
@@ -35,6 +36,10 @@ const RECIPE_REFERENCE_SPANS_RESTORED: bool =
                 };
                 transitions(CustodyState, CustodyEvent) {
                     (CustodyClosed, CustodyOpenDoor) => CustodyOpen with(crate::custody_effect);
+                    (CustodyClosed, CustodyExactDoor) => CustodyOpen with(custody_target) {
+                        let _: CustodyState = custody_target;
+                        Ok(custody_target)
+                    };
                 };
                 relations {
                     CustodyPolicy(CustodyState, CustodyEvent) {

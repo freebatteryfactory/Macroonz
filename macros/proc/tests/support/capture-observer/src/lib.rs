@@ -102,6 +102,7 @@ pub fn recipe_reference_spans(input: TokenStream) -> TokenStream {
         ("custody_exact", 1usize),
         ("custody_left", 2usize),
         ("custody_right", 2usize),
+        ("custody_target", 3usize),
     ];
     let answer = if expected
         .into_iter()

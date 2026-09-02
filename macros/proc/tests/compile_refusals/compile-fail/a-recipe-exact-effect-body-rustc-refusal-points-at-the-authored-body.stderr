@@ -1,0 +1,5 @@
+error[E0425]: cannot find type `MissingEffectBody` in the crate root
+  --> tests/compile_refusals/compile-fail/a-recipe-exact-effect-body-rustc-refusal-points-at-the-authored-body.rs:13:39
+   |
+13 |                         let _: crate::MissingEffectBody = target;
+   |                                       ^^^^^^^^^^^^^^^^^ not found in the crate root

@@ -152,6 +152,7 @@ pub struct RecipeRelationRow {
     right_at: SpanHandle,
     payload: RecipeRelationPayload,
     payload_at: SpanHandle,
+    effect_binding_at: Option<SpanHandle>,
 }
 
 /// The structural questions one relation declaration chose to answer.

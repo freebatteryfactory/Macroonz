@@ -72,6 +72,7 @@ impl RecipeRelationRow {
         right: (String, crate::token::GeneratedToken, SpanHandle),
         payload: RecipeRelationPayload,
         payload_at: SpanHandle,
+        effect_binding_at: Option<SpanHandle>,
     ) -> Self {
         Self {
             left: left.0,
@@ -82,6 +83,7 @@ impl RecipeRelationRow {
             right_at: right.2,
             payload,
             payload_at,
+            effect_binding_at,
         }
     }
 
@@ -113,6 +115,10 @@ impl RecipeRelationRow {
     #[must_use]
     pub const fn payload(&self) -> &RecipeRelationPayload {
         &self.payload
+    }
+
+    pub(in crate::recipe) const fn effect_binding_at(&self) -> Option<SpanHandle> {
+        self.effect_binding_at
     }
 }
 
