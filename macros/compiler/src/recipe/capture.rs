@@ -179,6 +179,7 @@ struct RequestedProjection {
     subject: Option<String>,
     source: LoweringSource,
     exact: Option<CapturedInput>,
+    dispatch_bindings: Option<[String; 2]>,
     relation_tables: Option<Vec<RequestedRelationTable>>,
     at: crate::token::SpanHandle,
 }

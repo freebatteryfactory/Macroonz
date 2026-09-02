@@ -3,8 +3,8 @@
 use super::{
     RELATION_LIMIT, RELATION_ROW_LIMIT, RecipeError, RecipeIssue, RecipeMember, RecipeRelation,
     RecipeRelationParts, RecipeRelationPayload, RecipeRelationPayloadKind,
-    RecipeRelationRequirements, RecipeRelationRow, RecipeVocabulary, RelationLowering,
-    VOCABULARY_LIMIT,
+    RecipeRelationRequirements, RecipeRelationRow, RecipeTransitionEffect, RecipeVocabulary,
+    RelationLowering, VOCABULARY_LIMIT,
 };
 use crate::bounded::{Bounded, KeyedRoster, KeyedRosterError};
 use crate::relation::{
@@ -32,13 +32,29 @@ impl RecipeRelationPayload {
         Self::Transition {
             target,
             target_name,
-            effect,
+            effect: RecipeTransitionEffect::Path(effect),
+        }
+    }
+
+    pub(in crate::recipe) fn transition_exact(
+        target: String,
+        target_name: crate::token::GeneratedToken,
+        target_binding: crate::token::GeneratedToken,
+        body: GeneratedTree,
+    ) -> Self {
+        Self::Transition {
+            target,
+            target_name,
+            effect: RecipeTransitionEffect::ExactRust {
+                target_binding,
+                body,
+            },
         }
     }
 
     pub(in crate::recipe) const fn transition_parts(
         &self,
-    ) -> Option<(&str, &crate::token::GeneratedToken, &GeneratedTree)> {
+    ) -> Option<(&str, &crate::token::GeneratedToken, &RecipeTransitionEffect)> {
         match self {
             Self::Transition {
                 target,

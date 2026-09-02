@@ -30,7 +30,9 @@ The recipe home owns only the declaration bridge and projection selection.
 Canonical encoding, decoding, member cardinality, assembly posture, and generated method contracts remain owned by `codec/`.
 
 The `transitions(State, Event)` and `absence(refused)` clauses are ergonomic lowerings into a caller-named relation and its structural posture inside the same generic account.
-A transition names one left member, one right member, one target member, and one ordinary Rust effect path, while rustc retains authority over that path, types, ownership, exhaustiveness, and the final generated program.
+A transition names one left member, one right member and one target member.
+Its `with(path)` shorthand calls one zero-argument Rust path and returns the declared target, while `with(target) { exact Rust }` binds that target for caller-authored row behavior.
+The standard projector still owns the complete match and one arm per informed row; rustc retains authority over every call, type, borrow, lifetime, generic, result, asynchronous operation and explicit caller boundary inside the arm.
 
 The optional `typestate(Vocabulary)` projection treats the selected authored members as caller-declared type-level stages.
 It generates one marker per member, one structural `RecipeStage` trait carrying the caller-authored spelling, and one generic `Stage<Marker>` phantom carrier with conventional construction inside `baked::typestate`.
@@ -43,7 +45,8 @@ A standard projection has one progressively disclosed seat rather than separate 
 The preset spelling names only the role, a parenthesized spelling carries flat mechanical configuration, and a braced spelling carries exact Rust material.
 
 For dispatch, those levels are `dispatch;`, `dispatch(apply);`, and a braced semicolon-terminated function signature.
-The exact signature preserves caller-authored attributes, visibility, qualifiers, name, generics, two simple caller-named parameter bindings and exact types, result, and where clause.
+The exact signature preserves caller-authored attributes, visibility, qualifiers, name, generics, parameters and exact types, result, and where clause.
+Where that signature carries only state and event, their two simple bindings are read directly; where it carries additional parameters, `dispatch(state_binding, event_binding) { exact signature };` names the two bindings the row-accounted match consumes.
 The standard projector generates only the body accounted from the informed transition rows.
 A caller-authored function body is refused at that seat because an arbitrary body belongs to the caller-owned projector road.
 
@@ -110,5 +113,5 @@ The support home proves each cargo came from its descriptor expansion and keeps 
 ## Evidence ceiling
 
 An accepted recipe expansion proves structural informing, selected-role accounting, projector authority, rendered closure, and carrier parentage.
-It does not prove that a payload or effect path resolves, that generated Rust type-checks, that a carrier is invoked, or that a declared relation is correct for any domain.
+It does not prove that a payload or effect resolves, that generated Rust type-checks, that a carrier is invoked, or that a declared relation is correct for any domain.
 Those claims belong to rustc and to independent harness or compile-contract crossings.

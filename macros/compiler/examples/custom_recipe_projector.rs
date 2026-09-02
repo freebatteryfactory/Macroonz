@@ -2,8 +2,8 @@
 
 use macroonz_compiler::recipe::{
     HarnessPosture, LoweringSource, ProjectionError, ProjectionOffered, ProjectionRequest,
-    ProjectionSink, RecipeProjector, RecipeRelationPayload, RecipeRole, RecipeView,
-    TRANSITION_LIMIT, VOCABULARY_LIMIT,
+    ProjectionSink, RecipeProjector, RecipeRelationPayload, RecipeRole, RecipeTransitionEffect,
+    RecipeView, TRANSITION_LIMIT, VOCABULARY_LIMIT,
 };
 use macroonz_compiler::{
     CrateBinding, Destination, Door, GeneratedDelimiter, GeneratedToken, GeneratedTree, Overflow,
@@ -101,17 +101,22 @@ fn effect_paths(
         let RecipeRelationPayload::Transition { effect, .. } = row.payload() else {
             return Err(nothing_rendered());
         };
+        let material = match effect {
+            RecipeTransitionEffect::Path(path) => path.tokens(),
+            RecipeTransitionEffect::ExactRust { body, .. } => body.tokens(),
+            _ => return Err(nothing_rendered()),
+        };
         if position > 0 {
             values.push(GeneratedToken::alone(','));
         }
         values.extend([
             GeneratedToken::word("stringify"),
             GeneratedToken::alone('!'),
-            group(GeneratedDelimiter::Parenthesis, effect.tokens().to_vec())?,
+            group(GeneratedDelimiter::Parenthesis, material.to_vec())?,
         ]);
     }
     Ok(constant(
-        "STRUCTURAL_EFFECT_PATHS",
+        "STRUCTURAL_EFFECTS",
         vec![
             GeneratedToken::alone('&'),
             group(
@@ -171,7 +176,7 @@ fn main() -> Result<(), String> {
         .inspected();
     assert!(emitted.contains("STRUCTURAL_DIMENSIONS"));
     assert!(emitted.contains("( 2 , 3 , 2 )"));
-    assert!(emitted.contains("STRUCTURAL_EFFECT_PATHS"));
+    assert!(emitted.contains("STRUCTURAL_EFFECTS"));
     assert!(emitted.contains("crate :: observe"));
     Ok(())
 }

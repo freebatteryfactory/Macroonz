@@ -4,6 +4,8 @@
 mod harness_refusal;
 #[path = "support/generic_recipe.rs"]
 mod generic_recipe;
+#[path = "support/effect_execution.rs"]
+mod effect_execution;
 #[path = "support/historical_subjects.rs"]
 mod historical_subjects;
 #[path = "support/no_harness.rs"]
@@ -11,6 +13,7 @@ mod no_harness;
 #[path = "support/renamed_facade.rs"]
 mod renamed_facade;
 
+use effect_execution::{EFFECT_CONSUMER, EFFECT_PRODUCER};
 use generic_recipe::{GENERIC_CONSUMER, GENERIC_PRODUCER, GENERIC_REFUSALS};
 use harness_refusal::{EMPTY_CONSUMER, HARNESS_REFUSAL_PRODUCER};
 use historical_subjects::{SUBJECT_JOURNEYS_CONSUMER, SUBJECT_JOURNEYS_PRODUCER};
@@ -22,6 +25,12 @@ use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU32, Ordering};
 
 static SCRATCH_ORDINAL: AtomicU32 = AtomicU32::new(0);
+
+#[derive(Clone, Copy)]
+enum AdopterUnsafePosture {
+    Forbidden,
+    CallerOwned,
+}
 
 fn scratch_root() -> Result<PathBuf, String> {
     let parent = PathBuf::from(env!("CARGO_TARGET_TMPDIR"));
@@ -121,6 +130,22 @@ fn write_specimen(
     producer: &str,
     consumer: &str,
 ) -> Result<(), String> {
+    write_specimen_with_unsafe_posture(
+        scratch,
+        facade_features,
+        producer,
+        consumer,
+        AdopterUnsafePosture::Forbidden,
+    )
+}
+
+fn write_specimen_with_unsafe_posture(
+    scratch: &Path,
+    facade_features: &str,
+    producer: &str,
+    consumer: &str,
+    unsafe_posture: AdopterUnsafePosture,
+) -> Result<(), String> {
     let repository = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .and_then(Path::parent)
@@ -128,6 +153,10 @@ fn write_specimen(
     let facade = manifest_path(repository)?;
     std::fs::create_dir(scratch.join("src")).map_err(|error| error.to_string())?;
     std::fs::create_dir(scratch.join("tests")).map_err(|error| error.to_string())?;
+    let unsafe_lint = match unsafe_posture {
+        AdopterUnsafePosture::Forbidden => "unsafe_code = \"forbid\"",
+        AdopterUnsafePosture::CallerOwned => "",
+    };
     let manifest = format!(
         r#"[package]
 name = "renamed-recipe-adopter"
@@ -153,7 +182,7 @@ bakery = {{ package = "macroonz", path = "{facade}", default-features = false{fa
 
 [lints.rust]
 warnings = "deny"
-unsafe_code = "forbid"
+{unsafe_lint}
 
 [workspace]
 "#
@@ -161,6 +190,39 @@ unsafe_code = "forbid"
     std::fs::write(scratch.join("Cargo.toml"), manifest).map_err(|error| error.to_string())?;
     std::fs::write(scratch.join("src/lib.rs"), producer).map_err(|error| error.to_string())?;
     std::fs::write(scratch.join("tests/recipe.rs"), consumer).map_err(|error| error.to_string())
+}
+
+pub(super) fn observe_effect_execution(scratch: &Path) -> Result<(), String> {
+    write_specimen_with_unsafe_posture(
+        scratch,
+        "",
+        EFFECT_PRODUCER,
+        EFFECT_CONSUMER,
+        AdopterUnsafePosture::CallerOwned,
+    )?;
+    let locked = cargo(scratch, &["generate-lockfile", "--offline"])?;
+    if !locked.status.success() {
+        return Err(command_refusal("effect-execution lock generation", &locked));
+    }
+    let tested = cargo(scratch, &["test", "--locked", "--offline"])?;
+    if !tested.status.success() {
+        return Err(command_refusal("effect-execution qualification", &tested));
+    }
+    let wasm = cargo(
+        scratch,
+        &[
+            "check",
+            "--lib",
+            "--locked",
+            "--offline",
+            "--target",
+            "wasm32-unknown-unknown",
+        ],
+    )?;
+    if !wasm.status.success() {
+        return Err(command_refusal("effect-execution Wasm posture", &wasm));
+    }
+    Ok(())
 }
 
 pub(super) fn observed_in_scratch(

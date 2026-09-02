@@ -1,8 +1,8 @@
 //! Caller-owned projectors observed against the standard projector authority ceiling.
 
 use super::support::{
-    CODEC_RECIPE, COMPANION_RECIPE, DOOR, MirroredCodec, MirroredCompanions, MirroredDispatch,
-    MirroredRelationTables, MirroredTypestate, bake, emitted_bytes,
+    CODEC_RECIPE, COMPANION_RECIPE, DOOR, EXACT_EFFECT_RECIPE, MirroredCodec, MirroredCompanions,
+    MirroredDispatch, MirroredRelationTables, MirroredTypestate, bake, emitted_bytes,
 };
 use macroonz_compiler::recipe::{HarnessPosture, RecipeRole};
 use macroonz_compiler::{CanonicalContent, TextCapture};
@@ -72,6 +72,36 @@ fn a_caller_owned_dispatch_projector_uses_the_same_behavior_kernel_and_authority
     assert_eq!(
         standard.projection().explain().identity(),
         custom.projection().explain().identity()
+    );
+    assert_eq!(emitted_bytes(&standard), emitted_bytes(&custom));
+    Ok(())
+}
+
+#[test]
+fn exact_row_effects_give_standard_and_caller_owned_dispatch_equal_authority() -> Result<(), ()> {
+    let read = TextCapture::read(EXACT_EFFECT_RECIPE).map_err(|_| ())?;
+    let standard = macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
+        .map_err(|_| ())?;
+    let custom = macroonz_compiler::recipe::bake_with(
+        read.input(),
+        HarnessPosture::Available,
+        &DOOR,
+        RecipeRole::Dispatch,
+        &MirroredDispatch,
+    )
+    .map_err(|_| ())?;
+
+    assert_eq!(
+        standard.projection().identity(),
+        custom.projection().identity()
+    );
+    assert_eq!(
+        standard.projection().plan().identity(),
+        custom.projection().plan().identity()
+    );
+    assert_eq!(
+        standard.projection().closure().identity(),
+        custom.projection().closure().identity()
     );
     assert_eq!(emitted_bytes(&standard), emitted_bytes(&custom));
     Ok(())

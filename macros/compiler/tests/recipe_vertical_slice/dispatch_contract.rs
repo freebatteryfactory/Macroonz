@@ -1,7 +1,12 @@
 //! Dispatch disclosure, exact-Rust custody, identity, and refusal claims.
 
-use super::{COMPANION_RECIPE, DOOR, EXACT_DISPATCH_RECIPE, bake, emitted_bytes, refusal_summary};
-use macroonz_compiler::recipe::{HarnessPosture, LoweringSource, RecipeRole};
+use super::{
+    COMPANION_RECIPE, DOOR, EXACT_DISPATCH_RECIPE, EXACT_EFFECT_RECIPE, bake, emitted_bytes,
+    refusal_summary,
+};
+use macroonz_compiler::recipe::{
+    HarnessPosture, LoweringSource, RecipeRelationPayload, RecipeRole, RecipeTransitionEffect,
+};
 use macroonz_compiler::{GeneratedTree, TextCapture};
 
 #[test]
@@ -85,6 +90,86 @@ fn exact_dispatch_signature_material_moves_recipe_identity() -> Result<(), ()> {
         second.projection().identity()
     );
     assert_ne!(emitted_bytes(&first), emitted_bytes(&second));
+    Ok(())
+}
+
+#[test]
+fn exact_row_rust_and_selected_dispatch_bindings_share_one_account() -> Result<(), ()> {
+    let baked = bake(EXACT_EFFECT_RECIPE)?;
+    let recipe = baked.projection().plan().content();
+    let effective = recipe.effective(RecipeRole::Dispatch).ok_or(())?;
+    assert_eq!(effective.dispatch_bindings(), Some(["current", "event"]));
+    let relation = recipe.transition_relation().ok_or(())?;
+    let row = relation.rows().next().ok_or(())?;
+    let RecipeRelationPayload::Transition { effect, .. } = row.payload() else {
+        return Err(());
+    };
+    let RecipeTransitionEffect::ExactRust {
+        target_binding,
+        body,
+    } = effect
+    else {
+        return Err(());
+    };
+    assert_eq!(
+        target_binding,
+        &macroonz_compiler::GeneratedToken::word("target")
+    );
+    let body = body.inspected();
+    assert!(body.contains("context . calls"), "{body}");
+    assert!(body.contains("Ok ( target )"), "{body}");
+
+    let emitted = baked
+        .emit()
+        .tokens()
+        .map(GeneratedTree::inspected)
+        .ok_or(())?;
+    assert!(
+        emitted.contains("let target = super :: State :: Open"),
+        "{emitted}"
+    );
+    assert!(emitted.contains("match ( current , event )"), "{emitted}");
+    assert!(
+        emitted.contains("context : & mut super :: Context"),
+        "{emitted}"
+    );
+    Ok(())
+}
+
+#[test]
+fn selected_dispatch_binding_and_exact_row_body_move_identity() -> Result<(), ()> {
+    let first = bake(EXACT_EFFECT_RECIPE)?;
+    let binding =
+        EXACT_EFFECT_RECIPE.replace("dispatch(current, event)", "dispatch(renamed, event)");
+    assert!(
+        refusal_summary(&binding)?.contains(
+            "exact dispatch selector `renamed` does not name one simple parameter binding"
+        )
+    );
+    let body = EXACT_EFFECT_RECIPE.replace("Ok(target)", "Ok({ let _ = target; current })");
+    let second = bake(&body)?;
+    assert_ne!(
+        first.projection().plan().identity(),
+        second.projection().plan().identity()
+    );
+    assert_ne!(emitted_bytes(&first), emitted_bytes(&second));
+    Ok(())
+}
+
+#[test]
+fn selected_dispatch_bindings_are_distinct_and_exact_target_bindings_are_local() -> Result<(), ()> {
+    let repeated =
+        EXACT_EFFECT_RECIPE.replace("dispatch(current, event)", "dispatch(current, current)");
+    assert!(
+        refusal_summary(&repeated)?.contains("two distinct dispatch bindings"),
+        "the same parameter cannot own both structural coordinates"
+    );
+
+    let path_binding = EXACT_EFFECT_RECIPE.replace("with(target) {", "with(crate::target) {");
+    assert!(
+        refusal_summary(&path_binding)?.contains("one declared-target binding"),
+        "an exact effect body must receive one local target binding"
+    );
     Ok(())
 }
 

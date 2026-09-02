@@ -1,9 +1,9 @@
 //! Independent mirror projectors and their generated-token helpers.
 
 use macroonz_compiler::recipe::{
-    ProjectionError, ProjectionOffered, ProjectionRequest, ProjectionSink, RecipeProjector,
-    RecipeRelation, RecipeRelationPayload, RecipeRelationPayloadKind, RecipeRelationRow,
-    RecipeRole, RecipeView, RecipeVocabulary,
+    EffectiveProjection, ProjectionError, ProjectionOffered, ProjectionRequest, ProjectionSink,
+    RecipeProjector, RecipeRelation, RecipeRelationPayload, RecipeRelationPayloadKind,
+    RecipeRelationRow, RecipeRole, RecipeTransitionEffect, RecipeView, RecipeVocabulary,
 };
 use macroonz_compiler::{
     GeneratedDelimiter, GeneratedRowRefusal, GeneratedToken, GeneratedTree, NonEmptyError,
@@ -17,7 +17,7 @@ use macroonz_compiler::{
 mod fixtures;
 pub(super) use fixtures::{
     CALLER_OWNED_TRIAL_RECIPE, CODEC_RECIPE, COMPANION_RECIPE, COMPLETE_RECIPE, DOOR,
-    EVIDENCE_RECIPE, EXACT_DISPATCH_RECIPE, TARGET_UNAVAILABLE_RECIPE,
+    EVIDENCE_RECIPE, EXACT_DISPATCH_RECIPE, EXACT_EFFECT_RECIPE, TARGET_UNAVAILABLE_RECIPE,
 };
 
 pub(super) struct MirroredCompanions;
@@ -96,92 +96,137 @@ impl RecipeProjector for MirroredDispatch {
     ) -> Result<ProjectionOffered, ProjectionError> {
         assert_eq!(request.role(), RecipeRole::Dispatch);
         assert_eq!(request.effective().role(), RecipeRole::Dispatch);
-        let recipe = view.recipe();
-        let (states, events, relation) = transition_account(recipe)?;
-        let refusal = decorated(
-            vec![
-                documentation("Why generated dispatch did not find an admitted transition row.")?,
-                derived(&["Debug", "Clone", "Copy", "PartialEq", "Eq"])?,
-            ],
-            public(),
-            enumeration(
-                GeneratedToken::word("TransitionRefusal"),
-                Vec::new(),
-                Vec::new(),
-                vec![decorated(
-                    vec![documentation(
-                        "No declared transition occupies the supplied state and event seat.",
-                    )?],
-                    Vec::new(),
-                    unit_variant(GeneratedToken::word("Absent")),
-                )],
-            )?,
-        );
-        let parameters = vec![
-            typed_parameter(
-                vec![GeneratedToken::word("state")],
-                super_path(states.name_token()),
-            ),
-            typed_parameter(
-                vec![GeneratedToken::word("event")],
-                super_path(events.name_token()),
-            ),
-        ];
-        let result = result_type(
-            super_path(states.name_token()),
-            vec![GeneratedToken::word("TransitionRefusal")],
-        );
-        let mut arms = relation
-            .rows()
-            .map(|row| dispatch_arm(states, events, row))
-            .collect::<Result<Vec<_>, _>>()?;
-        arms.push(match_arm(
-            vec![GeneratedToken::word("_")],
-            None,
-            vec![
-                GeneratedToken::word("Err"),
-                group(
-                    GeneratedDelimiter::Parenthesis,
-                    vec![
-                        GeneratedToken::word("TransitionRefusal"),
-                        GeneratedToken::joint(':'),
-                        GeneratedToken::alone(':'),
-                        GeneratedToken::word("Absent"),
-                    ],
-                )?,
-            ],
-        ));
-        let body = match_expression(
-            vec![group(
-                GeneratedDelimiter::Parenthesis,
-                comma_separated(vec![
-                    vec![GeneratedToken::word("state")],
-                    vec![GeneratedToken::word("event")],
-                ]),
-            )?],
-            arms,
-        )?;
-        let function = decorated(
-            vec![documentation(
-                "Applies one declared transition or returns typed absence.",
-            )?],
-            public(),
-            function_item(
-                function_signature(
-                    Vec::new(),
-                    GeneratedToken::word(request.effective().name().unwrap_or("apply")),
-                    parameters,
-                    Vec::new(),
-                    Some(result),
-                    Vec::new(),
-                )?,
-                body,
-            )?,
-        );
-        let mut tokens = refusal;
-        tokens.extend(function);
-        sink.offer(GeneratedTree::assembled(tokens)?)
+        sink.offer(mirrored_dispatch(view.recipe(), request.effective())?)
     }
+}
+
+fn mirrored_dispatch(
+    recipe: &macroonz_compiler::recipe::Recipe,
+    effective: &EffectiveProjection,
+) -> Result<GeneratedTree, ProjectionError> {
+    let (states, events, relation) = transition_account(recipe)?;
+    let refusal = mirrored_transition_refusal()?;
+    let mut arms = relation
+        .rows()
+        .map(|row| dispatch_arm(states, events, row))
+        .collect::<Result<Vec<_>, _>>()?;
+    arms.push(absent_dispatch_arm()?);
+    let bindings = effective.dispatch_binding_tokens();
+    let state = bindings.map_or_else(
+        || GeneratedToken::word("state"),
+        |bindings| bindings[0].clone(),
+    );
+    let event = bindings.map_or_else(
+        || GeneratedToken::word("event"),
+        |bindings| bindings[1].clone(),
+    );
+    let body = match_expression(
+        vec![group(
+            GeneratedDelimiter::Parenthesis,
+            comma_separated(vec![vec![state], vec![event]]),
+        )?],
+        arms,
+    )?;
+    if let Some(exact) = effective.exact_rust() {
+        let mut tokens = refusal;
+        tokens.extend(mirrored_exact_dispatch_imports(states, events, effective));
+        tokens.extend(exact.tokens().iter().cloned());
+        tokens.push(group(GeneratedDelimiter::Brace, body)?);
+        return GeneratedTree::assembled(tokens).map_err(ProjectionError::Tokens);
+    }
+    let parameters = vec![
+        typed_parameter(
+            vec![GeneratedToken::word("state")],
+            super_path(states.name_token()),
+        ),
+        typed_parameter(
+            vec![GeneratedToken::word("event")],
+            super_path(events.name_token()),
+        ),
+    ];
+    let result = result_type(
+        super_path(states.name_token()),
+        vec![GeneratedToken::word("TransitionRefusal")],
+    );
+    let function = decorated(
+        vec![documentation(
+            "Applies one declared transition or returns typed absence.",
+        )?],
+        public(),
+        function_item(
+            function_signature(
+                Vec::new(),
+                GeneratedToken::word(effective.name().unwrap_or("apply")),
+                parameters,
+                Vec::new(),
+                Some(result),
+                Vec::new(),
+            )?,
+            body,
+        )?,
+    );
+    let mut tokens = refusal;
+    tokens.extend(function);
+    GeneratedTree::assembled(tokens).map_err(ProjectionError::Tokens)
+}
+
+fn mirrored_transition_refusal() -> Result<Vec<GeneratedToken>, ProjectionError> {
+    Ok(decorated(
+        vec![
+            documentation("Why generated dispatch did not find an admitted transition row.")?,
+            derived(&["Debug", "Clone", "Copy", "PartialEq", "Eq"])?,
+        ],
+        public(),
+        enumeration(
+            GeneratedToken::word("TransitionRefusal"),
+            Vec::new(),
+            Vec::new(),
+            vec![decorated(
+                vec![documentation(
+                    "No declared transition occupies the supplied state and event seat.",
+                )?],
+                Vec::new(),
+                unit_variant(GeneratedToken::word("Absent")),
+            )],
+        )?,
+    ))
+}
+
+fn absent_dispatch_arm() -> Result<Vec<GeneratedToken>, ProjectionError> {
+    Ok(match_arm(
+        vec![GeneratedToken::word("_")],
+        None,
+        vec![
+            GeneratedToken::word("Err"),
+            group(
+                GeneratedDelimiter::Parenthesis,
+                vec![
+                    GeneratedToken::word("TransitionRefusal"),
+                    GeneratedToken::joint(':'),
+                    GeneratedToken::alone(':'),
+                    GeneratedToken::word("Absent"),
+                ],
+            )?,
+        ],
+    ))
+}
+
+fn mirrored_exact_dispatch_imports(
+    states: &RecipeVocabulary,
+    events: &RecipeVocabulary,
+    effective: &EffectiveProjection,
+) -> Vec<GeneratedToken> {
+    let Some([import_states, import_events]) = effective.dispatch_subject_imports() else {
+        return Vec::new();
+    };
+    let mut imports = Vec::new();
+    if import_states {
+        imports.extend(use_item(super_path(states.name_token()), None));
+    }
+    if import_events && states.name() != events.name() {
+        imports.extend(use_item(super_path(events.name_token()), None));
+    }
+    imports
 }
 
 impl RecipeProjector for MirroredRelationTables {
@@ -460,16 +505,37 @@ fn dispatch_arm(
             variant(events.name_token(), row.right_name_token()),
         ]),
     )?;
-    let mut body = effect.tokens().to_vec();
-    body.push(group(GeneratedDelimiter::Parenthesis, Vec::new())?);
-    body.push(GeneratedToken::alone(';'));
-    body.extend([
-        GeneratedToken::word("Ok"),
-        group(
-            GeneratedDelimiter::Parenthesis,
-            variant(states.name_token(), target_name),
-        )?,
-    ]);
+    let body = match effect {
+        RecipeTransitionEffect::Path(effect) => {
+            let mut body = effect.tokens().to_vec();
+            body.push(group(GeneratedDelimiter::Parenthesis, Vec::new())?);
+            body.push(GeneratedToken::alone(';'));
+            body.extend([
+                GeneratedToken::word("Ok"),
+                group(
+                    GeneratedDelimiter::Parenthesis,
+                    variant(states.name_token(), target_name),
+                )?,
+            ]);
+            body
+        }
+        RecipeTransitionEffect::ExactRust {
+            target_binding,
+            body,
+        } => {
+            let mut exact = vec![GeneratedToken::word("let"), target_binding.clone()];
+            exact.push(GeneratedToken::alone('='));
+            exact.extend(variant(states.name_token(), target_name));
+            exact.push(GeneratedToken::alone(';'));
+            exact.extend(body.tokens().iter().cloned());
+            exact
+        }
+        _ => {
+            return Err(ProjectionError::Render(
+                macroonz_compiler::RenderError::NothingRendered,
+            ));
+        }
+    };
     Ok(match_arm(
         vec![pattern],
         None,
@@ -498,7 +564,7 @@ fn transition_account(
 
 fn transition_payload(
     row: &RecipeRelationRow,
-) -> Result<(&GeneratedToken, &GeneratedTree), ProjectionError> {
+) -> Result<(&GeneratedToken, &RecipeTransitionEffect), ProjectionError> {
     let RecipeRelationPayload::Transition {
         target_name,
         effect,

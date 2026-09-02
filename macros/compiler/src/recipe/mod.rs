@@ -27,6 +27,6 @@ pub use types::{
     ProjectionRequest, ProjectionSink, RELATION_LIMIT, RELATION_ROW_LIMIT, RELATION_TABLE_LIMIT,
     Recipe, RecipeBake, RecipeCodec, RecipeEvidence, RecipeMember, RecipeProjection,
     RecipeProjector, RecipeRelation, RecipeRelationPayload, RecipeRelationPayloadKind,
-    RecipeRelationRequirements, RecipeRelationRow, RecipeRole, RecipeView, RecipeVocabulary,
-    RelationTableProjection, TRANSITION_LIMIT, VOCABULARY_LIMIT,
+    RecipeRelationRequirements, RecipeRelationRow, RecipeRole, RecipeTransitionEffect, RecipeView,
+    RecipeVocabulary, RelationTableProjection, TRANSITION_LIMIT, VOCABULARY_LIMIT,
 };

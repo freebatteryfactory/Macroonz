@@ -1,7 +1,7 @@
 //! Canonical recipe and final-emission content.
 
 use super::types::{ProjectionStanding, RecipeRelationPayload, RecipeShellContent};
-use super::{Recipe, RecipeRelationRequirements, RecipeRole};
+use super::{Recipe, RecipeRelationRequirements, RecipeRole, RecipeTransitionEffect};
 use crate::identity::{encode_bytes, encode_length};
 use crate::kind::{CanonicalContent, Role};
 
@@ -79,7 +79,20 @@ fn encode_relation_payload(payload: &RecipeRelationPayload, into: &mut Vec<u8>) 
         RecipeRelationPayload::Transition { target, effect, .. } => {
             into.push(3);
             encode_bytes(target.as_bytes(), into);
-            encode_bytes(&effect.canonical_bytes(), into);
+            match effect {
+                RecipeTransitionEffect::Path(path) => {
+                    into.push(0);
+                    encode_bytes(&path.canonical_bytes(), into);
+                }
+                RecipeTransitionEffect::ExactRust {
+                    target_binding,
+                    body,
+                } => {
+                    into.push(1);
+                    target_binding.encode_into(into);
+                    encode_bytes(&body.canonical_bytes(), into);
+                }
+            }
         }
     }
 }
@@ -151,6 +164,14 @@ fn encode_lowering(lowering: &super::EffectiveProjection, into: &mut Vec<u8>) {
     encode_bytes(lowering.source().name().as_bytes(), into);
     encode_optional_name(lowering.name(), into);
     encode_optional_name(lowering.subject(), into);
+    match lowering.dispatch_bindings() {
+        None => into.push(0),
+        Some([state, event]) => {
+            into.push(1);
+            encode_bytes(state.as_bytes(), into);
+            encode_bytes(event.as_bytes(), into);
+        }
+    }
     let relation_tables = lowering.relation_tables().collect::<Vec<_>>();
     encode_length(relation_tables.len(), into);
     for table in relation_tables {

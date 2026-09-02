@@ -26,6 +26,7 @@ impl EffectiveProjection {
             source,
             exact_rust: None,
             exact_dispatch_bindings: None,
+            exact_dispatch_binding_names: None,
             exact_dispatch_imports: None,
             relation_tables: None,
         }
@@ -35,6 +36,7 @@ impl EffectiveProjection {
         name: String,
         exact_rust: GeneratedTree,
         bindings: [crate::token::GeneratedToken; 2],
+        binding_names: [String; 2],
         imports: [bool; 2],
     ) -> Self {
         Self {
@@ -44,6 +46,7 @@ impl EffectiveProjection {
             source: LoweringSource::ExactRust,
             exact_rust: Some(exact_rust),
             exact_dispatch_bindings: Some(bindings),
+            exact_dispatch_binding_names: Some(Box::new(binding_names)),
             exact_dispatch_imports: Some(imports),
             relation_tables: None,
         }
@@ -59,6 +62,7 @@ impl EffectiveProjection {
             source: LoweringSource::Configuration,
             exact_rust: None,
             exact_dispatch_bindings: None,
+            exact_dispatch_binding_names: None,
             exact_dispatch_imports: None,
             relation_tables: Some(Box::new(tables)),
         }
@@ -98,14 +102,24 @@ impl EffectiveProjection {
         self.exact_rust.as_ref()
     }
 
-    pub(in crate::recipe) const fn exact_dispatch_bindings(
-        &self,
-    ) -> Option<&[crate::token::GeneratedToken; 2]> {
+    /// Reads the exact state and event binding tokens selected for an exact dispatch body.
+    #[must_use]
+    pub const fn dispatch_binding_tokens(&self) -> Option<&[crate::token::GeneratedToken; 2]> {
         self.exact_dispatch_bindings.as_ref()
     }
 
-    pub(in crate::recipe) const fn exact_dispatch_imports(&self) -> Option<&[bool; 2]> {
-        self.exact_dispatch_imports.as_ref()
+    /// Reads the state and event parameter bindings selected for an exact dispatch body.
+    #[must_use]
+    pub fn dispatch_bindings(&self) -> Option<[&str; 2]> {
+        self.exact_dispatch_binding_names
+            .as_deref()
+            .map(|[state, event]| [state.as_str(), event.as_str()])
+    }
+
+    /// Reads whether an exact dispatch signature requires each transition vocabulary in scope.
+    #[must_use]
+    pub const fn dispatch_subject_imports(&self) -> Option<[bool; 2]> {
+        self.exact_dispatch_imports
     }
 
     /// Reads every selected relation-table surface in declaration order.

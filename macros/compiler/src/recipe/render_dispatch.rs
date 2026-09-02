@@ -3,7 +3,7 @@
 use super::render_tokens::{call_variant, comma_separated, derive, public, super_path, variant};
 use super::{
     EffectiveProjection, ProjectionError, Recipe, RecipeRelation, RecipeRelationRow,
-    RecipeVocabulary,
+    RecipeTransitionEffect, RecipeVocabulary,
 };
 use crate::relation::AbsencePosture;
 use crate::token::{
@@ -76,7 +76,7 @@ fn dispatch_function(
         arms.push(dispatch_arm(states, events, row)?);
     }
     arms.push(absent_arm()?);
-    let bindings = effective.exact_dispatch_bindings();
+    let bindings = effective.dispatch_binding_tokens();
     let state = bindings.map_or_else(
         || GeneratedToken::word("state"),
         |bindings| bindings[0].clone(),
@@ -122,7 +122,7 @@ fn exact_dispatch_vocabulary_imports(
     events: &RecipeVocabulary,
     effective: &EffectiveProjection,
 ) -> Vec<GeneratedToken> {
-    let Some([import_states, import_events]) = effective.exact_dispatch_imports().copied() else {
+    let Some([import_states, import_events]) = effective.dispatch_subject_imports() else {
         return Vec::new();
     };
     let mut imports = Vec::new();
@@ -152,10 +152,26 @@ fn dispatch_arm(
             variant(events.name_token(), row.right_name_token()),
         ]),
     )?;
-    let mut body = effect.tokens().to_vec();
-    body.push(group(GeneratedDelimiter::Parenthesis, Vec::new())?);
-    body.push(GeneratedToken::alone(';'));
-    body.extend(call_variant("Ok", states.name_token(), target_name)?);
+    let body = match effect {
+        RecipeTransitionEffect::Path(effect) => {
+            let mut body = effect.tokens().to_vec();
+            body.push(group(GeneratedDelimiter::Parenthesis, Vec::new())?);
+            body.push(GeneratedToken::alone(';'));
+            body.extend(call_variant("Ok", states.name_token(), target_name)?);
+            body
+        }
+        RecipeTransitionEffect::ExactRust {
+            target_binding,
+            body,
+        } => {
+            let mut exact = vec![GeneratedToken::word("let"), target_binding.clone()];
+            exact.push(GeneratedToken::alone('='));
+            exact.extend(variant(states.name_token(), target_name));
+            exact.push(GeneratedToken::alone(';'));
+            exact.extend(body.tokens().iter().cloned());
+            exact
+        }
+    };
     Ok(match_arm(
         vec![pattern],
         None,

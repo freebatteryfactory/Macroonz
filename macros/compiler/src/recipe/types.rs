@@ -99,8 +99,23 @@ pub enum RecipeRelationPayload {
         target: String,
         /// The exact ordinary or raw identifier token naming the target member.
         target_name: GeneratedToken,
-        /// The exact caller-authored effect path.
-        effect: GeneratedTree,
+        /// The caller-authored execution form for this admitted row.
+        effect: RecipeTransitionEffect,
+    },
+}
+
+/// The caller-owned execution material attached to one informed transition row.
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum RecipeTransitionEffect {
+    /// Call one ordinary Rust path with no arguments, then return the declared target.
+    Path(GeneratedTree),
+    /// Evaluate exact caller-authored Rust with the declared target bound under one caller name.
+    ExactRust {
+        /// The caller-chosen binding for the structurally declared target value.
+        target_binding: GeneratedToken,
+        /// The exact caller-authored row body evaluated by the generated match arm.
+        body: GeneratedTree,
     },
 }
 
@@ -262,6 +277,7 @@ pub struct EffectiveProjection {
     source: LoweringSource,
     exact_rust: Option<GeneratedTree>,
     exact_dispatch_bindings: Option<[GeneratedToken; 2]>,
+    exact_dispatch_binding_names: Option<Box<[String; 2]>>,
     exact_dispatch_imports: Option<[bool; 2]>,
     relation_tables: Option<Box<Bounded<RelationTableProjection, RELATION_TABLE_LIMIT>>>,
 }
@@ -625,6 +641,11 @@ pub(super) enum RecipeIssue {
     ExactDispatchParameterBinding {
         /// The one-based parameter position.
         position: usize,
+    },
+    /// One exact dispatch selector did not name a simple parameter binding in its signature.
+    ExactDispatchBindingAbsent {
+        /// The selector spelling absent from the exact signature.
+        binding: String,
     },
     /// Exact relation-table braces did not contain one semicolon-terminated function signature.
     ExactRelationTableFunctionRequired,

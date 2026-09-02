@@ -37,7 +37,7 @@ pub(super) fn read_projection(
 }
 
 fn simple(role: RecipeRole, at: SpanHandle) -> RequestedProjection {
-    requested(role, None, None, LoweringSource::Preset, None, at)
+    requested(role, None, None, LoweringSource::Preset, None, None, at)
 }
 
 fn read_relation_tables(
@@ -58,6 +58,7 @@ fn read_relation_tables(
         subject: None,
         source: LoweringSource::Configuration,
         exact: None,
+        dispatch_bindings: None,
         relation_tables: Some(tables),
         at,
     })
@@ -151,25 +152,7 @@ fn read_dispatch(
         .group_fragment(CapturedDelimiter::Parenthesis)
         .is_some()
     {
-        let mut configured = cursor.group(CapturedDelimiter::Parenthesis)?;
-        let (configured_name, configured_spelling) = configured.identifier()?;
-        if configured_name.raw_identifier().is_some() {
-            return Err(CaptureReadRefusal::projected(
-                crate::token::CaptureReadIssue::Unexpected(
-                    crate::token::CaptureExpectation::Identifier,
-                ),
-                Some(configured_name.span()),
-            ));
-        }
-        configured.finish()?;
-        return Ok(requested(
-            RecipeRole::Dispatch,
-            Some(configured_spelling.to_owned()),
-            None,
-            LoweringSource::Configuration,
-            None,
-            at,
-        ));
+        return read_parenthesized_dispatch(cursor, issued, at);
     }
     if let Some(fragment) = next.group_fragment(CapturedDelimiter::Brace) {
         let exact_at = next.span();
@@ -188,6 +171,7 @@ fn read_dispatch(
             None,
             LoweringSource::ExactRust,
             Some(exact),
+            None,
             at,
         ));
     }
@@ -196,6 +180,97 @@ fn read_dispatch(
             CapturedDelimiter::Parenthesis,
         )),
         Some(next.span()),
+    ))
+}
+
+fn read_parenthesized_dispatch(
+    cursor: &mut CaptureCursor<'_>,
+    issued: usize,
+    at: SpanHandle,
+) -> Result<RequestedProjection, CaptureReadRefusal> {
+    let mut configured = cursor.group(CapturedDelimiter::Parenthesis)?;
+    let (configured_name, configured_spelling) = configured.identifier()?;
+    if configured.next_token().is_none() {
+        if configured_name.raw_identifier().is_some() {
+            return Err(CaptureReadRefusal::projected(
+                crate::token::CaptureReadIssue::Unexpected(
+                    crate::token::CaptureExpectation::Identifier,
+                ),
+                Some(configured_name.span()),
+            ));
+        }
+        configured.finish()?;
+        return Ok(requested(
+            RecipeRole::Dispatch,
+            Some(configured_spelling.to_owned()),
+            None,
+            LoweringSource::Configuration,
+            None,
+            None,
+            at,
+        ));
+    }
+    configured.punctuation(',', crate::token::CapturedSpacing::Alone)?;
+    let (event_binding, event_spelling) = configured.identifier()?;
+    if configured_spelling == event_spelling {
+        return Err(CaptureReadRefusal::projected(
+            crate::token::CaptureReadIssue::Unexpected(crate::token::CaptureExpectation::Word(
+                "two distinct dispatch bindings".to_owned(),
+            )),
+            Some(event_binding.span()),
+        ));
+    }
+    configured.finish()?;
+    read_selected_dispatch_signature(
+        cursor,
+        issued,
+        [configured_spelling.to_owned(), event_spelling.to_owned()],
+        configured_name.span(),
+        at,
+    )
+}
+
+fn read_selected_dispatch_signature(
+    cursor: &mut CaptureCursor<'_>,
+    issued: usize,
+    bindings: [String; 2],
+    binding_at: SpanHandle,
+    at: SpanHandle,
+) -> Result<RequestedProjection, CaptureReadRefusal> {
+    let Some(exact_token) = cursor.next_token() else {
+        return Err(CaptureReadRefusal::projected(
+            crate::token::CaptureReadIssue::Missing(crate::token::CaptureExpectation::Group(
+                CapturedDelimiter::Brace,
+            )),
+            Some(binding_at),
+        ));
+    };
+    let Some(fragment) = exact_token.group_fragment(CapturedDelimiter::Brace) else {
+        return Err(CaptureReadRefusal::projected(
+            crate::token::CaptureReadIssue::Unexpected(crate::token::CaptureExpectation::Group(
+                CapturedDelimiter::Brace,
+            )),
+            Some(exact_token.span()),
+        ));
+    };
+    let exact_at = exact_token.span();
+    cursor.token()?;
+    let exact = CapturedInput::selected(fragment, issued).map_err(|_| {
+        CaptureReadRefusal::projected(
+            crate::token::CaptureReadIssue::SequenceUnbounded {
+                limit: crate::token::CAPTURED_TOKEN_LIMIT,
+            },
+            Some(exact_at),
+        )
+    })?;
+    Ok(requested(
+        RecipeRole::Dispatch,
+        None,
+        None,
+        LoweringSource::ExactRust,
+        Some(exact),
+        Some(bindings),
+        at,
     ))
 }
 
@@ -225,6 +300,7 @@ fn read_typestate(
         subject,
         source,
         None,
+        None,
         at,
     ))
 }
@@ -235,6 +311,7 @@ fn requested(
     subject: Option<String>,
     source: LoweringSource,
     exact: Option<CapturedInput>,
+    dispatch_bindings: Option<[String; 2]>,
     at: SpanHandle,
 ) -> RequestedProjection {
     RequestedProjection {
@@ -243,6 +320,7 @@ fn requested(
         subject,
         source,
         exact,
+        dispatch_bindings,
         relation_tables: None,
         at,
     }
@@ -398,10 +476,20 @@ fn standing(
         return relation_table_standing(row, relations);
     }
     if let Some(exact) = row.exact.as_ref() {
-        let (name, signature, bindings, imports) =
-            exact_dispatch(exact, row.at, transition_subject)?;
+        let exact = exact_dispatch(
+            exact,
+            row.at,
+            transition_subject,
+            row.dispatch_bindings.as_ref(),
+        )?;
         return Ok(ProjectionStanding::Generated(
-            EffectiveProjection::exact_dispatch(name, signature, bindings, imports),
+            EffectiveProjection::exact_dispatch(
+                exact.name,
+                exact.signature,
+                exact.bindings,
+                exact.binding_names,
+                exact.imports,
+            ),
         ));
     }
     Ok(ProjectionStanding::Generated(

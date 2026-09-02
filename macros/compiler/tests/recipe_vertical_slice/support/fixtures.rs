@@ -168,6 +168,43 @@ pub mod door {
 }
 ";
 
+pub(crate) const EXACT_EFFECT_RECIPE: &str = r"
+pub mod door {
+    pub enum State {
+        Closed,
+        Open,
+    }
+
+    pub enum Event {
+        OpenDoor,
+    }
+
+    pub struct Context {
+        pub calls: usize,
+    }
+
+    bake! {
+        vocabularies { State; Event; };
+        transitions(State, Event) {
+            (Closed, OpenDoor) => Open with(target) {
+                context.calls = context.calls.saturating_add(1);
+                Ok(target)
+            };
+        };
+        absence(refused);
+        projections {
+            dispatch(current, event) {
+                pub fn advance(
+                    context: &mut super::Context,
+                    current: State,
+                    event: Event,
+                ) -> Result<State, TransitionRefusal>;
+            };
+        };
+    }
+}
+";
+
 pub(crate) const EVIDENCE_RECIPE: &str = r#"
 pub mod door {
     pub enum State {

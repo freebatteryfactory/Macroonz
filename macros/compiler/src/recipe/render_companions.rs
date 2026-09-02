@@ -168,11 +168,28 @@ fn relation_payload_constant(
                 }
                 RecipeRelationPayload::Transition {
                     target_name,
-                    effect,
+                    effect: super::RecipeTransitionEffect::Path(effect),
                     ..
                 } => {
                     let mut tokens = vec![target_name.clone(), GeneratedToken::alone(',')];
                     tokens.extend(effect.tokens().iter().cloned());
+                    tokens
+                }
+                RecipeRelationPayload::Transition {
+                    target_name,
+                    effect:
+                        super::RecipeTransitionEffect::ExactRust {
+                            target_binding,
+                            body,
+                        },
+                    ..
+                } => {
+                    let mut tokens = vec![target_name.clone(), GeneratedToken::word("with")];
+                    tokens.push(group(
+                        GeneratedDelimiter::Parenthesis,
+                        vec![target_binding.clone()],
+                    )?);
+                    tokens.push(group(GeneratedDelimiter::Brace, body.tokens().to_vec())?);
                     tokens
                 }
                 RecipeRelationPayload::Unlabeled => return Err(nothing_rendered()),

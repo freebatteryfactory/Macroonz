@@ -185,7 +185,7 @@ fn read_absence(cursor: &mut CaptureCursor<'_>) -> Result<AbsencePosture, Recipe
     Ok(absence)
 }
 
-/// Read one relation row and preserve its effect path structurally.
+/// Read one relation row and preserve its caller-owned execution material structurally.
 fn read_transition(
     cursor: &mut CaptureCursor<'_>,
 ) -> Result<RecipeRelationRow, CaptureReadRefusal> {
@@ -198,14 +198,17 @@ fn read_transition(
     let (to_token, to) = cursor.identifier()?;
     cursor.word("with")?;
     let mut effect = cursor.group(CapturedDelimiter::Parenthesis)?;
-    let (effect, ()) = effect.fragment(|path| {
-        path.identifier()?;
+    let (effect, (binding, segments)) = effect.fragment(|path| {
+        let (first, name) = path.identifier()?;
+        let binding = identifier_token(first, name);
+        let mut segments = 1usize;
         while !path.is_finished() {
             path.punctuation(':', CapturedSpacing::Joint)?;
             path.punctuation(':', CapturedSpacing::Alone)?;
             path.identifier()?;
+            segments = segments.saturating_add(1);
         }
-        Ok(())
+        Ok((binding, segments))
     })?;
     let effect = effect.generated().map_err(|refusal| {
         CaptureReadRefusal::projected(
@@ -213,6 +216,44 @@ fn read_transition(
             refusal.token(),
         )
     })?;
+    let (payload, payload_at) = if let Some(body) = cursor
+        .next_token()
+        .and_then(|token| token.group_fragment(CapturedDelimiter::Brace))
+    {
+        let body_at = cursor.token()?.span();
+        if segments != 1 {
+            return Err(CaptureReadRefusal::projected(
+                crate::token::CaptureReadIssue::Unexpected(crate::token::CaptureExpectation::Word(
+                    "one declared-target binding".to_owned(),
+                )),
+                Some(body_at),
+            ));
+        }
+        let body = body.generated().map_err(|refusal| {
+            CaptureReadRefusal::projected(
+                crate::token::CaptureReadIssue::CursorRangeContradiction,
+                refusal.token(),
+            )
+        })?;
+        (
+            RecipeRelationPayload::transition_exact(
+                to.to_owned(),
+                identifier_token(to_token, to),
+                binding,
+                body,
+            ),
+            body_at,
+        )
+    } else {
+        (
+            RecipeRelationPayload::transition(
+                to.to_owned(),
+                identifier_token(to_token, to),
+                effect,
+            ),
+            to_token.span(),
+        )
+    };
     Ok(RecipeRelationRow::authored(
         (
             from.to_owned(),
@@ -224,7 +265,7 @@ fn read_transition(
             identifier_token(event_token, event),
             event_token.span(),
         ),
-        RecipeRelationPayload::transition(to.to_owned(), identifier_token(to_token, to), effect),
-        to_token.span(),
+        payload,
+        payload_at,
     ))
 }

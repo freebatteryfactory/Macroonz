@@ -234,6 +234,7 @@ impl RecipeIssue {
             | Self::ExactDispatchBodyRefused
             | Self::ExactDispatchParameterCount { .. }
             | Self::ExactDispatchParameterBinding { .. }
+            | Self::ExactDispatchBindingAbsent { .. }
             | Self::ExactRelationTableFunctionRequired
             | Self::ExactRelationTableBodyRefused
             | Self::ExactRelationTableParameterCount { .. }
@@ -310,6 +311,7 @@ impl RecipeIssue {
             | Self::ExactDispatchBodyRefused
             | Self::ExactDispatchParameterCount { .. }
             | Self::ExactDispatchParameterBinding { .. }
+            | Self::ExactDispatchBindingAbsent { .. }
             | Self::ExactRelationTableFunctionRequired
             | Self::ExactRelationTableBodyRefused
             | Self::ExactRelationTableParameterCount { .. }
@@ -375,6 +377,7 @@ impl RecipeIssue {
             | Self::ExactDispatchBodyRefused
             | Self::ExactDispatchParameterCount { .. }
             | Self::ExactDispatchParameterBinding { .. }
+            | Self::ExactDispatchBindingAbsent { .. }
             | Self::ExactRelationTableFunctionRequired
             | Self::ExactRelationTableBodyRefused
             | Self::ExactRelationTableParameterCount { .. }
@@ -421,6 +424,10 @@ impl RecipeIssue {
             Self::ExactDispatchParameterBinding { position } => write!(
                 into,
                 "exact dispatch parameter {position} must use one simple identifier binding"
+            ),
+            Self::ExactDispatchBindingAbsent { binding } => write!(
+                into,
+                "exact dispatch selector `{binding}` does not name one simple parameter binding"
             ),
             Self::ExactRelationTableFunctionRequired => exact_relation_table_function(into),
             Self::ExactRelationTableBodyRefused => exact_relation_table_body(into),
@@ -551,6 +558,7 @@ impl Refused for RecipeError {
             | RecipeIssue::ExactDispatchBodyRefused
             | RecipeIssue::ExactDispatchParameterCount { .. }
             | RecipeIssue::ExactDispatchParameterBinding { .. }
+            | RecipeIssue::ExactDispatchBindingAbsent { .. }
             | RecipeIssue::RelationTableExactRequired { .. }
             | RecipeIssue::RelationTableTransitionUnsupported { .. }
             | RecipeIssue::ExactRelationTableFunctionRequired
@@ -600,8 +608,9 @@ impl Refused for RecipeError {
             ),
             RecipeIssue::ExactDispatchFunctionRequired
             | RecipeIssue::ExactDispatchParameterCount { .. }
-            | RecipeIssue::ExactDispatchParameterBinding { .. } => human_projection!(
-                "write `dispatch { fn apply(state: State, event: Event) -> Result<State, TransitionRefusal>; };` with exactly two simple identifier bindings"
+            | RecipeIssue::ExactDispatchParameterBinding { .. }
+            | RecipeIssue::ExactDispatchBindingAbsent { .. } => human_projection!(
+                "write `dispatch { fn apply(state: State, event: Event) -> Result<State, TransitionRefusal>; };` with exactly two simple bindings, or select the state and event bindings before an exact signature that carries additional parameters"
             ),
             RecipeIssue::RelationTableExactRequired { .. }
             | RecipeIssue::ExactRelationTableFunctionRequired
