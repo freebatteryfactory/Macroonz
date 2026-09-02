@@ -166,7 +166,7 @@ fn public_recipe_names_are_exact_and_stable() {
             "relation-tables",
             "dispatch",
             "compile-contract",
-            "property",
+            "declaration-conformance",
             "typestate",
             "trials",
             "mutation",

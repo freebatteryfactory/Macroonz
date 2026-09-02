@@ -1,4 +1,4 @@
-//! Standard compile-contract and property projections over one informed recipe.
+//! Standard compile-contract and declaration-conformance projections over one informed recipe.
 
 use super::render_tokens::{
     comma_separated, crate_baked_path, crate_recipe_path, crate_recipe_variant, dispatch_name,
@@ -41,7 +41,7 @@ pub(super) fn compile_contract(recipe: &Recipe) -> Result<GeneratedTree, Project
     GeneratedTree::assembled(tokens).map_err(ProjectionError::Tokens)
 }
 
-pub(super) fn property(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError> {
+pub(super) fn declaration_conformance(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError> {
     let Some((states, events, relation)) = recipe.transition_account() else {
         return Err(ProjectionError::Render(
             crate::render::RenderError::NothingRendered,
@@ -49,7 +49,9 @@ pub(super) fn property(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError
     };
     let mut body = Vec::new();
     for (position, row) in relation.rows().enumerate() {
-        body.extend(property_row(recipe, states, events, row, position)?);
+        body.extend(declaration_conformance_row(
+            recipe, states, events, row, position,
+        )?);
     }
     let tokens = decorated(
         vec![attribute(vec![GeneratedToken::word("test")])?],
@@ -69,7 +71,7 @@ pub(super) fn property(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError
     GeneratedTree::assembled(tokens).map_err(ProjectionError::Tokens)
 }
 
-fn property_row(
+fn declaration_conformance_row(
     recipe: &Recipe,
     states: &RecipeVocabulary,
     events: &RecipeVocabulary,

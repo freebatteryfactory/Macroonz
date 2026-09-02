@@ -36,7 +36,7 @@ pub mod door {
             companions;
             dispatch(apply);
             compile_contract;
-            property;
+            declaration_conformance;
             typestate(State);
         };
         support(door_recipe_support);

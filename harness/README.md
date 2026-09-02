@@ -25,6 +25,8 @@ The harness contributes only the temporal contract, the whole-history reading, a
 
 A recipe may request mechanical carrier material for an existing harness constructor, but the compiler never decides the resulting claim.
 The compiler's bounded descriptor adapter renders the declared constructor call, the generated carrier remains inert until an external target invokes it, and this crate alone owns the judgment and report standing.
+The recipe's declaration-conformance carrier checks that its generated dispatcher agrees with its own declared transition rows; that self-consistency check is not a property and cannot establish the author's intended meaning.
+An independent property remains caller-authored and may contradict the recipe.
 The invocation states both the declaring-crate path and this harness path, then the existing schema gate admits both carrier seats or withholds both before type checking.
 
 The handwritten road remains at least as capable as the generated road.

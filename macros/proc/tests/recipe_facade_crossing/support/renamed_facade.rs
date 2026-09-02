@@ -11,6 +11,8 @@ fn record_open() {
     OPENED.fetch_add(1, Ordering::Relaxed);
 }
 
+fn preserve_misdeclared_row() {}
+
 bakery::recipe! {
     /// A package-shaped adopter recipe.
     pub mod door {
@@ -40,7 +42,7 @@ bakery::recipe! {
                 companions;
                 dispatch(apply);
                 compile_contract;
-                property;
+                declaration_conformance;
             };
             evidence {
                 trials {
@@ -105,6 +107,35 @@ bakery::recipe! {
                 };
             };
             support(door_recipe_support);
+        }
+    }
+}
+
+bakery::recipe! {
+    /// A deliberately wrong declaration that still conforms to its generated dispatcher.
+    pub mod misdeclared {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        pub enum State {
+            Closed,
+            Open,
+        }
+
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        pub enum Event {
+            OpenDoor,
+        }
+
+        bake! {
+            vocabularies { State; Event; };
+            transitions(State, Event) {
+                (Closed, OpenDoor) => Closed with(crate::preserve_misdeclared_row);
+            };
+            absence(refused);
+            projections {
+                dispatch(apply);
+                declaration_conformance;
+            };
+            support(misdeclared_recipe_support);
         }
     }
 }
@@ -431,6 +462,13 @@ door_recipe_support! {
     harness: bakery::harness,
 }
 
+mod misdeclared_conformance {
+    renamed_recipe_adopter::misdeclared_recipe_support! {
+        declaring: renamed_recipe_adopter,
+        harness: bakery::harness,
+    }
+}
+
 recipe_trials_support! {
     declaring: renamed_recipe_adopter,
     harness: bakery::harness,
@@ -592,5 +630,15 @@ fn the_generated_recipe_and_independent_carriers_are_callable() -> Result<(), St
     assert_eq!(reading.space(), InterleavingSpace::Counted(2));
     assert_eq!(conclusion, TrialConclusion::Passed);
     Ok(())
+}
+
+#[test]
+fn generated_declaration_conformance_cannot_establish_independent_intent() {
+    use renamed_recipe_adopter::misdeclared::{Event, State, baked};
+
+    let generated = baked::apply(State::Closed, Event::OpenDoor);
+    let independent_intent = Ok(State::Open);
+    assert_eq!(generated, Ok(State::Closed));
+    assert_ne!(generated, independent_intent);
 }
 "#;

@@ -29,7 +29,10 @@ fn descriptor_native_evidence_uses_the_recipe_account_and_existing_carrier_roads
         );
         assert!(recipe.evidence(role).is_some());
     }
-    for role in [RecipeRole::CompileContract, RecipeRole::Property] {
+    for role in [
+        RecipeRole::CompileContract,
+        RecipeRole::DeclarationConformance,
+    ] {
         assert_eq!(
             recipe.projection_disposition(role),
             ProjectionDisposition::NotRequested
@@ -126,7 +129,7 @@ fn generated_evidence_refuses_without_the_harness_before_any_projector_runs() ->
 
 #[test]
 fn either_harness_projection_requires_one_declared_support_address() -> Result<(), ()> {
-    for role in ["compile_contract", "property"] {
+    for role in ["compile_contract", "declaration_conformance"] {
         let source = COMPANION_RECIPE.replace("companions", role);
         let summary = refusal_summary(&source)?;
         assert!(
@@ -134,6 +137,14 @@ fn either_harness_projection_requires_one_declared_support_address() -> Result<(
             "{role} did not require its support address: {summary}"
         );
     }
+    Ok(())
+}
+
+#[test]
+fn property_is_not_a_recipe_projection_alias() -> Result<(), ()> {
+    let source = COMPANION_RECIPE.replace("companions", "property");
+    let summary = refusal_summary(&source)?;
+    assert!(summary.contains("a recipe projection"));
     Ok(())
 }
 

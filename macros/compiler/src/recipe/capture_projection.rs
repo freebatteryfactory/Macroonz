@@ -34,7 +34,7 @@ pub(super) fn read_projection(
         RecipeRole::Typestate => read_typestate(cursor, at),
         RecipeRole::Companions
         | RecipeRole::CompileContract
-        | RecipeRole::Property
+        | RecipeRole::DeclarationConformance
         | RecipeRole::Codec => Ok(simple(role, at)),
         RecipeRole::Trials
         | RecipeRole::Mutation

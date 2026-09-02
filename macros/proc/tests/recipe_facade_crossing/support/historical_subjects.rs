@@ -42,7 +42,7 @@ bakery::recipe! {
                 dispatch(apply);
                 typestate(State);
                 compile_contract;
-                property;
+                declaration_conformance;
             };
             support(surface_recipe_support);
         }
@@ -128,7 +128,7 @@ bakery::recipe! {
                 dispatch(advance);
                 typestate(Version);
                 compile_contract;
-                property;
+                declaration_conformance;
             };
             support(evolution_recipe_support);
         }
@@ -215,7 +215,7 @@ bakery::recipe! {
                 companions;
                 dispatch(apply);
                 compile_contract;
-                property;
+                declaration_conformance;
             };
             support(guarded_recipe_support);
         }

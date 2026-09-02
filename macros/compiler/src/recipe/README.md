@@ -45,7 +45,7 @@ The catalog preserves complete caller-authored modules, visibility, attributes, 
 Macroonz informs only the declared vocabularies, relations, postures, codecs, evidence and requested projection seats that it must enumerate or account over.
 
 The standard structural roles generate vocabulary companions, typed relation lookups, transition dispatch, typestate companions and codec methods.
-Compile contracts and properties use the existing test-carrier road, while temporal, generation, fuzz, fault, schedule, package and publication meanings remain caller-classified trial rows through the same generic carrier.
+Compile contracts and declaration conformance use the existing test-carrier road, while properties, temporal claims, generation, fuzz, fault, schedule, package and publication meanings remain caller-classified trial rows through the same generic carrier.
 Mutation declarations, benchmark declarations, network topology and concurrency exploration retain their existing harness owners and receive only the recipe declaration bridge.
 
 A carrier is inert generated material until an external package invokes its explicit address and supplies the caller-owned target, revision, callable, budget and host facts required by that harness owner.
@@ -93,7 +93,10 @@ The paved proc host executes only projectors shipped with Macroonz, while an arb
 ## Evidence projections
 
 An evidence projection carries caller-declared facts and exact Rust fragments through the existing descriptor adapter rather than teaching the recipe home a second harness vocabulary.
-Trial-form material covers compile contracts, properties and temporal claims, generation and fuzz populations, fault and schedule claims, and package or publication challenges as ordinary harness rows.
+The `declaration_conformance;` projection generates a test that walks the informed transition rows, invokes the generated dispatcher, and requires the returned target to agree with each declaring row.
+It establishes mechanical agreement between two outputs of the same declaration, not an independent property and not the correctness of the declaration's meaning.
+The `compile_contract;` projection carries generated signature material for an external rustc crossing and likewise makes no semantic claim.
+Trial-form material covers caller-authored properties and temporal claims, generation and fuzz populations, fault and schedule claims, and package or publication challenges as ordinary harness rows.
 Mutation material uses the existing mutation-surface declaration, benchmark material uses the existing benchmark declaration, and network or concurrency material uses the existing direct descriptor projections.
 
 Every carrier keeps one explicit address, one parent expansion, one destination form, and one consumer invocation.
@@ -136,4 +139,4 @@ The support home proves each cargo came from its descriptor expansion and keeps 
 
 An accepted recipe expansion proves structural informing, selected-role accounting, projector authority, rendered closure, and carrier parentage.
 It does not prove that a payload or effect resolves, that generated Rust type-checks, that a carrier is invoked, or that a declared relation is correct for any domain.
-Those claims belong to rustc and to independent harness or compile-contract crossings.
+Those claims belong to rustc and to independent harness crossings.

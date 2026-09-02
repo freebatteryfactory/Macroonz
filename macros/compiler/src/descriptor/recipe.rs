@@ -128,7 +128,7 @@ fn prepared_tree(
         | RecipeRole::RelationTables
         | RecipeRole::Dispatch
         | RecipeRole::CompileContract
-        | RecipeRole::Property
+        | RecipeRole::DeclarationConformance
         | RecipeRole::Typestate
         | RecipeRole::Codec => Err(nothing_rendered(door)),
     }

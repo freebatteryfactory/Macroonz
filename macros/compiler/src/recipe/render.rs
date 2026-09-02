@@ -3,7 +3,7 @@
 use super::render_codec::codec;
 use super::render_companions::companions;
 use super::render_dispatch::dispatch;
-use super::render_evidence::{compile_contract, property};
+use super::render_evidence::{compile_contract, declaration_conformance};
 use super::render_relation_tables::relation_tables;
 use super::render_typestate::typestate;
 use super::types::StandardProjector;
@@ -32,7 +32,7 @@ impl RecipeProjector for StandardProjector<'_> {
             RecipeRole::RelationTables => relation_tables(view.recipe(), request.effective())?,
             RecipeRole::Dispatch => dispatch(view.recipe(), request.effective())?,
             RecipeRole::CompileContract => compile_contract(view.recipe())?,
-            RecipeRole::Property => property(view.recipe())?,
+            RecipeRole::DeclarationConformance => declaration_conformance(view.recipe())?,
             RecipeRole::Typestate => typestate(view.recipe())?,
             RecipeRole::Codec => codec(view.recipe())?,
             RecipeRole::Trials

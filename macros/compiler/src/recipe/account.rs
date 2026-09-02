@@ -599,7 +599,10 @@ fn ensure_codec_projection(
 }
 
 fn ensure_projection_dependencies(selected: &[RecipeRole]) -> Result<(), RecipeError> {
-    for role in [RecipeRole::CompileContract, RecipeRole::Property] {
+    for role in [
+        RecipeRole::CompileContract,
+        RecipeRole::DeclarationConformance,
+    ] {
         if selected.contains(&role) && !selected.contains(&RecipeRole::Dispatch) {
             return Err(RecipeError::at(
                 RecipeIssue::ProjectionDependencyAbsent {

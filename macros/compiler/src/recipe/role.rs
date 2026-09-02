@@ -15,7 +15,9 @@ impl RecipeRole {
             Self::RelationTables => profile(1, "relation_tables", always(), baked(1), None),
             Self::Dispatch => profile(2, "dispatch", always(), baked(3), None),
             Self::CompileContract => profile(3, "compile_contract", harness(), support(), None),
-            Self::Property => profile(4, "property", harness(), support(), None),
+            Self::DeclarationConformance => {
+                profile(4, "declaration_conformance", harness(), support(), None)
+            }
             Self::Typestate => profile(5, "typestate", always(), baked(4), None),
             Self::Trials => evidence_profile(6, "trials", root(0), 0),
             Self::Mutation => evidence_profile(7, "mutation", root(1), 1),

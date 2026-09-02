@@ -205,8 +205,8 @@ crate::roster! {
         Dispatch = "dispatch",
         /// Rustc-owned compile-contract material carried to a test target.
         CompileContract = "compile-contract",
-        /// An independently invoked harness property carried to a test target.
-        Property = "property",
+        /// A generated check that the dispatch output agrees with its declaring transition rows.
+        DeclarationConformance = "declaration-conformance",
         /// One selected vocabulary projected as type-level stage markers.
         Typestate = "typestate",
         /// One existing descriptor trial carrier over caller-declared rows.
