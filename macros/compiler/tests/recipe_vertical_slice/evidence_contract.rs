@@ -58,6 +58,14 @@ fn descriptor_native_evidence_uses_the_recipe_account_and_existing_carrier_roads
     assert!(text.contains("macro_rules"));
     assert!(text.contains("declared-order-permutation"));
     assert!(text.contains(":: renamed_facade :: harness"));
+    assert!(
+        text.contains("$declaring $( :: $declaring_segment ) * :: __macroonz_support_"),
+        "{text}"
+    );
+    assert!(
+        !text.contains("$declaring $( :: $declaring_segment ) * __macroonz_support_"),
+        "{text}"
+    );
     Ok(())
 }
 
