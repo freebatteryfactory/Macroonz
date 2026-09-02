@@ -39,6 +39,25 @@ It generates one marker per member, one structural `RecipeStage` trait carrying 
 The projection assigns no runtime transition meaning to those types.
 Newtypes, markers and phantom carriers are ordinary data-item compositions rather than separate compiler ontologies.
 
+## Capability catalog
+
+The catalog preserves complete caller-authored modules, visibility, attributes, documentation, imports, reexports, constants, aliases, data items, traits, implementations and functions as ordinary Rust.
+Macroonz informs only the declared vocabularies, relations, postures, codecs, evidence and requested projection seats that it must enumerate or account over.
+
+The standard structural roles generate vocabulary companions, typed relation lookups, transition dispatch, typestate companions and codec methods.
+Compile contracts and properties use the existing test-carrier road, while temporal, generation, fuzz, fault, schedule, package and publication meanings remain caller-classified trial rows through the same generic carrier.
+Mutation declarations, benchmark declarations, network topology and concurrency exploration retain their existing harness owners and receive only the recipe declaration bridge.
+
+A carrier is inert generated material until an external package invokes its explicit address and supplies the caller-owned target, revision, callable, budget and host facts required by that harness owner.
+One renamed-facade package crossing invokes the standard structural outputs, every evidence carrier shape and the direct network and concurrency roads rather than treating generated presence as behavior.
+
+Preset, configured and exact-Rust spellings exist only where their mechanical distinctions have been earned.
+Every selected role still receives one identity-bearing request, one role-owned destination, one explicit disposition and the same bounded projection capability, whether the implementation is standard or caller-owned.
+Unavailable feature or target postures remain typed dispositions or refusals rather than placeholder output.
+
+One recipe declaration remains bounded as a readable compilation unit.
+A broad catalog composes several cohesive recipe declarations and carrier tables rather than weakening the generated-byte ceiling or inventing an unbounded aggregate declaration.
+
 ## Projection disclosure
 
 A standard projection has one progressively disclosed seat rather than separate beginner and expert APIs.

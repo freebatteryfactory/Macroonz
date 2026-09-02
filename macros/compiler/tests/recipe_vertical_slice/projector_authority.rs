@@ -1,20 +1,26 @@
 //! Caller-owned projectors observed against the standard projector authority ceiling.
 
 use super::support::{
-    CODEC_RECIPE, COMPANION_RECIPE, COMPLETE_RECIPE, DOOR, EXACT_EFFECT_RECIPE, MirroredCodec,
-    MirroredCompanions, MirroredDispatch, MirroredRelationTables, MirroredTypestate, bake,
-    emitted_bytes,
+    CODEC_RECIPE, COMPANION_RECIPE, COMPLETE_RECIPE, DOOR, EVIDENCE_RECIPE, EXACT_EFFECT_RECIPE,
+    MirroredCodec, MirroredCompanions, MirroredDispatch, MirroredRelationTables, MirroredTypestate,
+    bake, emitted_bytes,
 };
 use macroonz_compiler::recipe::{
     HarnessPosture, PROJECTION_LIMIT, ProjectionError, ProjectionOffered, ProjectionRequest,
     ProjectionSink, ProjectorReplacement, RecipeProjector, RecipeRole, RecipeView,
 };
-use macroonz_compiler::{CanonicalContent, TextCapture};
+use macroonz_compiler::{
+    CanonicalContent, GeneratedToken, GeneratedTree, TextCapture, unit_struct,
+};
 use std::cell::RefCell;
 
 struct RecordingProjector<'projector> {
     observed: &'projector RefCell<Vec<RecipeRole>>,
     delegate: &'projector dyn RecipeProjector,
+}
+
+struct CatalogProjector<'projector> {
+    observed: &'projector RefCell<Vec<RecipeRole>>,
 }
 
 impl RecipeProjector for RecordingProjector<'_> {
@@ -26,6 +32,40 @@ impl RecipeProjector for RecordingProjector<'_> {
     ) -> Result<ProjectionOffered, ProjectionError> {
         self.observed.borrow_mut().push(request.role());
         self.delegate.project(view, request, sink)
+    }
+}
+
+impl RecipeProjector for CatalogProjector<'_> {
+    fn project(
+        &self,
+        view: RecipeView<'_>,
+        request: ProjectionRequest<'_>,
+        sink: ProjectionSink<'_, '_>,
+    ) -> Result<ProjectionOffered, ProjectionError> {
+        let role = request.role();
+        assert_eq!(request.effective().role(), role);
+        assert!(!view.recipe().module_name().is_empty());
+        self.observed.borrow_mut().push(role);
+        let name = match role {
+            RecipeRole::Companions => "CatalogCompanions",
+            RecipeRole::RelationTables => "CatalogRelationTables",
+            RecipeRole::Dispatch => "CatalogDispatch",
+            RecipeRole::CompileContract => "CatalogCompileContract",
+            RecipeRole::Property => "CatalogProperty",
+            RecipeRole::Typestate => "CatalogTypestate",
+            RecipeRole::Trials => "CatalogTrials",
+            RecipeRole::Mutation => "CatalogMutation",
+            RecipeRole::Benchmarks => "CatalogBenchmarks",
+            RecipeRole::Network => "CatalogNetwork",
+            RecipeRole::Concurrency => "CatalogConcurrency",
+            RecipeRole::Codec => "CatalogCodec",
+            _ => "CatalogFutureRole",
+        };
+        sink.offer(GeneratedTree::assembled(unit_struct(
+            GeneratedToken::word(name),
+            Vec::new(),
+            Vec::new(),
+        ))?)
     }
 }
 
@@ -244,6 +284,90 @@ fn a_caller_owned_codec_projector_uses_the_existing_codec_owner_and_same_authori
     );
     assert_eq!(emitted_bytes(&standard), emitted_bytes(&custom));
     Ok(())
+}
+
+#[test]
+fn every_catalog_role_accepts_the_same_caller_owned_projection_capability() -> Result<(), ()> {
+    let observed = RefCell::new(Vec::new());
+    let projector = CatalogProjector {
+        observed: &observed,
+    };
+    observe_catalog_roles(
+        COMPLETE_RECIPE,
+        &[
+            RecipeRole::Companions,
+            RecipeRole::Dispatch,
+            RecipeRole::CompileContract,
+            RecipeRole::Property,
+            RecipeRole::Typestate,
+        ],
+        &projector,
+    )?;
+    observe_catalog_roles(
+        EVIDENCE_RECIPE,
+        &[
+            RecipeRole::Companions,
+            RecipeRole::Trials,
+            RecipeRole::Mutation,
+            RecipeRole::Benchmarks,
+            RecipeRole::Network,
+            RecipeRole::Concurrency,
+        ],
+        &projector,
+    )?;
+    observe_catalog_roles(CODEC_RECIPE, &[RecipeRole::Codec], &projector)?;
+    observe_catalog_roles(
+        r"
+pub mod door {
+    pub enum Stage { Draft, Published }
+
+    bake! {
+        vocabularies { Stage; };
+        relations {
+            evolution(Stage, Stage) {
+                (Draft, Published);
+            };
+        };
+        projections {
+            relation_tables { evolution; };
+        };
+    }
+}
+",
+        &[RecipeRole::RelationTables],
+        &projector,
+    )?;
+
+    let observed = observed.into_inner();
+    for role in RecipeRole::ALL {
+        assert!(
+            observed.contains(role),
+            "{} did not accept the common caller-owned projection capability",
+            role.name()
+        );
+    }
+    Ok(())
+}
+
+fn observe_catalog_roles(
+    source: &str,
+    roles: &[RecipeRole],
+    projector: &dyn RecipeProjector,
+) -> Result<(), ()> {
+    let read = TextCapture::read(source).map_err(|_| ())?;
+    let replacements = roles
+        .iter()
+        .copied()
+        .map(|role| ProjectorReplacement::for_role(role, projector))
+        .collect::<Vec<_>>();
+    macroonz_compiler::recipe::bake_with(
+        read.input(),
+        HarnessPosture::Available,
+        &DOOR,
+        replacements.as_slice(),
+    )
+    .map(|_| ())
+    .map_err(|_| ())
 }
 
 #[test]
