@@ -35,7 +35,7 @@ macroonz_capture_observer::round_trip! {
 
 macroonz_capture_observer::round_trip! {
     /// One precise-capture return type preserved through the compiler-token boundary.
-    pub fn precisely_captured<'a, T>(value: &'a T) -> impl Copy + use<'a, T> {
+    pub fn precisely_captured<'a, T>(value: &'a T, _uncaptured: &str) -> impl Copy + use<'a, T> {
         value
     }
 }
@@ -174,7 +174,7 @@ fn preserved_fragments_return_through_the_real_proc_host() {
     assert_eq!(CHARACTER, 'é');
     assert_eq!(BYTE, 255);
     assert_eq!(C_TEXT.to_bytes(), b"ab");
-    let captured = precisely_captured(item.value);
+    let captured = precisely_captured(item.value, "not captured");
     assert!(size_of_val(&captured) > 0);
     assert_eq!(item.bytes, [255, 3]);
 }
