@@ -255,27 +255,53 @@ fn public_alias_for(
     tokens.push(GeneratedToken::alone('!'));
     tokens.push(GeneratedToken::word(address.spelling()));
 
-    let (matched, mut forwarded) = match declaring {
+    let mut rules = Vec::new();
+    if declaring == DeclaringBinding::Required {
+        let matched = local_declaring_input()?;
+        let passed = local_forwarded_input()?;
+        let forwarded = alias_call(Vec::new(), name, passed)?;
+        rules.extend(alias_rule(matched, forwarded)?);
+    }
+
+    let (matched, forwarded) = match declaring {
         DeclaringBinding::Absent => (repeated_input()?, metavariable("crate")),
         DeclaringBinding::Required => {
             let facing = CrateFacing::Declaring;
             (declaring_input()?, rooted_path(facing, &[]))
         }
     };
-    forwarded.push(GeneratedToken::joint(':'));
-    forwarded.push(GeneratedToken::alone(':'));
-    forwarded.push(GeneratedToken::word(name.spelling()));
-    forwarded.push(GeneratedToken::alone('!'));
     let passed = forwarded_input(declaring)?;
-    forwarded.push(group(GeneratedDelimiter::Brace, passed)?);
+    let forwarded = alias_call(forwarded, name, passed)?;
+    rules.extend(alias_rule(matched, forwarded)?);
+    tokens.push(group(GeneratedDelimiter::Brace, rules)?);
+    Ok(tokens)
+}
 
+fn alias_call(
+    mut root: Vec<GeneratedToken>,
+    name: &ShellName,
+    passed: Vec<GeneratedToken>,
+) -> Result<Vec<GeneratedToken>, Overflow> {
+    if !root.is_empty() {
+        root.push(GeneratedToken::joint(':'));
+        root.push(GeneratedToken::alone(':'));
+    }
+    root.push(GeneratedToken::word(name.spelling()));
+    root.push(GeneratedToken::alone('!'));
+    root.push(group(GeneratedDelimiter::Brace, passed)?);
+    Ok(root)
+}
+
+fn alias_rule(
+    matched: Vec<GeneratedToken>,
+    forwarded: Vec<GeneratedToken>,
+) -> Result<Vec<GeneratedToken>, Overflow> {
     let mut rule = vec![group(GeneratedDelimiter::Parenthesis, matched)?];
     rule.push(GeneratedToken::joint('='));
     rule.push(GeneratedToken::alone('>'));
     rule.push(group(GeneratedDelimiter::Brace, forwarded)?);
     rule.push(GeneratedToken::alone(';'));
-    tokens.push(group(GeneratedDelimiter::Brace, rule)?);
-    Ok(tokens)
+    Ok(rule)
 }
 
 fn repeated_input() -> Result<Vec<GeneratedToken>, Overflow> {
@@ -294,6 +320,17 @@ fn declaring_input() -> Result<Vec<GeneratedToken>, Overflow> {
     Ok(matched)
 }
 
+fn local_declaring_input() -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut matched = vec![
+        GeneratedToken::word(CrateFacing::Declaring.name()),
+        GeneratedToken::alone(':'),
+        GeneratedToken::word("crate"),
+        GeneratedToken::alone(','),
+    ];
+    matched.extend(repeated_input()?);
+    Ok(matched)
+}
+
 fn forwarded_input(declaring: DeclaringBinding) -> Result<Vec<GeneratedToken>, Overflow> {
     let mut passed = Vec::new();
     if declaring == DeclaringBinding::Required {
@@ -304,6 +341,22 @@ fn forwarded_input(declaring: DeclaringBinding) -> Result<Vec<GeneratedToken>, O
         passed.extend(rooted_path(CrateFacing::Declaring, &[]));
         passed.push(GeneratedToken::alone(','));
     }
+    passed.push(GeneratedToken::joint('$'));
+    passed.push(group(
+        GeneratedDelimiter::Parenthesis,
+        metavariable("input"),
+    )?);
+    passed.push(GeneratedToken::alone('*'));
+    Ok(passed)
+}
+
+fn local_forwarded_input() -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut passed = vec![
+        GeneratedToken::word(CrateFacing::Declaring.name()),
+        GeneratedToken::alone(':'),
+        GeneratedToken::word("crate"),
+        GeneratedToken::alone(','),
+    ];
     passed.push(GeneratedToken::joint('$'));
     passed.push(group(
         GeneratedDelimiter::Parenthesis,

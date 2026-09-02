@@ -83,10 +83,18 @@ bakery::recipe! {
             projections {
                 companions;
                 dispatch(apply);
+                compile_contract;
+                declaration_conformance;
                 typestate(State);
             };
+            support(door_recipe_support);
         }
     }
+}
+
+door_recipe_support! {
+    declaring: crate,
+    harness: bakery::harness,
 }
 
 #[test]
