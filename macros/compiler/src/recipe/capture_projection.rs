@@ -217,7 +217,7 @@ fn read_parenthesized_dispatch(
             LoweringSource::Configuration,
             None,
             None,
-            at,
+            configured_name.span(),
         ));
     }
     configured.punctuation(',', crate::token::CapturedSpacing::Alone)?;
@@ -460,11 +460,18 @@ fn standing(
                 exact.bindings,
                 exact.binding_names,
                 exact.imports,
+                exact.name_at,
             ),
         ));
     }
     Ok(ProjectionStanding::Generated(
-        EffectiveProjection::effective(role, row.name.clone(), row.subject.clone(), row.source),
+        EffectiveProjection::effective(
+            role,
+            row.name.clone(),
+            row.subject.clone(),
+            row.source,
+            row.at,
+        ),
     ))
 }
 
@@ -527,6 +534,7 @@ fn relation_table_standing(
             exact_rust,
             bindings,
             imports,
+            table.at,
         ));
     }
     let tables = Bounded::new(tables).map_err(|_| {
@@ -538,6 +546,6 @@ fn relation_table_standing(
         )
     })?;
     Ok(ProjectionStanding::Generated(
-        EffectiveProjection::with_relation_tables(tables),
+        EffectiveProjection::with_relation_tables(tables, requested.at),
     ))
 }

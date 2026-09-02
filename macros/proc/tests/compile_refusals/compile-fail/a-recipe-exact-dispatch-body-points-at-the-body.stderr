@@ -1,0 +1,8 @@
+error: macroonz: the declaration was not read: exact dispatch cannot carry a caller-authored body because the standard projector owns the relation-accounted body (at semantic-origin position 79)
+  --> tests/compile_refusals/compile-fail/a-recipe-exact-dispatch-body-points-at-the-body.rs:20:63
+   |
+20 |                           ) -> Result<State, TransitionRefusal> {
+   |  _______________________________________________________________^
+21 | |                             caller_body
+22 | |                         }
+   | |_________________________^

@@ -147,6 +147,7 @@ pub(super) fn evidence_standing(
                     None,
                     None,
                     LoweringSource::Configuration,
+                    row.at,
                 ))
             } else {
                 ProjectionStanding::TargetUnavailable

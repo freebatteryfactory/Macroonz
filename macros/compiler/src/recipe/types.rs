@@ -189,6 +189,8 @@ pub struct RecipeCodec {
     name: String,
     content: crate::codec::CodecContent,
     at: SpanHandle,
+    refusal_at: SpanHandle,
+    direction_at: SpanHandle,
 }
 
 crate::roster! {
@@ -328,6 +330,7 @@ pub struct EffectiveProjection {
     exact_dispatch_binding_names: Option<Box<[String; 2]>>,
     exact_dispatch_imports: Option<[bool; 2]>,
     relation_tables: Option<Box<Bounded<RelationTableProjection, RELATION_TABLE_LIMIT>>>,
+    at: SpanHandle,
 }
 
 /// One selected typed relation table and its effective function surface.
@@ -339,6 +342,7 @@ pub struct RelationTableProjection {
     exact_rust: Option<GeneratedTree>,
     bindings: Option<[GeneratedToken; 2]>,
     imports: Option<[bool; 2]>,
+    at: SpanHandle,
 }
 
 /// What happened to one role in the recipe's complete projection account.
@@ -517,6 +521,11 @@ pub(super) enum RecipeIssue {
     /// One named vocabulary does not resolve to an authored enum in the module.
     VocabularyNotFound {
         /// The requested enum name.
+        name: String,
+    },
+    /// One named vocabulary resolves to an authored enum with no variants.
+    VocabularyEmpty {
+        /// The authored enum name.
         name: String,
     },
     /// One selected vocabulary carries an enum variant shape the generic roster does not enumerate.

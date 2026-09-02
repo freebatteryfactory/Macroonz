@@ -2,6 +2,7 @@
 
 mod caller_rust;
 mod diagnostic_custody;
+mod diagnostic_matrix;
 mod dispatch_contract;
 mod evidence_contract;
 mod generic_account;

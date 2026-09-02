@@ -153,6 +153,9 @@ impl RecipeIssue {
             Self::VocabularyNotFound { name } => {
                 write!(into, "the recipe names no authored enum `{name}`")
             }
+            Self::VocabularyEmpty { name } => {
+                write!(into, "authored enum `{name}` states no variants")
+            }
             Self::VariantNotUnit {
                 vocabulary,
                 variant,
@@ -274,6 +277,7 @@ impl RecipeIssue {
             | Self::GeneratedNameNotIdentifier { .. }
             | Self::Grammar(_)
             | Self::VocabularyNotFound { .. }
+            | Self::VocabularyEmpty { .. }
             | Self::VariantNotUnit { .. }
             | Self::DuplicateMember { .. }
             | Self::DuplicateVocabulary { .. }
@@ -389,6 +393,7 @@ impl RecipeIssue {
             | Self::GeneratedNameNotIdentifier { .. }
             | Self::Grammar(_)
             | Self::VocabularyNotFound { .. }
+            | Self::VocabularyEmpty { .. }
             | Self::VariantNotUnit { .. }
             | Self::DuplicateMember { .. }
             | Self::DuplicateVocabulary { .. }
@@ -444,6 +449,7 @@ impl RecipeIssue {
             | Self::GeneratedNameNotIdentifier { .. }
             | Self::Grammar(_)
             | Self::VocabularyNotFound { .. }
+            | Self::VocabularyEmpty { .. }
             | Self::VariantNotUnit { .. }
             | Self::DuplicateMember { .. }
             | Self::DuplicateVocabulary { .. }
@@ -532,11 +538,15 @@ impl Refused for RecipeError {
             RecipeIssue::InlineModuleRequired
             | RecipeIssue::BakeRequiredLast
             | RecipeIssue::VocabularyNotFound { .. }
+            | RecipeIssue::VocabularyEmpty { .. }
             | RecipeIssue::RelationNotFound { .. }
             | RecipeIssue::SupportAddressRequired
             | RecipeIssue::ProjectionRequired
             | RecipeIssue::ProjectionDependencyAbsent { .. }
             | RecipeIssue::ProjectionSubjectRequired { .. } => Observed::SeatAbsent,
+            RecipeIssue::Grammar(crate::token::CaptureReadIssue::SequenceUnbounded { .. }) => {
+                Observed::BoundExceeded
+            }
             RecipeIssue::HarnessUnavailable { .. } => Observed::ProfileDisagreement,
             RecipeIssue::DuplicateMember { .. }
             | RecipeIssue::DuplicateVocabulary { .. }
@@ -661,6 +671,12 @@ impl Refused for RecipeError {
             RecipeIssue::CodecOwnerNotRecord { .. } => human_projection!(
                 "name one record-shaped struct authored in the recipe module as this codec's owner"
             ),
+            RecipeIssue::VocabularyEmpty { .. } => {
+                human_projection!("state at least one unit variant in every selected vocabulary")
+            }
+            RecipeIssue::Grammar(crate::token::CaptureReadIssue::SequenceUnbounded { .. }) => {
+                human_projection!("keep each captured sequence at or below its declared magnitude")
+            }
             RecipeIssue::InlineModuleRequired
             | RecipeIssue::BakeRequiredLast
             | RecipeIssue::GeneratedNameNotIdentifier { .. }

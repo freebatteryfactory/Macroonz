@@ -37,6 +37,8 @@ struct CapturedCodec {
     assembly: CapturedAssembly,
     members: Vec<CapturedCodecMember>,
     at: SpanHandle,
+    refusal_at: SpanHandle,
+    direction_at: SpanHandle,
 }
 
 #[derive(Clone)]
@@ -73,10 +75,10 @@ fn read_codec(cursor: &mut CaptureCursor<'_>) -> Result<CapturedCodec, CaptureRe
 
     let mut body = cursor.group(CapturedDelimiter::Brace)?;
     body.word("direction")?;
-    let direction = read_direction(&mut body)?;
+    let (direction, direction_at) = read_direction(&mut body)?;
     body.punctuation(';', CapturedSpacing::Alone)?;
     body.word("refusal")?;
-    let refusal = read_identifier_group(&mut body)?;
+    let (refusal, refusal_at) = read_identifier_group(&mut body)?;
     body.punctuation(';', CapturedSpacing::Alone)?;
     body.word("assembly")?;
     let assembly = read_assembly(&mut body)?;
@@ -97,10 +99,14 @@ fn read_codec(cursor: &mut CaptureCursor<'_>) -> Result<CapturedCodec, CaptureRe
         assembly,
         members,
         at: name_token.span(),
+        refusal_at,
+        direction_at,
     })
 }
 
-fn read_direction(cursor: &mut CaptureCursor<'_>) -> Result<CodecDirection, CaptureReadRefusal> {
+fn read_direction(
+    cursor: &mut CaptureCursor<'_>,
+) -> Result<(CodecDirection, SpanHandle), CaptureReadRefusal> {
     let mut group = cursor.group(CapturedDelimiter::Parenthesis)?;
     let (token, spelling) = group.identifier()?;
     let direction = match spelling {
@@ -110,14 +116,16 @@ fn read_direction(cursor: &mut CaptureCursor<'_>) -> Result<CodecDirection, Capt
         _ => return Err(posture_word(token.span(), "encode, decode, or round_trip")),
     };
     group.finish()?;
-    Ok(direction)
+    Ok((direction, token.span()))
 }
 
-fn read_identifier_group(cursor: &mut CaptureCursor<'_>) -> Result<String, CaptureReadRefusal> {
+fn read_identifier_group(
+    cursor: &mut CaptureCursor<'_>,
+) -> Result<(String, SpanHandle), CaptureReadRefusal> {
     let mut group = cursor.group(CapturedDelimiter::Parenthesis)?;
-    let (_token, spelling) = group.identifier()?;
+    let (token, spelling) = group.identifier()?;
     group.finish()?;
-    Ok(spelling.to_owned())
+    Ok((spelling.to_owned(), token.span()))
 }
 
 fn read_assembly(cursor: &mut CaptureCursor<'_>) -> Result<CapturedAssembly, CaptureReadRefusal> {
@@ -242,6 +250,8 @@ impl CapturedCodec {
             assembly,
             members,
             at,
+            refusal_at,
+            direction_at,
         } = self;
         let owner = CodecTypePath::spelled(PathRooting::ParentScoped, vec![owner.clone()])
             .map_err(|error| codec_refusal(name.as_str(), at, error.to_string()))?;
@@ -284,6 +294,8 @@ impl CapturedCodec {
                 assumptions: Bounded::empty(),
             },
             at,
+            refusal_at,
+            direction_at,
         ))
     }
 }

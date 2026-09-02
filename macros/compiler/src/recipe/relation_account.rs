@@ -366,12 +366,13 @@ impl RecipeRelation {
             return Err(RecipeError::at(issue, Some(row.left_at)));
         }
         settle_relation_requirements(name.as_str(), &informed, requirements, at)?;
-        let rows = Bounded::new(rows).map_err(|_| {
+        let overflow_at = rows.get(RELATION_ROW_LIMIT).map(|row| row.left_at);
+        let rows = Bounded::new(rows).map_err(|overflow| {
             RecipeError::at(
                 RecipeIssue::Grammar(crate::token::CaptureReadIssue::SequenceUnbounded {
-                    limit: RELATION_ROW_LIMIT,
+                    limit: overflow.capacity,
                 }),
-                at,
+                overflow_at.or(at),
             )
         })?;
         Ok(Self {
@@ -656,11 +657,14 @@ fn referenced_refusal(
                 at,
             )
         }
-        KeyedRosterRowsError::Overflow(_) => RecipeError::at(
+        KeyedRosterRowsError::Overflow(overflow) => RecipeError::at(
             RecipeIssue::Grammar(crate::token::CaptureReadIssue::SequenceUnbounded {
-                limit: RELATION_ROW_LIMIT,
+                limit: overflow.capacity,
             }),
-            offered.first().map(|row| row.left_at),
+            offered
+                .get(overflow.capacity)
+                .map(|row| row.left_at)
+                .or_else(|| offered.first().map(|row| row.left_at)),
         ),
     }
 }
@@ -682,11 +686,14 @@ pub(super) fn relation_account_refusal(
                 at,
             )
         }
-        KeyedRosterError::Empty(_) | KeyedRosterError::Overflow(_) => RecipeError::at(
+        KeyedRosterError::Empty(_) => RecipeError::at(RecipeIssue::FragmentNotGenerated, None),
+        KeyedRosterError::Overflow(overflow) => RecipeError::at(
             RecipeIssue::Grammar(crate::token::CaptureReadIssue::SequenceUnbounded {
-                limit: RELATION_LIMIT,
+                limit: overflow.capacity,
             }),
-            offered.first().map(|relation| relation.name_at),
+            offered
+                .get(overflow.capacity)
+                .map(|relation| relation.name_at),
         ),
     }
 }

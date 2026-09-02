@@ -18,6 +18,7 @@ impl EffectiveProjection {
         name: Option<String>,
         subject: Option<String>,
         source: LoweringSource,
+        at: SpanHandle,
     ) -> Self {
         Self {
             role,
@@ -29,6 +30,7 @@ impl EffectiveProjection {
             exact_dispatch_binding_names: None,
             exact_dispatch_imports: None,
             relation_tables: None,
+            at,
         }
     }
 
@@ -38,6 +40,7 @@ impl EffectiveProjection {
         bindings: [crate::token::GeneratedToken; 2],
         binding_names: [String; 2],
         imports: [bool; 2],
+        at: SpanHandle,
     ) -> Self {
         Self {
             role: RecipeRole::Dispatch,
@@ -49,11 +52,13 @@ impl EffectiveProjection {
             exact_dispatch_binding_names: Some(Box::new(binding_names)),
             exact_dispatch_imports: Some(imports),
             relation_tables: None,
+            at,
         }
     }
 
     pub(in crate::recipe) fn with_relation_tables(
         tables: Bounded<RelationTableProjection, RELATION_TABLE_LIMIT>,
+        at: SpanHandle,
     ) -> Self {
         Self {
             role: RecipeRole::RelationTables,
@@ -65,6 +70,7 @@ impl EffectiveProjection {
             exact_dispatch_binding_names: None,
             exact_dispatch_imports: None,
             relation_tables: Some(Box::new(tables)),
+            at,
         }
     }
 
@@ -126,6 +132,10 @@ impl EffectiveProjection {
     pub fn relation_tables(&self) -> impl Iterator<Item = &RelationTableProjection> {
         self.relation_tables.iter().flat_map(|tables| tables.iter())
     }
+
+    pub(in crate::recipe) const fn at(&self) -> SpanHandle {
+        self.at
+    }
 }
 
 impl RelationTableProjection {
@@ -136,6 +146,7 @@ impl RelationTableProjection {
         exact_rust: Option<GeneratedTree>,
         bindings: Option<[crate::token::GeneratedToken; 2]>,
         imports: Option<[bool; 2]>,
+        at: SpanHandle,
     ) -> Self {
         Self {
             relation,
@@ -144,6 +155,7 @@ impl RelationTableProjection {
             exact_rust,
             bindings,
             imports,
+            at,
         }
     }
 
@@ -163,6 +175,10 @@ impl RelationTableProjection {
     #[must_use]
     pub const fn source(&self) -> LoweringSource {
         self.source
+    }
+
+    pub(in crate::recipe) const fn at(&self) -> SpanHandle {
+        self.at
     }
 
     /// Reads the exact caller-authored function signature where one was supplied.

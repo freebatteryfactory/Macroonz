@@ -63,8 +63,16 @@ impl RecipeCodec {
         name: String,
         content: crate::codec::CodecContent,
         at: SpanHandle,
+        refusal_at: SpanHandle,
+        direction_at: SpanHandle,
     ) -> Self {
-        Self { name, content, at }
+        Self {
+            name,
+            content,
+            at,
+            refusal_at,
+            direction_at,
+        }
     }
 
     /// Reads the caller-owned codec declaration name.
@@ -82,6 +90,14 @@ impl RecipeCodec {
     pub(in crate::recipe) const fn at(&self) -> SpanHandle {
         self.at
     }
+
+    pub(in crate::recipe) const fn refusal_at(&self) -> SpanHandle {
+        self.refusal_at
+    }
+
+    pub(in crate::recipe) const fn direction_at(&self) -> SpanHandle {
+        self.direction_at
+    }
 }
 
 impl super::RecipeVocabulary {
@@ -91,7 +107,7 @@ impl super::RecipeVocabulary {
         members: Vec<RecipeMember>,
         at: SpanHandle,
     ) -> Result<Self, RecipeError> {
-        let members = informed_members(name.as_str(), members)?;
+        let members = informed_members(name.as_str(), members, at)?;
         Ok(Self {
             name,
             name_token,
@@ -550,10 +566,10 @@ fn ensure_codec_projection(
             None,
         ));
     };
-    if let Some(name) = codec_surface_collision(codecs, projections) {
+    if let Some((name, at)) = codec_surface_collision(codecs, projections) {
         return Err(RecipeError::at(
             RecipeIssue::GeneratedNameCollision { name },
-            None,
+            Some(at),
         ));
     }
     Ok(())
@@ -609,14 +625,14 @@ fn ensure_standard_names(
     relations: Option<&KeyedRoster<RecipeRelation, String, RELATION_LIMIT>>,
     transition_relation: Option<&str>,
 ) -> Result<(), RecipeError> {
-    let Some(name) =
+    let Some((name, at)) =
         standard_name_collision(projections, vocabularies, relations, transition_relation)
     else {
         return Ok(());
     };
     Err(RecipeError::at(
         RecipeIssue::GeneratedNameCollision { name },
-        None,
+        Some(at),
     ))
 }
 
@@ -625,18 +641,11 @@ fn standard_name_collision(
     vocabularies: Option<&KeyedRoster<super::RecipeVocabulary, String, VOCABULARY_LIMIT>>,
     relations: Option<&KeyedRoster<RecipeRelation, String, RELATION_LIMIT>>,
     transition_relation: Option<&str>,
-) -> Option<String> {
+) -> Option<(String, SpanHandle)> {
     let companions = matches!(
         RecipeRole::Companions.standing(projections),
         ProjectionStanding::Generated(_)
     );
-    let relation_tables = matches!(
-        RecipeRole::RelationTables.standing(projections),
-        ProjectionStanding::Generated(_)
-    );
-    if !companions && !relation_tables {
-        return None;
-    }
     let mut names = if companions {
         companion_names(vocabularies, relations, transition_relation)
     } else {
@@ -648,22 +657,19 @@ fn standard_name_collision(
         names.extend(
             effective
                 .relation_tables()
-                .map(|table| table.relation().to_owned()),
+                .map(|table| (table.relation().to_owned(), table.at())),
         );
     }
-    if matches!(
-        RecipeRole::Typestate.standing(projections),
-        ProjectionStanding::Generated(_)
-    ) {
-        names.push("typestate".to_owned());
+    if let ProjectionStanding::Generated(effective) = RecipeRole::Typestate.standing(projections) {
+        names.push(("typestate".to_owned(), effective.at()));
     }
-    for (position, name) in names.iter().enumerate() {
+    for (position, (name, at)) in names.iter().enumerate() {
         if names
             .iter()
             .take(position)
-            .any(|earlier| identifier_key(earlier) == identifier_key(name))
+            .any(|(earlier, _)| identifier_key(earlier) == identifier_key(name))
         {
-            return Some(name.clone());
+            return Some((name.clone(), *at));
         }
     }
     let ProjectionStanding::Generated(dispatch) = RecipeRole::Dispatch.standing(projections) else {
@@ -672,14 +678,14 @@ fn standard_name_collision(
     let name = dispatch.name().unwrap_or("apply");
     names
         .iter()
-        .any(|reserved| identifier_key(reserved) == identifier_key(name))
-        .then(|| name.to_owned())
+        .any(|(reserved, _)| identifier_key(reserved) == identifier_key(name))
+        .then(|| (name.to_owned(), dispatch.at()))
 }
 
 fn codec_surface_collision(
     codecs: &KeyedRoster<RecipeCodec, String, CODEC_LIMIT>,
     projections: &[ProjectionStanding; PROJECTION_LIMIT],
-) -> Option<String> {
+) -> Option<(String, SpanHandle)> {
     let declarations = codecs.members().collect::<Vec<_>>();
     let dispatch = matches!(
         RecipeRole::Dispatch.standing(projections),
@@ -694,25 +700,27 @@ fn codec_surface_collision(
         if content.direction.reads() {
             let refusal = content.shape.refusal();
             if dispatch && identifier_key(refusal) == "TransitionRefusal" {
-                return Some(refusal.to_owned());
+                return Some((refusal.to_owned(), declaration.refusal_at()));
             }
             if typestate && identifier_key(refusal) == "typestate" {
-                return Some(refusal.to_owned());
+                return Some((refusal.to_owned(), declaration.refusal_at()));
             }
         }
     }
     for (position, first) in declarations.iter().enumerate() {
         for second in declarations.iter().skip(position.saturating_add(1)) {
+            let second_refusal_at = second.refusal_at();
+            let second_direction_at = second.direction_at();
             let first = first.content();
             let second = second.content();
             if first.direction.reads()
                 && second.direction.reads()
                 && identifier_key(first.shape.refusal()) == identifier_key(second.shape.refusal())
             {
-                return Some(second.shape.refusal().to_owned());
+                return Some((second.shape.refusal().to_owned(), second_refusal_at));
             }
             if let Some(road) = shared_codec_road(first, second) {
-                return Some(road.to_owned());
+                return Some((road.to_owned(), second_direction_at));
             }
         }
     }
@@ -723,20 +731,31 @@ fn companion_names(
     vocabularies: Option<&KeyedRoster<super::RecipeVocabulary, String, VOCABULARY_LIMIT>>,
     relations: Option<&KeyedRoster<RecipeRelation, String, RELATION_LIMIT>>,
     transition_relation: Option<&str>,
-) -> Vec<String> {
+) -> Vec<(String, SpanHandle)> {
     let mut names = vocabularies
         .into_iter()
         .flat_map(KeyedRoster::members)
-        .map(|vocabulary| companion_constant(vocabulary.name(), "VARIANTS"))
+        .map(|vocabulary| {
+            (
+                companion_constant(vocabulary.name(), "VARIANTS"),
+                vocabulary.at,
+            )
+        })
         .collect::<Vec<_>>();
     for relation in relations.into_iter().flat_map(KeyedRoster::members) {
         if Some(relation.name()) == transition_relation {
-            names.push("TRANSITIONS".to_owned());
+            names.push(("TRANSITIONS".to_owned(), relation.name_at));
             continue;
         }
-        names.push(companion_constant(relation.name(), "ROWS"));
+        names.push((
+            companion_constant(relation.name(), "ROWS"),
+            relation.name_at,
+        ));
         if relation.payload_kind() != RecipeRelationPayloadKind::Unlabeled {
-            names.push(companion_constant(relation.name(), "PAYLOADS"));
+            names.push((
+                companion_constant(relation.name(), "PAYLOADS"),
+                relation.name_at,
+            ));
         }
     }
     names
@@ -790,6 +809,7 @@ fn resolve_typestate_subject(
 fn informed_members(
     vocabulary: &str,
     members: Vec<RecipeMember>,
+    vocabulary_at: SpanHandle,
 ) -> Result<KeyedRoster<RecipeMember, String, VOCABULARY_LIMIT>, RecipeError> {
     let offered = members.clone();
     KeyedRoster::new(members, |member| member.spelling.clone()).map_err(|refusal| match refusal {
@@ -806,11 +826,20 @@ fn informed_members(
                 at,
             )
         }
-        KeyedRosterError::Empty(_) | KeyedRosterError::Overflow(_) => RecipeError::at(
-            RecipeIssue::VocabularyNotFound {
+        KeyedRosterError::Empty(_) => RecipeError::at(
+            RecipeIssue::VocabularyEmpty {
                 name: vocabulary.to_owned(),
             },
-            offered.first().map(RecipeMember::at),
+            Some(vocabulary_at),
+        ),
+        KeyedRosterError::Overflow(overflow) => RecipeError::at(
+            RecipeIssue::Grammar(crate::token::CaptureReadIssue::SequenceUnbounded {
+                limit: overflow.capacity,
+            }),
+            offered
+                .get(overflow.capacity)
+                .map(RecipeMember::at)
+                .or(Some(vocabulary_at)),
         ),
     })
 }
@@ -827,11 +856,14 @@ fn vocabulary_account_refusal(
                 .map(|vocabulary| vocabulary.at);
             RecipeError::at(RecipeIssue::DuplicateVocabulary { name: name.clone() }, at)
         }
-        KeyedRosterError::Empty(_) | KeyedRosterError::Overflow(_) => RecipeError::at(
-            RecipeIssue::VocabularyNotFound {
-                name: "<recipe>".to_owned(),
-            },
-            offered.first().map(|vocabulary| vocabulary.at),
+        KeyedRosterError::Empty(_) => RecipeError::at(RecipeIssue::FragmentNotGenerated, None),
+        KeyedRosterError::Overflow(overflow) => RecipeError::at(
+            RecipeIssue::Grammar(crate::token::CaptureReadIssue::SequenceUnbounded {
+                limit: overflow.capacity,
+            }),
+            offered
+                .get(overflow.capacity)
+                .map(|vocabulary| vocabulary.at),
         ),
     }
 }

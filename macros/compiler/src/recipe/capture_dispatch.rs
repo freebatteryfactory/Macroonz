@@ -7,6 +7,7 @@ use crate::token::{
 
 pub(super) struct ExactFunctionRead {
     pub(super) name: String,
+    pub(super) name_at: crate::token::SpanHandle,
     pub(super) signature: crate::token::GeneratedTree,
     pub(super) bindings: [crate::token::GeneratedToken; 2],
     pub(super) binding_names: [String; 2],
@@ -107,6 +108,7 @@ fn exact_function(
     });
     Ok(ExactFunctionRead {
         name: name.to_owned(),
+        name_at: name_token.span(),
         signature: exact,
         bindings,
         binding_names,
