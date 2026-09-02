@@ -1,0 +1,5 @@
+error[E0423]: expected function, found module `crate::missing_effect`
+  --> tests/compile_refusals/compile-fail/a-recipe-effect-path-rustc-refusal-points-at-the-authored-path.rs:12:53
+   |
+12 |                     (Closed, OpenDoor) => Open with(crate::missing_effect);
+   |                                                     ^^^^^^^^^^^^^^^^^^^^^ not a function

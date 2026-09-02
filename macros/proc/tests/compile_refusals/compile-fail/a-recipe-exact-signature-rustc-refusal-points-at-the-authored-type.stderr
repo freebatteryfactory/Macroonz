@@ -1,0 +1,10 @@
+error[E0425]: cannot find type `MissingState` in this scope
+  --> tests/compile_refusals/compile-fail/a-recipe-exact-signature-rustc-refusal-points-at-the-authored-type.rs:20:37
+   |
+20 |                         ) -> Result<MissingState, TransitionRefusal>;
+   |                                     ^^^^^^^^^^^^ not found in this scope
+   |
+help: you might be missing a type parameter
+   |
+17 |                         pub fn apply<MissingState>(
+   |                                     ++++++++++++++

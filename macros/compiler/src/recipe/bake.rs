@@ -313,7 +313,8 @@ fn final_tree(
     }
     let grouped = body.grouped(GeneratedDelimiter::Brace, recipe.module_body_at())?;
     let module = recipe.module_head().joined(&grouped)?;
-    root.joined(&module)
+    let assembled = root.joined(&module)?;
+    Ok(recipe.restore_authored_references(&assembled))
 }
 
 fn recipe_refused(refusal: &RecipeError, door: &Door) -> Diagnostic {

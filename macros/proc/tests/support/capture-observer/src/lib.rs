@@ -72,6 +72,67 @@ pub fn recipe_module_span(input: TokenStream) -> TokenStream {
     TokenStream::from(TokenTree::Ident(Ident::new(answer, Span::call_site())))
 }
 
+/// Report whether every sentinel recipe reference reappears with its exact caller-authored span.
+#[proc_macro]
+pub fn recipe_reference_spans(input: TokenStream) -> TokenStream {
+    let mut spans = Spans::empty();
+    let captured = match capture(input, &mut spans) {
+        Ok(captured) => captured,
+        Err(refusal) => return refused(&refusal.to_string()),
+    };
+    let baked =
+        match macroonz_compiler::recipe::bake(&captured, HarnessPosture::Available, &RECIPE_DOOR) {
+            Ok(baked) => baked,
+            Err(refusal) => return refused(refusal.summary()),
+        };
+    let emitted = match emit(&baked, &spans) {
+        Ok(emitted) => emitted,
+        Err(refusal) => return refused(&refusal.to_string()),
+    };
+    let expected = [
+        ("CustodyState", 2usize),
+        ("CustodyEvent", 2usize),
+        ("CustodyClosed", 2usize),
+        ("CustodyOpen", 2usize),
+        ("CustodyOpenDoor", 2usize),
+        ("custody_effect", 2usize),
+        ("CustodyPolicy", 1usize),
+        ("custody_lookup", 1usize),
+        ("custody_apply", 1usize),
+        ("custody_exact", 1usize),
+        ("custody_left", 2usize),
+        ("custody_right", 2usize),
+    ];
+    let answer = if expected
+        .into_iter()
+        .all(|(spelling, minimum)| restored_identifier_count(emitted.clone(), spelling) >= minimum)
+    {
+        "true"
+    } else {
+        "false"
+    };
+    TokenStream::from(TokenTree::Ident(Ident::new(answer, Span::call_site())))
+}
+
+/// Count matching identifiers whose compiler span still names the exact caller token.
+fn restored_identifier_count(stream: TokenStream, spelling: &str) -> usize {
+    stream.into_iter().fold(0usize, |count, token| {
+        let observed = match &token {
+            TokenTree::Ident(identifier)
+                if identifier.to_string() == spelling
+                    && identifier.span().source_text().as_deref() == Some(spelling) =>
+            {
+                1usize
+            }
+            TokenTree::Group(group) => restored_identifier_count(group.stream(), spelling),
+            TokenTree::Ident(_)
+            | TokenTree::Punct(_)
+            | TokenTree::Literal(_) => 0usize,
+        };
+        count.saturating_add(observed)
+    })
+}
+
 /// Read the source text attached to the final top-level group.
 fn last_group_source(stream: TokenStream) -> Option<String> {
     let mut source = None;

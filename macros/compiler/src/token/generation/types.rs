@@ -1,13 +1,16 @@
 //! The generation home's declarations.
 //!
 //! Declarations only.
-//! Every road that reaches a private field lives in `type_guard.rs`, this file's own child.
+//! The invariant nucleus lives in `type_guard.rs`, and nonsemantic source restoration lives in `provenance.rs`; both are this file's children so no public field is opened.
 
 use crate::bounded::{Bounded, NonEmptyError};
 use crate::token::SpanHandle;
 
 #[path = "type_guard.rs"]
 mod guard;
+
+#[path = "provenance.rs"]
+mod provenance;
 
 /// Tokens one generated tree may carry at any one nesting level.
 pub const GENERATED_TOKEN_LIMIT: usize = 4096;

@@ -37,6 +37,15 @@ fn the_callable_and_wrapper_hosts_emit_one_canonical_projection() -> Result<(), 
             .content()
             .canonical_content_bytes()
     );
+    assert_eq!(
+        callable.projection().identity(),
+        wrapped.projection().identity()
+    );
+    assert_eq!(
+        callable.projection().closure().identity(),
+        wrapped.projection().closure().identity()
+    );
+    assert_eq!(emitted_bytes(&callable), emitted_bytes(&wrapped));
     Ok(())
 }
 

@@ -1,0 +1,15 @@
+error[E0599]: no variant, associated function, or constant named `Closed` found for enum `State` in the current scope
+  --> tests/compile_refusals/compile-fail/a-recipe-variant-rustc-refusal-points-at-the-authored-row.rs:16:22
+   |
+ 1 | / macroonz_macros::__macroonz_recipe_carrier! {
+ 2 | |     { macroonz_macros }
+ 3 | |     __macroonz_test_carrier_available
+...  |
+ 6 | |             pub enum State {
+   | |             -------------- variant, associated function, or constant `Closed` not found for this enum
+...  |
+15 | |                 transitions(State, Event) {
+16 | |                     (Closed, OpenDoor) => Open with(crate::record_open);
+   | |                     -^^^^^^ variant, associated function, or constant not found in `State`
+   | |_____________________|
+   |

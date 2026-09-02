@@ -78,6 +78,7 @@ The transition lowering remains owned by dispatch and refuses generic relation-t
 Every effective projection reads back whether its value came from a preset, named configuration, or exact Rust.
 The exact signature enters the recipe's canonical content, while producer-local spans remain outside semantic identity.
 Exact Rust seats retain caller-authored material through the token home's bounded capture and generated-tree paths.
+The final recipe shell restores the declaration spans of every identifier and exact fragment it re-emits, so compiler diagnostics and editor tooling can trace generated references back to the caller's recipe without moving canonical bytes or identities.
 Those paths bound nesting depth and token counts but do not independently bound the byte width of one token spelling, so the render home applies its derived canonical-byte ceiling to every completed unit.
 An over-limit exact fragment therefore refuses at capture or rendering according to the bound it exceeds; no caller-configurable or unbounded road exists.
 

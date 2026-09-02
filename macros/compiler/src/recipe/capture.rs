@@ -69,6 +69,9 @@ impl Recipe {
         };
         let (authored, declaration) = bake_suffix(body)?;
         collision_free(authored)?;
+        let authored_declaration = declaration
+            .generated()
+            .map_err(|refusal| fragment_refusal(refusal.token()))?;
         let read = read_bake(declaration, harness, input.issued())?;
         for codec in &read.codecs {
             let Some(owner) = codec.content().shape.owner().segments().last() else {
@@ -130,6 +133,7 @@ impl Recipe {
             module_name_token: identifier_token(name_token, module_name),
             module_head,
             authored_body,
+            authored_declaration,
             module_body_at: body.enclosing_span(),
             vocabularies,
             relations,
