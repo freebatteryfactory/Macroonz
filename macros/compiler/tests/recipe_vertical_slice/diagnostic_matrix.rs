@@ -22,6 +22,13 @@ fn refusal(source: &str, harness: HarnessPosture) -> Result<Diagnostic, ()> {
         .ok_or(())
 }
 
+fn admitted(source: &str) -> Result<(), ()> {
+    let read = TextCapture::read(source).map_err(|_| ())?;
+    macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
+        .map(|_| ())
+        .map_err(|_| ())
+}
+
 fn assert_refusal(
     refused: &Diagnostic,
     summary: &str,
@@ -299,6 +306,95 @@ fn relation_magnitude_refusals_point_at_the_first_excess_row_and_relation() -> R
         last_word(relation_limit.as_str(), "R64")?,
         SEQUENCE_LIMIT_REPAIR,
     )
+}
+
+#[test]
+fn lawful_recipe_collection_maxima_are_admitted() -> Result<(), ()> {
+    let enums = (0_usize..64)
+        .map(|index| format!("pub enum V{index} {{ Only }}"))
+        .collect::<Vec<_>>()
+        .join(" ");
+    let names = (0_usize..64)
+        .map(|index| format!("V{index};"))
+        .collect::<Vec<_>>()
+        .join(" ");
+    admitted(
+        format!(
+            "pub mod vocabulary_maximum {{ {enums} bake! {{ vocabularies {{ {names} }}; projections {{ companions; }}; }} }}"
+        )
+        .as_str(),
+    )?;
+
+    let relations = (0_usize..64)
+        .map(|index| format!("R{index}(Left, Right) {{ (A, B); }};"))
+        .collect::<Vec<_>>()
+        .join(" ");
+    admitted(
+        format!(
+            "pub mod relation_maximum {{ pub enum Left {{ A }} pub enum Right {{ B }} bake! {{ vocabularies {{ Left; Right; }}; relations {{ {relations} }}; projections {{ companions; }}; }} }}"
+        )
+        .as_str(),
+    )?;
+
+    let left_variants = (0_usize..64)
+        .map(|index| format!("L{index}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let rows = (0_usize..64)
+        .flat_map(|left_index| {
+            (0_usize..2).map(move |right_index| format!("(L{left_index}, R{right_index});"))
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+    admitted(
+        format!(
+            "pub mod row_maximum {{ pub enum Left {{ {left_variants} }} pub enum Right {{ R0, R1 }} bake! {{ vocabularies {{ Left; Right; }}; relations {{ links(Left, Right) {{ {rows} }}; }}; projections {{ companions; }}; }} }}"
+        )
+        .as_str(),
+    )?;
+
+    let records = (0_usize..16)
+        .map(|index| format!("pub struct Record{index} {{ pub value: u16 }}"))
+        .collect::<Vec<_>>()
+        .join(" ");
+    let codecs = codec_rows(16);
+    admitted(
+        format!(
+            "pub mod codec_maximum {{ {records} bake! {{ codecs {{ {codecs} }}; projections {{ codec; }}; }} }}"
+        )
+        .as_str(),
+    )
+}
+
+#[test]
+fn codec_magnitude_refusal_points_at_the_first_excess_declaration() -> Result<(), ()> {
+    let records = (0_usize..17)
+        .map(|index| format!("pub struct Record{index} {{ pub value: u16 }}"))
+        .collect::<Vec<_>>()
+        .join(" ");
+    let codecs = codec_rows(17);
+    let source = format!(
+        "pub mod codec_limit {{ {records} bake! {{ codecs {{ {codecs} }}; projections {{ codec; }}; }} }}"
+    );
+    assert_refusal(
+        &refusal(source.as_str(), HarnessPosture::Available)?,
+        "captured sequence carries more members than its declared magnitude of 16",
+        RefusalClass::DeclarationNotRead,
+        Observed::BoundExceeded,
+        last_word(source.as_str(), "codec16")?,
+        SEQUENCE_LIMIT_REPAIR,
+    )
+}
+
+fn codec_rows(count: usize) -> String {
+    (0_usize..count)
+        .map(|index| {
+            format!(
+                "codec{index}(Record{index}) {{ direction(encode); refusal(Refusal{index}); assembly(assembled, total); members {{ value: u16 => count(required); }}; }};"
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 #[test]

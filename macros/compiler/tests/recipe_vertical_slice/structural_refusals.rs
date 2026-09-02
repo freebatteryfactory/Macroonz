@@ -54,8 +54,7 @@ pub mod door {{
 }
 
 #[test]
-fn value_and_macro_names_remain_outside_the_generated_module_collision_universe() -> Result<(), ()>
-{
+fn value_and_macro_names_remain_outside_the_generated_module_collision_universe() {
     for declaration in [
         "fn baked() {}",
         "const baked: u8 = 0;",
@@ -82,7 +81,6 @@ pub mod door {{
             refusal_summary(source.as_str())
         );
     }
-    Ok(())
 }
 
 #[test]
