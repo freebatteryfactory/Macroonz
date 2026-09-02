@@ -10,6 +10,8 @@ mod effect_execution;
 mod harness_posture;
 #[path = "recipe_facade_crossing/historical_subjects.rs"]
 mod historical_subjects;
+#[path = "recipe_facade_crossing/negative_space.rs"]
+mod negative_space;
 #[path = "recipe_facade_crossing/renamed_facade.rs"]
 mod renamed_facade;
 #[path = "recipe_facade_crossing/support.rs"]

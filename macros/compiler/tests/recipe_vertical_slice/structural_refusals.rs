@@ -54,6 +54,38 @@ pub mod door {{
 }
 
 #[test]
+fn value_and_macro_names_remain_outside_the_generated_module_collision_universe() -> Result<(), ()>
+{
+    for declaration in [
+        "fn baked() {}",
+        "const baked: u8 = 0;",
+        "static baked: u8 = 0;",
+        "macro_rules! baked { () => {}; }",
+    ] {
+        let source = format!(
+            r"
+pub mod door {{
+    {declaration}
+
+    pub enum Stage {{ Draft }}
+
+    bake! {{
+        vocabularies {{ Stage; }};
+        projections {{ companions; }};
+    }}
+}}
+"
+        );
+        assert!(
+            bake(source.as_str()).is_ok(),
+            "unexpected cross-namespace refusal for `{declaration}`: {:?}",
+            refusal_summary(source.as_str())
+        );
+    }
+    Ok(())
+}
+
+#[test]
 fn every_recipe_owned_generated_name_collision_refuses_before_rendering() -> Result<(), ()> {
     let doubled_support = EVIDENCE_RECIPE.replace(
         "support = recipe_mutation_support",

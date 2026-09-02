@@ -8,6 +8,8 @@ mod generic_recipe;
 mod effect_execution;
 #[path = "support/historical_subjects.rs"]
 mod historical_subjects;
+#[path = "support/negative_space.rs"]
+mod negative_space;
 #[path = "support/no_harness.rs"]
 mod no_harness;
 #[path = "support/renamed_facade.rs"]
@@ -17,6 +19,7 @@ use effect_execution::{EFFECT_CONSUMER, EFFECT_PRODUCER};
 use generic_recipe::{GENERIC_CONSUMER, GENERIC_PRODUCER, GENERIC_REFUSALS};
 use harness_refusal::{EMPTY_CONSUMER, HARNESS_REFUSAL_PRODUCER};
 use historical_subjects::{SUBJECT_JOURNEYS_CONSUMER, SUBJECT_JOURNEYS_PRODUCER};
+use negative_space::{NEGATIVE_SPACE_CONSUMER, NEGATIVE_SPACE_PRODUCER};
 use no_harness::{NO_HARNESS_CONSUMER, NO_HARNESS_PRODUCER};
 use renamed_facade::{CONSUMER, PRODUCER};
 
@@ -130,8 +133,9 @@ fn write_specimen(
     producer: &str,
     consumer: &str,
 ) -> Result<(), String> {
-    write_specimen_with_unsafe_posture(
+    write_specimen_for_edition(
         scratch,
+        "2024",
         facade_features,
         producer,
         consumer,
@@ -141,6 +145,24 @@ fn write_specimen(
 
 fn write_specimen_with_unsafe_posture(
     scratch: &Path,
+    facade_features: &str,
+    producer: &str,
+    consumer: &str,
+    unsafe_posture: AdopterUnsafePosture,
+) -> Result<(), String> {
+    write_specimen_for_edition(
+        scratch,
+        "2024",
+        facade_features,
+        producer,
+        consumer,
+        unsafe_posture,
+    )
+}
+
+fn write_specimen_for_edition(
+    scratch: &Path,
+    edition: &str,
     facade_features: &str,
     producer: &str,
     consumer: &str,
@@ -161,7 +183,7 @@ fn write_specimen_with_unsafe_posture(
         r#"[package]
 name = "renamed-recipe-adopter"
 version = "0.0.0"
-edition = "2024"
+edition = "{edition}"
 rust-version = "1.98.0"
 publish = false
 autobins = false
@@ -327,6 +349,29 @@ pub(super) fn observe_generic_crossing(scratch: &Path) -> Result<(), String> {
     )?;
     if !wasm.status.success() {
         return Err(command_refusal("generic-recipe Wasm posture", &wasm));
+    }
+    Ok(())
+}
+
+pub(super) fn observe_negative_space(scratch: &Path, edition: &str) -> Result<(), String> {
+    write_specimen_for_edition(
+        scratch,
+        edition,
+        "",
+        NEGATIVE_SPACE_PRODUCER,
+        NEGATIVE_SPACE_CONSUMER,
+        AdopterUnsafePosture::Forbidden,
+    )?;
+    let locked = cargo(scratch, &["generate-lockfile", "--offline"])?;
+    if !locked.status.success() {
+        return Err(command_refusal("negative-space lock generation", &locked));
+    }
+    let tested = cargo(scratch, &["test", "--locked", "--offline"])?;
+    if !tested.status.success() {
+        return Err(command_refusal(
+            "negative-space edition qualification",
+            &tested,
+        ));
     }
     Ok(())
 }
