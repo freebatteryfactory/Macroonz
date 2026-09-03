@@ -258,6 +258,28 @@ fn assert_test_support(root: &Path) -> Result<(), std::io::Error> {
         &manual_debug,
         &["tests/network_transcript/support.rs"],
     )?;
+    let fixture_owner = ["struct Trial", "Fixture"].concat();
+    assert_occurrences(root, &fixture_owner, &["tests/support/trial_fixture.rs"])?;
+    let fixture_import = ["use trial_fixture::Trial", "Fixture;"].concat();
+    assert_occurrences(
+        root,
+        &fixture_import,
+        &[
+            "tests/fuzz_compose/main.rs",
+            "tests/reduction_instrument/main.rs",
+        ],
+    )?;
+    for relative in [
+        "tests/fuzz_compose/main.rs",
+        "tests/reduction_instrument/main.rs",
+    ] {
+        let source = fs::read_to_string(root.join(relative))?;
+        assert!(!source.contains("fn trial_binding()"), "{relative}");
+        assert!(
+            !source.contains("fn invocation() -> Invocation"),
+            "{relative}"
+        );
+    }
     Ok(())
 }
 

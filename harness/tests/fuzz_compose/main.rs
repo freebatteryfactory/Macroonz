@@ -1,11 +1,8 @@
 //! The fuzz home admits interesting bytes into Macroonz reduction and replay without owning the coverage engine.
 
-use macroonz_harness::clock::HarnessClock;
 use macroonz_harness::corpus::{SeedInput, pack, warm_start};
 use macroonz_harness::descriptor::{
-    Binding, CheckRef, ClaimRef, Classification, DerivedRevision, ExecutableAttachment,
-    ExecutionSuite, GeneratedSupportSchemaId, NamespacedName, Origin, PopulationRef, Provenance,
-    RevisionBinding, Role, Row, SubjectRoute, Tag, TrialCoordinates, TrialKey,
+    DerivedRevision, GeneratedSupportSchemaId, NamespacedName, PopulationRef, RevisionBinding,
 };
 use macroonz_harness::fuzz::{
     ComposeRefusal, CoverageAdmission, CoverageAdmissionRefusal, CoverageBudgets, CoverageCampaign,
@@ -23,11 +20,10 @@ use macroonz_harness::generate::{
 use macroonz_harness::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use macroonz_harness::report::{
     ByteBudget, CaseBudget, FailureClass, FindingCause, FindingLocation, Fingerprint,
-    GenerationProfile, InvocationProfile, MinimizationProfile, ReplayPosture, TargetBinding,
-    TargetTriple, TimeBudget, ToolchainIdentity, TrialConclusion, TrialFinding, TrialId,
-    TrialProfile, TrialSite,
+    GenerationProfile, MinimizationProfile, ReplayPosture, TrialConclusion, TrialFinding,
+    TrialSite,
 };
-use macroonz_harness::runner::{Invocation, TrialBinding, run_one};
+use macroonz_harness::runner::Invocation;
 use std::cell::Cell;
 use std::collections::BTreeSet;
 use std::ffi::OsString;
@@ -35,6 +31,11 @@ use std::fmt;
 use std::fs::File;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
+
+#[path = "../support/trial_fixture.rs"]
+mod trial_fixture;
+
+use trial_fixture::TrialFixture;
 
 const PRESERVED_CAUSE: FindingCause = FindingCause::named("harness", "fuzz-compose-preserved");
 const SCHEMA_TAG: DomainTag =
@@ -110,19 +111,7 @@ impl From<RustcProfileRefusal> for FuzzRoadFailure {
 }
 
 fn trial_fingerprint() -> Option<Fingerprint> {
-    let coordinates = TrialCoordinates::over(
-        ClaimRef::named("harness", "fuzz-compose").ok()?,
-        SubjectRoute::named("harness", "byte-input").ok()?,
-        CheckRef::named("harness", "fingerprint-preserved").ok()?,
-        PopulationRef::named("harness", "fuzz-interesting").ok()?,
-    );
-    let key = TrialKey::over(coordinates);
-    let trial = TrialId::of_key(key, TrialProfile::Unprofiled);
-    Some(Fingerprint::over(
-        trial,
-        PRESERVED_CAUSE,
-        FailureClass::PropertyDisagreement,
-    ))
+    Some(trial_fixture()?.fingerprint(PRESERVED_CAUSE))
 }
 
 fn probe(input: &[u8]) -> ProbeOutcome {
@@ -144,59 +133,26 @@ fn refused_trial(_invocation: &Invocation) -> TrialConclusion {
     ))
 }
 
-fn trial_binding() -> Option<TrialBinding> {
-    let subject = SubjectRoute::named("harness", "byte-input").ok()?;
-    let check = CheckRef::named("harness", "fingerprint-preserved").ok()?;
-    let row = Row::declared(
-        ClaimRef::named("harness", "fuzz-compose").ok()?,
-        ExecutionSuite::named("harness", "fuzz").ok()?,
-        Classification::authored(
-            vec![Role::named("harness", "fuzz").ok()?],
-            vec![Tag::named("harness", "compose").ok()?],
-        )
-        .ok()?,
-        subject,
-        check,
-        PopulationRef::named("harness", "fuzz-interesting").ok()?,
-        Origin::HandWritten,
-    )
-    .ok()?;
-    let revision = RevisionBinding::derived(DerivedRevision::from_material(b"fuzz-compose-trial"));
-    Binding::bound(
-        row,
-        ExecutableAttachment::attached(subject, check, revision, revision, refused_trial),
-        Provenance::Unproduced,
-    )
-    .ok()
-}
-
-fn invocation() -> Invocation {
-    Invocation::declared(
-        InvocationProfile::declared(
-            CaseBudget::declared(1),
-            ByteBudget::declared(64),
-            TimeBudget::declared(1_000_000),
-        ),
-        TargetBinding::bound(
-            TargetTriple::declared("x86_64-pc-windows-msvc"),
-            ToolchainIdentity::declared("1.98.0"),
-        ),
+fn trial_fixture() -> Option<TrialFixture> {
+    TrialFixture::named(
+        "fuzz-compose",
+        "fuzz",
+        "fuzz",
+        "compose",
+        "fuzz-interesting",
         TrialSite::located(module_path!(), file!(), line!(), "fuzz-compose"),
-        HarnessClock::unavailable(),
     )
 }
 
 fn probe_binding() -> Option<ReductionProbeBinding> {
-    let trial = trial_binding()?;
-    let report = run_one(&trial, &invocation());
-    ReductionProbeBinding::bound(
-        &report,
+    trial_fixture()?.probe_binding(
+        refused_trial,
+        RevisionBinding::derived(DerivedRevision::from_material(b"fuzz-compose-trial")),
         GenerationProfile::declared("fuzz-interesting", 1),
         GeneratedSupportSchemaId::over(ContentAddress::derived(SCHEMA_TAG, b"schema")),
         RevisionBinding::derived(DerivedRevision::from_material(b"fuzz-compose-probe")),
         probe,
     )
-    .ok()
 }
 
 #[test]
