@@ -13,10 +13,11 @@ The source copies that once sat beside those consoles are gone; each console now
 
 ### Current wrapped-backend campaign
 
-- Console: `harness/tests/trust_opening_evidence/current-compiled-pressure-artifact/cargo-mutants-27.0.0-console.txt`, recorded at `bc99da3`.
-- Source at the campaign: `harness/src/muterprater/backend/wrap.rs`, Git blob `53b19ddb28e5e54ac11ed50744d5feb8554fb405`, SHA-256 `EBF016D030A184CDB2879B85FBDAE2648E50CBFF07008CC869C57B0D651CAD4F`, `19,435` bytes.
-- Reconstruction: `git show bc99da3:harness/src/muterprater/backend/wrap.rs`.
-- Observation: one selected mutant, `replace != with == in roster_count` at line `351`, column `13`, reported caught by Cargo Mutants `27.0.0` on `x86_64-pc-windows-msvc` under `rustc 1.98.0 (88d9e12ae 2026-08-18)`.
+- Console: `harness/tests/trust_opening_evidence/current-compiled-pressure-artifact/cargo-mutants-27.0.0-console.txt`, recorded at `5e5bb0a`.
+- Source at the campaign: `harness/src/muterprater/backend/wrap/parse.rs`, Git blob `c9275aa93d7bbaca80b3db4e2d5c2cd80cc0541f`, SHA-256 `C9494B4D6570C6E795B1851344D561CE54072653119A049ABDE4DA94AB262FC9`, `4,599` bytes.
+- Reconstruction: `git show 5e5bb0a:harness/src/muterprater/backend/wrap/parse.rs`.
+- Observation: one selected mutant, `replace != with == in roster_count` at line `68`, column `13`, reported caught by Cargo Mutants `27.0.0` on `x86_64-pc-windows-msvc` under `rustc 1.98.0 (88d9e12ae 2026-08-18)`.
+- The campaign was rerun by the shape lot after the wrap road split into its parse, read, and plan roles moved the mutated operation into the parse child; the superseded recording at `bc99da3` stood over `harness/src/muterprater/backend/wrap.rs`, Git blob `53b19ddb28e5e54ac11ed50744d5feb8554fb405`, SHA-256 `EBF016D030A184CDB2879B85FBDAE2648E50CBFF07008CC869C57B0D651CAD4F`, `19,435` bytes, with the same mutant at line `351`, column `13`, and is reconstructed with `git show bc99da3:harness/src/muterprater/backend/wrap.rs`.
 - The lane pins the harness-derived revision identity of that source, so an edit to the wrapped backend refuses the campaign join until the campaign is rerun and this section is updated.
 
 ### Historical wrapped-backend campaign

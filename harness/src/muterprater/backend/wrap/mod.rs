@@ -1,7 +1,7 @@
 //! The compiled-mutation lane: the console grammar of one wrapped backend, the defensive parser that reads it, and the witness runs a reading is planned into.
 //!
 //! The backend is external and it runs outside the wall — it mutates real source and invokes the test command itself.
-//! Nothing here executes anything: this file reads text a caller already holds, and plans runs the one report engine performs.
+//! Nothing here executes anything: this home reads text a caller already holds through its parse and read roles, and its plan role plans runs the one report engine performs.
 //!
 //! # The line grammar this parser reads
 //!
@@ -17,7 +17,7 @@
 //! # What a reading may claim
 //!
 //! Every reading is stated under an [`AdapterProfile`](crate::muterprater::AdapterProfile) naming the backend, the version posture the running party states, the output it was taken from, and this adapter's own grammar version.
-//! Three of those four are this file's own facts, so [`console_profile`] states them and only the backend version is the caller's word.
+//! Three of those four are this home's own facts, so [`console_profile`] states them and only the backend version is the caller's word.
 //!
 //! The backend says which of its own mutants its command rejected and says nothing about whether a damaged expression was ever reached, so every mutant read here carries [`ActivationDisposition::UnobservableUnderBackend`](crate::muterprater::ActivationDisposition::UnobservableUnderBackend).
 //! Two consequences follow, both structural: a kill under this lane asserts witness rejection and never observed activation, and a non-kill can never earn survived — it is inconclusive, and [`MutationRun::non_kills`](crate::muterprater::MutationRun::non_kills) is the roster a reader means by "what got through".

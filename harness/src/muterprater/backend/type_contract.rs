@@ -1,3 +1,5 @@
+//! The backend home's trait participation: how one outcome word widens into the two record axes, how a reading source affords its ceiling, and the field-free spelling of the wrapped backend.
+
 use super::types::{ClaimCeiling, ReadingSource, WrapOutcomeWord, WrappedBackend};
 use crate::muterprater::{ExecutionAxis, MaterializationAxis};
 
