@@ -17,6 +17,16 @@ impl CapturedInput {
     }
 }
 
+impl<'tokens> super::CapturedFragment<'tokens> {
+    /// Open the generic mechanical cursor over this exact fragment.
+    #[must_use]
+    pub fn cursor(self) -> CaptureCursor<'tokens> {
+        let mut cursor = CaptureCursor::over(self.tokens);
+        cursor.end = self.end;
+        cursor
+    }
+}
+
 impl<'tokens> CaptureCursor<'tokens> {
     /// Open the top-level cursor while keeping raw slice construction inside the capture owner.
     pub(super) const fn over(tokens: &'tokens [CapturedTokenTree]) -> Self {
