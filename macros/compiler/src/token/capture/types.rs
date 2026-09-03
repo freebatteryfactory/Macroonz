@@ -71,20 +71,21 @@ pub enum CapturedDelimiter {
     Bare,
 }
 
-/// Which declared magnitude one capture ran past.
-///
-/// Every row refuses before any partial tree exists: a truncated capture is a different declaration, and capturing one would put everything downstream to work on material nobody wrote.
-#[must_use = "a bound refusal names which declared magnitude the capture would have passed"]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum CaptureBound {
-    /// The declared input nests deeper than the declared magnitude.
-    Depth,
-    /// One nesting level carries more token trees than the declared magnitude.
-    Level,
-    /// The whole tree carries more tokens than the declared magnitude.
-    Tree,
-    /// The walk spent the declared capture-work budget.
-    Work,
+crate::roster! {
+    /// Which declared magnitude one capture ran past.
+    ///
+    /// Every row refuses before any partial tree exists: a truncated capture is a different declaration, and capturing one would put everything downstream to work on material nobody wrote.
+    #[must_use = "a bound refusal names which declared magnitude the capture would have passed"]
+    pub enum CaptureBound {
+        /// The declared input nests deeper than the declared magnitude.
+        Depth = "depth",
+        /// One nesting level carries more token trees than the declared magnitude.
+        Level = "level",
+        /// The whole tree carries more tokens than the declared magnitude.
+        Tree = "tree",
+        /// The walk spent the declared capture-work budget.
+        Work = "work",
+    }
 }
 
 /// Where one captured token sits, as the index route from the root of the declared input.
@@ -170,16 +171,17 @@ pub enum CapturedPayload {
     JointPunct(char),
 }
 
-/// Why one literal spelling could not be read into the value it names.
-///
-/// Neither row is the caller's mistake: every spelling that reaches this road was already lexed by a compiler, so a refusal is this crate saying it does not read what the compiler admitted.
-#[must_use = "a literal refusal names why the spelling could not be read into a value"]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum LiteralReadCause {
-    /// The spelling opens with no literal form this grammar has a row for.
-    NotAKnownForm,
-    /// The form is one this grammar reads, and its body carries material this grammar could not read the value of.
-    NotReadable,
+crate::roster! {
+    /// Why one literal spelling could not be read into the value it names.
+    ///
+    /// Neither row is the caller's mistake: every spelling that reaches this road was already lexed by a compiler, so a refusal is this crate saying it does not read what the compiler admitted.
+    #[must_use = "a literal refusal names why the spelling could not be read into a value"]
+    pub enum LiteralReadCause {
+        /// The spelling opens with no literal form this grammar has a row for.
+        NotAKnownForm = "not-a-known-form",
+        /// The form is one this grammar reads, and its body carries material this grammar could not read the value of.
+        NotReadable = "not-readable",
+    }
 }
 
 /// One captured token: what it carries, where it sits, and how to reach the compiler span it came from.
@@ -443,28 +445,29 @@ pub enum SpanTable {
     ProducerHeld,
 }
 
-/// Why the low-level lexer could not normalize one spelling.
-#[must_use = "a lexical refusal names the spelling distinction that could not be normalized"]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum TextLexicalCause {
-    /// A block comment was not terminated.
-    BlockCommentNotTerminated,
-    /// An identifier contains a character the compiler lexer rejects.
-    InvalidIdentifier,
-    /// A prefix is reserved or not meaningful without an edition-aware parser.
-    UnknownPrefix,
-    /// A lifetime prefix is reserved or not meaningful without an edition-aware parser.
-    UnknownLifetimePrefix,
-    /// A guarded-string prefix requires parser context this boundary does not own.
-    GuardedStringPrefix,
-    /// A literal carries a malformed low-level spelling.
-    MalformedLiteral,
-    /// A lifetime begins with a number.
-    LifetimeStartsWithNumber,
-    /// Frontmatter is not Rust token input at this boundary.
-    Frontmatter,
-    /// The lexer reported a character with no lawful Rust token kind.
-    UnknownToken,
+crate::roster! {
+    /// Why the low-level lexer could not normalize one spelling.
+    #[must_use = "a lexical refusal names the spelling distinction that could not be normalized"]
+    pub enum TextLexicalCause {
+        /// A block comment was not terminated.
+        BlockCommentNotTerminated = "block-comment-not-terminated",
+        /// An identifier contains a character the compiler lexer rejects.
+        InvalidIdentifier = "invalid-identifier",
+        /// A prefix is reserved or not meaningful without an edition-aware parser.
+        UnknownPrefix = "unknown-prefix",
+        /// A lifetime prefix is reserved or not meaningful without an edition-aware parser.
+        UnknownLifetimePrefix = "unknown-lifetime-prefix",
+        /// A guarded-string prefix requires parser context this boundary does not own.
+        GuardedStringPrefix = "guarded-string-prefix",
+        /// A literal carries a malformed low-level spelling.
+        MalformedLiteral = "malformed-literal",
+        /// A lifetime begins with a number.
+        LifetimeStartsWithNumber = "lifetime-starts-with-number",
+        /// Frontmatter is not Rust token input at this boundary.
+        Frontmatter = "frontmatter",
+        /// The lexer reported a character with no lawful Rust token kind.
+        UnknownToken = "unknown-token",
+    }
 }
 
 /// Why one text read refused.

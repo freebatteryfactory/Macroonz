@@ -110,6 +110,9 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     )?;
     assert_occurrences(&root, "impl HarnessName", &[])?;
     assert_occurrences(&root, "impl HarnessWord", &[])?;
+    assert_occurrences(&root, "impl TextLexicalCause", &[])?;
+    assert_occurrences(&root, "impl CaptureBound", &[])?;
+    assert_occurrences(&root, "impl LiteralReadCause", &[])?;
     assert_occurrences(
         &root,
         "the complete relation-question roster guards this match",

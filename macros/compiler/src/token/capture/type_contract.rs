@@ -33,37 +33,6 @@ impl From<CapturedAtom> for CapturedPayload {
     }
 }
 
-impl TextLexicalCause {
-    /// Every low-level lexical refusal, in declaration order.
-    pub const ALL: &'static [Self] = &[
-        Self::BlockCommentNotTerminated,
-        Self::InvalidIdentifier,
-        Self::UnknownPrefix,
-        Self::UnknownLifetimePrefix,
-        Self::GuardedStringPrefix,
-        Self::MalformedLiteral,
-        Self::LifetimeStartsWithNumber,
-        Self::Frontmatter,
-        Self::UnknownToken,
-    ];
-
-    /// The stable name of this row.
-    #[must_use]
-    pub const fn name(self) -> &'static str {
-        match self {
-            Self::BlockCommentNotTerminated => "block-comment-not-terminated",
-            Self::InvalidIdentifier => "invalid-identifier",
-            Self::UnknownPrefix => "unknown-prefix",
-            Self::UnknownLifetimePrefix => "unknown-lifetime-prefix",
-            Self::GuardedStringPrefix => "guarded-string-prefix",
-            Self::MalformedLiteral => "malformed-literal",
-            Self::LifetimeStartsWithNumber => "lifetime-starts-with-number",
-            Self::Frontmatter => "frontmatter",
-            Self::UnknownToken => "unknown-token",
-        }
-    }
-}
-
 impl core::fmt::Display for TextLexicalCause {
     fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         into.write_str(match self {
@@ -90,22 +59,6 @@ impl core::fmt::Display for TextLexicalCause {
 
 impl core::error::Error for TextLexicalCause {}
 
-impl CaptureBound {
-    /// Every bound a capture can run past, in declaration order.
-    pub const ALL: &'static [Self] = &[Self::Depth, Self::Level, Self::Tree, Self::Work];
-
-    /// The stable name of the magnitude this row is about.
-    #[must_use]
-    pub const fn name(self) -> &'static str {
-        match self {
-            Self::Depth => "depth",
-            Self::Level => "level",
-            Self::Tree => "tree",
-            Self::Work => "work",
-        }
-    }
-}
-
 impl core::fmt::Display for CaptureBound {
     fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         into.write_str(match self {
@@ -120,20 +73,6 @@ impl core::fmt::Display for CaptureBound {
 }
 
 impl core::error::Error for CaptureBound {}
-
-impl LiteralReadCause {
-    /// Every way a literal spelling can fail to be read, in declaration order.
-    pub const ALL: &'static [Self] = &[Self::NotAKnownForm, Self::NotReadable];
-
-    /// The stable name of this row.
-    #[must_use]
-    pub const fn name(self) -> &'static str {
-        match self {
-            Self::NotAKnownForm => "not-a-known-form",
-            Self::NotReadable => "not-readable",
-        }
-    }
-}
 
 impl core::fmt::Display for LiteralReadCause {
     fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

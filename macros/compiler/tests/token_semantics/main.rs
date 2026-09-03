@@ -5,9 +5,10 @@
 
 use core::convert::Infallible;
 use macroonz_compiler::token::{
-    CaptureBuildRefusal as HomeCaptureBuildRefusal, CaptureBuilder as HomeCaptureBuilder,
-    CapturedAtom, CapturedDelimiter, CapturedInput, GeneratedDelimiter, GeneratedLiteral,
-    GeneratedToken as HomeGeneratedToken, GeneratedTree as HomeGeneratedTree, rust_keyword,
+    CaptureBound, CaptureBuildRefusal as HomeCaptureBuildRefusal,
+    CaptureBuilder as HomeCaptureBuilder, CapturedAtom, CapturedDelimiter, CapturedInput,
+    GeneratedDelimiter, GeneratedLiteral, GeneratedToken as HomeGeneratedToken,
+    GeneratedTree as HomeGeneratedTree, LiteralReadCause, TextLexicalCause, rust_keyword,
 };
 use macroonz_compiler::{CaptureBuildRefusal, CaptureBuilder, GeneratedToken, GeneratedTree};
 
@@ -46,6 +47,51 @@ fn rust_keywords_are_one_exact_language_roster() {
         .into_iter()
         .all(|spelling| !rust_keyword(spelling))
     );
+}
+
+/// The three public capture vocabularies retain every row, order, and declared name.
+#[test]
+fn capture_vocabulary_names_are_exact() {
+    let lexical = [
+        (
+            TextLexicalCause::BlockCommentNotTerminated,
+            "block-comment-not-terminated",
+        ),
+        (TextLexicalCause::InvalidIdentifier, "invalid-identifier"),
+        (TextLexicalCause::UnknownPrefix, "unknown-prefix"),
+        (
+            TextLexicalCause::UnknownLifetimePrefix,
+            "unknown-lifetime-prefix",
+        ),
+        (
+            TextLexicalCause::GuardedStringPrefix,
+            "guarded-string-prefix",
+        ),
+        (TextLexicalCause::MalformedLiteral, "malformed-literal"),
+        (
+            TextLexicalCause::LifetimeStartsWithNumber,
+            "lifetime-starts-with-number",
+        ),
+        (TextLexicalCause::Frontmatter, "frontmatter"),
+        (TextLexicalCause::UnknownToken, "unknown-token"),
+    ];
+    let bounds = [
+        (CaptureBound::Depth, "depth"),
+        (CaptureBound::Level, "level"),
+        (CaptureBound::Tree, "tree"),
+        (CaptureBound::Work, "work"),
+    ];
+    let literals = [
+        (LiteralReadCause::NotAKnownForm, "not-a-known-form"),
+        (LiteralReadCause::NotReadable, "not-readable"),
+    ];
+
+    assert_eq!(TextLexicalCause::ALL, lexical.map(|(row, _name)| row));
+    assert_eq!(CaptureBound::ALL, bounds.map(|(row, _name)| row));
+    assert_eq!(LiteralReadCause::ALL, literals.map(|(row, _name)| row));
+    assert!(lexical.into_iter().all(|(row, name)| row.name() == name));
+    assert!(bounds.into_iter().all(|(row, name)| row.name() == name));
+    assert!(literals.into_iter().all(|(row, name)| row.name() == name));
 }
 
 /// One capture carrying every payload slot and every captured delimiter slot.
