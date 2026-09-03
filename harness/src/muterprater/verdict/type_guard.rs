@@ -5,10 +5,10 @@ use super::{
     BaselinePrecondition, BaselineQualification, ClaimRef, ContentAddress, CoordinateRefusal,
     DemonstratedRejection, DudPlant, EquivalenceAxis, ExecutionAxis, FamilyAttribution,
     Fingerprint, InconclusiveCause, IntendedRejection, KillRefusal, MUTATION_TARGET_TAG,
-    MappingPosture, MaterializationAxis, MutantId, MutationCensus, MutationIdentity,
-    MutationOutcome, MutationPointRef, MutationReport, MutationRun, MutationSite, MutationTarget,
-    MutationVerdict, OperatorFamily, OperatorFamilyRef, RejectionIdentity, SourceCoordinate,
-    TrialFinding, TrialId,
+    MappingPosture, MaterializationAxis, MutantId, MutationCensus, MutationCensusSeat,
+    MutationIdentity, MutationOutcome, MutationPointRef, MutationReport, MutationRun, MutationSite,
+    MutationTarget, MutationVerdict, OperatorFamily, OperatorFamilyRef, RejectionIdentity,
+    SourceCoordinate, TrialFinding, TrialId,
 };
 use crate::depot::operator_families::OPERATOR_FAMILIES;
 use crate::report::{RunAttempt, TrialConclusion, TrialReport, encode_bytes};
@@ -552,53 +552,64 @@ impl MutationReport {
 // The run, and the accounting over it.
 // ---------------------------------------------------------------------------
 
-impl MutationCensus {
-    /// The accounting over one run's mutants, counted from the records themselves.
-    #[must_use]
-    pub fn over(reports: &[MutationReport]) -> Self {
-        let mut killed: u32 = 0;
-        let mut survived: u32 = 0;
-        let mut inconclusive: u32 = 0;
-        for report in reports {
-            match report.verdict() {
-                MutationVerdict::Killed => killed = killed.saturating_add(1),
-                MutationVerdict::Survived => survived = survived.saturating_add(1),
-                MutationVerdict::Inconclusive => inconclusive = inconclusive.saturating_add(1),
+macro_rules! implement_mutation_census {
+    ($($(#[$variant_meta:meta])* $variant:ident => $seat:ident),+ $(,)?) => {
+        crate::census::implement_census! {
+            impl MutationCensus {
+                count: u32,
+                zero: 0u32,
+                seat: MutationCensusSeat,
+                context {}
+                fields {
+                    $( $variant => $seat, )+
+                }
             }
         }
-        Self {
-            killed,
-            survived,
-            inconclusive,
+
+        impl MutationCensus {
+            /// The accounting over one run's mutants, counted from the records themselves.
+            #[must_use]
+            pub fn over(reports: &[MutationReport]) -> Self {
+                let mut census = Self::empty();
+                for report in reports {
+                    let seat = match report.verdict() {
+                        $(MutationVerdict::$variant => MutationCensusSeat::$variant),+
+                    };
+                    census.increment(seat, 1u32);
+                }
+                census
+            }
+
+            /// How many mutants the suite rejected.
+            #[must_use]
+            pub const fn killed(self) -> u32 {
+                self.count_at(MutationCensusSeat::Killed)
+            }
+
+            /// How many mutants the suite accepted after a positive firing observation.
+            #[must_use]
+            pub const fn survived(self) -> u32 {
+                self.count_at(MutationCensusSeat::Survived)
+            }
+
+            /// How many mutants established nothing.
+            #[must_use]
+            pub const fn inconclusive(self) -> u32 {
+                self.count_at(MutationCensusSeat::Inconclusive)
+            }
+
+            /// How many mutants the run pressed, as the sum of its parts.
+            #[must_use]
+            pub const fn pressed(self) -> u32 {
+                self.killed()
+                    .saturating_add(self.survived())
+                    .saturating_add(self.inconclusive())
+            }
         }
-    }
-
-    /// How many mutants the suite rejected.
-    #[must_use]
-    pub const fn killed(self) -> u32 {
-        self.killed
-    }
-
-    /// How many mutants the suite accepted after a positive firing observation.
-    #[must_use]
-    pub const fn survived(self) -> u32 {
-        self.survived
-    }
-
-    /// How many mutants established nothing.
-    #[must_use]
-    pub const fn inconclusive(self) -> u32 {
-        self.inconclusive
-    }
-
-    /// How many mutants the run pressed, as the sum of its parts.
-    #[must_use]
-    pub const fn pressed(self) -> u32 {
-        self.killed
-            .saturating_add(self.survived)
-            .saturating_add(self.inconclusive)
-    }
+    };
 }
+
+with_mutation_verdicts!(implement_mutation_census);
 
 impl BaselineQualification {
     /// The precondition, read from the baseline axis one run recorded.

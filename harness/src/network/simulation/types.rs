@@ -5,6 +5,18 @@
 use crate::descriptor::NamespacedName;
 use std::collections::BTreeMap;
 
+macro_rules! with_network_census_seats {
+    ($callback:ident) => {
+        $callback! {
+            Sends => sends,
+            ScheduledDeliveries => scheduled_deliveries,
+            Delivered => delivered,
+            DroppedByDiscipline => dropped_by_discipline,
+            DroppedByPartition => dropped_by_partition,
+        }
+    };
+}
+
 #[path = "type_guard.rs"]
 mod guard;
 
@@ -259,17 +271,26 @@ pub struct Delivery<Payload> {
     copy: DeliveryCopy,
 }
 
-/// The accounting over every send a sim was asked to place.
-///
-/// Every seat is counted where it happens, so a schedule that quietly dropped half the traffic cannot read as a calm run.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct NetworkCensus {
-    sends: u64,
-    scheduled_deliveries: u64,
-    delivered: u64,
-    dropped_by_discipline: u64,
-    dropped_by_partition: u64,
+macro_rules! declare_network_census {
+    ($($variant:ident => $seat:ident),+ $(,)?) => {
+        crate::census::declare_census! {
+            /// The accounting over every send a sim was asked to place.
+            ///
+            /// Every seat is counted where it happens, so a schedule that quietly dropped half the traffic cannot read as a calm run.
+            #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+            pub struct NetworkCensus {
+                count: u64,
+                seat: NetworkCensusSeat,
+                context {}
+                fields {
+                    $( $variant => $seat, )+
+                }
+            }
+        }
+    };
 }
+
+with_network_census_seats!(declare_network_census);
 
 /// One scheduled delivery waiting for its logical tick.
 #[derive(Debug, Clone)]

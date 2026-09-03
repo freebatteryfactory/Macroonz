@@ -20,6 +20,8 @@
 
 pub mod identity;
 
+mod census;
+
 pub mod bench;
 pub mod clock;
 pub mod corpus;

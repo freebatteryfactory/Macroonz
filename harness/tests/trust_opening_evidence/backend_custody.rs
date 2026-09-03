@@ -180,6 +180,11 @@ fn compile_contract_pressure_is_complete_current_and_unmapped() -> Result<(), Mu
     assert_eq!(manifest.reading().run().kills().count(), 28usize);
     assert_eq!(manifest.reading().run().non_kills().count(), 21usize);
     assert_eq!(manifest.reading().run().survivors().count(), 0usize);
+    let census = manifest.reading().run().census();
+    assert_eq!(census.killed(), 28u32);
+    assert_eq!(census.survived(), 0u32);
+    assert_eq!(census.inconclusive(), 21u32);
+    assert_eq!(census.pressed(), 49u32);
     assert!(
         manifest
             .reading()

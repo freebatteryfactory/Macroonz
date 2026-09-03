@@ -68,58 +68,88 @@ fn assert_occurrences(root: &Path, needle: &str, expected: &[&str]) -> Result<()
     Ok(())
 }
 
-#[test]
-fn named_harness_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+fn assert_single_owner_stamps(root: &Path) -> Result<(), std::io::Error> {
     assert_occurrences(
-        &root.join("src"),
+        root,
         "u64::try_from(length).unwrap_or(u64::MAX)",
         &["identity/encode.rs"],
     )?;
     assert_occurrences(
-        &root.join("src"),
+        root,
         "map_err(|_| EncodeRefusal::LengthPastEncodingWidth)",
         &["descriptor/encode.rs"],
     )?;
     assert_occurrences(
-        &root.join("src"),
+        root,
         "macro_rules! namespaced_reference",
         &["descriptor/type_guard.rs"],
     )?;
     assert_occurrences(
-        &root.join("src"),
+        root,
         "macro_rules! artifact_mutation_bank",
         &["depot/artifact_mutation/bank.rs"],
     )?;
     assert_occurrences(
-        &root.join("src"),
+        root,
         "macro_rules! generated_support_field_banks",
         &["depot/producer_field/bank.rs"],
     )?;
-    assert_occurrences(&root.join("src"), "ArtifactMutation::OrderPermuted,", &[])?;
+    assert_occurrences(root, "macro_rules! declare_census", &["census/stamp.rs"])?;
+    assert_occurrences(root, "macro_rules! implement_census", &["census/stamp.rs"])?;
     assert_occurrences(
-        &root.join("src"),
+        root,
+        "macro_rules! with_generation_dispositions",
+        &["generate/generation/types.rs"],
+    )?;
+    assert_occurrences(
+        root,
+        "macro_rules! with_shrink_verdicts",
+        &["generate/reduction/types.rs"],
+    )?;
+    assert_occurrences(
+        root,
+        "macro_rules! with_mutation_verdicts",
+        &["muterprater/verdict/types.rs"],
+    )?;
+    assert_occurrences(
+        root,
+        "macro_rules! with_network_census_seats",
+        &["network/simulation/types.rs"],
+    )?;
+    Ok(())
+}
+
+fn assert_closed_shape_debt(root: &Path) -> Result<(), std::io::Error> {
+    assert_occurrences(root, "let mut killed: u32", &[])?;
+    assert_occurrences(root, "self.census.sends =", &[])?;
+    assert_occurrences(root, "ArtifactMutation::OrderPermuted,", &[])?;
+    assert_occurrences(
+        root,
         "\"candidate_alternatives\"",
         &["depot/producer_field/bank.rs"],
     )?;
     assert_occurrences(
-        &root.join("src"),
+        root,
         "\"planted_worse_falsifier\"",
         &["depot/producer_field/bank.rs"],
     )?;
-    assert_occurrences(&root.join("src"), "struct BodyReader<'body>", &[])?;
+    assert_occurrences(root, "struct BodyReader<'body>", &[])?;
     assert_occurrences(
-        &root.join("src"),
+        root,
         "struct BodyReader<'body, Refusal>",
         &["identity/types.rs"],
     )?;
     assert_occurrences(
-        &root.join("src"),
+        root,
         "fn addressed_body<Address, Refusal>(",
         &["identity/read.rs"],
     )?;
+    Ok(())
+}
+
+fn assert_content_address_denominator(root: &Path) -> Result<(), std::io::Error> {
     assert_occurrences(
-        &root.join("src"),
+        root,
         "(ContentAddress);",
         &[
             "bench/declaration/types.rs",
@@ -143,7 +173,10 @@ fn named_harness_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
             "report/types.rs",
             "report/types.rs",
         ],
-    )?;
+    )
+}
+
+fn assert_wrap_custody(root: &Path) -> Result<(), std::io::Error> {
     assert_eq!(
         paths_named(root, "wrap.rs")?,
         [
@@ -153,4 +186,14 @@ fn named_harness_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
         ]
     );
     Ok(())
+}
+
+#[test]
+fn named_harness_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let sources = &root.join("src");
+    assert_single_owner_stamps(sources)?;
+    assert_closed_shape_debt(sources)?;
+    assert_content_address_denominator(sources)?;
+    assert_wrap_custody(root)
 }

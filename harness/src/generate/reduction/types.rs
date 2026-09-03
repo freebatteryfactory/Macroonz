@@ -7,9 +7,6 @@ use crate::report::{
     Fingerprint, GenerationProfile, MinimizationProfile, ReplayPosture, TrialRunStanding,
 };
 
-#[path = "type_guard.rs"]
-mod guard;
-
 // The reduction plan.
 
 /// Which generic byte reducer a reduction plan binds.
@@ -164,32 +161,65 @@ pub enum ProbeOutcome {
 /// The pointer shape excludes captured state; it does not establish semantic purity or outcome stability, and a probe's effects and readings stay its owner's.
 pub type FingerprintProbe = fn(&[u8]) -> ProbeOutcome;
 
-/// Whether one candidate shrink is admitted.
-///
-/// Acceptance is fingerprint equality and nothing else.
-/// A candidate that reaches a different fingerprint is refused and the fingerprint it reached is carried out, so a reduction never wanders from the bug it was minimizing and a reader can see where it tried to wander to.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ShrinkVerdict {
-    /// The candidate carries the same failure fingerprint, so it stands in for the input it shrinks.
-    Accepted,
-    /// The candidate failed under a different fingerprint.
-    RejectedFingerprintMoved {
-        /// The fingerprint the candidate reached instead.
-        found: Fingerprint,
-    },
-    /// The candidate did not fail at all.
-    RejectedNoFailure,
+macro_rules! with_shrink_verdicts {
+    ($callback:ident) => {
+        $callback! {
+            /// The candidate carries the same failure fingerprint, so it stands in for the input it shrinks.
+            Accepted => accepted,
+            /// The candidate failed under a different fingerprint.
+            RejectedFingerprintMoved {
+                /// The fingerprint the candidate reached instead.
+                found: Fingerprint,
+            } => fingerprint_moved,
+            /// The candidate did not fail at all.
+            RejectedNoFailure => no_failure,
+        }
+    };
 }
 
-/// The accounting over one reduction's candidate probes.
-///
-/// It counts candidates, never bytes: how far an input actually shrank is the outcome's input, not a number here.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ReductionCensus {
-    accepted: u32,
-    fingerprint_moved: u32,
-    no_failure: u32,
+macro_rules! declare_reduction_census {
+    (
+        $(
+            $(#[$variant_meta:meta])*
+            $variant:ident
+            $( { $( $(#[$field_meta:meta])* $field:ident: $field_type:ty, )+ } )?
+            => $seat:ident,
+        )+
+    ) => {
+        /// Whether one candidate shrink is admitted.
+        ///
+        /// Acceptance is fingerprint equality and nothing else.
+        /// A candidate that reaches a different fingerprint is refused and the fingerprint it reached is carried out, so a reduction never wanders from the bug it was minimizing and a reader can see where it tried to wander to.
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        pub enum ShrinkVerdict {
+            $(
+                $(#[$variant_meta])*
+                $variant
+                $( { $( $(#[$field_meta])* $field: $field_type, )+ } )?,
+            )+
+        }
+
+        crate::census::declare_census! {
+            /// The accounting over one reduction's candidate probes.
+            ///
+            /// It counts candidates, never bytes: how far an input actually shrank is the outcome's input, not a number here.
+            #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+            pub struct ReductionCensus {
+                count: u32,
+                seat: ReductionCensusSeat,
+                context {}
+                fields {
+                    $( $variant => $seat, )+
+                }
+            }
+        }
+    };
 }
+
+with_shrink_verdicts!(declare_reduction_census);
+
+#[path = "type_guard.rs"]
+mod guard;
 
 /// Why one reduction stopped.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

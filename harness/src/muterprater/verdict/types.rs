@@ -5,6 +5,20 @@ use crate::descriptor::{ClaimRef, MutationPointRef};
 use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use crate::muterprater::{ActivationSite, ActiveSelection, AlternativeId};
 use crate::report::{Fingerprint, ForeignText, TrialFinding, TrialId};
+
+macro_rules! with_mutation_verdicts {
+    ($callback:ident) => {
+        $callback! {
+            /// The suite rejected the damaged subject.
+            Killed => killed,
+            /// The suite accepted a damage whose firing was observed under the exact selection and witness.
+            Survived => survived,
+            /// Nothing was learned about the suite from this mutant.
+            Inconclusive => inconclusive,
+        }
+    };
+}
+
 #[path = "type_guard.rs"]
 mod guard;
 
@@ -65,19 +79,20 @@ pub enum ExecutionAxis {
     InfrastructureFailed,
 }
 
-/// What one mutant earned, at axis width.
-///
-/// The record carries [`MutationOutcome`], whose arms carry the evidence each one requires; this is the word a census counts.
-/// A mutant unobservable under its backend can never earn [`MutationVerdict::Survived`], and that is a refusal in the record's constructors rather than a rule somebody follows.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum MutationVerdict {
-    /// The suite rejected the damaged subject.
-    Killed,
-    /// The suite accepted a damage whose firing was observed under the exact selection and witness.
-    Survived,
-    /// Nothing was learned about the suite from this mutant.
-    Inconclusive,
+macro_rules! declare_mutation_verdicts {
+    ($($(#[$variant_meta:meta])* $variant:ident => $seat:ident),+ $(,)?) => {
+        /// What one mutant earned, at axis width.
+        ///
+        /// The record carries [`MutationOutcome`], whose arms carry the evidence each one requires; this is the word a census counts.
+        /// A mutant unobservable under its backend can never earn [`MutationVerdict::Survived`], and that is a refusal in the record's constructors rather than a rule somebody follows.
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        pub enum MutationVerdict {
+            $($(#[$variant_meta])* $variant),+
+        }
+    };
 }
+
+with_mutation_verdicts!(declare_mutation_verdicts);
 
 /// What was established about the damaged subject meaning what the lawful one means.
 ///
@@ -337,16 +352,27 @@ pub enum KillRefusal {
     WitnessDidNotComplete(ExecutionAxis),
 }
 
-/// The accounting over one pressure run's mutants.
-///
-/// One seat per arm of [`MutationVerdict`], and [`MutationCensus::pressed`] is their sum rather than a total that could disagree with its parts.
-/// It counts mutants under one run, and it is not the trial, generation, or bench-sample census.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct MutationCensus {
-    killed: u32,
-    survived: u32,
-    inconclusive: u32,
+macro_rules! declare_mutation_census {
+    ($($(#[$variant_meta:meta])* $variant:ident => $seat:ident),+ $(,)?) => {
+        crate::census::declare_census! {
+            /// The accounting over one pressure run's mutants.
+            ///
+            /// One seat per arm of [`MutationVerdict`], and [`MutationCensus::pressed`] is their sum rather than a total that could disagree with its parts.
+            /// It counts mutants under one run, and it is not the trial, generation, or bench-sample census.
+            #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+            pub struct MutationCensus {
+                count: u32,
+                seat: MutationCensusSeat,
+                context {}
+                fields {
+                    $( $variant => $seat, )+
+                }
+            }
+        }
+    };
 }
+
+with_mutation_verdicts!(declare_mutation_census);
 
 /// That the unchanged subject's own suite ran and passed.
 ///

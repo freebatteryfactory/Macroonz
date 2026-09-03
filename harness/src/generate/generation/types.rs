@@ -51,14 +51,20 @@ macro_rules! declare_generation_dispositions {
         ]
         .len();
 
-        /// The per-population accounting over generation dispositions.
-        ///
-        /// One seat exists per arm of [`GenerationDisposition`], always, so the denominator cannot silently shrink.
-        /// Every case a plan reached is counted once, and [`GenerationCensus::attempted`] is the sum of the seats rather than a total kept beside them.
-        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-        pub struct GenerationCensus {
-            population: PopulationRef,
-            counts: [u32; GENERATION_DISPOSITION_SEATS],
+        crate::census::declare_census! {
+            /// The per-population accounting over generation dispositions.
+            ///
+            /// One seat exists per arm of [`GenerationDisposition`], always, so the denominator cannot silently shrink.
+            /// Every case a plan reached is counted once, and [`GenerationCensus::attempted`] is the sum of the seats rather than a total kept beside them.
+            #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+            pub struct GenerationCensus {
+                count: u32,
+                seat: GenerationCensusSeat,
+                context { population: PopulationRef, }
+                array counts [GENERATION_DISPOSITION_SEATS] {
+                    $( $variant => $seat, )+
+                }
+            }
         }
     };
 }
