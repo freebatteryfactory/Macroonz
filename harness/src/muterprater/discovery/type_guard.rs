@@ -3,24 +3,21 @@
 use super::super::encode;
 use super::{
     ActivationSite, ActiveSelection, AdmittedAlternative, AlternativeDeclaration, AlternativeId,
-    ClaimRef, ContentAddress, DiscoveredMutationSite, DiscoveryDisposition, DiscoveryEntry,
-    DiscoveryRefusal, EVALUATION_SURFACE_TAG, EvaluationDirective, EvaluationFamilyRef,
-    EvaluationSurface, EvaluationSurfaceId, MUTATION_ALTERNATIVE_TAG, MUTATION_DISCOVERY_TAG,
-    MUTATION_POLICY_TAG, MutationDiscoveryId, MutationDiscoveryReading, MutationPermission,
-    MutationPoint, MutationPointRef, MutationPolicy, MutationPolicyId, MutationSurfaceLowering,
-    OperatorFamilyRef, OwnerClaimMapping, PermissionRefusal, PointCatalogPosture, PolicyMembership,
-    PolicyRefusal, ResolvedMutation, SelectionRefusal,
+    ClaimRef, DiscoveredMutationSite, DiscoveryDisposition, DiscoveryEntry, DiscoveryRefusal,
+    EVALUATION_SURFACE_TAG, EvaluationDirective, EvaluationFamilyRef, EvaluationSurface,
+    EvaluationSurfaceId, MUTATION_ALTERNATIVE_TAG, MUTATION_DISCOVERY_TAG, MUTATION_POLICY_TAG,
+    MutationDiscoveryId, MutationDiscoveryReading, MutationPermission, MutationPoint,
+    MutationPointRef, MutationPolicy, MutationPolicyId, MutationSurfaceLowering, OperatorFamilyRef,
+    OwnerClaimMapping, PermissionRefusal, PointCatalogPosture, PolicyMembership, PolicyRefusal,
+    ResolvedMutation, SelectionRefusal,
 };
 use crate::descriptor::namespaced_reference;
 
 namespaced_reference!(EvaluationFamilyRef, ActivationSite);
 
-impl MutationPolicyId {
+crate::identity::content_address_reference! {
     /// The policy's derived content address.
-    #[must_use]
-    pub const fn address(self) -> ContentAddress {
-        self.0
-    }
+    value MutationPolicyId;
 }
 
 impl MutationPermission {
@@ -260,12 +257,9 @@ impl DiscoveryEntry {
     }
 }
 
-impl MutationDiscoveryId {
+crate::identity::content_address_reference! {
     /// The discovery reading's content address.
-    #[must_use]
-    pub const fn address(self) -> ContentAddress {
-        self.0
-    }
+    value MutationDiscoveryId;
 }
 
 impl MutationDiscoveryReading {
@@ -340,12 +334,9 @@ impl MutationSurfaceLowering {
 // The evaluation surface.
 // ---------------------------------------------------------------------------
 
-impl AlternativeId {
+crate::identity::content_address_reference! {
     /// The alternative's derived content address.
-    #[must_use]
-    pub const fn address(self) -> ContentAddress {
-        self.0
-    }
+    value AlternativeId;
 }
 
 impl AdmittedAlternative {
@@ -439,12 +430,9 @@ impl MutationPoint {
     }
 }
 
-impl EvaluationSurfaceId {
+crate::identity::content_address_reference! {
     /// The surface's derived content address.
-    #[must_use]
-    pub const fn address(self) -> ContentAddress {
-        self.0
-    }
+    value EvaluationSurfaceId;
 }
 
 impl EvaluationSurface {

@@ -198,12 +198,11 @@ impl ProposalId {
     pub const fn over(address: ContentAddress) -> Self {
         Self(address)
     }
+}
 
+crate::identity::content_address_reference! {
     /// The content address this identity carries.
-    #[must_use]
-    pub const fn address(self) -> ContentAddress {
-        self.0
-    }
+    value ProposalId;
 }
 
 impl ReplayRef {
@@ -212,12 +211,11 @@ impl ReplayRef {
     pub(crate) const fn over(address: ContentAddress) -> Self {
         Self(address)
     }
+}
 
+crate::identity::content_address_reference! {
     /// The content address this reference carries.
-    #[must_use]
-    pub const fn address(self) -> ContentAddress {
-        self.0
-    }
+    value ReplayRef;
 }
 
 impl GeneratedSupportSchemaId {
@@ -228,12 +226,11 @@ impl GeneratedSupportSchemaId {
     pub const fn over(address: ContentAddress) -> Self {
         Self(address)
     }
+}
 
+crate::identity::content_address_reference! {
     /// The content address this identity carries.
-    #[must_use]
-    pub const fn address(self) -> ContentAddress {
-        self.0
-    }
+    value GeneratedSupportSchemaId;
 }
 
 impl Classification {
@@ -577,12 +574,11 @@ impl TrialKey {
         let preimage = encode_trial_coordinates(coordinates);
         Self(ContentAddress::derived(TRIAL_KEY_DOMAIN, &preimage))
     }
+}
 
+crate::identity::content_address_reference! {
     /// The content address this key carries.
-    #[must_use]
-    pub const fn address(self) -> ContentAddress {
-        self.0
-    }
+    value TrialKey;
 }
 
 impl RevisionPosture {

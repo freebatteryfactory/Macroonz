@@ -48,12 +48,11 @@ impl TrialId {
     pub fn of_key(key: TrialKey, profile: TrialProfile) -> Self {
         Self::over(ProfiledTrial::of_key(key, profile))
     }
+}
 
+crate::identity::content_address_reference! {
     /// The identity's address, for comparison and for rendering.
-    #[must_use]
-    pub const fn address(&self) -> &ContentAddress {
-        &self.0
-    }
+    borrowed TrialId;
 }
 
 impl TrialSite {
@@ -109,12 +108,11 @@ impl RowRevisionId {
             canonical_row.as_bytes(),
         ))
     }
+}
 
+crate::identity::content_address_reference! {
     /// The identity's address.
-    #[must_use]
-    pub const fn address(&self) -> &ContentAddress {
-        &self.0
-    }
+    borrowed RowRevisionId;
 }
 
 impl SubjectRevisionId {
@@ -125,12 +123,11 @@ impl SubjectRevisionId {
     pub const fn of_binding(binding: RevisionBinding) -> Self {
         Self(binding.revision())
     }
+}
 
+crate::identity::content_address_reference! {
     /// The identity's address.
-    #[must_use]
-    pub const fn address(&self) -> &ContentAddress {
-        &self.0
-    }
+    borrowed SubjectRevisionId;
 }
 
 impl CheckRevisionId {
@@ -139,12 +136,11 @@ impl CheckRevisionId {
     pub const fn of_binding(binding: RevisionBinding) -> Self {
         Self(binding.revision())
     }
+}
 
+crate::identity::content_address_reference! {
     /// The identity's address.
-    #[must_use]
-    pub const fn address(&self) -> &ContentAddress {
-        &self.0
-    }
+    borrowed CheckRevisionId;
 }
 
 impl ExecutionRevisions {

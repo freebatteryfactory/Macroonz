@@ -3,6 +3,8 @@
 #[path = "type_guard.rs"]
 mod guard;
 
+pub(crate) use guard::content_address_reference;
+
 /// One position in one preimage family's own order.
 ///
 /// A position is a real segment of every derivation context, and it belongs to the family whose [`DomainTag`] it is declared beside.

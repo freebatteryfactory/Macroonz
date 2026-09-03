@@ -7,7 +7,7 @@ use crate::clock::MeasurementReading;
 use crate::descriptor::{
     AuthoredTableName, ClaimRef, GeneratedSupportSchemaId, TablePosture, TrialKey,
 };
-use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use crate::identity::{DomainTag, IdentityProfileVersion};
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -38,12 +38,14 @@ pub struct ProfiledTrial {
 pub const TRIAL_IDENTITY_TAG: DomainTag =
     DomainTag::declared("trial-identity", IdentityProfileVersion::declared(1));
 
-/// One trial's semantic identity: what the trial means, independent of where it is written.
-///
-/// The same key under the same profile derives the same thirty-two bytes anywhere, so two rows sharing an identity are two spellings of one measurement and the table constructor refuses the pair.
-/// Where a trial lives is a [`TrialSite`], and the two rails never mix.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct TrialId(ContentAddress);
+crate::identity::content_address_reference! {
+    /// One trial's semantic identity: what the trial means, independent of where it is written.
+    ///
+    /// The same key under the same profile derives the same thirty-two bytes anywhere, so two rows sharing an identity are two spellings of one measurement and the table constructor refuses the pair.
+    /// Where a trial lives is a [`TrialSite`], and the two rails never mix.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+    pub struct TrialId;
+}
 
 /// Where one trial is written: the rail a person filters on and jumps to.
 ///
@@ -62,24 +64,30 @@ pub struct TrialSite {
 pub const ROW_REVISION_TAG: DomainTag =
     DomainTag::declared("row-revision", IdentityProfileVersion::declared(1));
 
-/// The identity of one complete authored row, derived from the canonical bytes that row committed to.
-///
-/// It owns bookkeeping — census, aggregation, report diff.
-/// A tag or origin edit moves it and owes no execution, because nothing about what the row runs has changed.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct RowRevisionId(ContentAddress);
+crate::identity::content_address_reference! {
+    /// The identity of one complete authored row, derived from the canonical bytes that row committed to.
+    ///
+    /// It owns bookkeeping — census, aggregation, report diff.
+    /// A tag or origin edit moves it and owes no execution, because nothing about what the row runs has changed.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+    pub struct RowRevisionId;
+}
 
-/// The exact subject revision one attachment bound.
-///
-/// The binding is the authority on what was committed to and under which posture, so nothing is derived a second time here.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct SubjectRevisionId(ContentAddress);
+crate::identity::content_address_reference! {
+    /// The exact subject revision one attachment bound.
+    ///
+    /// The binding is the authority on what was committed to and under which posture, so nothing is derived a second time here.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+    pub struct SubjectRevisionId;
+}
 
-/// The exact check revision one attachment bound.
-///
-/// The check's contract is a coordinate of [`TrialId`]; this is the implementation standing behind that contract, and the two move independently.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct CheckRevisionId(ContentAddress);
+crate::identity::content_address_reference! {
+    /// The exact check revision one attachment bound.
+    ///
+    /// The check's contract is a coordinate of [`TrialId`]; this is the implementation standing behind that contract, and the two move independently.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+    pub struct CheckRevisionId;
+}
 
 /// The exact subject and check revisions one trial binding stands on.
 ///

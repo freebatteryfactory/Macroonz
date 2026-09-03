@@ -1,7 +1,7 @@
 //! Wrapped-backend readings, artifact custody, adapter qualification, and generic suite pressure.
 
 use crate::descriptor::ClaimRef;
-use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use crate::identity::{DomainTag, IdentityProfileVersion};
 use crate::muterprater::{
     BaselinePrecondition, KillRefusal, MutationReport, MutationRun, MutationVerdict,
     OperatorFamilyRef, SourceCoordinate,
@@ -213,13 +213,17 @@ pub const MUTATION_SOURCE_REVISION_TAG: DomainTag = DomainTag::declared(
     IdentityProfileVersion::declared(1),
 );
 
-/// The content identity of exact output bytes imported from a mutation backend.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct BackendOutputId(ContentAddress);
+crate::identity::content_address_reference! {
+    /// The content identity of exact output bytes imported from a mutation backend.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+    pub struct BackendOutputId;
+}
 
-/// The content identity of exact source bytes one imported mutation report stood over.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct MutationSourceRevisionId(ContentAddress);
+crate::identity::content_address_reference! {
+    /// The content identity of exact source bytes one imported mutation report stood over.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+    pub struct MutationSourceRevisionId;
+}
 
 /// One reported source file joined to the exact bytes the artifact run stood over.
 ///

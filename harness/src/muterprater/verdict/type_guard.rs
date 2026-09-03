@@ -2,7 +2,7 @@
 
 use super::{
     ActivationDisposition, ActivationEvidence, ActiveSelection, AlternativeId, BaselineAxis,
-    BaselinePrecondition, BaselineQualification, ClaimRef, ContentAddress, CoordinateRefusal,
+    BaselinePrecondition, BaselineQualification, ClaimRef, CoordinateRefusal,
     DemonstratedRejection, DudPlant, EquivalenceAxis, ExecutionAxis, FamilyAttribution,
     Fingerprint, InconclusiveCause, IntendedRejection, KillRefusal, MUTATION_TARGET_TAG,
     MappingPosture, MaterializationAxis, MutantId, MutationCensus, MutationCensusSeat,
@@ -11,6 +11,7 @@ use super::{
     SourceCoordinate, TrialFinding, TrialId,
 };
 use crate::depot::operator_families::OPERATOR_FAMILIES;
+use crate::identity::ContentAddress;
 use crate::report::{RunAttempt, TrialConclusion, TrialReport, encode_bytes};
 /// The version of the external-mutant identity encoding.
 ///
@@ -110,12 +111,11 @@ impl MutantId {
         encode_bytes(damage, &mut preimage);
         Self(ContentAddress::derived(MUTATION_TARGET_TAG, &preimage))
     }
+}
 
+crate::identity::content_address_reference! {
     /// The identity's address, for comparison and for rendering.
-    #[must_use]
-    pub const fn address(&self) -> &ContentAddress {
-        &self.0
-    }
+    borrowed MutantId;
 }
 
 impl MutationIdentity {

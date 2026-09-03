@@ -1,7 +1,7 @@
 //! Exact compiled selected-projection content, host requests, standings, and pressure.
 
 use crate::descriptor::{CheckRef, ClaimRef};
-use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use crate::identity::{DomainTag, IdentityProfileVersion};
 use crate::muterprater::{
     ActiveSelection, EvaluationDirective, EvaluationPairStanding, EvaluationPairStandingMismatch,
     EvaluationSurfaceId, MutationReport, NoMutationParityQualification, SelectionRefusal,
@@ -30,9 +30,11 @@ pub struct ArtifactContent {
     bytes: Vec<u8>,
 }
 
-/// The bytes-only content identity of one compiler-source artifact.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ArtifactContentId(ContentAddress);
+crate::identity::content_address_reference! {
+    /// The bytes-only content identity of one compiler-source artifact.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct ArtifactContentId;
+}
 
 /// Whether one compiled specimen is the unchanged baseline or one exact selected mutation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

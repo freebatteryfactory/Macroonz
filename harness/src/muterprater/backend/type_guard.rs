@@ -134,12 +134,11 @@ impl BackendOutputId {
     pub(in crate::muterprater) fn derived(bytes: &[u8]) -> Self {
         Self(ContentAddress::derived(BACKEND_OUTPUT_TAG, bytes))
     }
+}
 
+crate::identity::content_address_reference! {
     /// The underlying content address.
-    #[must_use]
-    pub const fn address(self) -> ContentAddress {
-        self.0
-    }
+    value BackendOutputId;
 }
 
 impl MutationSourceRevisionId {
@@ -147,12 +146,11 @@ impl MutationSourceRevisionId {
     fn derived(bytes: &[u8]) -> Self {
         Self(ContentAddress::derived(MUTATION_SOURCE_REVISION_TAG, bytes))
     }
+}
 
+crate::identity::content_address_reference! {
     /// The underlying content address.
-    #[must_use]
-    pub const fn address(self) -> ContentAddress {
-        self.0
-    }
+    value MutationSourceRevisionId;
 }
 
 impl MutationSourceRevision {

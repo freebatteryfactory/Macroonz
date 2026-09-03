@@ -3,6 +3,45 @@
 use super::{BodyReader, ContentAddress, DomainTag, IdentityProfile, IdentityProfileVersion};
 use crate::identity::HARNESS_IDENTITY_PROFILE;
 
+/// The declaration and reader every typed content-address wrapper shares.
+///
+/// A semantic home still owns how its wrapper is earned; this stamp owns only the one-field representation and whether its established public reader returns the address by value or by reference.
+macro_rules! content_address_reference {
+    (
+        $(#[$reference_meta:meta])*
+        $visibility:vis struct $reference:ident;
+    ) => {
+        $(#[$reference_meta])*
+        $visibility struct $reference($crate::identity::ContentAddress);
+    };
+    (
+        $(#[$reader_meta:meta])*
+        value $reference:ident;
+    ) => {
+        impl $reference {
+            $(#[$reader_meta])*
+            #[must_use]
+            pub const fn address(self) -> $crate::identity::ContentAddress {
+                self.0
+            }
+        }
+    };
+    (
+        $(#[$reader_meta:meta])*
+        borrowed $reference:ident;
+    ) => {
+        impl $reference {
+            $(#[$reader_meta])*
+            #[must_use]
+            pub const fn address(&self) -> &$crate::identity::ContentAddress {
+                &self.0
+            }
+        }
+    };
+}
+
+pub(crate) use content_address_reference;
+
 impl IdentityProfileVersion {
     /// The position the family's authority assigned.
     #[must_use]

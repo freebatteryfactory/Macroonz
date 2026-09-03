@@ -104,17 +104,21 @@ pub struct MutationPointRef(NamespacedName);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ProducerName(NamespacedName);
 
-/// A proposal's content identity — permanent provenance for a row a human admitted.
-///
-/// Not a storage location: the review artifact a sink stored is mortal and may be deleted after any ruling, so the admitted origin cites this identity and nothing dangles when the artifact dies.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ProposalId(ContentAddress);
+crate::identity::content_address_reference! {
+    /// A proposal's content identity — permanent provenance for a row a human admitted.
+    ///
+    /// Not a storage location: the review artifact a sink stored is mortal and may be deleted after any ruling, so the admitted origin cites this identity and nothing dangles when the artifact dies.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct ProposalId;
+}
 
-/// The depot capsule entry one admitted row replays from.
-///
-/// The entry it points at is authored by the admission act itself; runtime evidence never writes the bank.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ReplayRef(ContentAddress);
+crate::identity::content_address_reference! {
+    /// The depot capsule entry one admitted row replays from.
+    ///
+    /// The entry it points at is authored by the admission act itself; runtime evidence never writes the bank.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct ReplayRef;
+}
 
 /// How a row's roles and tags are carried: two open, multi-valued rosters parsed into sets.
 ///
@@ -252,12 +256,14 @@ pub struct TrialCoordinates {
     population: PopulationRef,
 }
 
-/// The compact identity of one trial's coordinates.
-///
-/// The comparable account, and the only one that travels: a table compares these thirty-two bytes to decide whether two bindings state one trial.
-/// It carries none of the four coordinates and has no road back to them — a caller that wants them reads them off the row that holds both, and a reverse lookup would be the hidden registry this vocabulary refuses everywhere else.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct TrialKey(ContentAddress);
+crate::identity::content_address_reference! {
+    /// The compact identity of one trial's coordinates.
+    ///
+    /// The comparable account, and the only one that travels: a table compares these thirty-two bytes to decide whether two bindings state one trial.
+    /// It carries none of the four coordinates and has no road back to them — a caller that wants them reads them off the row that holds both, and a reverse lookup would be the hidden registry this vocabulary refuses everywhere else.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct TrialKey;
+}
 
 /// The canonical byte string one row commits to.
 ///
@@ -528,15 +534,17 @@ pub enum SchemaRefusal {
     DuplicateFieldName(&'static str),
 }
 
-/// One generated-support schema identity, either freshly derived or reified from an address already derived.
-///
-/// [`GeneratedSupportSchema::identity`] derives one from a root declaration's canonical bytes.
-/// [`GeneratedSupportSchemaId::over`] reifies an address whose derivation its caller already established, and neither derives nor verifies that address again.
-///
-/// Two of these being equal says the two declarations encode the same rosters.
-/// It says nothing about whether either side is current: a pair that agrees because publication never ran is exactly what this comparison cannot see.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct GeneratedSupportSchemaId(ContentAddress);
+crate::identity::content_address_reference! {
+    /// One generated-support schema identity, either freshly derived or reified from an address already derived.
+    ///
+    /// [`GeneratedSupportSchema::identity`] derives one from a root declaration's canonical bytes.
+    /// [`GeneratedSupportSchemaId::over`] reifies an address whose derivation its caller already established, and neither derives nor verifies that address again.
+    ///
+    /// Two of these being equal says the two declarations encode the same rosters.
+    /// It says nothing about whether either side is current: a pair that agrees because publication never ran is exactly what this comparison cannot see.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct GeneratedSupportSchemaId;
+}
 
 /// Why one encoding was refused.
 ///

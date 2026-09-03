@@ -74,12 +74,11 @@ impl TranscriptAddress {
     pub(super) const fn derived(address: ContentAddress) -> Self {
         Self(address)
     }
+}
 
+crate::identity::content_address_reference! {
     /// The derivation this address carries.
-    #[must_use]
-    pub const fn address(self) -> ContentAddress {
-        self.0
-    }
+    value TranscriptAddress;
 }
 
 impl TranscriptPack {

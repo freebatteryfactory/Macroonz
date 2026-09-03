@@ -1,7 +1,7 @@
 //! Owner policy, producer discovery, executable surfaces, and resolved directives.
 
 use crate::descriptor::{ClaimRef, MutationPointRef, NamespacedName};
-use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use crate::identity::{DomainTag, IdentityProfileVersion};
 use crate::muterprater::OperatorFamilyRef;
 #[path = "type_guard.rs"]
 mod guard;
@@ -30,9 +30,11 @@ pub const MUTATION_DISCOVERY_TAG: DomainTag =
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EvaluationFamilyRef(NamespacedName);
 
-/// The content identity of one owner-authored mutation policy.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct MutationPolicyId(ContentAddress);
+crate::identity::content_address_reference! {
+    /// The content identity of one owner-authored mutation policy.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct MutationPolicyId;
+}
 
 /// One claim's permission to use a nonempty roster of operator families.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -174,9 +176,11 @@ pub struct DiscoveryEntry {
     disposition: DiscoveryDisposition,
 }
 
-/// The content identity of one complete producer discovery reading.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct MutationDiscoveryId(ContentAddress);
+crate::identity::content_address_reference! {
+    /// The content identity of one complete producer discovery reading.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct MutationDiscoveryId;
+}
 
 /// The complete producer discovery denominator, after owner-policy admission was read over it.
 ///
@@ -212,9 +216,11 @@ pub struct MutationSurfaceLowering {
 // The evaluation surface.
 // ---------------------------------------------------------------------------
 
-/// The stable identity of one point's admitted mutation meaning.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct AlternativeId(ContentAddress);
+crate::identity::content_address_reference! {
+    /// The stable identity of one point's admitted mutation meaning.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct AlternativeId;
+}
 
 /// One executable operator family and canonical mutation meaning admitted under a point's policy membership.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -237,9 +243,11 @@ pub struct MutationPoint {
     activation_site: ActivationSite,
 }
 
-/// The content identity of one complete evaluation surface.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct EvaluationSurfaceId(ContentAddress);
+crate::identity::content_address_reference! {
+    /// The content identity of one complete evaluation surface.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct EvaluationSurfaceId;
+}
 
 /// One evaluation surface's complete point table.
 ///

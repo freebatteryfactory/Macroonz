@@ -2,7 +2,7 @@
 
 use crate::depot::types::OperatorFamily;
 use crate::descriptor::{ClaimRef, MutationPointRef};
-use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use crate::identity::{DomainTag, IdentityProfileVersion};
 use crate::muterprater::{ActivationSite, ActiveSelection, AlternativeId};
 use crate::report::{Fingerprint, ForeignText, TrialFinding, TrialId};
 
@@ -135,11 +135,13 @@ pub enum CoordinateRefusal {
     EmptyFile,
 }
 
-/// One external mutant's identity, over the coordinate and damage text the backend reported.
-///
-/// Two runs of one backend over one unchanged tree name the same mutant, and a moved line names a different one — which is what a coordinate affords.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct MutantId(ContentAddress);
+crate::identity::content_address_reference! {
+    /// One external mutant's identity, over the coordinate and damage text the backend reported.
+    ///
+    /// Two runs of one backend over one unchanged tree name the same mutant, and a moved line names a different one — which is what a coordinate affords.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+    pub struct MutantId;
+}
 
 /// How one damaged thing is identified, by the lane that damaged it.
 ///

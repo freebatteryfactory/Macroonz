@@ -139,12 +139,11 @@ impl BenchRowKey {
     pub(in crate::bench) const fn derived(address: ContentAddress) -> Self {
         Self(address)
     }
+}
 
+crate::identity::content_address_reference! {
     /// The address this identity carries.
-    #[must_use]
-    pub const fn address(self) -> ContentAddress {
-        self.0
-    }
+    value BenchRowKey;
 }
 
 impl BenchReferences {
