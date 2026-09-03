@@ -125,6 +125,30 @@ fn assert_owned_vector_spelling_debt_is_closed(root: &Path) -> Result<(), std::i
     Ok(())
 }
 
+fn assert_direct_clause_mechanics_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
+    for operation in [
+        "pub(crate) fn comma_groups",
+        "pub(crate) fn opening(",
+        "pub(crate) fn value_of",
+        "pub(crate) fn fill_once",
+        "pub(crate) fn binding_once",
+        "pub(crate) fn assigned_identifier",
+        "pub(crate) fn assigned_text",
+        "pub(crate) fn assigned_number",
+    ] {
+        assert_occurrences(root, operation, &["descriptor/clause/capture.rs"])?;
+    }
+    for obsolete in [
+        "fn assigned_once(",
+        "fn assigned_ident(",
+        "fn read_binding(",
+        "fn number_once",
+    ] {
+        assert_occurrences(root, obsolete, &[])?;
+    }
+    Ok(())
+}
+
 fn assert_duplicate_group_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
     assert_occurrences(root, "fn admit_keys<", &["bounded/type_guard.rs"])?;
     assert_occurrences(
@@ -256,6 +280,7 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     assert_role_join_debt_is_closed(&root)?;
     assert_diagnostic_projection_debt_is_closed(&root)?;
     assert_owned_vector_spelling_debt_is_closed(&root)?;
+    assert_direct_clause_mechanics_debt_is_closed(&root)?;
     assert_duplicate_group_debt_is_closed(&root)?;
     assert_doubled_set_debt_is_closed(&root)?;
     assert_helper_refusal_projection_debt_is_closed(&root)?;

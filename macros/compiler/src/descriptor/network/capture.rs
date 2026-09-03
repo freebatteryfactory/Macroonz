@@ -21,6 +21,9 @@ use super::{
     DisciplineRow, FaultRow, LinkRow, NetworkCaptureError, NetworkDeclaration, ScheduleRow,
 };
 use crate::descriptor::DirectBinding;
+use crate::descriptor::clause::{
+    assigned_identifier, assigned_text, binding_once, comma_groups, fill_once, opening, value_of,
+};
 use crate::descriptor::{CaptureCause, Grammar};
 use crate::token::{
     CapturedDelimiter, CapturedInput, CapturedTokenTree, SpanHandle, rendered_identifier,
@@ -36,7 +39,7 @@ pub fn declared(
     body: &CapturedInput,
     grammar: Grammar,
 ) -> Result<NetworkDeclaration, NetworkCaptureError> {
-    let groups = comma_groups(grammar, body.trees())?;
+    let groups = comma_groups(grammar, body.trees(), refused)?;
     let world = world_of(grammar, &groups)?;
     let mut schedules: Vec<ScheduleRow> = Vec::new();
     for group in &groups {
@@ -81,47 +84,9 @@ struct World {
     links: Vec<LinkRow>,
 }
 
-/// Cut one body into its comma-separated groups, refusing a separator that separates nothing.
-///
-/// A trailing comma after the last group is ordinary Rust and lawful; a leading or doubled comma makes an empty group this reader would otherwise silently drop, so it refuses at the comma's own token.
-///
-/// # Errors
-///
-/// Returns [`CaptureCause::SeparatorDangling`] at the comma standing where no clause does.
-fn comma_groups(
-    grammar: Grammar,
-    trees: &[CapturedTokenTree],
-) -> Result<Vec<Vec<&CapturedTokenTree>>, NetworkCaptureError> {
-    let mut groups: Vec<Vec<&CapturedTokenTree>> = Vec::new();
-    let mut group: Vec<&CapturedTokenTree> = Vec::new();
-    for tree in trees {
-        if tree.punct() == Some(',') {
-            if group.is_empty() {
-                return Err(refused(
-                    grammar,
-                    CaptureCause::SeparatorDangling,
-                    tree.span(),
-                ));
-            }
-            groups.push(core::mem::take(&mut group));
-        } else {
-            group.push(tree);
-        }
-    }
-    if !group.is_empty() {
-        groups.push(group);
-    }
-    Ok(groups)
-}
-
 /// The word one group opens with, where it opens with one.
 fn head_word<'trees>(group: &[&'trees CapturedTokenTree]) -> Option<&'trees str> {
     group.first().and_then(|tree| tree.word())
-}
-
-/// The token one group opens at, or the declaration's own opening for an empty one.
-fn opening(group: &[&CapturedTokenTree]) -> SpanHandle {
-    group.first().map_or(SpanHandle::at(0), |tree| tree.span())
 }
 
 /// Read the world out of every non-schedule clause, refusing what these passes can already judge.
@@ -135,9 +100,19 @@ fn world_of(
     let mut harness: Option<DirectBinding> = None;
     for group in groups {
         match head_word(group) {
-            Some("harness") => read_binding(grammar, group, &mut harness)?,
-            Some("module") => assigned_once(grammar, group, &mut module, assigned_ident)?,
-            Some("namespace") => assigned_once(grammar, group, &mut namespace, assigned_text)?,
+            Some("harness") => binding_once(
+                grammar,
+                group,
+                &mut harness,
+                refused,
+                NetworkCaptureError::binding_refused,
+            )?,
+            Some("module") => {
+                fill_once(grammar, group, &mut module, assigned_identifier, refused)?;
+            }
+            Some("namespace") => {
+                fill_once(grammar, group, &mut namespace, assigned_text, refused)?;
+            }
             Some("nodes") => read_nodes(grammar, group, &mut nodes)?,
             Some("link" | "schedule") => {}
             Some(_) => {
@@ -206,90 +181,6 @@ fn world_of(
         nodes,
         links,
     })
-}
-
-/// Read one `harness = <dependency path>` clause into its empty seat.
-fn read_binding(
-    grammar: Grammar,
-    group: &[&CapturedTokenTree],
-    seat: &mut Option<DirectBinding>,
-) -> Result<(), NetworkCaptureError> {
-    if seat.is_some() {
-        return Err(refused(
-            grammar,
-            CaptureCause::ClauseDoubled,
-            opening(group),
-        ));
-    }
-    let value = value_of(group);
-    let binding = crate::descriptor::binding::direct_binding(value)
-        .map_err(|(issue, at)| NetworkCaptureError::binding_refused(grammar, issue, at))?;
-    *seat = Some(binding);
-    Ok(())
-}
-
-/// Read one `<key> = <value>` clause into its empty seat, refusing a doubled key.
-fn assigned_once(
-    grammar: Grammar,
-    group: &[&CapturedTokenTree],
-    seat: &mut Option<String>,
-    read: fn(Grammar, &[&CapturedTokenTree]) -> Result<String, NetworkCaptureError>,
-) -> Result<(), NetworkCaptureError> {
-    if seat.is_some() {
-        return Err(refused(
-            grammar,
-            CaptureCause::ClauseDoubled,
-            opening(group),
-        ));
-    }
-    *seat = Some(read(grammar, group)?);
-    Ok(())
-}
-
-/// The one identifier a `<key> = <ident>` clause assigns, refused where the language already owns the spelling.
-///
-/// The value becomes a rendered item's own name, so a Rust keyword here would compile into a collision inside the adopter's build — where the expansion's lints are silenced — instead of refusing at the authored token.
-fn assigned_ident(
-    grammar: Grammar,
-    group: &[&CapturedTokenTree],
-) -> Result<String, NetworkCaptureError> {
-    let [value] = value_of(group) else {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, opening(group)));
-    };
-    let word = value
-        .word()
-        .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, value.span()))?;
-    if !rendered_identifier(word) {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, value.span()));
-    }
-    if rust_keyword(word) {
-        return Err(refused(grammar, CaptureCause::NameReserved, value.span()));
-    }
-    Ok(word.to_owned())
-}
-
-/// The one text literal a `<key> = "<text>"` clause assigns.
-fn assigned_text(
-    grammar: Grammar,
-    group: &[&CapturedTokenTree],
-) -> Result<String, NetworkCaptureError> {
-    let [value] = value_of(group) else {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, opening(group)));
-    };
-    value
-        .text()
-        .map(str::to_owned)
-        .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, value.span()))
-}
-
-/// The value trees past one group's `<key> =` opening, or nothing where no `=` stands second.
-fn value_of<'group, 'trees>(
-    group: &'group [&'trees CapturedTokenTree],
-) -> &'group [&'trees CapturedTokenTree] {
-    match group {
-        [_key, assigned_by, value @ ..] if assigned_by.punct() == Some('=') => value,
-        _malformed => &[],
-    }
 }
 
 /// Read the node roster, refusing a repeated spelling at its own token.
@@ -414,7 +305,7 @@ fn schedule_of(
         return Err(refused(grammar, CaptureCause::RosterUnread, roster.span()));
     };
     let mut disciplines: Vec<DisciplineRow> = Vec::new();
-    for phrase in &comma_groups(grammar, members)? {
+    for phrase in &comma_groups(grammar, members, refused)? {
         let (link, fault) = phrase_of(grammar, phrase, world)?;
         match disciplines
             .iter_mut()

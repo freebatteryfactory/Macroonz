@@ -278,6 +278,12 @@ fn a_malformed_network_declaration_refuses_at_capture() -> Result<(), ()> {
         nodes = [client, server],
         link forward = client to server,
     "#;
+    let malformed_assignment = r#"
+        module : net,
+        namespace = "lane",
+        nodes = [client, server],
+        link forward = client to server,
+    "#;
     let oversized_position = r#"
         module = net,
         namespace = "lane",
@@ -296,6 +302,7 @@ fn a_malformed_network_declaration_refuses_at_capture() -> Result<(), ()> {
         unseparated_nodes,
         reserved_schedule,
         keyword_module,
+        malformed_assignment,
         oversized_position,
     ] {
         let refusal = networked(source).ok_or(())?.err().ok_or(())?;

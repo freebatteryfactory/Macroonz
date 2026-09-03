@@ -13,6 +13,7 @@
 //! A trailing comma is lawful, declaration order is meaning, and every owned token is consumed.
 
 use super::{SHADOW_ROSTER, ShadowCaptureError, ShadowRow, Shadows};
+use crate::descriptor::clause::{binding_once, comma_groups, opening, value_of};
 use crate::descriptor::{CaptureCause, DirectBinding, Grammar};
 use crate::token::{CapturedDelimiter, CapturedInput, CapturedTokenTree, SpanHandle};
 
@@ -22,12 +23,18 @@ use crate::token::{CapturedDelimiter, CapturedInput, CapturedTokenTree, SpanHand
 ///
 /// Returns [`ShadowCaptureError`] where the binding is absent or unreadable, a clause is unknown or doubled, a separator separates nothing, a choice is not one bare name, a name is outside the roster or chosen twice, or the declaration chooses nothing.
 pub fn chosen(body: &CapturedInput, grammar: Grammar) -> Result<Shadows, ShadowCaptureError> {
-    let groups = comma_groups(grammar, body.trees())?;
+    let groups = comma_groups(grammar, body.trees(), refused)?;
     let mut loom: Option<DirectBinding> = None;
     let mut rows: Option<Vec<ShadowRow>> = None;
     for group in &groups {
         match group.first().and_then(|tree| tree.word()) {
-            Some("loom") => binding_once(grammar, group, &mut loom)?,
+            Some("loom") => binding_once(
+                grammar,
+                group,
+                &mut loom,
+                refused,
+                ShadowCaptureError::binding_refused,
+            )?,
             Some("names") => names_once(grammar, group, &mut rows)?,
             Some(_) => {
                 return Err(refused(
@@ -54,67 +61,6 @@ pub fn chosen(body: &CapturedInput, grammar: Grammar) -> Result<Shadows, ShadowC
         ));
     };
     Ok(Shadows::declared(loom, rows))
-}
-
-/// Cut one body into comma-separated clauses, retaining a trailing comma as ordinary Rust.
-fn comma_groups(
-    grammar: Grammar,
-    trees: &[CapturedTokenTree],
-) -> Result<Vec<Vec<&CapturedTokenTree>>, ShadowCaptureError> {
-    let mut groups = Vec::new();
-    let mut group = Vec::new();
-    for tree in trees {
-        if tree.punct() == Some(',') {
-            if group.is_empty() {
-                return Err(refused(
-                    grammar,
-                    CaptureCause::SeparatorDangling,
-                    tree.span(),
-                ));
-            }
-            groups.push(core::mem::take(&mut group));
-        } else {
-            group.push(tree);
-        }
-    }
-    if !group.is_empty() {
-        groups.push(group);
-    }
-    Ok(groups)
-}
-
-/// The token one clause opens at, or the declaration opening where none exists.
-fn opening(group: &[&CapturedTokenTree]) -> SpanHandle {
-    group.first().map_or(SpanHandle::at(0), |tree| tree.span())
-}
-
-/// The value trees after one clause's `name =` opening.
-fn value_of<'group, 'trees>(
-    group: &'group [&'trees CapturedTokenTree],
-) -> &'group [&'trees CapturedTokenTree] {
-    match group {
-        [_key, assigned_by, value @ ..] if assigned_by.punct() == Some('=') => value,
-        _malformed => &[],
-    }
-}
-
-/// Read the Loom dependency path into its one seat.
-fn binding_once(
-    grammar: Grammar,
-    group: &[&CapturedTokenTree],
-    seat: &mut Option<DirectBinding>,
-) -> Result<(), ShadowCaptureError> {
-    if seat.is_some() {
-        return Err(refused(
-            grammar,
-            CaptureCause::ClauseDoubled,
-            opening(group),
-        ));
-    }
-    let binding = crate::descriptor::binding::direct_binding(value_of(group))
-        .map_err(|(issue, at)| ShadowCaptureError::binding_refused(grammar, issue, at))?;
-    *seat = Some(binding);
-    Ok(())
 }
 
 /// Read the chosen-name roster into its one seat.

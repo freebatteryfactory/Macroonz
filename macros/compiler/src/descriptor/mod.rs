@@ -10,6 +10,7 @@ pub mod shadow;
 pub mod trial;
 
 mod binding;
+mod clause;
 mod emitting;
 mod fault;
 pub mod vocabulary;

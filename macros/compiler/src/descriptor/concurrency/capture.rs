@@ -19,6 +19,10 @@
 //! Clause order is free and is read by key, inside a row and outside one; row order is meaning and is preserved.
 
 use super::{ConcurrencyCaptureError, ConcurrencyDeclaration, ExplorationRow};
+use crate::descriptor::clause::{
+    assigned_identifier, assigned_number, assigned_text, binding_once, comma_groups, fill_once,
+    opening,
+};
 use crate::descriptor::{CaptureCause, DirectBinding, Grammar};
 use crate::token::{
     CapturedDelimiter, CapturedInput, CapturedTokenTree, SpanHandle, rendered_identifier,
@@ -34,7 +38,7 @@ pub fn declared(
     body: &CapturedInput,
     grammar: Grammar,
 ) -> Result<ConcurrencyDeclaration, ConcurrencyCaptureError> {
-    let groups = comma_groups(grammar, body.trees())?;
+    let groups = comma_groups(grammar, body.trees(), refused)?;
     let mut harness: Option<DirectBinding> = None;
     let mut module: Option<String> = None;
     let mut namespace: Option<String> = None;
@@ -42,13 +46,19 @@ pub fn declared(
     for group in &groups {
         match group.as_slice() {
             [key, ..] if key.word() == Some("harness") => {
-                binding_once(grammar, group, &mut harness)?;
+                binding_once(
+                    grammar,
+                    group,
+                    &mut harness,
+                    refused,
+                    ConcurrencyCaptureError::binding_refused,
+                )?;
             }
             [key, ..] if key.word() == Some("module") => {
-                assigned_once(grammar, group, &mut module, assigned_ident)?;
+                fill_once(grammar, group, &mut module, assigned_identifier, refused)?;
             }
             [key, ..] if key.word() == Some("namespace") => {
-                assigned_once(grammar, group, &mut namespace, assigned_text)?;
+                fill_once(grammar, group, &mut namespace, assigned_text, refused)?;
             }
             [name, row] if name.word().is_some() && row.group().is_some() => {
                 let read = row_of(grammar, name, row)?;
@@ -100,146 +110,6 @@ const fn refused(grammar: Grammar, cause: CaptureCause, at: SpanHandle) -> Concu
     ConcurrencyCaptureError::grammar_refused(grammar, cause, at)
 }
 
-/// Cut one body into its comma-separated groups, refusing a separator that separates nothing.
-///
-/// A trailing comma after the last group is ordinary Rust and lawful; a leading or doubled comma makes an empty group this reader would otherwise silently drop, so it refuses at the comma's own token.
-///
-/// # Errors
-///
-/// Returns [`CaptureCause::SeparatorDangling`] at the comma standing where no clause does.
-fn comma_groups(
-    grammar: Grammar,
-    trees: &[CapturedTokenTree],
-) -> Result<Vec<Vec<&CapturedTokenTree>>, ConcurrencyCaptureError> {
-    let mut groups: Vec<Vec<&CapturedTokenTree>> = Vec::new();
-    let mut group: Vec<&CapturedTokenTree> = Vec::new();
-    for tree in trees {
-        if tree.punct() == Some(',') {
-            if group.is_empty() {
-                return Err(refused(
-                    grammar,
-                    CaptureCause::SeparatorDangling,
-                    tree.span(),
-                ));
-            }
-            groups.push(core::mem::take(&mut group));
-        } else {
-            group.push(tree);
-        }
-    }
-    if !group.is_empty() {
-        groups.push(group);
-    }
-    Ok(groups)
-}
-
-/// The token one group opens at, or the declaration's own opening for an empty one.
-fn opening(group: &[&CapturedTokenTree]) -> SpanHandle {
-    group.first().map_or(SpanHandle::at(0), |tree| tree.span())
-}
-
-/// Read one `harness = <dependency path>` clause into its empty seat.
-fn binding_once(
-    grammar: Grammar,
-    group: &[&CapturedTokenTree],
-    seat: &mut Option<DirectBinding>,
-) -> Result<(), ConcurrencyCaptureError> {
-    if seat.is_some() {
-        return Err(refused(
-            grammar,
-            CaptureCause::ClauseDoubled,
-            opening(group),
-        ));
-    }
-    let binding = crate::descriptor::binding::direct_binding(value_of(group))
-        .map_err(|(issue, at)| ConcurrencyCaptureError::binding_refused(grammar, issue, at))?;
-    *seat = Some(binding);
-    Ok(())
-}
-
-/// Read one `<key> = <value>` clause into its empty seat, refusing a doubled key.
-fn assigned_once(
-    grammar: Grammar,
-    group: &[&CapturedTokenTree],
-    seat: &mut Option<String>,
-    read: fn(Grammar, &[&CapturedTokenTree]) -> Result<String, ConcurrencyCaptureError>,
-) -> Result<(), ConcurrencyCaptureError> {
-    if seat.is_some() {
-        return Err(refused(
-            grammar,
-            CaptureCause::ClauseDoubled,
-            opening(group),
-        ));
-    }
-    *seat = Some(read(grammar, group)?);
-    Ok(())
-}
-
-/// The one identifier a `<key> = <ident>` clause assigns, refused where the language already owns the spelling.
-///
-/// The value becomes a rendered item's own name, so a Rust keyword here would compile into a collision inside the adopter's build — where the expansion's lints are silenced — instead of refusing at the authored token.
-fn assigned_ident(
-    grammar: Grammar,
-    group: &[&CapturedTokenTree],
-) -> Result<String, ConcurrencyCaptureError> {
-    let [value] = value_of(group) else {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, opening(group)));
-    };
-    let word = value
-        .word()
-        .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, value.span()))?;
-    if !rendered_identifier(word) {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, value.span()));
-    }
-    if rust_keyword(word) {
-        return Err(refused(grammar, CaptureCause::NameReserved, value.span()));
-    }
-    Ok(word.to_owned())
-}
-
-/// The one text literal a `<key> = "<text>"` clause assigns.
-fn assigned_text(
-    grammar: Grammar,
-    group: &[&CapturedTokenTree],
-) -> Result<String, ConcurrencyCaptureError> {
-    let [value] = value_of(group) else {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, opening(group)));
-    };
-    value
-        .text()
-        .map(str::to_owned)
-        .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, value.span()))
-}
-
-/// The one unsigned number a `<key> = <n>` clause assigns, parsed at exactly the width of the seat it fills.
-///
-/// The width is the harness seat's own — the exhaustive ceiling and the sample count are thirty-two bits wide, a seed is sixty-four — and a number past it refuses HERE, at the authored token.
-/// Generated code cannot outsource this range to rustc: the overflowing-literal diagnostic is suppressed inside a foreign macro expansion, and an out-of-range literal wraps silently where source-authored Rust would refuse.
-fn assigned_number<Number: core::str::FromStr>(
-    grammar: Grammar,
-    group: &[&CapturedTokenTree],
-) -> Result<Number, ConcurrencyCaptureError> {
-    let [value] = value_of(group) else {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, opening(group)));
-    };
-    let digits = value
-        .number()
-        .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, value.span()))?;
-    digits
-        .parse::<Number>()
-        .map_err(|_beyond| refused(grammar, CaptureCause::NumberBeyondSeat, value.span()))
-}
-
-/// The value trees past one group's `<key> =` opening, or nothing where no `=` stands second.
-fn value_of<'group, 'trees>(
-    group: &'group [&'trees CapturedTokenTree],
-) -> &'group [&'trees CapturedTokenTree] {
-    match group {
-        [_key, assigned_by, value @ ..] if assigned_by.punct() == Some('=') => value,
-        _malformed => &[],
-    }
-}
-
 /// Read one `<name> { clauses }` row.
 fn row_of(
     grammar: Grammar,
@@ -253,12 +123,18 @@ fn row_of(
     let mut interleavings: Option<u32> = None;
     let mut samples: Option<u32> = None;
     let mut seed: Option<u64> = None;
-    for group in &comma_groups(grammar, members)? {
+    for group in &comma_groups(grammar, members, refused)? {
         match group.first().and_then(|tree| tree.word()) {
-            Some("population") => assigned_once(grammar, group, &mut population, assigned_text)?,
-            Some("interleavings") => number_once(grammar, group, &mut interleavings)?,
-            Some("samples") => number_once(grammar, group, &mut samples)?,
-            Some("seed") => number_once(grammar, group, &mut seed)?,
+            Some("population") => {
+                fill_once(grammar, group, &mut population, assigned_text, refused)?;
+            }
+            Some("interleavings") => {
+                fill_once(grammar, group, &mut interleavings, assigned_number, refused)?;
+            }
+            Some("samples") => {
+                fill_once(grammar, group, &mut samples, assigned_number, refused)?;
+            }
+            Some("seed") => fill_once(grammar, group, &mut seed, assigned_number, refused)?,
             Some(_) => {
                 return Err(refused(
                     grammar,
@@ -290,21 +166,4 @@ fn row_of(
         samples,
         seed,
     ))
-}
-
-/// Read one `<key> = <n>` clause into its empty seat, refusing a doubled key; the seat's own type is the width the number parses at.
-fn number_once<Number: core::str::FromStr>(
-    grammar: Grammar,
-    group: &[&CapturedTokenTree],
-    seat: &mut Option<Number>,
-) -> Result<(), ConcurrencyCaptureError> {
-    if seat.is_some() {
-        return Err(refused(
-            grammar,
-            CaptureCause::ClauseDoubled,
-            opening(group),
-        ));
-    }
-    *seat = Some(assigned_number(grammar, group)?);
-    Ok(())
 }
