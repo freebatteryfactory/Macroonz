@@ -3,7 +3,7 @@
 //! Declarations only.
 //! Every road that reaches a private field lives in `type_guard.rs` or `questions.rs`, this file's own children.
 
-use crate::bounded::{Bounded, ForeignRosterReference, KeyedRoster, NonEmpty};
+use crate::bounded::{Bounded, DuplicateKey, ForeignRosterReference, KeyedRoster, NonEmpty};
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -284,12 +284,9 @@ struct ReferencedRosterRow<'rosters, Left, LeftKey, Right, RightKey, Payload> {
 }
 
 /// One repeated relation pair and every authored position at which it occurred.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct RepeatedRelationPair<const N: usize> {
-    left_position: usize,
-    right_position: usize,
-    first: usize,
-    repeated: NonEmpty<usize, N>,
+    duplicate: DuplicateKey<RelationPair, N>,
 }
 
 /// Every distinct relation pair that occurred more than once.
@@ -318,6 +315,12 @@ struct ResolvedRosterMember<'roster, Member, Key> {
 
 struct CanonicalRelationPosition {
     authored: usize,
+    left: usize,
+    right: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct RelationPair {
     left: usize,
     right: usize,
 }

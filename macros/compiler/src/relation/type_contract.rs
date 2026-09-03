@@ -7,6 +7,18 @@ use super::{
 use core::error::Error;
 use core::fmt::{self, Display, Formatter};
 
+impl<const N: usize> fmt::Debug for super::RepeatedRelationPair<N> {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("RepeatedRelationPair")
+            .field("left_position", &self.left_position())
+            .field("right_position", &self.right_position())
+            .field("first", &self.first_position())
+            .field("repeated", self.repeated_positions())
+            .finish()
+    }
+}
+
 impl<LeftKey, RightKey, const N: usize> Display for KeyedRosterRowsError<LeftKey, RightKey, N> {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match self {

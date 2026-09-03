@@ -4,8 +4,8 @@
 
 use super::{
     CanonicalRelationPosition, KeyedRosterRelation, KeyedRosterRows, KeyedRosterRowsError,
-    ReferencedRosterRow, RepeatedRelationPair, RepeatedRelationPairs, ResolvedRosterMember,
-    RowResolutionError,
+    ReferencedRosterRow, RelationPair, RepeatedRelationPair, RepeatedRelationPairs,
+    ResolvedRosterMember, RowResolutionError,
 };
 use crate::bounded::{Bounded, ForeignRosterReference, KeyedRoster, NonEmpty, NonEmptyError};
 use core::borrow::Borrow;
@@ -215,25 +215,25 @@ impl<const N: usize> RepeatedRelationPair<N> {
     /// The resolved left-roster position of the repeated pair.
     #[must_use]
     pub const fn left_position(&self) -> usize {
-        self.left_position
+        self.duplicate.key().left
     }
 
     /// The resolved right-roster position of the repeated pair.
     #[must_use]
     pub const fn right_position(&self) -> usize {
-        self.right_position
+        self.duplicate.key().right
     }
 
     /// The pair's first authored row position.
     #[must_use]
     pub const fn first_position(&self) -> usize {
-        self.first
+        self.duplicate.first_position()
     }
 
     /// Every later authored row position carrying the same pair.
     #[must_use]
     pub const fn repeated_positions(&self) -> &NonEmpty<usize, N> {
-        &self.repeated
+        self.duplicate.repeated_positions()
     }
 }
 
@@ -351,29 +351,13 @@ fn repeated_relation_pairs<
 >(
     rows: &KeyedRosterRows<'_, Left, LeftKey, Right, RightKey, Payload, LEFT, RIGHT, ROWS>,
 ) -> Option<RepeatedRelationPairs<ROWS>> {
-    let pairs = rows.rows.filter_map_indexed(|first, row| {
-        let already_seen = rows.rows.iter().take(first).any(|prior| {
-            prior.left_position == row.left_position && prior.right_position == row.right_position
-        });
-        if already_seen {
-            return None;
-        }
-        let repeated = rows.rows.filter_map_indexed(|authored, candidate| {
-            (authored > first
-                && candidate.left_position == row.left_position
-                && candidate.right_position == row.right_position)
-                .then_some(authored)
-        });
-        NonEmpty::from_bounded(repeated)
-            .ok()
-            .map(|repeated| RepeatedRelationPair {
-                left_position: row.left_position,
-                right_position: row.right_position,
-                first,
-                repeated,
-            })
+    let pairs = rows.rows.mapped(|row| RelationPair {
+        left: row.left_position,
+        right: row.right_position,
     });
-    NonEmpty::from_bounded(pairs)
-        .ok()
-        .map(|pairs| RepeatedRelationPairs { pairs })
+    let pairs = NonEmpty::from_bounded(pairs).ok()?;
+    let duplicates = pairs.duplicate_keys()?;
+    Some(RepeatedRelationPairs {
+        pairs: duplicates.mapped(|duplicate| RepeatedRelationPair { duplicate }),
+    })
 }

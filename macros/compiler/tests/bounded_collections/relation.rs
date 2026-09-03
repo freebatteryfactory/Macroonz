@@ -305,6 +305,19 @@ fn canonical_payloads<const LEFT: usize, const RIGHT: usize, const ROWS: usize>(
         .collect()
 }
 
+fn assert_repeated_pair_debug(pairs: &RepeatedRelationPairs<5>) {
+    assert_eq!(
+        pairs
+            .iter()
+            .map(|pair| format!("{pair:?}"))
+            .collect::<Vec<_>>(),
+        vec![
+            "RepeatedRelationPair { left_position: 0, right_position: 1, first: 0, repeated: NonEmpty { head: 2, tail: [] } }",
+            "RepeatedRelationPair { left_position: 1, right_position: 0, first: 1, repeated: NonEmpty { head: 3, tail: [4] } }",
+        ]
+    );
+}
+
 /// Repetition remains representable until distinct relation posture is requested, then every duplicated pair is reported once.
 #[test]
 fn distinct_relation_promotion_reports_every_repeated_pair() -> Result<(), String> {
@@ -374,6 +387,7 @@ fn distinct_relation_promotion_reports_every_repeated_pair() -> Result<(), Strin
             .collect::<Vec<_>>(),
         vec![(0, 1, 0, vec![2]), (1, 0, 1, vec![3, 4])]
     );
+    assert_repeated_pair_debug(&refusal);
 
     let singular = rows::<_, 2, 2, 2>(
         &left,

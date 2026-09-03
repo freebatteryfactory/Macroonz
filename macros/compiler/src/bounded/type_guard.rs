@@ -72,16 +72,8 @@ impl<T, const N: usize> Bounded<T, N> {
         self.0
     }
 
-    pub(crate) fn filter_map_indexed<U>(
-        &self,
-        mut operation: impl FnMut(usize, &T) -> Option<U>,
-    ) -> Bounded<U, N> {
-        Bounded(
-            self.iter()
-                .enumerate()
-                .filter_map(|(index, item)| operation(index, item))
-                .collect(),
-        )
+    pub(crate) fn mapped<U>(&self, operation: impl FnMut(&T) -> U) -> Bounded<U, N> {
+        Bounded(self.iter().map(operation).collect())
     }
 
     /// Appends one item where the resulting collection fits under this ceiling.
@@ -174,6 +166,13 @@ impl<T, const N: usize> NonEmpty<T, N> {
     #[must_use]
     pub fn count(&self) -> usize {
         self.tail.len().saturating_add(1)
+    }
+
+    pub(crate) fn mapped<U>(self, mut operation: impl FnMut(T) -> U) -> NonEmpty<U, N> {
+        NonEmpty {
+            head: operation(self.head),
+            tail: self.tail.into_iter().map(operation).collect(),
+        }
     }
 }
 
@@ -302,6 +301,15 @@ impl<T, K: Eq, const N: usize> KeyedRoster<T, K, N> {
             KeyAdmission::Duplicated(duplicates) => {
                 Err(KeyedRosterError::DuplicateKeys(duplicates))
             }
+        }
+    }
+}
+
+impl<K: Eq, const N: usize> NonEmpty<K, N> {
+    pub(crate) fn duplicate_keys(self) -> Option<NonEmpty<DuplicateKey<K, N>, N>> {
+        match admit_keys(self) {
+            KeyAdmission::Unique(_) => None,
+            KeyAdmission::Duplicated(duplicates) => Some(duplicates),
         }
     }
 }
