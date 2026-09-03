@@ -6,7 +6,7 @@ use super::{DisciplineRow, FaultRow, LinkRow, NetworkDeclaration, ScheduleRow};
 use crate::bounded::Overflow;
 use crate::descriptor::DirectBinding;
 use crate::descriptor::emitting::{
-    derive_attribute, direct_path, doc_attribute, fallible_return, from_impl,
+    derive_attribute, direct_path, doc_attribute, fallible_return, from_impl, owned_direct_path,
 };
 use crate::descriptor::fault::NETWORK_FAULT_ARMS;
 use crate::token::{GeneratedDelimiter, GeneratedToken, absolute_path};
@@ -70,7 +70,7 @@ fn fault_enum(harness: &DirectBinding, into: &mut Vec<GeneratedToken>) -> Result
     }
     into.push(GeneratedToken::group(GeneratedDelimiter::Brace, arms)?);
     for (arm, path, _documentation) in &NETWORK_FAULT_ARMS {
-        from_impl(harness_path(harness, path), FAULT_ENUM, arm, into)?;
+        from_impl(owned_direct_path(harness, path), FAULT_ENUM, arm, into)?;
     }
     Ok(())
 }
@@ -388,11 +388,4 @@ fn tick_expr(
         vec![GeneratedToken::number(ordinal)],
     )?);
     Ok(())
-}
-
-/// One owned generated path at the direct harness binding.
-fn harness_path(harness: &DirectBinding, destination: &[&str]) -> Vec<GeneratedToken> {
-    let mut tokens = Vec::new();
-    direct_path(harness, destination, &mut tokens);
-    tokens
 }

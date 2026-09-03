@@ -57,6 +57,16 @@ fn assert_visibility_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
     Ok(())
 }
 
+fn assert_harness_path_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
+    assert_occurrences(
+        root,
+        "pub(crate) fn owned_direct_path",
+        &["descriptor/emitting.rs"],
+    )?;
+    assert_occurrences(root, "fn harness_path(", &["recipe/render_evidence.rs"])?;
+    Ok(())
+}
+
 fn assert_roster_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
     assert_occurrences(root, "macro_rules! subjects", &["identity/stamp.rs"])?;
     assert_occurrences(root, "const RUST_KEYWORDS: &[&str]", &["token/bank.rs"])?;
@@ -118,15 +128,7 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
         &["codec/types.rs"],
     )?;
     assert_occurrences(&root, "fn absolute_path(", &["token/generation/compose.rs"])?;
-    assert_occurrences(
-        &root,
-        "fn harness_path(",
-        &[
-            "descriptor/concurrency/render.rs",
-            "descriptor/network/render.rs",
-            "recipe/render_evidence.rs",
-        ],
-    )?;
+    assert_harness_path_debt_is_closed(&root)?;
     assert_occurrences(&root, "const FAULT_ARMS:", &[])?;
     assert_occurrences(
         &root,

@@ -6,7 +6,7 @@ use super::{ConcurrencyDeclaration, ExplorationRow};
 use crate::bounded::Overflow;
 use crate::descriptor::DirectBinding;
 use crate::descriptor::emitting::{
-    derive_attribute, direct_path, doc_attribute, fallible_return, from_impl,
+    derive_attribute, direct_path, doc_attribute, fallible_return, from_impl, owned_direct_path,
 };
 use crate::descriptor::fault::CONCURRENCY_FAULT_ARMS;
 use crate::token::{GeneratedDelimiter, GeneratedToken, absolute_path};
@@ -58,7 +58,7 @@ fn fault_enum(harness: &DirectBinding, into: &mut Vec<GeneratedToken>) -> Result
     }
     into.push(GeneratedToken::group(GeneratedDelimiter::Brace, arms)?);
     for (arm, path, _documentation) in &CONCURRENCY_FAULT_ARMS {
-        from_impl(harness_path(harness, path), "Fault", arm, into)?;
+        from_impl(owned_direct_path(harness, path), "Fault", arm, into)?;
     }
     Ok(())
 }
@@ -221,11 +221,4 @@ fn concluded_let(harness: &DirectBinding, into: &mut Vec<GeneratedToken>) -> Res
     )?);
     into.push(GeneratedToken::alone(';'));
     Ok(())
-}
-
-/// One owned generated path at the direct harness binding.
-fn harness_path(harness: &DirectBinding, destination: &[&str]) -> Vec<GeneratedToken> {
-    let mut tokens = Vec::new();
-    direct_path(harness, destination, &mut tokens);
-    tokens
 }

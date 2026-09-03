@@ -25,6 +25,17 @@ pub(crate) fn direct_path(
     into.extend(absolute_path(&segments));
 }
 
+/// Return one owned direct dependency path under its declared binding.
+#[must_use]
+pub(crate) fn owned_direct_path(
+    binding: &DirectBinding,
+    destination: &[&str],
+) -> Vec<GeneratedToken> {
+    let mut tokens = Vec::new();
+    direct_path(binding, destination, &mut tokens);
+    tokens
+}
+
 /// Compose one row lens and one declared attachment seat into their matcher metavariable.
 #[must_use]
 pub(crate) fn row_metavariable(lens: &str, seat: HarnessWord) -> String {
