@@ -280,7 +280,8 @@ impl BenchRow {
     ///
     /// # Errors
     ///
-    /// Refuses only where the canonical encoder cannot hold a member's length in the width it declares.
+    /// Refuses only where the descriptor adapter cannot hold a member's length in the public encoding width before delegating its bytes to shared identity framing.
+    /// That refusal is unreachable on every supported target and remains as a compatibility ceiling.
     pub fn declared(
         references: BenchReferences,
         measurement: BenchMeasurement,

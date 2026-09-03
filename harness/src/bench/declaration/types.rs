@@ -141,6 +141,6 @@ pub struct BenchRow {
 #[must_use = "a refusal is the reason a benchmark row was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BenchRowRefusal {
-    /// The row's canonical preimage outgrew the width the encoding declares.
+    /// The row's canonical preimage outgrew the public width checked before shared identity framing, an unreachable compatibility ceiling on supported targets.
     Encoding(EncodeRefusal),
 }

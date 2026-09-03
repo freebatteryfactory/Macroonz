@@ -2,16 +2,8 @@
 
 use super::{BENCH_ROW_KEY_TAG, BenchMeasurement, BenchReferences, BenchRowKey, ContentionPosture};
 use crate::descriptor::EncodeRefusal;
+use crate::descriptor::encode::{encode_declared_bytes, encode_declared_length};
 use crate::identity::ContentAddress;
-
-/// Append one length-prefixed byte string: eight big-endian length bytes, then the material.
-fn write_bytes(into: &mut Vec<u8>, material: &[u8]) -> Result<(), EncodeRefusal> {
-    let length =
-        u64::try_from(material.len()).map_err(|_| EncodeRefusal::LengthPastEncodingWidth)?;
-    into.extend_from_slice(&length.to_be_bytes());
-    into.extend_from_slice(material);
-    Ok(())
-}
 
 /// Derive one row's identity over the preimage the parent bench README spells out.
 pub(super) fn derive_row_key(
@@ -22,8 +14,7 @@ pub(super) fn derive_row_key(
     references.workload().name().encode_into(&mut preimage);
 
     let sizes = measurement.input_sizes().sizes();
-    let count = u64::try_from(sizes.len()).map_err(|_| EncodeRefusal::LengthPastEncodingWidth)?;
-    preimage.extend_from_slice(&count.to_be_bytes());
+    encode_declared_length(sizes.len(), &mut preimage)?;
     for size in sizes {
         preimage.extend_from_slice(&size.to_be_bytes());
     }
@@ -44,7 +35,7 @@ pub(super) fn derive_row_key(
         None => preimage.push(0u8),
         Some(formula) => {
             preimage.push(1u8);
-            write_bytes(&mut preimage, formula.bytes())?;
+            encode_declared_bytes(formula.bytes(), &mut preimage)?;
         }
     }
 

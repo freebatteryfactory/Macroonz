@@ -65,7 +65,7 @@ use super::types::{
     SchemaField, SubjectRoute, SynthesisFacts, TrialCoordinates, generated_support_members,
     origin_declarations,
 };
-use crate::identity::ContentAddress;
+use crate::identity::{encode_bytes, encode_length};
 
 /// The version of the schema encoding itself.
 ///
@@ -160,8 +160,8 @@ macro_rules! push_generated_support_members {
 ///
 /// # Errors
 ///
-/// Refuses a length that does not fit the sixty-four bit width the encoding declares.
-/// The encoder states its widths rather than guessing at one; on every target this crate is built for the case is unreachable.
+/// Refuses a length that does not fit the sixty-four-bit width the encoding declares.
+/// The descriptor adapter establishes that public refusal before delegating the bytes to the identity substrate; on every target this crate supports the case is unreachable.
 pub fn encode_generated_support_schema(
     schema: &GeneratedSupportSchema,
 ) -> Result<Vec<u8>, EncodeRefusal> {
@@ -174,9 +174,9 @@ pub fn encode_generated_support_schema(
 /// One member: its tag, then its roster.
 fn push_member(out: &mut Vec<u8>, tag: u8, fields: &[SchemaField]) -> Result<(), EncodeRefusal> {
     out.push(tag);
-    push_count(out, fields.len())?;
+    encode_declared_length(fields.len(), out)?;
     for field in fields {
-        push_text(out, field.name())?;
+        encode_declared_bytes(field.name().as_bytes(), out)?;
         push_shape(out, field.shape())?;
         out.push(field.cardinality().slot());
     }
@@ -188,9 +188,9 @@ fn push_shape(out: &mut Vec<u8>, shape: FieldShape) -> Result<(), EncodeRefusal>
     out.push(shape.slot());
     match shape {
         FieldShape::ClosedChoice(arms) => {
-            push_count(out, arms.len())?;
+            encode_declared_length(arms.len(), out)?;
             for arm in arms {
-                push_text(out, arm)?;
+                encode_declared_bytes(arm.as_bytes(), out)?;
             }
         }
         FieldShape::NamespacedName
@@ -209,7 +209,7 @@ fn push_shape(out: &mut Vec<u8>, shape: FieldShape) -> Result<(), EncodeRefusal>
 ///
 /// # Errors
 ///
-/// Refuses a length that does not fit the sixty-four bit width the encoding declares, which is unreachable on every target this crate is built for.
+/// Refuses a length that does not fit the sixty-four-bit width the encoding declares, which is unreachable on every supported target.
 pub(super) fn encode_row_content(
     claim: ClaimRef,
     execution_suite: ExecutionSuite,
@@ -295,7 +295,7 @@ impl<'classification> RowEncoding<'classification> {
 
     /// Write the role roster in its informed storage order.
     fn push_roles(&mut self) -> Result<(), EncodeRefusal> {
-        push_count(&mut self.bytes, self.classification.roles().len())?;
+        encode_declared_length(self.classification.roles().len(), &mut self.bytes)?;
         for role in self.classification.roles() {
             role.name().encode_into(&mut self.bytes);
         }
@@ -304,7 +304,7 @@ impl<'classification> RowEncoding<'classification> {
 
     /// Write the tag roster in its informed storage order.
     fn push_tags(&mut self) -> Result<(), EncodeRefusal> {
-        push_count(&mut self.bytes, self.classification.tags().len())?;
+        encode_declared_length(self.classification.tags().len(), &mut self.bytes)?;
         for tag in self.classification.tags() {
             tag.name().encode_into(&mut self.bytes);
         }
@@ -359,10 +359,10 @@ fn push_replay_admission(
     out: &mut Vec<u8>,
     admitted: ReplayAdmission,
 ) -> Result<(), EncodeRefusal> {
-    push_address(out, admitted.proposal().address())?;
+    encode_declared_bytes(admitted.proposal().address().as_bytes(), out)?;
     out.push(admitted.admission().ground().slot());
     admitted.destination().name().encode_into(out);
-    push_address(out, admitted.replay().address())
+    encode_declared_bytes(admitted.replay().address().as_bytes(), out)
 }
 
 /// One discharge admission: the proposal, then the destination suite.
@@ -372,7 +372,7 @@ fn push_discharge_admission(
     out: &mut Vec<u8>,
     admitted: DischargeAdmission,
 ) -> Result<(), EncodeRefusal> {
-    push_address(out, admitted.proposal().address())?;
+    encode_declared_bytes(admitted.proposal().address().as_bytes(), out)?;
     admitted.destination().name().encode_into(out);
     Ok(())
 }
@@ -382,28 +382,33 @@ impl NamespacedName {
     ///
     /// Seated with the type on purpose: five homes once restated these two lines, and one lawful edit to the spelling would have split the identity families of the homes that drifted from the homes that did not.
     pub fn encode_into(self, into: &mut Vec<u8>) {
-        crate::identity::encode_bytes(self.namespace().written().as_bytes(), into);
-        crate::identity::encode_bytes(self.stem().written().as_bytes(), into);
+        encode_bytes(self.namespace().written().as_bytes(), into);
+        encode_bytes(self.stem().written().as_bytes(), into);
     }
 }
 
-/// One content address, framed at its own length like every other variable-length member.
-fn push_address(out: &mut Vec<u8>, address: ContentAddress) -> Result<(), EncodeRefusal> {
-    push_count(out, address.as_bytes().len())?;
-    out.extend_from_slice(address.as_bytes());
+/// Append one descriptor length after proving that its public encoding width can hold it.
+pub(crate) fn encode_declared_length(
+    length: usize,
+    into: &mut Vec<u8>,
+) -> Result<(), EncodeRefusal> {
+    declared_length(length)?;
+    encode_length(length, into);
     Ok(())
 }
 
-/// One length-prefixed text.
-fn push_text(out: &mut Vec<u8>, text: &str) -> Result<(), EncodeRefusal> {
-    push_count(out, text.len())?;
-    out.extend_from_slice(text.as_bytes());
+/// Append one descriptor byte string after proving that its public encoding width can hold it.
+pub(crate) fn encode_declared_bytes(
+    material: &[u8],
+    into: &mut Vec<u8>,
+) -> Result<(), EncodeRefusal> {
+    declared_length(material.len())?;
+    encode_bytes(material, into);
     Ok(())
 }
 
-/// One count, at the declared width.
-fn push_count(out: &mut Vec<u8>, count: usize) -> Result<(), EncodeRefusal> {
-    let declared = u64::try_from(count).map_err(|_| EncodeRefusal::LengthPastEncodingWidth)?;
-    out.extend_from_slice(&declared.to_be_bytes());
+/// Prove that one descriptor length fits its public encoding width.
+fn declared_length(length: usize) -> Result<(), EncodeRefusal> {
+    u64::try_from(length).map_err(|_| EncodeRefusal::LengthPastEncodingWidth)?;
     Ok(())
 }

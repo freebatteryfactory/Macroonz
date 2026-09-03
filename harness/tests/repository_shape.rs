@@ -73,6 +73,16 @@ fn named_harness_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_occurrences(
         &root.join("src"),
+        "u64::try_from(length).unwrap_or(u64::MAX)",
+        &["identity/encode.rs"],
+    )?;
+    assert_occurrences(
+        &root.join("src"),
+        "map_err(|_| EncodeRefusal::LengthPastEncodingWidth)",
+        &["descriptor/encode.rs"],
+    )?;
+    assert_occurrences(
+        &root.join("src"),
         "macro_rules! namespaced_reference",
         &[
             "bench/declaration/type_guard.rs",
