@@ -1,4 +1,4 @@
-//! The shallow structural lens over one supported complete caller-authored Rust item.
+#![doc = include_str!("README.md")]
 
 mod lens;
 mod type_contract;

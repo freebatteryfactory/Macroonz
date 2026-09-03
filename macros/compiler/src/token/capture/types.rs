@@ -1,7 +1,7 @@
-//! The capture home's declarations: what one captured declaration is, how a producer's span table answers, and how a text read refuses.
+//! The capture home's declarations: what one captured declaration is and how a producer's span table answers.
 //!
 //! Declarations only.
-//! Every road that reaches a private field lives in `type_guard.rs`, this file's own child, which is where all five magnitudes below are settled.
+//! Every road that reaches a private field lives in `type_guard.rs`, this file's own child, which is where all four magnitudes below are settled.
 
 use crate::bounded::Bounded;
 

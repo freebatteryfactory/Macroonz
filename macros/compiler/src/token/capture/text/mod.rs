@@ -1,4 +1,4 @@
-//! The callable text producer over the pinned low-level lexer.
+#![doc = include_str!("README.md")]
 
 mod read;
 mod type_contract;

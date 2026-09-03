@@ -68,7 +68,7 @@ pub struct TextReadRefusal {
 /// One declared input read from text: the captured trees, and the byte offsets that resolve every handle the read issued.
 ///
 /// The callable route — a compiler is one producer of captured input, a test is another, and text is the third — so that the reproduction route a diagnostic names is a real road and not a promise.
-/// The two seats are visible to `text.rs` alone, and that read establishes the relationship between them: the offsets table resolves exactly the handles the capture beside it issued.
+/// The two seats are written by the text read alone, and that read establishes the relationship between them: the offsets table resolves exactly the handles the capture beside it issued.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TextCapture {
     /// The captured input the read produced.

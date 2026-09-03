@@ -1,4 +1,4 @@
-//! The bounded mechanical reading layer over one normalized captured-token sequence.
+#![doc = include_str!("README.md")]
 
 mod read;
 mod type_contract;

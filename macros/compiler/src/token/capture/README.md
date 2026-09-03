@@ -17,3 +17,11 @@ A subject composes those operations into its own grammar and still owns every no
 It preserves one token reading rather than reconstructing a public Rust AST, never scans for hidden unsafe behavior, and leaves complete Rust legality to Rustc.
 
 This home does not emit generated Rust and does not interpret a captured declaration's product meaning.
+
+## Seats
+
+The root of this home is the normalized declaration itself: the magnitudes, the token tree with its path and span handle, the checked builder, literal capture, canonical bytes, borrowed fragments, and the span table with every coordinate it answers in.
+`cursor/` is the mechanical reading layer over that tree.
+`item/` is the structural lens over one complete caller-authored item.
+`text/` is the text producer that reads source into the same tree.
+Each sub-home reaches the root through its public roads, and none reaches another.
