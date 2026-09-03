@@ -297,3 +297,16 @@ pub fn roster(items: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, Overflo
     tokens.push(group(GeneratedDelimiter::Bracket, items)?);
     Ok(tokens)
 }
+
+/// One owned `Vec` value, using `Vec::new()` when empty and `Vec::from([members])` otherwise.
+///
+/// # Errors
+///
+/// Returns [`Overflow`] where either generated group outgrows the declared token magnitude.
+pub(crate) fn vector(members: Vec<Vec<GeneratedToken>>) -> Result<Vec<GeneratedToken>, Overflow> {
+    if members.is_empty() {
+        return call(absolute_path(&["std", "vec", "Vec", "new"]), Vec::new());
+    }
+    let array = group(GeneratedDelimiter::Bracket, comma_many(members))?;
+    call(absolute_path(&["std", "vec", "Vec", "from"]), vec![array])
+}

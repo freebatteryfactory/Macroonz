@@ -110,6 +110,21 @@ fn assert_diagnostic_projection_debt_is_closed(root: &Path) -> Result<(), std::i
     Ok(())
 }
 
+fn assert_owned_vector_spelling_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
+    assert_occurrences(
+        root,
+        "pub(crate) fn vector(",
+        &["token/generation/compose.rs"],
+    )?;
+    assert_occurrences(root, "fn vec_expr(", &[])?;
+    let network = fs::read_to_string(root.join("descriptor/network/render.rs"))?;
+    let codec = fs::read_to_string(root.join("codec/spell.rs"))?;
+    assert!(!network.contains("Vec\", \"new"));
+    assert!(!network.contains("Vec\", \"from"));
+    assert!(!codec.contains("tokens.extend(associated(\"new\"))"));
+    Ok(())
+}
+
 fn assert_duplicate_group_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
     assert_occurrences(root, "fn admit_keys<", &["bounded/type_guard.rs"])?;
     assert_occurrences(
@@ -240,6 +255,7 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     assert_declared_name_grammar_debt_is_closed(&root)?;
     assert_role_join_debt_is_closed(&root)?;
     assert_diagnostic_projection_debt_is_closed(&root)?;
+    assert_owned_vector_spelling_debt_is_closed(&root)?;
     assert_duplicate_group_debt_is_closed(&root)?;
     assert_doubled_set_debt_is_closed(&root)?;
     assert_helper_refusal_projection_debt_is_closed(&root)?;

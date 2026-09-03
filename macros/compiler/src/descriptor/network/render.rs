@@ -9,7 +9,7 @@ use crate::descriptor::emitting::{
     derive_attribute, direct_path, doc_attribute, fallible_return, from_impl, owned_direct_path,
 };
 use crate::descriptor::fault::NETWORK_FAULT_ARMS;
-use crate::token::{GeneratedDelimiter, GeneratedToken, absolute_path};
+use crate::token::{GeneratedDelimiter, GeneratedToken, absolute_path, vector};
 
 /// The names the generated module writes beside the authored ones, which no schedule may take.
 ///
@@ -124,34 +124,6 @@ fn link_expr(
     Ok(())
 }
 
-/// One `::std::vec::Vec::from([<members>])` expression, or `::std::vec::Vec::new()` where nothing is listed.
-fn vec_expr(
-    members: Vec<Vec<GeneratedToken>>,
-    into: &mut Vec<GeneratedToken>,
-) -> Result<(), Overflow> {
-    if members.is_empty() {
-        into.extend(absolute_path(&["std", "vec", "Vec", "new"]));
-        into.push(GeneratedToken::group(
-            GeneratedDelimiter::Parenthesis,
-            Vec::new(),
-        )?);
-        return Ok(());
-    }
-    into.extend(absolute_path(&["std", "vec", "Vec", "from"]));
-    let mut listed = Vec::new();
-    for (position, member) in members.into_iter().enumerate() {
-        if position > 0 {
-            listed.push(GeneratedToken::alone(','));
-        }
-        listed.extend(member);
-    }
-    into.push(GeneratedToken::group(
-        GeneratedDelimiter::Parenthesis,
-        vec![GeneratedToken::group(GeneratedDelimiter::Bracket, listed)?],
-    )?);
-    Ok(())
-}
-
 /// The generated `topology()` function.
 fn topology_fn(
     declaration: &NetworkDeclaration,
@@ -203,9 +175,9 @@ fn topology_fn(
         links.push(expression);
     }
     let mut seats = Vec::new();
-    vec_expr(nodes, &mut seats)?;
+    seats.extend(vector(nodes)?);
     seats.push(GeneratedToken::alone(','));
-    vec_expr(links, &mut seats)?;
+    seats.extend(vector(links)?);
     inner.push(GeneratedToken::group(
         GeneratedDelimiter::Parenthesis,
         seats,
@@ -278,7 +250,7 @@ fn schedule_fn(
         )?;
         disciplines.push(expression);
     }
-    vec_expr(disciplines, &mut seats)?;
+    seats.extend(vector(disciplines)?);
     inner.push(GeneratedToken::group(
         GeneratedDelimiter::Parenthesis,
         seats,
@@ -309,7 +281,7 @@ fn discipline_expr(
         fault_expr(harness, fault, &mut expression)?;
         faults.push(expression);
     }
-    vec_expr(faults, &mut seats)?;
+    seats.extend(vector(faults)?);
     into.push(GeneratedToken::group(
         GeneratedDelimiter::Parenthesis,
         seats,
