@@ -4,10 +4,11 @@ use super::{
     CapturedName, CapturedRelation, RecipeError, RecipeIssue, RecipeRelationRequirements,
     RecipeRelationRow, grammar, identifier_token,
 };
+use crate::kind::roster_row;
 use crate::recipe::RecipeRelationPayload;
 use crate::relation::{
     AbsencePosture, CompletenessPosture, CyclePosture, DensityPosture, EmptyPosture,
-    MembershipPosture, RepetitionPosture, SelfRelationPosture,
+    MembershipPosture, RelationQuestion, RepetitionPosture, SelfRelationPosture,
 };
 use crate::token::{
     CaptureCursor, CaptureExpectation, CaptureReadIssue, CaptureReadRefusal, CapturedDelimiter,
@@ -221,29 +222,42 @@ fn read_posture(cursor: &mut CaptureCursor<'_>) -> Result<CapturedPosture, Captu
 fn read_posture_clause(
     cursor: &mut CaptureCursor<'_>,
 ) -> Result<CapturedPostureClause, CaptureReadRefusal> {
-    let (token, question) = cursor.identifier()?;
-    if !crate::recipe::types::RELATION_QUESTION_NAMES.contains(&question) {
+    let (token, spelling) = cursor.identifier()?;
+    let Some(question) = roster_row(RelationQuestion::ALL, RelationQuestion::name, spelling) else {
         return Err(CaptureReadRefusal::projected(
             CaptureReadIssue::Unexpected(CaptureExpectation::Word(
                 "a structural relation question".to_owned(),
             )),
             Some(token.span()),
         ));
-    }
+    };
     let value = match question {
-        "empty" => read_single(cursor, empty_posture).map(PostureClause::Empty),
-        "repetition" => read_single(cursor, repetition_posture).map(PostureClause::Repetition),
-        "membership" => read_pair(cursor, membership_posture)
-            .map(|(left, right)| PostureClause::Membership(left, right)),
-        "completeness" => read_pair(cursor, completeness_posture)
-            .map(|(left, right)| PostureClause::Completeness(left, right)),
-        "density" => read_single(cursor, density_posture).map(PostureClause::Density),
-        "absence" => read_single(cursor, absence_posture).map(PostureClause::Absence),
-        "self_relation" => {
-            read_single(cursor, self_relation_posture).map(PostureClause::SelfRelation)
+        RelationQuestion::Empty => {
+            read_single(cursor, EmptyPosture::ALL, EmptyPosture::name).map(PostureClause::Empty)
         }
-        "cycle" => read_single(cursor, cycle_posture).map(PostureClause::Cycle),
-        _ => unreachable!("the complete relation-question roster guards this match"),
+        RelationQuestion::Repetition => {
+            read_single(cursor, RepetitionPosture::ALL, RepetitionPosture::name)
+                .map(PostureClause::Repetition)
+        }
+        RelationQuestion::Membership => {
+            read_pair(cursor, MembershipPosture::ALL, MembershipPosture::name)
+                .map(|(left, right)| PostureClause::Membership(left, right))
+        }
+        RelationQuestion::Completeness => {
+            read_pair(cursor, CompletenessPosture::ALL, CompletenessPosture::name)
+                .map(|(left, right)| PostureClause::Completeness(left, right))
+        }
+        RelationQuestion::Density => read_single(cursor, DensityPosture::ALL, DensityPosture::name)
+            .map(PostureClause::Density),
+        RelationQuestion::Absence => read_single(cursor, AbsencePosture::ALL, AbsencePosture::name)
+            .map(PostureClause::Absence),
+        RelationQuestion::SelfRelation => {
+            read_single(cursor, SelfRelationPosture::ALL, SelfRelationPosture::name)
+                .map(PostureClause::SelfRelation)
+        }
+        RelationQuestion::Cycle => {
+            read_single(cursor, CyclePosture::ALL, CyclePosture::name).map(PostureClause::Cycle)
+        }
     }?;
     Ok(CapturedPostureClause {
         value,
@@ -253,11 +267,15 @@ fn read_posture_clause(
 
 fn read_single<T>(
     cursor: &mut CaptureCursor<'_>,
-    read: impl FnOnce(&str) -> Option<T>,
-) -> Result<T, CaptureReadRefusal> {
+    roster: &[T],
+    name: fn(T) -> &'static str,
+) -> Result<T, CaptureReadRefusal>
+where
+    T: Copy,
+{
     let mut answer = cursor.group(CapturedDelimiter::Parenthesis)?;
     let (token, spelling) = answer.identifier()?;
-    let value = read(spelling).ok_or_else(|| {
+    let value = roster_row(roster, name, spelling).ok_or_else(|| {
         CaptureReadRefusal::projected(
             CaptureReadIssue::Unexpected(CaptureExpectation::Word(
                 "a lawful structural posture".to_owned(),
@@ -271,14 +289,15 @@ fn read_single<T>(
 
 fn read_pair<T: Copy>(
     cursor: &mut CaptureCursor<'_>,
-    read: impl Fn(&str) -> Option<T>,
+    roster: &[T],
+    name: fn(T) -> &'static str,
 ) -> Result<(T, T), CaptureReadRefusal> {
     let mut answers = cursor.group(CapturedDelimiter::Parenthesis)?;
     let (left_token, left) = answers.identifier()?;
-    let left = read(left).ok_or_else(|| posture_word(left_token.span()))?;
+    let left = roster_row(roster, name, left).ok_or_else(|| posture_word(left_token.span()))?;
     answers.punctuation(',', CapturedSpacing::Alone)?;
     let (right_token, right) = answers.identifier()?;
-    let right = read(right).ok_or_else(|| posture_word(right_token.span()))?;
+    let right = roster_row(roster, name, right).ok_or_else(|| posture_word(right_token.span()))?;
     answers.finish()?;
     Ok((left, right))
 }
@@ -290,70 +309,6 @@ fn posture_word(at: crate::token::SpanHandle) -> CaptureReadRefusal {
         )),
         Some(at),
     )
-}
-
-fn empty_posture(value: &str) -> Option<EmptyPosture> {
-    match value {
-        "allowed" => Some(EmptyPosture::Allowed),
-        "refused" => Some(EmptyPosture::Refusal),
-        _ => None,
-    }
-}
-
-fn repetition_posture(value: &str) -> Option<RepetitionPosture> {
-    match value {
-        "allowed" => Some(RepetitionPosture::Allowed),
-        "refused" => Some(RepetitionPosture::Refusal),
-        _ => None,
-    }
-}
-
-fn membership_posture(value: &str) -> Option<MembershipPosture> {
-    match value {
-        "open" => Some(MembershipPosture::Open),
-        "closed" => Some(MembershipPosture::Closed),
-        _ => None,
-    }
-}
-
-fn completeness_posture(value: &str) -> Option<CompletenessPosture> {
-    match value {
-        "partial" => Some(CompletenessPosture::Partial),
-        "total" => Some(CompletenessPosture::Total),
-        _ => None,
-    }
-}
-
-fn density_posture(value: &str) -> Option<DensityPosture> {
-    match value {
-        "sparse" => Some(DensityPosture::Sparse),
-        "dense" => Some(DensityPosture::Dense),
-        _ => None,
-    }
-}
-
-fn absence_posture(value: &str) -> Option<AbsencePosture> {
-    match value {
-        "allowed" => Some(AbsencePosture::Allowed),
-        "refused" => Some(AbsencePosture::Refusal),
-        _ => None,
-    }
-}
-
-fn self_relation_posture(value: &str) -> Option<SelfRelationPosture> {
-    match value {
-        "allowed" => Some(SelfRelationPosture::Allowed),
-        "refused" => Some(SelfRelationPosture::Refusal),
-        _ => None,
-    }
-}
-
-fn cycle_posture(value: &str) -> Option<CyclePosture> {
-    match value {
-        "allowed" => Some(CyclePosture::Allowed),
-        "refused" => Some(CyclePosture::Refusal),
-        _ => None,
-    }
 }
 
 fn apply_postures(
@@ -406,19 +361,37 @@ fn apply_clause(
     clause: PostureClause,
 ) -> (&'static str, Option<RecipeRelationRequirements>) {
     match clause {
-        PostureClause::Empty(value) => ("empty", requirements.with_empty(value)),
-        PostureClause::Repetition(value) => ("repetition", requirements.with_repetition(value)),
-        PostureClause::Membership(left, right) => {
-            ("membership", requirements.with_membership(left, right))
-        }
-        PostureClause::Completeness(left, right) => {
-            ("completeness", requirements.with_completeness(left, right))
-        }
-        PostureClause::Density(value) => ("density", requirements.with_density(value)),
-        PostureClause::Absence(value) => ("absence", requirements.with_absence(value)),
-        PostureClause::SelfRelation(value) => {
-            ("self_relation", requirements.with_self_relation(value))
-        }
-        PostureClause::Cycle(value) => ("cycle", requirements.with_cycle(value)),
+        PostureClause::Empty(value) => (
+            RelationQuestion::Empty.name(),
+            requirements.with_empty(value),
+        ),
+        PostureClause::Repetition(value) => (
+            RelationQuestion::Repetition.name(),
+            requirements.with_repetition(value),
+        ),
+        PostureClause::Membership(left, right) => (
+            RelationQuestion::Membership.name(),
+            requirements.with_membership(left, right),
+        ),
+        PostureClause::Completeness(left, right) => (
+            RelationQuestion::Completeness.name(),
+            requirements.with_completeness(left, right),
+        ),
+        PostureClause::Density(value) => (
+            RelationQuestion::Density.name(),
+            requirements.with_density(value),
+        ),
+        PostureClause::Absence(value) => (
+            RelationQuestion::Absence.name(),
+            requirements.with_absence(value),
+        ),
+        PostureClause::SelfRelation(value) => (
+            RelationQuestion::SelfRelation.name(),
+            requirements.with_self_relation(value),
+        ),
+        PostureClause::Cycle(value) => (
+            RelationQuestion::Cycle.name(),
+            requirements.with_cycle(value),
+        ),
     }
 }

@@ -6,7 +6,7 @@ use crate::expansion::Expansion;
 use crate::identity::OwnerFact;
 use crate::relation::{
     AbsencePosture, CompletenessPosture, CyclePosture, DensityPosture, EmptyPosture,
-    MembershipPosture, RepetitionPosture, SelfRelationPosture,
+    MembershipPosture, RelationQuestion, RepetitionPosture, SelfRelationPosture,
 };
 use crate::render::Output;
 use crate::request::Door;
@@ -40,21 +40,10 @@ pub const RELATION_TABLE_LIMIT: usize = RELATION_LIMIT;
 pub const TRANSITION_LIMIT: usize = RELATION_ROW_LIMIT;
 
 /// The complete number of structural questions one relation posture may answer.
-pub const RELATION_QUESTION_LIMIT: usize = RELATION_QUESTION_NAMES.len();
+pub const RELATION_QUESTION_LIMIT: usize = RelationQuestion::ALL.len();
 
 /// The maximum number of codec declarations carried by one recipe.
 pub const CODEC_LIMIT: usize = 16;
-
-pub(super) const RELATION_QUESTION_NAMES: &[&str] = &[
-    "empty",
-    "repetition",
-    "membership",
-    "completeness",
-    "density",
-    "absence",
-    "self_relation",
-    "cycle",
-];
 
 /// The diagnostic family owned by the recipe declaration.
 pub(super) const RECIPE_FAMILY: Family = Family::declared("macroonz/recipe");

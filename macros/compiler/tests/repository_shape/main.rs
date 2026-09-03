@@ -94,6 +94,22 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     )?;
     assert_occurrences(
         &root,
+        "pub(crate) enum RelationQuestion",
+        &["relation/types.rs"],
+    )?;
+    assert_occurrences(&root, "RELATION_QUESTION_NAMES", &[])?;
+    assert_occurrences(
+        &root,
+        "pub(crate) fn roster_row<Row: Copy>",
+        &["kind/type_contract.rs"],
+    )?;
+    assert_occurrences(
+        &root,
+        "the complete relation-question roster guards this match",
+        &[],
+    )?;
+    assert_occurrences(
+        &root,
         "pub const CAPTURED_DECLARATION_PROFILE: Profile",
         &["identity/bank.rs"],
     )?;

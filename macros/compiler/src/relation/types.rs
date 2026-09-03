@@ -59,6 +59,28 @@ crate::roster! {
 }
 
 crate::roster! {
+    /// Which structural question one recipe relation may answer.
+    pub(crate) enum RelationQuestion {
+        /// Whether the relation has any row.
+        Empty = "empty",
+        /// Whether an endpoint pair occurs more than once.
+        Repetition = "repetition",
+        /// Whether each endpoint roster is open or closed.
+        Membership = "membership",
+        /// Whether each endpoint roster is completely covered.
+        Completeness = "completeness",
+        /// Whether every possible endpoint pair occurs.
+        Density = "density",
+        /// What a generated operation does when no row applies.
+        Absence = "absence",
+        /// Whether a same-roster row may relate one member to itself.
+        SelfRelation = "self_relation",
+        /// Whether a same-roster directed cycle remains lawful.
+        Cycle = "cycle",
+    }
+}
+
+crate::roster! {
     /// Whether repeated endpoint pairs remain lawful.
     pub enum RepetitionPosture {
         /// Repeated pairs are retained as caller-owned rows.

@@ -7,6 +7,15 @@ use super::types::{
 use crate::identity::encode_bytes;
 use core::fmt;
 
+/// Find one roster row by the name its declaration assigned it.
+pub(crate) fn roster_row<Row: Copy>(
+    roster: &[Row],
+    name: fn(Row) -> &'static str,
+    sought: &str,
+) -> Option<Row> {
+    roster.iter().copied().find(|row| name(*row) == sought)
+}
+
 impl CanonicalContent for () {
     fn encode_content_into(&self, _into: &mut Vec<u8>) {}
 }
