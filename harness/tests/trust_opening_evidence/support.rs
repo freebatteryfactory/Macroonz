@@ -59,7 +59,7 @@ pub(super) const OWNER: &str = "harness.mutation.receiver";
 pub(super) const BACKEND_CONSOLE: &str =
     include_str!("current-compiled-pressure-artifact/cargo-mutants-27.0.0-console.txt");
 pub(super) const CURRENT_BACKEND_SOURCE: &[u8] =
-    include_bytes!("../../src/muterprater/backend/wrap.rs");
+    include_bytes!("../../src/muterprater/backend/wrap/parse.rs");
 /// The harness-derived revision identity of the wrapped-backend source the current campaign ran against.
 ///
 /// The `0.2.0` release receipt under `.durafx` records that source's Git blob, hash, and reconstruction road.

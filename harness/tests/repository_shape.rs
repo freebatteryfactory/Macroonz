@@ -229,10 +229,9 @@ fn assert_content_address_denominator(root: &Path) -> Result<(), std::io::Error>
 }
 
 fn assert_wrap_custody(root: &Path) -> Result<(), std::io::Error> {
-    assert_eq!(
-        paths_named(root, "wrap.rs")?,
-        ["src/muterprater/backend/wrap.rs"]
-    );
+    assert_eq!(paths_named(root, "wrap.rs")?, Vec::<String>::new());
+    let wrap_door = ["//! The compiled-", "mutation lane:"].concat();
+    assert_occurrences(root, &wrap_door, &["src/muterprater/backend/wrap/mod.rs"])?;
     let evidence = root.join("tests/trust_opening_evidence");
     for copied_source in ["wrap.rs", "compare.rs", "conclude.rs", "type_guard.rs"] {
         assert_eq!(

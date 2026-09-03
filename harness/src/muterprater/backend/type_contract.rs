@@ -1,4 +1,4 @@
-use super::types::{ClaimCeiling, ReadingSource, WrapOutcomeWord};
+use super::types::{ClaimCeiling, ReadingSource, WrapOutcomeWord, WrappedBackend};
 use crate::muterprater::{ExecutionAxis, MaterializationAxis};
 
 impl From<WrapOutcomeWord> for MaterializationAxis {
@@ -37,6 +37,18 @@ impl From<ReadingSource> for ClaimCeiling {
     fn from(source: ReadingSource) -> Self {
         match source {
             ReadingSource::ConsoleStream => Self::WitnessRejection,
+        }
+    }
+}
+
+impl WrappedBackend {
+    /// The backend's own name.
+    ///
+    /// A projection: a reader of a profile names the tool through it, and no decision anywhere consults it.
+    #[must_use]
+    pub const fn spelling(self) -> &'static str {
+        match self {
+            Self::CargoMutants => "cargo-mutants",
         }
     }
 }
