@@ -344,8 +344,8 @@ impl RecipeProjector for MirroredCodec {
 #[path = "support/observe.rs"]
 mod observe;
 pub(super) use observe::{
-    bake, bake_under, bake_with, bake_with_refusal, cargo_bytes, emitted_bytes, refusal,
-    refusal_summary, refusal_under,
+    bake, bake_at, bake_under, bake_with, bake_with_refusal, cargo_bytes, emitted_bytes, refusal,
+    refusal_at, refusal_summary, refusal_under,
 };
 #[path = "support/tokens.rs"]
 mod tokens;

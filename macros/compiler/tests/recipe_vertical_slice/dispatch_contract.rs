@@ -1,13 +1,14 @@
 //! Dispatch disclosure, exact-Rust custody, identity, and refusal claims.
 
+use super::support::refusal;
 use super::{
-    COMPANION_RECIPE, DOOR, EXACT_DISPATCH_RECIPE, EXACT_EFFECT_RECIPE, bake, emitted_bytes,
+    COMPANION_RECIPE, EXACT_DISPATCH_RECIPE, EXACT_EFFECT_RECIPE, bake, emitted_bytes,
     refusal_summary,
 };
+use macroonz_compiler::GeneratedTree;
 use macroonz_compiler::recipe::{
-    HarnessPosture, LoweringSource, RecipeRelationPayload, RecipeRole, RecipeTransitionEffect,
+    LoweringSource, RecipeRelationPayload, RecipeRole, RecipeTransitionEffect,
 };
-use macroonz_compiler::{GeneratedTree, TextCapture};
 
 #[test]
 fn dispatch_discloses_preset_configuration_and_exact_rust_on_one_seat() -> Result<(), ()> {
@@ -245,10 +246,7 @@ fn exact_dispatch_refusals_name_the_owned_repair() -> Result<(), ()> {
     );
 
     let pattern = EXACT_DISPATCH_RECIPE.replace("current: State", "(current, _): (State, State)");
-    let read = TextCapture::read(&pattern).map_err(|_| ())?;
-    let refusal = macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
-        .err()
-        .ok_or(())?;
+    let refusal = refusal(&pattern)?;
     assert!(
         refusal
             .summary()

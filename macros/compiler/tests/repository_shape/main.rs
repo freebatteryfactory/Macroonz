@@ -349,7 +349,22 @@ fn assert_recipe_observation_debt_is_closed(root: &Path) -> Result<(), std::io::
     assert_occurrences(
         root,
         &["macroonz_compiler::recipe::", "bake_with("].concat(),
-        &["recipe_vertical_slice/evidence_contract.rs", driver, driver],
+        &[driver, driver],
+    )?;
+    assert_occurrences(
+        root,
+        &["macroonz_compiler::recipe::", "bake(read"].concat(),
+        &[driver, driver],
+    )?;
+    assert_occurrences(
+        root,
+        &["macroonz_compiler::recipe::", "bake("].concat(),
+        &[
+            "recipe_vertical_slice/host_parity.rs",
+            "recipe_vertical_slice/maximal_recipe.rs",
+            driver,
+            driver,
+        ],
     )?;
     let specimens = "support/attribute_specimens.rs";
     for body in [
