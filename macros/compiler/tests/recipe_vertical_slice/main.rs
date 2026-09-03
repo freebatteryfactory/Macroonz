@@ -1,6 +1,7 @@
 //! Recipe behavior observed through callable, wrapper, projector, and refusal claims.
 
 mod caller_rust;
+mod codec_projection;
 mod diagnostic_custody;
 mod diagnostic_matrix;
 mod dispatch_contract;
