@@ -9,9 +9,11 @@ use macroonz_compiler::descriptor::{
     network, shadow, trial,
 };
 use macroonz_compiler::{
-    CanonicalContent, Capping, CapturedInput, CrateBinding, Diagnostic, Door, GeneratedToken,
-    LineBody, Observed, OwnerFact, OwnerIdentity, Phase, Placement, Producer, RefusalClass,
-    Refused, Site, SpanHandle, TextCapture,
+    BENCH_HELPER_FAMILY, CONCURRENCY_HELPER_FAMILY, CanonicalContent, Capping, CapturedInput,
+    CrateBinding, Diagnostic, Door, FIRST_HELPER_FAMILY, Family, GeneratedToken, LineBody,
+    NETWORK_HELPER_FAMILY, Observed, OwnerFact, OwnerIdentity, Phase, Placement, Producer,
+    RefusalClass, Refused, SECOND_HELPER_FAMILY, SHADOW_HELPER_FAMILY, Site, SpanHandle,
+    TextCapture,
 };
 
 /// The public door that places composition refusals for this external lane.
@@ -216,6 +218,111 @@ fn concurrency_content() -> Result<Vec<u8>, ()> {
     )
     .map_err(|_refusal| ())?;
     Ok(canonical_content(&content))
+}
+
+fn assert_helper_refusal_contract<E>(
+    refusal: &E,
+    family: Family,
+    related_count: usize,
+) -> Result<(), ()>
+where
+    E: Refused + core::fmt::Display,
+{
+    assert_eq!(<E as Refused>::PHASE, Phase::Capture);
+    assert_eq!(<E as Refused>::FAMILY, family);
+    assert_eq!(refusal.class(), RefusalClass::DeclarationNotRead);
+    assert_eq!(refusal.first(), refusal.to_string());
+    assert_eq!(refusal.observed(), Observed::SeatAbsent);
+    assert_eq!(refusal.body(), LineBody::SingleCause);
+    assert_eq!(refusal.related().len(), related_count);
+    let [_repair] = refusal.repairs().as_slice() else {
+        return Err(());
+    };
+    Ok(())
+}
+
+/// Claim: every descriptor helper error projects through one contract while retaining its declared family and related-material posture.
+/// Subject: all six public helper capture error types through the `Refused` contract.
+/// Population: one empty declaration refused by each helper grammar.
+/// Hostile control: mutation carries no related material while the other five carry one canonical refusal, so one copied posture disagrees.
+/// Denominator: every helper capture error type in the descriptor adapter.
+/// Evidence ceiling: this establishes shared projection mechanics and each family's selected related posture, not every capture issue row.
+/// Retained-regression policy: any family, summary, body, repair count, or related-material movement requires an explicit diagnostic ruling.
+#[test]
+fn every_helper_capture_error_retains_its_projection_contract() -> Result<(), ()> {
+    let input = captured("")?;
+    let trees = trees(&input);
+    let at = SpanHandle::at(0);
+    assert_helper_refusal_contract(
+        &trial::captured(
+            &trees,
+            at,
+            Grammar {
+                attribute: "trials",
+            },
+        )
+        .err()
+        .ok_or(())?,
+        FIRST_HELPER_FAMILY,
+        1,
+    )?;
+    assert_helper_refusal_contract(
+        &mutation::captured(
+            &trees,
+            at,
+            Grammar {
+                attribute: "mutations",
+            },
+        )
+        .err()
+        .ok_or(())?,
+        SECOND_HELPER_FAMILY,
+        0,
+    )?;
+    assert_helper_refusal_contract(
+        &bench::captured(&trees, at, Grammar { attribute: "bench" })
+            .err()
+            .ok_or(())?,
+        BENCH_HELPER_FAMILY,
+        1,
+    )?;
+    assert_helper_refusal_contract(
+        &shadow::chosen(
+            &input,
+            Grammar {
+                attribute: "shadow",
+            },
+        )
+        .err()
+        .ok_or(())?,
+        SHADOW_HELPER_FAMILY,
+        1,
+    )?;
+    assert_helper_refusal_contract(
+        &network::declared(
+            &input,
+            Grammar {
+                attribute: "network",
+            },
+        )
+        .err()
+        .ok_or(())?,
+        NETWORK_HELPER_FAMILY,
+        1,
+    )?;
+    assert_helper_refusal_contract(
+        &concurrency::declared(
+            &input,
+            Grammar {
+                attribute: "concurrency",
+            },
+        )
+        .err()
+        .ok_or(())?,
+        CONCURRENCY_HELPER_FAMILY,
+        1,
+    )?;
+    Ok(())
 }
 
 #[test]

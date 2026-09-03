@@ -122,6 +122,38 @@ fn assert_doubled_set_debt_is_closed(root: &Path) -> Result<(), std::io::Error> 
     Ok(())
 }
 
+fn assert_helper_refusal_projection_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
+    assert_occurrences(
+        root,
+        "macro_rules! impl_helper_capture_contract",
+        &["descriptor/type_contract.rs"],
+    )?;
+    assert_occurrences(
+        root,
+        "impl_helper_capture_contract!(",
+        &[
+            "descriptor/bench/type_contract.rs",
+            "descriptor/concurrency/type_contract.rs",
+            "descriptor/mutation/type_contract.rs",
+            "descriptor/network/type_contract.rs",
+            "descriptor/shadow/type_contract.rs",
+            "descriptor/trial/type_contract.rs",
+            "descriptor/type_contract.rs",
+        ],
+    )?;
+    for error in [
+        "BenchCaptureError",
+        "ConcurrencyCaptureError",
+        "MutationCaptureError",
+        "NetworkCaptureError",
+        "ShadowCaptureError",
+        "TrialCaptureError",
+    ] {
+        assert_occurrences(root, &format!("impl Refused for {error}"), &[])?;
+    }
+    Ok(())
+}
+
 fn assert_roster_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
     assert_occurrences(root, "macro_rules! subjects", &["identity/stamp.rs"])?;
     assert_occurrences(root, "const RUST_KEYWORDS: &[&str]", &["token/bank.rs"])?;
@@ -188,6 +220,7 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     assert_role_join_debt_is_closed(&root)?;
     assert_duplicate_group_debt_is_closed(&root)?;
     assert_doubled_set_debt_is_closed(&root)?;
+    assert_helper_refusal_projection_debt_is_closed(&root)?;
     assert_occurrences(&root, "const FAULT_ARMS:", &[])?;
     assert_occurrences(
         &root,

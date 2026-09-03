@@ -1,12 +1,8 @@
 //! The mutation home's stated tables: what the kind is, where its one unit lands, and how its grammar refuses.
 
 use super::{Address, MutationCaptureError, MutationSurface, Policy, Site, Surface, SurfaceRole};
-use crate::bounded::Bounded;
 use crate::descriptor::Name;
-use crate::diagnostic::{
-    Family, LineBody, Observed, Phase, REPAIR_LIMIT, RefusalClass, Refused, Repair,
-    SECOND_HELPER_FAMILY,
-};
+use crate::diagnostic::SECOND_HELPER_FAMILY;
 use crate::identity::{encode_bytes, encode_length};
 use crate::kind::{CanonicalContent, Destination, Kind, NoQuestions, Role};
 use crate::token::GeneratedToken;
@@ -106,40 +102,4 @@ impl Role for SurfaceRole {
     }
 }
 
-impl Refused for MutationCaptureError {
-    const PHASE: Phase = Phase::Capture;
-    const FAMILY: Family = SECOND_HELPER_FAMILY;
-
-    fn class(&self) -> RefusalClass {
-        self.refusal().class()
-    }
-
-    fn first(&self) -> String {
-        self.refusal().first()
-    }
-
-    fn observed(&self) -> Observed {
-        self.refusal().classified()
-    }
-
-    fn body(&self) -> LineBody {
-        LineBody::SingleCause
-    }
-
-    fn related(&self) -> Vec<Vec<u8>> {
-        Vec::new()
-    }
-
-    fn repairs(&self) -> Bounded<Repair, REPAIR_LIMIT> {
-        self.refusal().repairs()
-    }
-}
-
-impl core::fmt::Display for MutationCaptureError {
-    fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let refusal = self.refusal();
-        write!(into, "{refusal}")
-    }
-}
-
-impl core::error::Error for MutationCaptureError {}
+crate::descriptor::impl_helper_capture_contract!(MutationCaptureError, SECOND_HELPER_FAMILY, none);

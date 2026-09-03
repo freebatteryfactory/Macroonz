@@ -18,6 +18,8 @@ mod composition;
 mod type_contract;
 mod types;
 
+pub(crate) use type_contract::impl_helper_capture_contract;
+
 pub use types::{
     CaptureCause, CaptureIssue, Composition, CompositionError, CompositionIssue,
     DESCRIPTOR_MEANING_FACT, DeclarationError, DirectBinding, Emitter, FunctionName, Grammar,
