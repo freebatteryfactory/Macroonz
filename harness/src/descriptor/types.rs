@@ -776,3 +776,5 @@ pub const BENCH_FIELDS: &[SchemaField] = &[
 
 #[path = "type_guard.rs"]
 mod guard;
+
+pub(crate) use guard::namespaced_reference;

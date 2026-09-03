@@ -8,31 +8,12 @@ use super::{
     EvaluationSurface, EvaluationSurfaceId, MUTATION_ALTERNATIVE_TAG, MUTATION_DISCOVERY_TAG,
     MUTATION_POLICY_TAG, MutationDiscoveryId, MutationDiscoveryReading, MutationPermission,
     MutationPoint, MutationPointRef, MutationPolicy, MutationPolicyId, MutationSurfaceLowering,
-    NameRefusal, NamespacedName, OperatorFamilyRef, OwnerClaimMapping, PermissionRefusal,
-    PointCatalogPosture, PolicyMembership, PolicyRefusal, ResolvedMutation, SelectionRefusal,
+    OperatorFamilyRef, OwnerClaimMapping, PermissionRefusal, PointCatalogPosture, PolicyMembership,
+    PolicyRefusal, ResolvedMutation, SelectionRefusal,
 };
-impl EvaluationFamilyRef {
-    /// The evaluation family, parsed from its owner and spelling.
-    ///
-    /// # Errors
-    ///
-    /// Refuses an empty namespace, then an empty stem.
-    pub fn named(namespace: &'static str, stem: &'static str) -> Result<Self, NameRefusal> {
-        NamespacedName::named(namespace, stem).map(Self)
-    }
+use crate::descriptor::namespaced_reference;
 
-    /// The evaluation family over an already-parsed name.
-    #[must_use]
-    pub const fn over(name: NamespacedName) -> Self {
-        Self(name)
-    }
-
-    /// The namespaced name this family carries.
-    #[must_use]
-    pub const fn name(self) -> NamespacedName {
-        self.0
-    }
-}
+namespaced_reference!(EvaluationFamilyRef, ActivationSite);
 
 impl MutationPolicyId {
     /// The policy's derived content address.
@@ -163,29 +144,6 @@ impl PolicyMembership {
 // ---------------------------------------------------------------------------
 // Producer discovery.
 // ---------------------------------------------------------------------------
-
-impl ActivationSite {
-    /// The site, parsed from the owner that declares it and the spelling it carries.
-    ///
-    /// # Errors
-    ///
-    /// Refuses an empty namespace, then an empty stem.
-    pub fn named(namespace: &'static str, stem: &'static str) -> Result<Self, NameRefusal> {
-        NamespacedName::named(namespace, stem).map(Self)
-    }
-
-    /// The site, over a name already parsed.
-    #[must_use]
-    pub const fn over(name: NamespacedName) -> Self {
-        Self(name)
-    }
-
-    /// The namespaced name this site carries.
-    #[must_use]
-    pub const fn name(self) -> NamespacedName {
-        self.0
-    }
-}
 
 impl AlternativeDeclaration {
     /// One discovered operator family and canonical mutation meaning, before policy admission.

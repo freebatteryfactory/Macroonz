@@ -1,6 +1,6 @@
 //! Owner policy, producer discovery, executable surfaces, and resolved directives.
 
-use crate::descriptor::{ClaimRef, MutationPointRef, NameRefusal, NamespacedName};
+use crate::descriptor::{ClaimRef, MutationPointRef, NamespacedName};
 use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use crate::muterprater::OperatorFamilyRef;
 #[path = "type_guard.rs"]

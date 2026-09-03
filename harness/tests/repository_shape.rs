@@ -84,10 +84,7 @@ fn named_harness_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     assert_occurrences(
         &root.join("src"),
         "macro_rules! namespaced_reference",
-        &[
-            "bench/declaration/type_guard.rs",
-            "descriptor/type_guard.rs",
-        ],
+        &["descriptor/type_guard.rs"],
     )?;
     assert_occurrences(&root.join("src"), "struct BodyReader<'body>", &[])?;
     assert_occurrences(

@@ -10,7 +10,7 @@ use super::{
     SemanticCandidateRefusal, SemanticCandidates, SemanticReducerBinding, SemanticReducerCall,
     SemanticReducerExecution, SemanticReducerId, ShrinkVerdict,
 };
-use crate::descriptor::{GeneratedSupportSchemaId, NameRefusal, NamespacedName, RevisionBinding};
+use crate::descriptor::{GeneratedSupportSchemaId, RevisionBinding, namespaced_reference};
 use crate::report::{
     Fingerprint, GenerationProfile, MinimizationProfile, ReplayPosture, RunAttempt,
     TrialConclusion, TrialReport, TrialRunStanding,
@@ -19,28 +19,7 @@ use std::collections::BTreeSet;
 
 // The reduction plan and the reducers it binds.
 
-impl SemanticReducerId {
-    /// This reducer, parsed from the owner that declares it and the spelling it carries.
-    ///
-    /// # Errors
-    ///
-    /// Refuses an empty namespace, then an empty stem.
-    pub fn named(namespace: &'static str, stem: &'static str) -> Result<Self, NameRefusal> {
-        NamespacedName::named(namespace, stem).map(Self)
-    }
-
-    /// This reducer, over a name already parsed.
-    #[must_use]
-    pub const fn over(name: NamespacedName) -> Self {
-        Self(name)
-    }
-
-    /// The namespaced name this reducer carries.
-    #[must_use]
-    pub const fn name(self) -> NamespacedName {
-        self.0
-    }
-}
+namespaced_reference!(SemanticReducerId);
 
 impl SemanticCandidates {
     /// The ordered candidates one semantic reducer proposes for this input.

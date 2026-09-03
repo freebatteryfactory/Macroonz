@@ -7,51 +7,12 @@ use super::{
     WorkFormulaRefusal, WorkObservationRef, WorkloadRef,
 };
 use crate::bench::declaration::encode::derive_row_key;
-use crate::descriptor::{NameRefusal, NamespacedName};
+use crate::descriptor::namespaced_reference;
 use crate::identity::ContentAddress;
 use std::collections::BTreeMap;
 use std::num::NonZeroU32;
 
-/// The two roads and the one reader every namespaced reference here shares, written once.
-///
-/// Each reference is a type of its own so a workload cannot be handed in where a complexity claim was meant.
-/// All they share is how a name is parsed, and that law belongs in one place.
-macro_rules! namespaced_reference {
-    ($($reference:ident),+ $(,)?) => {
-        $(
-            impl $reference {
-                /// This reference, from the namespace that declares it and the spelling it carries.
-                ///
-                /// # Errors
-                ///
-                /// Refuses an empty namespace, then an empty stem.
-                pub const fn named(
-                    namespace: &'static str,
-                    stem: &'static str,
-                ) -> Result<Self, NameRefusal> {
-                    match NamespacedName::named(namespace, stem) {
-                        Ok(name) => Ok(Self(name)),
-                        Err(refusal) => Err(refusal),
-                    }
-                }
-
-                /// This reference, over a name already parsed.
-                #[must_use]
-                pub const fn over(name: NamespacedName) -> Self {
-                    Self(name)
-                }
-
-                /// The name this reference carries.
-                #[must_use]
-                pub const fn name(self) -> NamespacedName {
-                    self.0
-                }
-            }
-        )+
-    };
-}
-
-namespaced_reference!(
+namespaced_reference!(const
     WorkloadRef,
     PreflightRef,
     PlantedWorseRef,

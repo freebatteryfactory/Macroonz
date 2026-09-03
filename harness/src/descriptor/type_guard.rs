@@ -130,39 +130,52 @@ impl NamespacedName {
 
 /// The two roads and the one reader every namespaced reference carries, written once and stamped over the roster.
 ///
-/// Each reference is its own type so the compiler keeps a claim out of a subject's seat.
+/// Each reference is its own type so a claim cannot occupy a subject's seat.
 /// What they share is how a name is parsed, and a hand-copied parser per newtype would be that one law standing in a dozen places.
 macro_rules! namespaced_reference {
-    ($($reference:ident),+ $(,)?) => {
+    (const $($reference:ident),+ $(,)?) => {
         $(
-            impl $reference {
-                /// This reference, parsed from the owner that declares it and the spelling it carries.
-                ///
-                /// # Errors
-                ///
-                /// Refuses an empty namespace, then an empty stem.
-                pub fn named(
-                    namespace: &'static str,
-                    stem: &'static str,
-                ) -> Result<Self, NameRefusal> {
-                    NamespacedName::named(namespace, stem).map(Self)
-                }
-
-                /// This reference, over a name already parsed.
-                #[must_use]
-                pub const fn over(name: NamespacedName) -> Self {
-                    Self(name)
-                }
-
-                /// The namespaced name this reference carries.
-                #[must_use]
-                pub const fn name(self) -> NamespacedName {
-                    self.0
-                }
-            }
+            namespaced_reference!(@implement $reference, pub const fn);
         )+
     };
+    ($($reference:ident),+ $(,)?) => {
+        $(
+            namespaced_reference!(@implement $reference, pub fn);
+        )+
+    };
+    (@implement $reference:ident, $($signature:tt)+) => {
+        impl $reference {
+            /// This reference, parsed from the owner that declares it and the spelling it carries.
+            ///
+            /// # Errors
+            ///
+            /// Refuses an empty namespace, then an empty stem.
+            $($signature)+ named(
+                namespace: &'static str,
+                stem: &'static str,
+            ) -> Result<Self, $crate::descriptor::NameRefusal> {
+                match $crate::descriptor::NamespacedName::named(namespace, stem) {
+                    Ok(name) => Ok(Self(name)),
+                    Err(refusal) => Err(refusal),
+                }
+            }
+
+            /// This reference, over a name already parsed.
+            #[must_use]
+            pub const fn over(name: $crate::descriptor::NamespacedName) -> Self {
+                Self(name)
+            }
+
+            /// The namespaced name this reference carries.
+            #[must_use]
+            pub const fn name(self) -> $crate::descriptor::NamespacedName {
+                self.0
+            }
+        }
+    };
 }
+
+pub(crate) use namespaced_reference;
 
 namespaced_reference!(
     AuthoredTableName,
