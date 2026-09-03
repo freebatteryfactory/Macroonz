@@ -164,6 +164,8 @@ fn assert_closed_shape_debt(root: &Path) -> Result<(), std::io::Error> {
         "fn addressed_body<Address, Refusal>(",
         &["identity/read.rs"],
     )?;
+    assert_occurrences(root, "struct AbsolutePath(PathBuf);", &["fuzz/types.rs"])?;
+    assert_occurrences(root, "path.as_os_str().is_empty()", &["fuzz/type_guard.rs"])?;
     Ok(())
 }
 

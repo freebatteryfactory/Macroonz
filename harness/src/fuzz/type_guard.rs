@@ -1,17 +1,37 @@
 //! Smart constructors and readers for the fuzz home.
 
 use super::{
-    CoverageAdmission, CoverageAdmissionRefusal, CoverageBudgetRefusal, CoverageBudgets,
-    CoverageCampaign, CoverageCorpus, CoverageObservation, CoveragePoint, CoverageProfile,
-    CoverageSource, CoverageSourceRoot, CoverageSourceRootRefusal, CoverageStanding, FuzzExecution,
-    InstrumentedTarget, InterestingBytes, MutationCandidate, MutationKind, MutationPlan,
-    MutationPlanRefusal, ReadyPreflight, RustcCoverageTools, RustcProfileRefusal,
-    RustcProfileRequest, RustcProfileRequestRefusal, RustcProfileResult,
+    AbsolutePath, CoverageAdmission, CoverageAdmissionRefusal, CoverageBudgetRefusal,
+    CoverageBudgets, CoverageCampaign, CoverageCorpus, CoverageObservation, CoveragePoint,
+    CoverageProfile, CoverageSource, CoverageSourceRoot, CoverageSourceRootRefusal,
+    CoverageStanding, FuzzExecution, InstrumentedTarget, InterestingBytes, MutationCandidate,
+    MutationKind, MutationPlan, MutationPlanRefusal, ReadyPreflight, RustcCoverageTools,
+    RustcProfileRefusal, RustcProfileRequest, RustcProfileRequestRefusal, RustcProfileResult,
 };
 use crate::descriptor::NamespacedName;
 use crate::report::{ByteBudget, CaseBudget, TargetBinding};
 use std::collections::BTreeSet;
 use std::path::{Component, Path, PathBuf};
+
+impl AbsolutePath {
+    fn informed<Refusal>(
+        path: PathBuf,
+        empty: Refusal,
+        relative: Refusal,
+    ) -> Result<Self, Refusal> {
+        if path.as_os_str().is_empty() {
+            return Err(empty);
+        }
+        if !path.is_absolute() {
+            return Err(relative);
+        }
+        Ok(Self(path))
+    }
+
+    fn into_path(self) -> PathBuf {
+        self.0
+    }
+}
 
 impl CoverageSourceRoot {
     /// Declare one logical source root and its absolute checkout seat.
@@ -23,12 +43,12 @@ impl CoverageSourceRoot {
         logical: NamespacedName,
         checkout: PathBuf,
     ) -> Result<Self, CoverageSourceRootRefusal> {
-        if checkout.as_os_str().is_empty() {
-            return Err(CoverageSourceRootRefusal::EmptyCheckout);
-        }
-        if !checkout.is_absolute() {
-            return Err(CoverageSourceRootRefusal::RelativeCheckout);
-        }
+        let checkout = AbsolutePath::informed(
+            checkout,
+            CoverageSourceRootRefusal::EmptyCheckout,
+            CoverageSourceRootRefusal::RelativeCheckout,
+        )?
+        .into_path();
         if checkout
             .components()
             .any(|component| matches!(component, Component::ParentDir))
@@ -477,12 +497,12 @@ impl InstrumentedTarget {
         executable: PathBuf,
         arguments: Vec<String>,
     ) -> Result<Self, RustcProfileRequestRefusal> {
-        if executable.as_os_str().is_empty() {
-            return Err(RustcProfileRequestRefusal::Target);
-        }
-        if !executable.is_absolute() {
-            return Err(RustcProfileRequestRefusal::RelativeTarget);
-        }
+        let executable = AbsolutePath::informed(
+            executable,
+            RustcProfileRequestRefusal::Target,
+            RustcProfileRequestRefusal::RelativeTarget,
+        )?
+        .into_path();
         Ok(Self {
             executable,
             arguments,
@@ -511,18 +531,18 @@ impl RustcProfileRequest {
         scratch: PathBuf,
         campaign: CoverageCampaign,
     ) -> Result<Self, RustcProfileRequestRefusal> {
-        if rustc.as_os_str().is_empty() {
-            return Err(RustcProfileRequestRefusal::Rustc);
-        }
-        if !rustc.is_absolute() {
-            return Err(RustcProfileRequestRefusal::RelativeRustc);
-        }
-        if scratch.as_os_str().is_empty() {
-            return Err(RustcProfileRequestRefusal::Scratch);
-        }
-        if !scratch.is_absolute() {
-            return Err(RustcProfileRequestRefusal::RelativeScratch);
-        }
+        let rustc = AbsolutePath::informed(
+            rustc,
+            RustcProfileRequestRefusal::Rustc,
+            RustcProfileRequestRefusal::RelativeRustc,
+        )?
+        .into_path();
+        let scratch = AbsolutePath::informed(
+            scratch,
+            RustcProfileRequestRefusal::Scratch,
+            RustcProfileRequestRefusal::RelativeScratch,
+        )?
+        .into_path();
         Ok(Self {
             rustc,
             target,

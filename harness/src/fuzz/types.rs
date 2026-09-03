@@ -10,6 +10,9 @@ use std::path::PathBuf;
 #[path = "type_guard.rs"]
 mod guard;
 
+/// One path after the fuzz declaration boundary has refused emptiness and relativity.
+struct AbsolutePath(PathBuf);
+
 /// The stable product toolchain whose coverage format this home qualifies.
 pub const RUSTC_COVERAGE_TOOLCHAIN: &str = "1.98.0";
 

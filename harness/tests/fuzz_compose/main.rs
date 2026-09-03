@@ -203,12 +203,20 @@ fn probe_binding() -> Option<ReductionProbeBinding> {
 fn declared_execution_inputs_refuse_ambient_paths() -> Result<(), FuzzRoadFailure> {
     assert_eq!(RUSTC_COVERAGE_TOOLCHAIN, "1.98.0");
     assert_eq!(
+        InstrumentedTarget::declared(PathBuf::new(), Vec::new()),
+        Err(RustcProfileRequestRefusal::Target)
+    );
+    assert_eq!(
         InstrumentedTarget::declared(PathBuf::from("target"), Vec::new()),
         Err(RustcProfileRequestRefusal::RelativeTarget)
     );
     let Some(logical) = NamespacedName::named("harness", "rustc-coverage").ok() else {
         return Err(FuzzRoadFailure::Fixture);
     };
+    assert_eq!(
+        CoverageSourceRoot::declared(logical, PathBuf::new()),
+        Err(CoverageSourceRootRefusal::EmptyCheckout)
+    );
     assert_eq!(
         CoverageSourceRoot::declared(logical, PathBuf::from("checkout")),
         Err(CoverageSourceRootRefusal::RelativeCheckout)
@@ -217,6 +225,53 @@ fn declared_execution_inputs_refuse_ambient_paths() -> Result<(), FuzzRoadFailur
     assert_eq!(
         CoverageSourceRoot::declared(logical, traversing),
         Err(CoverageSourceRootRefusal::CheckoutTraversal)
+    );
+
+    let absolute = std::env::temp_dir();
+    let target =
+        InstrumentedTarget::declared(absolute.join("target"), Vec::new()).map_err(external)?;
+    let source_root =
+        CoverageSourceRoot::declared(logical, absolute.join("checkout")).map_err(external)?;
+    let campaign = coverage_campaign()?;
+    assert_eq!(
+        RustcProfileRequest::declared(
+            PathBuf::new(),
+            target.clone(),
+            source_root.clone(),
+            absolute.join("scratch"),
+            campaign,
+        ),
+        Err(RustcProfileRequestRefusal::Rustc)
+    );
+    assert_eq!(
+        RustcProfileRequest::declared(
+            PathBuf::from("rustc"),
+            target.clone(),
+            source_root.clone(),
+            absolute.join("scratch"),
+            campaign,
+        ),
+        Err(RustcProfileRequestRefusal::RelativeRustc)
+    );
+    assert_eq!(
+        RustcProfileRequest::declared(
+            absolute.join("rustc"),
+            target.clone(),
+            source_root.clone(),
+            PathBuf::new(),
+            campaign,
+        ),
+        Err(RustcProfileRequestRefusal::Scratch)
+    );
+    assert_eq!(
+        RustcProfileRequest::declared(
+            absolute.join("rustc"),
+            target,
+            source_root,
+            PathBuf::from("scratch"),
+            campaign,
+        ),
+        Err(RustcProfileRequestRefusal::RelativeScratch)
     );
     Ok(())
 }
