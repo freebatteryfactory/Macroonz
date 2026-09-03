@@ -386,7 +386,7 @@ impl HumanProjection {
         Bounded::new(text.as_bytes().to_vec()).map(Self)
     }
 
-    /// The seam behind [`human_projection!`], which is the only road to it.
+    /// The seam behind [`human_projection!`](crate::identity::human_projection), which is the only road to it.
     ///
     /// The rendering arrives as a fixed-width array, and the width is the array's own TYPE, so this road carries no runtime count, returns no refusal, and has no branch where a rendering that did not fit becomes an empty one.
     #[must_use]
@@ -419,109 +419,5 @@ impl HumanProjection {
     #[must_use]
     pub fn shown(&self) -> String {
         String::from_utf8_lossy(self.0.as_slice()).into_owned()
-    }
-}
-
-/// One static rendering's bytes, at the fixed width the caller declared.
-///
-/// Written for the `const` item [`human_projection!`] builds: a width other than the rendering's own length stops the compiler rather than handing a reader a padded or cut projection.
-#[must_use]
-pub(crate) const fn static_bytes<const N: usize>(text: &str) -> [u8; N] {
-    assert!(
-        text.len() == N,
-        "a declared width that is not the rendering's own length"
-    );
-    let mut rendered = [0u8; N];
-    let mut source = text.as_bytes();
-    let mut sink: &mut [u8] = &mut rendered;
-    while let Some((seat, open)) = sink.split_first_mut() {
-        let Some((byte, remaining)) = source.split_first() else {
-            break;
-        };
-        *seat = *byte;
-        sink = open;
-        source = remaining;
-    }
-    rendered
-}
-
-/// Projects one STATIC rendering, proving at COMPILE TIME that it fits.
-///
-/// [`HumanProjection::projected`] reads a runtime length and may refuse, and a caller that swallowed that refusal with an empty fallback would be silently deleting an explanation.
-/// Where the material is static the length is a compile-time fact instead, and no refusal road appears anywhere between the literal and the projection.
-macro_rules! human_projection {
-    ($text:literal) => {{
-        const RENDERED: [u8; $text.len()] = $crate::identity::static_bytes($text);
-        $crate::identity::HumanProjection::proven(RENDERED)
-    }};
-}
-
-pub(crate) use human_projection;
-
-/// Whether a roster of declared names really separates: every name inside the context grammar, and no name declared twice.
-///
-/// Written for the `const` block the `subjects!` roster stamp emits, and evaluated at compile time — a name that would collapse two key spaces is a compile error rather than a defect a reader has to notice.
-///
-/// The grammar is the closed one [`Subject::NAME`] declares: lowercase ASCII letters and digits in `-`-joined segments, with no leading, trailing, or doubled separator.
-#[must_use]
-pub const fn names_are_separating(names: &[&str]) -> bool {
-    match names.split_first() {
-        None => true,
-        Some((first, rest)) => {
-            name_is_grammatical(first) && !names_contain(rest, first) && names_are_separating(rest)
-        }
-    }
-}
-
-/// Where in a `-`-joined segment the grammar walk stands.
-#[derive(Clone, Copy)]
-enum Segment {
-    /// No character of the current segment has been read yet.
-    Opening,
-    /// At least one character of the current segment has been read.
-    Inside,
-}
-
-/// Whether one declared name stands inside the closed context grammar.
-pub(crate) const fn name_is_grammatical(name: &str) -> bool {
-    grammatical(name.as_bytes(), Segment::Opening)
-}
-
-/// The grammar walk, carrying where in a segment the reader stands.
-///
-/// It opens at [`Segment::Opening`], so an empty name and a leading separator both refuse; it ends well only from [`Segment::Inside`], so a trailing separator refuses too.
-const fn grammatical(bytes: &[u8], at: Segment) -> bool {
-    match bytes.split_first() {
-        None => matches!(at, Segment::Inside),
-        Some((byte, rest)) => {
-            if *byte == b'-' {
-                matches!(at, Segment::Inside) && grammatical(rest, Segment::Opening)
-            } else if byte.is_ascii_lowercase() || byte.is_ascii_digit() {
-                grammatical(rest, Segment::Inside)
-            } else {
-                false
-            }
-        }
-    }
-}
-
-/// Whether a roster already carries one declared name.
-const fn names_contain(names: &[&str], name: &str) -> bool {
-    match names.split_first() {
-        None => false,
-        Some((first, rest)) => {
-            same_bytes(first.as_bytes(), name.as_bytes()) || names_contain(rest, name)
-        }
-    }
-}
-
-/// Whether two declared names are the same bytes.
-const fn same_bytes(left: &[u8], right: &[u8]) -> bool {
-    match (left.split_first(), right.split_first()) {
-        (None, None) => true,
-        (None, Some(_)) | (Some(_), None) => false,
-        (Some((here, left_rest)), Some((there, right_rest))) => {
-            *here == *there && same_bytes(left_rest, right_rest)
-        }
     }
 }

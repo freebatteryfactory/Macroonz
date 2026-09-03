@@ -9,9 +9,6 @@ use core::marker::PhantomData;
 #[path = "type_guard.rs"]
 mod guard;
 
-pub use guard::names_are_separating;
-pub(crate) use guard::{human_projection, name_is_grammatical, static_bytes};
-
 /// The stem every subject and every grammar this compiler owns is declared under.
 pub const MACROONZ_STEM: &str = "macroonz/identity";
 

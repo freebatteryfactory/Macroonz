@@ -71,7 +71,7 @@ fn assert_declared_name_grammar_debt_is_closed(root: &Path) -> Result<(), std::i
     assert_occurrences(
         root,
         "pub(crate) const fn name_is_grammatical",
-        &["identity/type_guard.rs"],
+        &["identity/grammar.rs"],
     )?;
     assert_occurrences(root, "fn diagnostic_name_is_kebab_case", &[])?;
     Ok(())

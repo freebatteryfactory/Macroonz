@@ -2,6 +2,7 @@
 
 mod bank;
 mod encode;
+mod grammar;
 mod stamp;
 mod transcript;
 mod type_contract;
@@ -16,6 +17,9 @@ pub use bank::{
     RENDERED_UNIT_PROFILE,
 };
 pub use encode::{encode_bytes, encode_length};
+pub(crate) use grammar::name_is_grammatical;
+pub use grammar::names_are_separating;
+pub(crate) use stamp::{human_projection, static_bytes};
 pub use types::{
     Anchoring, CapturedDeclaration, CapturedHelper, ClosedExpansion, ClosedExpansionId, Closure,
     ClosureId, Contract, DeclaredName, Explanation, ExplanationId, GENERATOR, GeneratedUnit,
@@ -23,6 +27,5 @@ pub use types::{
     MACROONZ_STEM, Nonclaim, OriginNode, OutputBytes, OwnerFact, OwnerIdentity, Plan, PlanId,
     Profile, ProjectionContent, ProjectionIntent, ProjectionKind, ProjectionProfile, Provenance,
     RelatedBody, RelatedIssue, RenderedUnit, Role, ServiceEntry, ShapeVersion, Subject, Traced,
-    Transcript, Version, names_are_separating,
+    Transcript, Version,
 };
-pub(crate) use types::{human_projection, name_is_grammatical, static_bytes};
