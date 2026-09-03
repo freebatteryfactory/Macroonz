@@ -2,7 +2,10 @@
 
 #[cfg(feature = "host")]
 use super::RecipeBake;
-use super::types::{RECIPE_FACT, RecipeError, RecipeIssue, RecipeShell, RecipeShellContent};
+use super::types::{
+    ExactFunctionIssue, ExactProjectionSeat, RECIPE_FACT, RecipeError, RecipeIssue, RecipeShell,
+    RecipeShellContent,
+};
 use super::{PROJECTION_LIMIT, ProjectionError, Recipe, RecipeProjection, RecipeRole};
 use crate::bounded::{Bounded, Overflow};
 use crate::diagnostic::{LineBody, Observed, Phase, REPAIR_LIMIT, RefusalClass, Refused, Repair};
@@ -75,362 +78,532 @@ impl From<ProjectionError> for RenderError {
 
 impl fmt::Display for RecipeIssue {
     fn fmt(&self, into: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.write_declaration(into)
+        self.write(into)
     }
 }
 
 impl RecipeIssue {
-    fn write_declaration(&self, into: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn write(&self, into: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InlineModuleRequired => {
-                into.write_str("a recipe must contain exactly one inline Rust module")
-            }
-            Self::BakeRequiredLast => {
-                into.write_str("the recipe module must end with exactly one `bake!` declaration")
-            }
-            Self::GeneratedNameCollision { name } => {
-                write!(into, "generated recipe name `{name}` is already occupied")
-            }
-            Self::GeneratedNameNotIdentifier { name } => {
-                write!(
-                    into,
-                    "generated spelling `{name}` is not one Rust identifier"
-                )
-            }
+            Self::InlineModuleRequired => write_inline_module_required(into),
+            Self::BakeRequiredLast => write_bake_required_last(into),
+            Self::GeneratedNameCollision { name } => write_generated_name_collision(into, name),
+            Self::GeneratedNameNotIdentifier { name } => write_generated_identifier(into, name),
             Self::Grammar(issue) => write!(into, "the recipe grammar was not read: {issue}"),
-            Self::VocabularyNotFound { name } => {
-                write!(into, "the recipe names no authored enum `{name}`")
-            }
-            Self::VocabularyEmpty { name } => {
-                write!(into, "authored enum `{name}` states no variants")
-            }
+            Self::VocabularyNotFound { name } => write_vocabulary_not_found(into, name),
+            Self::VocabularyEmpty { name } => write_vocabulary_empty(into, name),
             Self::VariantNotUnit {
                 vocabulary,
                 variant,
-            } => write!(
-                into,
-                "authored enum `{vocabulary}` variant `{variant}` is not a unit variant"
-            ),
-            Self::DuplicateMember { vocabulary, member } => write!(
-                into,
-                "authored enum `{vocabulary}` states member `{member}` more than once"
-            ),
-            Self::DuplicateVocabulary { name } => {
-                write!(
-                    into,
-                    "recipe vocabulary `{name}` is declared more than once"
-                )
+            } => write_variant_shape(into, vocabulary, variant),
+            Self::DuplicateMember { vocabulary, member } => {
+                write_duplicate_member(into, vocabulary, member)
             }
-            Self::ForeignMember { vocabulary, member } => write!(
-                into,
-                "a relation row names undeclared `{vocabulary}` member `{member}`"
-            ),
-            Self::DuplicateTransition { state, event } => write!(
-                into,
-                "more than one transition occupies state `{state}` and event `{event}`"
-            ),
+            Self::DuplicateVocabulary { name } => write_duplicate_vocabulary(into, name),
+            Self::ForeignMember { vocabulary, member } => {
+                write_foreign_member(into, vocabulary, member)
+            }
+            Self::DuplicateTransition { state, event } => {
+                write_duplicate_transition(into, state, event)
+            }
             Self::DuplicateRelationRow {
                 relation,
                 left,
                 right,
-            } => write!(
-                into,
-                "relation `{relation}` states endpoint pair `{left}` and `{right}` more than once"
-            ),
-            Self::DuplicateRelation { name } => {
-                write!(into, "recipe relation `{name}` is declared more than once")
-            }
-            Self::DuplicateCodec { name } => {
-                write!(into, "recipe codec `{name}` is declared more than once")
-            }
+            } => write_duplicate_relation_row(into, relation, left, right),
+            Self::DuplicateRelation { name } => write_duplicate_relation(into, name),
+            Self::DuplicateCodec { name } => write_duplicate_codec(into, name),
             Self::CodecDeclaration { name, reason } => {
                 write!(into, "recipe codec `{name}` was refused: {reason}")
             }
-            Self::CodecOwnerNotRecord { codec, owner } => write!(
-                into,
-                "recipe codec `{codec}` owner `{owner}` is not an authored record struct"
-            ),
-            Self::RelationNotFound { .. }
-            | Self::DuplicateRelationPosture { .. }
-            | Self::DuplicateRelationQuestion { .. }
-            | Self::RelationPostureMismatch { .. }
-            | Self::RelationPostureInapplicable { .. }
-            | Self::RelationPayloadShapeMismatch { .. }
-            | Self::DuplicateProjection { .. }
-            | Self::DuplicateRelationTable { .. }
-            | Self::RelationTableExactRequired { .. }
-            | Self::RelationTableTransitionUnsupported { .. }
-            | Self::ProjectionRequired
-            | Self::ProjectionDependencyAbsent { .. }
-            | Self::ProjectionSubjectRequired { .. }
-            | Self::AllowedAbsenceNeedsFallback
-            | Self::HarnessUnavailable { .. }
-            | Self::SupportAddressRequired
-            | Self::SupportAddressUnneeded
-            | Self::ReplacementUnplanned { .. }
-            | Self::DuplicateReplacement { .. }
-            | Self::ReplacementRosterUnbounded { .. }
-            | Self::FragmentNotGenerated
-            | Self::ExactDispatchFunctionRequired
-            | Self::ExactDispatchBodyRefused
-            | Self::ExactDispatchParameterCount { .. }
-            | Self::ExactDispatchParameterBinding { .. }
-            | Self::ExactDispatchBindingAbsent { .. }
-            | Self::ExactRelationTableFunctionRequired
-            | Self::ExactRelationTableBodyRefused
-            | Self::ExactRelationTableParameterCount { .. }
-            | Self::ExactRelationTableParameterBinding { .. } => self.write_relation(into),
-        }
-    }
-
-    fn write_relation(&self, into: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
+            Self::CodecOwnerNotRecord { codec, owner } => write_codec_owner(into, codec, owner),
             Self::RelationNotFound { name } => {
                 write!(into, "the recipe names no relation `{name}`")
             }
-            Self::DuplicateRelationPosture { relation } => write!(
-                into,
-                "relation `{relation}` carries more than one posture block"
-            ),
-            Self::DuplicateRelationQuestion { relation, question } => write!(
-                into,
-                "relation `{relation}` answers structural question `{question}` more than once"
-            ),
+            Self::DuplicateRelationPosture { relation } => {
+                write_duplicate_relation_posture(into, relation)
+            }
+            Self::DuplicateRelationQuestion { relation, question } => {
+                write_duplicate_relation_question(into, relation, question)
+            }
             Self::RelationPostureMismatch {
                 relation,
                 question,
                 required,
                 observed,
-            } => write!(
-                into,
-                "relation `{relation}` requires {question} `{required}` but its rows compute `{observed}`"
-            ),
-            Self::RelationPostureInapplicable { relation, question } => write!(
-                into,
-                "relation `{relation}` asks same-roster question `{question}` across two vocabularies"
-            ),
+            } => write_relation_posture_mismatch(into, relation, question, required, observed),
+            Self::RelationPostureInapplicable { relation, question } => {
+                write_relation_posture_inapplicable(into, relation, question)
+            }
             Self::RelationPayloadShapeMismatch {
                 relation,
                 expected,
                 observed,
-            } => write!(
-                into,
-                "relation `{relation}` mixes `{}` and `{}` row payload contracts",
-                expected.name(),
-                observed.name()
-            ),
-            Self::InlineModuleRequired
-            | Self::BakeRequiredLast
-            | Self::GeneratedNameCollision { .. }
-            | Self::GeneratedNameNotIdentifier { .. }
-            | Self::Grammar(_)
-            | Self::VocabularyNotFound { .. }
-            | Self::VocabularyEmpty { .. }
-            | Self::VariantNotUnit { .. }
-            | Self::DuplicateMember { .. }
-            | Self::DuplicateVocabulary { .. }
-            | Self::ForeignMember { .. }
-            | Self::DuplicateTransition { .. }
-            | Self::DuplicateRelationRow { .. }
-            | Self::DuplicateRelation { .. }
-            | Self::DuplicateCodec { .. }
-            | Self::CodecDeclaration { .. }
-            | Self::CodecOwnerNotRecord { .. }
-            | Self::DuplicateProjection { .. }
-            | Self::DuplicateRelationTable { .. }
-            | Self::RelationTableExactRequired { .. }
-            | Self::RelationTableTransitionUnsupported { .. }
-            | Self::ProjectionRequired
-            | Self::ProjectionDependencyAbsent { .. }
-            | Self::ProjectionSubjectRequired { .. }
-            | Self::AllowedAbsenceNeedsFallback
-            | Self::HarnessUnavailable { .. }
-            | Self::SupportAddressRequired
-            | Self::SupportAddressUnneeded
-            | Self::ReplacementUnplanned { .. }
-            | Self::DuplicateReplacement { .. }
-            | Self::ReplacementRosterUnbounded { .. }
-            | Self::FragmentNotGenerated
-            | Self::ExactDispatchFunctionRequired
-            | Self::ExactDispatchBodyRefused
-            | Self::ExactDispatchParameterCount { .. }
-            | Self::ExactDispatchParameterBinding { .. }
-            | Self::ExactDispatchBindingAbsent { .. }
-            | Self::ExactRelationTableFunctionRequired
-            | Self::ExactRelationTableBodyRefused
-            | Self::ExactRelationTableParameterCount { .. }
-            | Self::ExactRelationTableParameterBinding { .. } => self.write_projection(into),
-        }
-    }
-
-    fn write_projection(&self, into: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::DuplicateProjection { role } => {
-                write!(
-                    into,
-                    "projection `{}` is requested more than once",
-                    role.name()
-                )
+            } => write_relation_payload_shape(into, relation, expected.name(), observed.name()),
+            Self::DuplicateProjection { role } => write_duplicate_projection(into, *role),
+            Self::DuplicateRelationTable { relation } => {
+                write_duplicate_relation_table(into, relation)
             }
-            Self::DuplicateRelationTable { relation } => write!(
-                into,
-                "relation table `{relation}` is requested more than once"
-            ),
-            Self::RelationTableExactRequired { relation } => write!(
-                into,
-                "relation table `{relation}` carries payloads and requires one exact Rust function signature"
-            ),
-            Self::RelationTableTransitionUnsupported { relation } => write!(
-                into,
-                "relation table `{relation}` carries transition payloads owned by the dispatch projection"
-            ),
+            Self::RelationTableExactRequired { relation } => {
+                write_relation_table_exact_required(into, relation)
+            }
+            Self::RelationTableTransitionUnsupported { relation } => {
+                write_relation_table_transition(into, relation)
+            }
             Self::ProjectionRequired => {
                 into.write_str("a recipe must request at least one projection")
             }
-            Self::ProjectionDependencyAbsent { role, required } => write!(
-                into,
-                "projection `{}` requires selected projection `{}`",
-                role.name(),
-                required.name()
-            ),
+            Self::ProjectionDependencyAbsent { role, required } => {
+                write_projection_dependency(into, *role, *required)
+            }
             Self::ProjectionSubjectRequired { role, expected } => {
                 write!(into, "projection `{}` requires {expected}", role.name())
             }
             Self::AllowedAbsenceNeedsFallback => into.write_str(
                 "dispatch with allowed absence requires an explicit caller-owned fallback",
             ),
-            Self::HarnessUnavailable { role } => write!(
-                into,
-                "projection `{}` requires the facade harness feature, which is unavailable",
-                role.name()
-            ),
+            Self::HarnessUnavailable { role } => write_harness_unavailable(into, *role),
             Self::SupportAddressRequired => into
                 .write_str("an evidence projection requires one explicit exported support address"),
             Self::SupportAddressUnneeded => into.write_str(
                 "a support address was declared although no evidence projection was requested",
             ),
-            Self::ReplacementUnplanned { role } => write!(
-                into,
-                "a caller-owned projector was supplied for unselected role `{}`",
-                role.name()
-            ),
-            Self::DuplicateReplacement { role } => write!(
-                into,
-                "caller-owned projector role `{}` is replaced more than once",
-                role.name()
-            ),
-            Self::ReplacementRosterUnbounded { observed } => write!(
-                into,
-                "{observed} caller-owned projectors were supplied where at most {PROJECTION_LIMIT} fit"
-            ),
+            Self::ReplacementUnplanned { role } => write_replacement_unplanned(into, *role),
+            Self::DuplicateReplacement { role } => write_duplicate_replacement(into, *role),
+            Self::ReplacementRosterUnbounded { observed } => {
+                write_replacement_overflow(into, *observed)
+            }
             Self::FragmentNotGenerated => into.write_str(
                 "captured caller-authored Rust could not be preserved as generated tokens",
             ),
-            Self::ExactDispatchFunctionRequired
-            | Self::ExactDispatchBodyRefused
-            | Self::ExactDispatchParameterCount { .. }
-            | Self::ExactDispatchParameterBinding { .. }
-            | Self::ExactDispatchBindingAbsent { .. }
-            | Self::ExactRelationTableFunctionRequired
-            | Self::ExactRelationTableBodyRefused
-            | Self::ExactRelationTableParameterCount { .. }
-            | Self::ExactRelationTableParameterBinding { .. } => self.write_exact_projection(into),
-            Self::InlineModuleRequired
-            | Self::BakeRequiredLast
-            | Self::GeneratedNameCollision { .. }
-            | Self::GeneratedNameNotIdentifier { .. }
-            | Self::Grammar(_)
-            | Self::VocabularyNotFound { .. }
-            | Self::VocabularyEmpty { .. }
-            | Self::VariantNotUnit { .. }
-            | Self::DuplicateMember { .. }
-            | Self::DuplicateVocabulary { .. }
-            | Self::ForeignMember { .. }
-            | Self::DuplicateTransition { .. }
-            | Self::DuplicateRelationRow { .. }
-            | Self::DuplicateRelation { .. }
-            | Self::DuplicateCodec { .. }
-            | Self::CodecDeclaration { .. }
-            | Self::CodecOwnerNotRecord { .. }
-            | Self::RelationNotFound { .. }
-            | Self::DuplicateRelationPosture { .. }
-            | Self::DuplicateRelationQuestion { .. }
-            | Self::RelationPostureMismatch { .. }
-            | Self::RelationPostureInapplicable { .. }
-            | Self::RelationPayloadShapeMismatch { .. } => {
-                unreachable!("recipe issue category must be formatted exactly once")
+            Self::ExactFunction { seat, issue } => write_exact_function(*seat, *issue, into),
+            Self::ExactDispatchBindingAbsent { binding } => {
+                write_dispatch_binding_absent(into, binding)
             }
         }
     }
 
-    fn write_exact_projection(&self, into: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn classification(&self) -> RecipeIssueClassification {
         match self {
-            Self::ExactDispatchFunctionRequired => into.write_str(
-                "exact dispatch braces must contain one semicolon-terminated Rust function signature",
-            ),
-            Self::ExactDispatchBodyRefused => into.write_str(
-                "exact dispatch cannot carry a caller-authored body because the standard projector owns the relation-accounted body",
-            ),
-            Self::ExactDispatchParameterCount { observed } => write!(
-                into,
-                "exact dispatch requires two parameters but the signature states {observed}"
-            ),
-            Self::ExactDispatchParameterBinding { position } => write!(
-                into,
-                "exact dispatch parameter {position} must use one simple identifier binding"
-            ),
-            Self::ExactDispatchBindingAbsent { binding } => write!(
-                into,
-                "exact dispatch selector `{binding}` does not name one simple parameter binding"
-            ),
-            Self::ExactRelationTableFunctionRequired => exact_relation_table_function(into),
-            Self::ExactRelationTableBodyRefused => exact_relation_table_body(into),
-            Self::ExactRelationTableParameterCount { observed } => {
-                exact_relation_table_count(*observed, into)
-            }
-            Self::ExactRelationTableParameterBinding { position } => {
-                exact_relation_table_binding(*position, into)
-            }
             Self::InlineModuleRequired
             | Self::BakeRequiredLast
-            | Self::GeneratedNameCollision { .. }
-            | Self::GeneratedNameNotIdentifier { .. }
-            | Self::Grammar(_)
             | Self::VocabularyNotFound { .. }
-            | Self::VocabularyEmpty { .. }
-            | Self::VariantNotUnit { .. }
-            | Self::DuplicateMember { .. }
+            | Self::RelationNotFound { .. } => RecipeRepair::RecipeShape.absent(),
+            Self::VocabularyEmpty { .. } => RecipeRepair::VocabularyEmpty.absent(),
+            Self::SupportAddressRequired => RecipeRepair::Support.absent(),
+            Self::ProjectionRequired | Self::ProjectionDependencyAbsent { .. } => {
+                RecipeRepair::ProjectionSelection.absent()
+            }
+            Self::ProjectionSubjectRequired { .. } => RecipeRepair::ProjectionSubject.absent(),
+            Self::Grammar(crate::token::CaptureReadIssue::SequenceUnbounded { .. }) => {
+                RecipeRepair::SequenceLimit.bound_exceeded()
+            }
+            Self::HarnessUnavailable { .. } => RecipeRepair::Harness.profile_disagreement(),
+            Self::DuplicateMember { .. }
             | Self::DuplicateVocabulary { .. }
-            | Self::ForeignMember { .. }
             | Self::DuplicateTransition { .. }
             | Self::DuplicateRelationRow { .. }
             | Self::DuplicateRelation { .. }
             | Self::DuplicateCodec { .. }
-            | Self::CodecDeclaration { .. }
-            | Self::CodecOwnerNotRecord { .. }
-            | Self::RelationNotFound { .. }
             | Self::DuplicateRelationPosture { .. }
             | Self::DuplicateRelationQuestion { .. }
-            | Self::RelationPostureMismatch { .. }
-            | Self::RelationPostureInapplicable { .. }
-            | Self::RelationPayloadShapeMismatch { .. }
             | Self::DuplicateProjection { .. }
             | Self::DuplicateRelationTable { .. }
-            | Self::RelationTableExactRequired { .. }
-            | Self::RelationTableTransitionUnsupported { .. }
-            | Self::ProjectionRequired
-            | Self::ProjectionDependencyAbsent { .. }
-            | Self::ProjectionSubjectRequired { .. }
-            | Self::AllowedAbsenceNeedsFallback
-            | Self::HarnessUnavailable { .. }
-            | Self::SupportAddressRequired
-            | Self::SupportAddressUnneeded
-            | Self::ReplacementUnplanned { .. }
-            | Self::DuplicateReplacement { .. }
-            | Self::ReplacementRosterUnbounded { .. }
-            | Self::FragmentNotGenerated => {
-                unreachable!("recipe issue category must be formatted exactly once")
+            | Self::GeneratedNameCollision { .. } => {
+                RecipeRepair::Duplicate.identity_disagreement()
             }
+            Self::DuplicateReplacement { .. } => RecipeRepair::Replacement.identity_disagreement(),
+            Self::GeneratedNameNotIdentifier { .. }
+            | Self::Grammar(_)
+            | Self::VariantNotUnit { .. }
+            | Self::ReplacementUnplanned { .. }
+            | Self::FragmentNotGenerated => RecipeRepair::RecipeShape.contract_disagreement(),
+            Self::ForeignMember { .. } => RecipeRepair::ForeignMember.contract_disagreement(),
+            Self::AllowedAbsenceNeedsFallback => {
+                RecipeRepair::AllowedAbsence.contract_disagreement()
+            }
+            Self::SupportAddressUnneeded => RecipeRepair::Support.contract_disagreement(),
+            Self::ReplacementRosterUnbounded { .. } => {
+                RecipeRepair::Replacement.contract_disagreement()
+            }
+            Self::RelationTableExactRequired { .. }
+            | Self::ExactFunction {
+                seat: ExactProjectionSeat::RelationTable,
+                issue:
+                    ExactFunctionIssue::FunctionRequired
+                    | ExactFunctionIssue::ParameterCount { .. }
+                    | ExactFunctionIssue::ParameterBinding { .. },
+            } => RecipeRepair::RelationTableSignature.contract_disagreement(),
+            Self::RelationTableTransitionUnsupported { .. } => {
+                RecipeRepair::RelationTableTransition.contract_disagreement()
+            }
+            Self::RelationPostureMismatch { .. } => {
+                RecipeRepair::RelationPostureMismatch.contract_disagreement()
+            }
+            Self::RelationPostureInapplicable { .. } => {
+                RecipeRepair::RelationPostureInapplicable.contract_disagreement()
+            }
+            Self::RelationPayloadShapeMismatch { .. } => {
+                RecipeRepair::RelationPayloadShape.contract_disagreement()
+            }
+            Self::CodecDeclaration { .. } => RecipeRepair::CodecDeclaration.contract_disagreement(),
+            Self::CodecOwnerNotRecord { .. } => RecipeRepair::CodecOwner.contract_disagreement(),
+            Self::ExactFunction {
+                seat: ExactProjectionSeat::Dispatch,
+                issue: ExactFunctionIssue::BodyRefused,
+            } => RecipeRepair::DispatchBody.contract_disagreement(),
+            Self::ExactFunction {
+                seat: ExactProjectionSeat::Dispatch,
+                issue:
+                    ExactFunctionIssue::FunctionRequired
+                    | ExactFunctionIssue::ParameterCount { .. }
+                    | ExactFunctionIssue::ParameterBinding { .. },
+            }
+            | Self::ExactDispatchBindingAbsent { .. } => {
+                RecipeRepair::DispatchSignature.contract_disagreement()
+            }
+            Self::ExactFunction {
+                seat: ExactProjectionSeat::RelationTable,
+                issue: ExactFunctionIssue::BodyRefused,
+            } => RecipeRepair::RelationTableBody.contract_disagreement(),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct RecipeIssueClassification {
+    observed: Observed,
+    repair: RecipeRepair,
+}
+
+impl RecipeIssueClassification {
+    const fn new(observed: Observed, repair: RecipeRepair) -> Self {
+        Self { observed, repair }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum RecipeRepair {
+    Harness,
+    Support,
+    ProjectionSelection,
+    ProjectionSubject,
+    AllowedAbsence,
+    DispatchBody,
+    DispatchSignature,
+    RelationTableSignature,
+    RelationTableBody,
+    RelationTableTransition,
+    Replacement,
+    Duplicate,
+    RelationPostureMismatch,
+    RelationPostureInapplicable,
+    RelationPayloadShape,
+    CodecDeclaration,
+    CodecOwner,
+    VocabularyEmpty,
+    SequenceLimit,
+    RecipeShape,
+    ForeignMember,
+}
+
+impl RecipeRepair {
+    const fn absent(self) -> RecipeIssueClassification {
+        RecipeIssueClassification::new(Observed::SeatAbsent, self)
+    }
+
+    const fn bound_exceeded(self) -> RecipeIssueClassification {
+        RecipeIssueClassification::new(Observed::BoundExceeded, self)
+    }
+
+    const fn profile_disagreement(self) -> RecipeIssueClassification {
+        RecipeIssueClassification::new(Observed::ProfileDisagreement, self)
+    }
+
+    const fn identity_disagreement(self) -> RecipeIssueClassification {
+        RecipeIssueClassification::new(Observed::IdentityDisagreement, self)
+    }
+
+    const fn contract_disagreement(self) -> RecipeIssueClassification {
+        RecipeIssueClassification::new(Observed::ContractDisagreement, self)
+    }
+}
+
+fn write_inline_module_required(into: &mut fmt::Formatter<'_>) -> fmt::Result {
+    into.write_str("a recipe must contain exactly one inline Rust module")
+}
+
+fn write_bake_required_last(into: &mut fmt::Formatter<'_>) -> fmt::Result {
+    into.write_str("the recipe module must end with exactly one `bake!` declaration")
+}
+
+fn write_generated_name_collision(into: &mut fmt::Formatter<'_>, name: &str) -> fmt::Result {
+    write!(into, "generated recipe name `{name}` is already occupied")
+}
+
+fn write_generated_identifier(into: &mut fmt::Formatter<'_>, name: &str) -> fmt::Result {
+    write!(
+        into,
+        "generated spelling `{name}` is not one Rust identifier"
+    )
+}
+
+fn write_vocabulary_not_found(into: &mut fmt::Formatter<'_>, name: &str) -> fmt::Result {
+    write!(into, "the recipe names no authored enum `{name}`")
+}
+
+fn write_vocabulary_empty(into: &mut fmt::Formatter<'_>, name: &str) -> fmt::Result {
+    write!(into, "authored enum `{name}` states no variants")
+}
+
+fn write_variant_shape(
+    into: &mut fmt::Formatter<'_>,
+    vocabulary: &str,
+    variant: &str,
+) -> fmt::Result {
+    write!(
+        into,
+        "authored enum `{vocabulary}` variant `{variant}` is not a unit variant"
+    )
+}
+
+fn write_duplicate_member(
+    into: &mut fmt::Formatter<'_>,
+    vocabulary: &str,
+    member: &str,
+) -> fmt::Result {
+    write!(
+        into,
+        "authored enum `{vocabulary}` states member `{member}` more than once"
+    )
+}
+
+fn write_duplicate_vocabulary(into: &mut fmt::Formatter<'_>, name: &str) -> fmt::Result {
+    write!(
+        into,
+        "recipe vocabulary `{name}` is declared more than once"
+    )
+}
+
+fn write_foreign_member(
+    into: &mut fmt::Formatter<'_>,
+    vocabulary: &str,
+    member: &str,
+) -> fmt::Result {
+    write!(
+        into,
+        "a relation row names undeclared `{vocabulary}` member `{member}`"
+    )
+}
+
+fn write_duplicate_transition(
+    into: &mut fmt::Formatter<'_>,
+    state: &str,
+    event: &str,
+) -> fmt::Result {
+    write!(
+        into,
+        "more than one transition occupies state `{state}` and event `{event}`"
+    )
+}
+
+fn write_duplicate_relation_row(
+    into: &mut fmt::Formatter<'_>,
+    relation: &str,
+    left: &str,
+    right: &str,
+) -> fmt::Result {
+    write!(
+        into,
+        "relation `{relation}` states endpoint pair `{left}` and `{right}` more than once"
+    )
+}
+
+fn write_duplicate_relation(into: &mut fmt::Formatter<'_>, name: &str) -> fmt::Result {
+    write!(into, "recipe relation `{name}` is declared more than once")
+}
+
+fn write_duplicate_codec(into: &mut fmt::Formatter<'_>, name: &str) -> fmt::Result {
+    write!(into, "recipe codec `{name}` is declared more than once")
+}
+
+fn write_codec_owner(into: &mut fmt::Formatter<'_>, codec: &str, owner: &str) -> fmt::Result {
+    write!(
+        into,
+        "recipe codec `{codec}` owner `{owner}` is not an authored record struct"
+    )
+}
+
+fn write_duplicate_relation_posture(into: &mut fmt::Formatter<'_>, relation: &str) -> fmt::Result {
+    write!(
+        into,
+        "relation `{relation}` carries more than one posture block"
+    )
+}
+
+fn write_duplicate_relation_question(
+    into: &mut fmt::Formatter<'_>,
+    relation: &str,
+    question: &str,
+) -> fmt::Result {
+    write!(
+        into,
+        "relation `{relation}` answers structural question `{question}` more than once"
+    )
+}
+
+fn write_relation_posture_mismatch(
+    into: &mut fmt::Formatter<'_>,
+    relation: &str,
+    question: &str,
+    required: &str,
+    observed: &str,
+) -> fmt::Result {
+    write!(
+        into,
+        "relation `{relation}` requires {question} `{required}` but its rows compute `{observed}`"
+    )
+}
+
+fn write_relation_posture_inapplicable(
+    into: &mut fmt::Formatter<'_>,
+    relation: &str,
+    question: &str,
+) -> fmt::Result {
+    write!(
+        into,
+        "relation `{relation}` asks same-roster question `{question}` across two vocabularies"
+    )
+}
+
+fn write_relation_payload_shape(
+    into: &mut fmt::Formatter<'_>,
+    relation: &str,
+    expected: &str,
+    observed: &str,
+) -> fmt::Result {
+    write!(
+        into,
+        "relation `{relation}` mixes `{expected}` and `{observed}` row payload contracts"
+    )
+}
+
+fn write_duplicate_projection(into: &mut fmt::Formatter<'_>, role: RecipeRole) -> fmt::Result {
+    write!(
+        into,
+        "projection `{}` is requested more than once",
+        role.name()
+    )
+}
+
+fn write_duplicate_relation_table(into: &mut fmt::Formatter<'_>, relation: &str) -> fmt::Result {
+    write!(
+        into,
+        "relation table `{relation}` is requested more than once"
+    )
+}
+
+fn write_relation_table_exact_required(
+    into: &mut fmt::Formatter<'_>,
+    relation: &str,
+) -> fmt::Result {
+    write!(
+        into,
+        "relation table `{relation}` carries payloads and requires one exact Rust function signature"
+    )
+}
+
+fn write_relation_table_transition(into: &mut fmt::Formatter<'_>, relation: &str) -> fmt::Result {
+    write!(
+        into,
+        "relation table `{relation}` carries transition payloads owned by the dispatch projection"
+    )
+}
+
+fn write_projection_dependency(
+    into: &mut fmt::Formatter<'_>,
+    role: RecipeRole,
+    required: RecipeRole,
+) -> fmt::Result {
+    write!(
+        into,
+        "projection `{}` requires selected projection `{}`",
+        role.name(),
+        required.name()
+    )
+}
+
+fn write_harness_unavailable(into: &mut fmt::Formatter<'_>, role: RecipeRole) -> fmt::Result {
+    write!(
+        into,
+        "projection `{}` requires the facade harness feature, which is unavailable",
+        role.name()
+    )
+}
+
+fn write_replacement_unplanned(into: &mut fmt::Formatter<'_>, role: RecipeRole) -> fmt::Result {
+    write!(
+        into,
+        "a caller-owned projector was supplied for unselected role `{}`",
+        role.name()
+    )
+}
+
+fn write_duplicate_replacement(into: &mut fmt::Formatter<'_>, role: RecipeRole) -> fmt::Result {
+    write!(
+        into,
+        "caller-owned projector role `{}` is replaced more than once",
+        role.name()
+    )
+}
+
+fn write_replacement_overflow(into: &mut fmt::Formatter<'_>, observed: usize) -> fmt::Result {
+    write!(
+        into,
+        "{observed} caller-owned projectors were supplied where at most {PROJECTION_LIMIT} fit"
+    )
+}
+
+fn write_dispatch_binding_absent(into: &mut fmt::Formatter<'_>, binding: &str) -> fmt::Result {
+    write!(
+        into,
+        "exact dispatch selector `{binding}` does not name one simple parameter binding"
+    )
+}
+
+fn write_exact_function(
+    seat: ExactProjectionSeat,
+    issue: ExactFunctionIssue,
+    into: &mut fmt::Formatter<'_>,
+) -> fmt::Result {
+    match (seat, issue) {
+        (ExactProjectionSeat::Dispatch, ExactFunctionIssue::FunctionRequired) => into.write_str(
+            "exact dispatch braces must contain one semicolon-terminated Rust function signature",
+        ),
+        (ExactProjectionSeat::Dispatch, ExactFunctionIssue::BodyRefused) => into.write_str(
+            "exact dispatch cannot carry a caller-authored body because the standard projector owns the relation-accounted body",
+        ),
+        (ExactProjectionSeat::Dispatch, ExactFunctionIssue::ParameterCount { observed }) => write!(
+            into,
+            "exact dispatch requires two parameters but the signature states {observed}"
+        ),
+        (ExactProjectionSeat::Dispatch, ExactFunctionIssue::ParameterBinding { position }) => {
+            write!(
+                into,
+                "exact dispatch parameter {position} must use one simple identifier binding"
+            )
+        }
+        (ExactProjectionSeat::RelationTable, ExactFunctionIssue::FunctionRequired) => {
+            exact_relation_table_function(into)
+        }
+        (ExactProjectionSeat::RelationTable, ExactFunctionIssue::BodyRefused) => {
+            exact_relation_table_body(into)
+        }
+        (ExactProjectionSeat::RelationTable, ExactFunctionIssue::ParameterCount { observed }) => {
+            exact_relation_table_count(observed, into)
+        }
+        (ExactProjectionSeat::RelationTable, ExactFunctionIssue::ParameterBinding { position }) => {
+            exact_relation_table_binding(position, into)
         }
     }
 }
@@ -482,59 +655,7 @@ impl Refused for RecipeError {
     }
 
     fn observed(&self) -> Observed {
-        match self.issue() {
-            RecipeIssue::InlineModuleRequired
-            | RecipeIssue::BakeRequiredLast
-            | RecipeIssue::VocabularyNotFound { .. }
-            | RecipeIssue::VocabularyEmpty { .. }
-            | RecipeIssue::RelationNotFound { .. }
-            | RecipeIssue::SupportAddressRequired
-            | RecipeIssue::ProjectionRequired
-            | RecipeIssue::ProjectionDependencyAbsent { .. }
-            | RecipeIssue::ProjectionSubjectRequired { .. } => Observed::SeatAbsent,
-            RecipeIssue::Grammar(crate::token::CaptureReadIssue::SequenceUnbounded { .. }) => {
-                Observed::BoundExceeded
-            }
-            RecipeIssue::HarnessUnavailable { .. } => Observed::ProfileDisagreement,
-            RecipeIssue::DuplicateMember { .. }
-            | RecipeIssue::DuplicateVocabulary { .. }
-            | RecipeIssue::DuplicateTransition { .. }
-            | RecipeIssue::DuplicateRelationRow { .. }
-            | RecipeIssue::DuplicateRelation { .. }
-            | RecipeIssue::DuplicateCodec { .. }
-            | RecipeIssue::DuplicateRelationPosture { .. }
-            | RecipeIssue::DuplicateRelationQuestion { .. }
-            | RecipeIssue::DuplicateProjection { .. }
-            | RecipeIssue::DuplicateRelationTable { .. }
-            | RecipeIssue::DuplicateReplacement { .. }
-            | RecipeIssue::GeneratedNameCollision { .. } => Observed::IdentityDisagreement,
-            RecipeIssue::GeneratedNameNotIdentifier { .. }
-            | RecipeIssue::Grammar(_)
-            | RecipeIssue::VariantNotUnit { .. }
-            | RecipeIssue::ForeignMember { .. }
-            | RecipeIssue::AllowedAbsenceNeedsFallback
-            | RecipeIssue::SupportAddressUnneeded
-            | RecipeIssue::ReplacementUnplanned { .. }
-            | RecipeIssue::ReplacementRosterUnbounded { .. }
-            | RecipeIssue::FragmentNotGenerated
-            | RecipeIssue::ExactDispatchFunctionRequired
-            | RecipeIssue::ExactDispatchBodyRefused
-            | RecipeIssue::ExactDispatchParameterCount { .. }
-            | RecipeIssue::ExactDispatchParameterBinding { .. }
-            | RecipeIssue::ExactDispatchBindingAbsent { .. }
-            | RecipeIssue::RelationTableExactRequired { .. }
-            | RecipeIssue::RelationTableTransitionUnsupported { .. }
-            | RecipeIssue::ExactRelationTableFunctionRequired
-            | RecipeIssue::ExactRelationTableBodyRefused
-            | RecipeIssue::ExactRelationTableParameterCount { .. }
-            | RecipeIssue::ExactRelationTableParameterBinding { .. }
-            | RecipeIssue::RelationPostureMismatch { .. }
-            | RecipeIssue::RelationPostureInapplicable { .. }
-            | RecipeIssue::RelationPayloadShapeMismatch { .. } => Observed::ContractDisagreement,
-            RecipeIssue::CodecDeclaration { .. } | RecipeIssue::CodecOwnerNotRecord { .. } => {
-                Observed::ContractDisagreement
-            }
-        }
+        self.issue().classification().observed
     }
 
     fn body(&self) -> LineBody {
@@ -546,97 +667,68 @@ impl Refused for RecipeError {
     }
 
     fn repairs(&self) -> Bounded<Repair, REPAIR_LIMIT> {
-        let description = match self.issue() {
-            RecipeIssue::HarnessUnavailable { .. } => human_projection!(
+        let description = match self.issue().classification().repair {
+            RecipeRepair::Harness => human_projection!(
                 "enable the facade harness feature or remove the harness-owned projection from this recipe"
             ),
-            RecipeIssue::SupportAddressRequired | RecipeIssue::SupportAddressUnneeded => {
-                human_projection!(
-                    "state one support address exactly when the recipe selects test-carrier projections"
-                )
-            }
-            RecipeIssue::ProjectionRequired | RecipeIssue::ProjectionDependencyAbsent { .. } => {
-                human_projection!(
-                    "select at least one projection and include every projection dependency it names"
-                )
-            }
-            RecipeIssue::ProjectionSubjectRequired { .. } => {
+            RecipeRepair::Support => human_projection!(
+                "state one support address exactly when the recipe selects test-carrier projections"
+            ),
+            RecipeRepair::ProjectionSelection => human_projection!(
+                "select at least one projection and include every projection dependency it names"
+            ),
+            RecipeRepair::ProjectionSubject => {
                 human_projection!("name the vocabulary or typed lowering this projection consumes")
             }
-            RecipeIssue::AllowedAbsenceNeedsFallback => human_projection!(
+            RecipeRepair::AllowedAbsence => human_projection!(
                 "declare typed refusal for absent rows or state an explicit caller-owned fallback before requesting dispatch"
             ),
-            RecipeIssue::ExactDispatchBodyRefused => human_projection!(
+            RecipeRepair::DispatchBody => human_projection!(
                 "remove the exact function body and leave the semicolon-terminated signature for the standard dispatch projector to fill"
             ),
-            RecipeIssue::ExactDispatchFunctionRequired
-            | RecipeIssue::ExactDispatchParameterCount { .. }
-            | RecipeIssue::ExactDispatchParameterBinding { .. }
-            | RecipeIssue::ExactDispatchBindingAbsent { .. } => human_projection!(
+            RecipeRepair::DispatchSignature => human_projection!(
                 "write `dispatch { fn apply(state: State, event: Event) -> Result<State, TransitionRefusal>; };` with exactly two simple bindings, or select the state and event bindings before an exact signature that carries additional parameters"
             ),
-            RecipeIssue::RelationTableExactRequired { .. }
-            | RecipeIssue::ExactRelationTableFunctionRequired
-            | RecipeIssue::ExactRelationTableParameterCount { .. }
-            | RecipeIssue::ExactRelationTableParameterBinding { .. } => human_projection!(
+            RecipeRepair::RelationTableSignature => human_projection!(
                 "write `relation_tables { policy { fn lookup(left: Left, right: Right) -> Option<Payload>; }; };` with exactly two simple identifier bindings"
             ),
-            RecipeIssue::ExactRelationTableBodyRefused => human_projection!(
+            RecipeRepair::RelationTableBody => human_projection!(
                 "remove the exact function body and leave the semicolon-terminated signature for the standard relation-table projector to fill"
             ),
-            RecipeIssue::RelationTableTransitionUnsupported { .. } => human_projection!(
+            RecipeRepair::RelationTableTransition => human_projection!(
                 "request dispatch for the transition lowering or select a non-transition relation for a typed relation table"
             ),
-            RecipeIssue::DuplicateReplacement { .. }
-            | RecipeIssue::ReplacementRosterUnbounded { .. } => human_projection!(
+            RecipeRepair::Replacement => human_projection!(
                 "supply at most one caller-owned projector for each selected recipe role"
             ),
-            RecipeIssue::DuplicateMember { .. }
-            | RecipeIssue::DuplicateVocabulary { .. }
-            | RecipeIssue::DuplicateTransition { .. }
-            | RecipeIssue::DuplicateRelationRow { .. }
-            | RecipeIssue::DuplicateRelation { .. }
-            | RecipeIssue::DuplicateCodec { .. }
-            | RecipeIssue::DuplicateRelationPosture { .. }
-            | RecipeIssue::DuplicateRelationQuestion { .. }
-            | RecipeIssue::DuplicateProjection { .. }
-            | RecipeIssue::DuplicateRelationTable { .. }
-            | RecipeIssue::GeneratedNameCollision { .. } => human_projection!(
+            RecipeRepair::Duplicate => human_projection!(
                 "state each authored member, relation endpoint pair, transition seat, projection role, and generated name once"
             ),
-            RecipeIssue::RelationPostureMismatch { .. } => human_projection!(
+            RecipeRepair::RelationPostureMismatch => human_projection!(
                 "change the declared relation rows or state the structural posture those rows actually satisfy"
             ),
-            RecipeIssue::RelationPostureInapplicable { .. } => human_projection!(
+            RecipeRepair::RelationPostureInapplicable => human_projection!(
                 "use one vocabulary on both relation sides before requiring a self-relation or cycle answer"
             ),
-            RecipeIssue::RelationPayloadShapeMismatch { .. } => human_projection!(
+            RecipeRepair::RelationPayloadShape => human_projection!(
                 "use one unlabeled, path, exact-Rust, or transition payload contract for every row in one relation"
             ),
-            RecipeIssue::CodecDeclaration { .. } => human_projection!(
+            RecipeRepair::CodecDeclaration => human_projection!(
                 "repair the codec declaration under the existing codec owner's typed contract"
             ),
-            RecipeIssue::CodecOwnerNotRecord { .. } => human_projection!(
+            RecipeRepair::CodecOwner => human_projection!(
                 "name one record-shaped struct authored in the recipe module as this codec's owner"
             ),
-            RecipeIssue::VocabularyEmpty { .. } => {
+            RecipeRepair::VocabularyEmpty => {
                 human_projection!("state at least one unit variant in every selected vocabulary")
             }
-            RecipeIssue::Grammar(crate::token::CaptureReadIssue::SequenceUnbounded { .. }) => {
+            RecipeRepair::SequenceLimit => {
                 human_projection!("keep each captured sequence at or below its declared magnitude")
             }
-            RecipeIssue::InlineModuleRequired
-            | RecipeIssue::BakeRequiredLast
-            | RecipeIssue::GeneratedNameNotIdentifier { .. }
-            | RecipeIssue::Grammar(_)
-            | RecipeIssue::VocabularyNotFound { .. }
-            | RecipeIssue::RelationNotFound { .. }
-            | RecipeIssue::VariantNotUnit { .. }
-            | RecipeIssue::ReplacementUnplanned { .. }
-            | RecipeIssue::FragmentNotGenerated => human_projection!(
+            RecipeRepair::RecipeShape => human_projection!(
                 "write one inline module whose final bake declaration names only the vocabularies, relations, codecs, postures, evidence, support, and projections the recipe actually uses"
             ),
-            RecipeIssue::ForeignMember { .. } => human_projection!(
+            RecipeRepair::ForeignMember => human_projection!(
                 "name a member declared by the relation endpoint vocabulary or repair that endpoint vocabulary"
             ),
         };

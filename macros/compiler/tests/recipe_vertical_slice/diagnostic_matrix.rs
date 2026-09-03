@@ -8,6 +8,7 @@ use macroonz_compiler::{
 
 const DUPLICATE_REPAIR: &str = "state each authored member, relation endpoint pair, transition seat, projection role, and generated name once";
 const EXACT_DISPATCH_REPAIR: &str = "remove the exact function body and leave the semicolon-terminated signature for the standard dispatch projector to fill";
+const EXACT_RELATION_TABLE_REPAIR: &str = "remove the exact function body and leave the semicolon-terminated signature for the standard relation-table projector to fill";
 const HARNESS_REPAIR: &str =
     "enable the facade harness feature or remove the harness-owned projection from this recipe";
 const EMPTY_VOCABULARY_REPAIR: &str =
@@ -222,6 +223,41 @@ pub mod exact_body {
         Observed::ContractDisagreement,
         narrow_group_containing(source, "caller_body")?,
         EXACT_DISPATCH_REPAIR,
+    )
+}
+
+#[test]
+fn exact_relation_table_body_refusal_keeps_the_shared_issue_contract() -> Result<(), ()> {
+    let source = r"
+pub mod exact_table_body {
+    pub enum Left { A }
+    pub enum Right { B }
+    bake! {
+        vocabularies { Left; Right; };
+        relations {
+            policy(Left, Right) {
+                (A, B) with(crate::allow);
+            };
+        };
+        projections {
+            relation_tables {
+                policy {
+                    pub fn lookup(left: Left, right: Right) -> Option<bool> {
+                        caller_body
+                    }
+                };
+            };
+        };
+    }
+}
+";
+    assert_refusal(
+        &refusal(source, HarnessPosture::Available)?,
+        "an exact relation table cannot carry a caller-authored body",
+        RefusalClass::DeclarationNotRead,
+        Observed::ContractDisagreement,
+        narrow_group_containing(source, "caller_body")?,
+        EXACT_RELATION_TABLE_REPAIR,
     )
 }
 

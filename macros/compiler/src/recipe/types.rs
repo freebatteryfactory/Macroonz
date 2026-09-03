@@ -531,6 +531,34 @@ pub(super) struct RecipeError {
     at: Option<SpanHandle>,
 }
 
+/// Which standard exact-function projection owns one shared syntax refusal.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(super) enum ExactProjectionSeat {
+    /// The transition dispatch projection.
+    Dispatch,
+    /// One typed relation-table projection.
+    RelationTable,
+}
+
+/// One refusal shared by both exact-function projection seats.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(super) enum ExactFunctionIssue {
+    /// The exact seat did not contain one semicolon-terminated function signature.
+    FunctionRequired,
+    /// The exact seat supplied a caller-authored body that would bypass row accounting.
+    BodyRefused,
+    /// The exact signature did not declare exactly two parameters.
+    ParameterCount {
+        /// The number of parameter rows supplied.
+        observed: usize,
+    },
+    /// One exact parameter did not use a simple identifier binding.
+    ParameterBinding {
+        /// The one-based parameter position.
+        position: usize,
+    },
+}
+
 /// One recipe declaration or capability disagreement.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(super) enum RecipeIssue {
@@ -734,38 +762,17 @@ pub(super) enum RecipeIssue {
     },
     /// Exact captured Rust could not be preserved as generated tokens.
     FragmentNotGenerated,
-    /// Exact dispatch braces did not contain one semicolon-terminated function signature.
-    ExactDispatchFunctionRequired,
-    /// Exact dispatch supplied a caller-authored body that would bypass row accounting.
-    ExactDispatchBodyRefused,
-    /// Exact dispatch did not declare exactly two parameters.
-    ExactDispatchParameterCount {
-        /// The number of parameter rows supplied.
-        observed: usize,
-    },
-    /// One exact dispatch parameter did not use a simple identifier binding.
-    ExactDispatchParameterBinding {
-        /// The one-based parameter position.
-        position: usize,
+    /// One exact-function projection seat refused shared signature mechanics.
+    ExactFunction {
+        /// The projection seat that refused.
+        seat: ExactProjectionSeat,
+        /// The shared exact-function disagreement.
+        issue: ExactFunctionIssue,
     },
     /// One exact dispatch selector did not name a simple parameter binding in its signature.
     ExactDispatchBindingAbsent {
         /// The selector spelling absent from the exact signature.
         binding: String,
-    },
-    /// Exact relation-table braces did not contain one semicolon-terminated function signature.
-    ExactRelationTableFunctionRequired,
-    /// Exact relation-table syntax supplied a body that would bypass row accounting.
-    ExactRelationTableBodyRefused,
-    /// Exact relation-table syntax did not declare exactly two parameters.
-    ExactRelationTableParameterCount {
-        /// The number of parameter rows supplied.
-        observed: usize,
-    },
-    /// One exact relation-table parameter did not use a simple identifier binding.
-    ExactRelationTableParameterBinding {
-        /// The one-based parameter position.
-        position: usize,
     },
 }
 

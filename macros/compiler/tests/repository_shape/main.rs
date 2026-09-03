@@ -257,6 +257,6 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     assert_occurrences(
         &root,
         "recipe issue category must be formatted exactly once",
-        &["recipe/type_contract.rs", "recipe/type_contract.rs"],
+        &[],
     )
 }
