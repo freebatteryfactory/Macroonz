@@ -64,8 +64,8 @@ pub(super) const CURRENT_BACKEND_SOURCE: &[u8] =
 ///
 /// The `0.2.0` release receipt under `.durafx` records that source's Git blob, hash, and reconstruction road.
 pub(super) const CAMPAIGN_BACKEND_REVISION: [u8; 32] = [
-    188, 115, 167, 208, 190, 202, 73, 105, 105, 41, 30, 17, 229, 34, 61, 7, 156, 213, 225, 25, 208,
-    146, 124, 37, 104, 111, 234, 81, 194, 119, 0, 88,
+    65, 174, 110, 41, 237, 73, 162, 0, 130, 114, 221, 57, 38, 66, 223, 87, 93, 4, 182, 8, 198, 250,
+    248, 216, 89, 93, 186, 52, 112, 98, 166, 170,
 ];
 pub(super) const HISTORICAL_BACKEND_CONSOLE: &str =
     include_str!("compiled-pressure-artifact/cargo-mutants-27.0.0-console.txt");
@@ -80,7 +80,7 @@ pub(super) const BACKEND_COMMAND: &[&str] = &[
     "--package",
     "macroonz-harness",
     "--file",
-    "harness/src/muterprater/backend/wrap.rs",
+    "harness/src/muterprater/backend/wrap/parse.rs",
     "--re",
     "replace != with == in roster_count",
     "--test-tool",
@@ -107,7 +107,7 @@ pub(super) const HISTORICAL_BACKEND_COMMAND: &[&str] = &[
     "--caught",
     "--no-times",
 ];
-pub(super) const COMPILED_MUTANT_FILE: &str = "harness/src/muterprater/backend/wrap.rs";
+pub(super) const COMPILED_MUTANT_FILE: &str = "harness/src/muterprater/backend/wrap/parse.rs";
 pub(super) const HISTORICAL_COMPILED_MUTANT_FILE: &str = "harness/src/muterprater/wrap.rs";
 pub(super) const COMPILED_MUTANT_DAMAGE: &[u8] = b"replace != with == in roster_count";
 pub(super) const ORIGINAL_OPERATION: &[u8] = b"input != 0";
@@ -993,7 +993,7 @@ pub(super) fn interpreted_kill() -> Result<MutationReport, MutationRoadFailure> 
         suite.kill().target().site(),
         MutationSite::Reported(coordinate)
             if coordinate.file() == COMPILED_MUTANT_FILE
-                && coordinate.line() == 351
+                && coordinate.line() == 68
                 && coordinate.column() == 13
     ));
     let selection = selection_for_operation(&surface, SELECTED_OPERATION)?;
