@@ -316,6 +316,43 @@ fn assert_test_framing_debt_is_closed(root: &Path) -> Result<(), std::io::Error>
     assert_occurrences(root, &slotted, &[])
 }
 
+fn assert_compiler_test_support_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
+    let specimen_path = ["fn specimen_", "path("].concat();
+    let rustup = ["Command::new(\"", "rustup\")"].concat();
+    let ambient_temp = ["std::env::temp_", "dir()"].concat();
+    let support_module = ["#[path = \"../support/", "mod.rs\"]"].concat();
+    let observed = ["use crate::support::observe_", "rustc;"].concat();
+    let discarded_cleanup = ["drop(std::fs::remove_", "file"].concat();
+    assert_occurrences(root, &specimen_path, &["support/rustc_specimen.rs"])?;
+    assert_occurrences(
+        root,
+        &rustup,
+        &["bounded_collections/main.rs", "support/rustc_specimen.rs"],
+    )?;
+    assert_occurrences(root, &ambient_temp, &[])?;
+    assert_occurrences(
+        root,
+        &support_module,
+        &[
+            "declared_modules/main.rs",
+            "published_stamps/main.rs",
+            "structural_token_projection/main.rs",
+        ],
+    )?;
+    assert_occurrences(
+        root,
+        &observed,
+        &[
+            "declared_modules/codec_generated_behavior.rs",
+            "published_stamps/main.rs",
+            "structural_token_projection/behavior.rs",
+            "structural_token_projection/items.rs",
+            "structural_token_projection/traits.rs",
+        ],
+    )?;
+    assert_occurrences(root, &discarded_cleanup, &[])
+}
+
 #[test]
 fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
@@ -383,5 +420,7 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
         "recipe issue category must be formatted exactly once",
         &[],
     )?;
-    assert_test_framing_debt_is_closed(&Path::new(env!("CARGO_MANIFEST_DIR")).join("tests"))
+    let tests = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests");
+    assert_test_framing_debt_is_closed(&tests)?;
+    assert_compiler_test_support_debt_is_closed(&tests)
 }

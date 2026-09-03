@@ -26,7 +26,7 @@ static SCRATCH_ORDINAL: AtomicU32 = AtomicU32::new(0);
 
 fn scratch_path() -> PathBuf {
     let ordinal = SCRATCH_ORDINAL.fetch_add(1, Ordering::SeqCst);
-    std::env::temp_dir().join(format!(
+    PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!(
         "macroonz_bounded_refusal_{}_{ordinal}",
         std::process::id()
     ))

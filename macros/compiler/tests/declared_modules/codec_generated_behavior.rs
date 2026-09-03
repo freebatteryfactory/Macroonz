@@ -1,16 +1,12 @@
 //! Codec claims observed from outside: the public bill, canonical preimages, and generated Rust compiled and executed through the pinned toolchain.
 
+use crate::support::observe_rustc;
 use macroonz_compiler::codec::{
     AssemblyPosture, Cardinality, CodecAssembly, CodecContent, CodecDirection, CodecIssue,
     CodecMember, CodecMemberShape, CodecPlacement, CodecShape, CodecTypePath, MEMBER_CONTRACT,
     MemberContract, ModuleSpelling, PathRooting, codec_surface,
 };
 use macroonz_compiler::{Bounded, CanonicalContent, encode_bytes};
-use std::path::PathBuf;
-use std::process::Command;
-use std::sync::atomic::{AtomicU32, Ordering};
-
-static SPECIMEN_ORDINAL: AtomicU32 = AtomicU32::new(0);
 
 fn in_scope(spelling: &str) -> Result<CodecTypePath, String> {
     CodecTypePath::spelled(PathRooting::InScope, vec![spelling.to_owned()])
@@ -211,6 +207,15 @@ fn issue_bytes(slot: u8, material: &[u8]) -> Vec<u8> {
     bytes
 }
 
+fn require_compiled_specimen(source: &str) -> Result<(), String> {
+    let output = observe_rustc("codec", source, &[])?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).into_owned())
+    }
+}
+
 /// Claim: every diagnostic issue row commits to its stable slot and complete typed payload.
 ///
 /// Population: all 13 `CodecIssue` rows.
@@ -354,42 +359,6 @@ fn a_codec_path_renders_under_its_typed_rooting() -> Result<(), String> {
         );
     }
     assert!(!text.contains(":: crate"), "the extern prelude leaked in");
-    Ok(())
-}
-
-fn specimen_path(extension: &str) -> PathBuf {
-    let ordinal = SPECIMEN_ORDINAL.fetch_add(1, Ordering::SeqCst);
-    std::env::temp_dir().join(format!(
-        "macroonz_codec_specimen_{}_{ordinal}{extension}",
-        std::process::id()
-    ))
-}
-
-fn compile_and_run(source: &str) -> Result<(), String> {
-    let source_path = specimen_path(".rs");
-    let executable = specimen_path(std::env::consts::EXE_SUFFIX);
-    std::fs::write(&source_path, source).map_err(|error| error.to_string())?;
-    let compiled = Command::new("rustup")
-        .arg("run")
-        .arg("1.98.0")
-        .arg("rustc")
-        .arg(&source_path)
-        .arg("--edition=2024")
-        .arg("-o")
-        .arg(&executable)
-        .output()
-        .map_err(|error| error.to_string())?;
-    drop(std::fs::remove_file(&source_path));
-    if !compiled.status.success() {
-        return Err(String::from_utf8_lossy(&compiled.stderr).into_owned());
-    }
-    let executed = Command::new(&executable)
-        .output()
-        .map_err(|error| error.to_string())?;
-    drop(std::fs::remove_file(&executable));
-    if !executed.status.success() {
-        return Err(String::from_utf8_lossy(&executed.stderr).into_owned());
-    }
     Ok(())
 }
 
@@ -573,7 +542,7 @@ fn generated_codec_rust_compiles_executes_and_refuses_hostile_bytes() -> Result<
     let mut source = String::from(SPECIMEN_DECLARATIONS);
     source.push_str(&surface);
     source.push_str(SPECIMEN_ASSERTIONS);
-    compile_and_run(&source)
+    require_compiled_specimen(&source)
 }
 
 /// Claim: published-module placement wraps the complete codec surface in one public module that imports its parent scope and remains executable.
@@ -605,5 +574,5 @@ fn published_module_placement_compiles_and_executes_from_its_parent_scope() -> R
     source.push_str(&surface);
     source.push_str("use demo_codec::DemoRefusal;");
     source.push_str(SPECIMEN_ASSERTIONS);
-    compile_and_run(&source)
+    require_compiled_specimen(&source)
 }

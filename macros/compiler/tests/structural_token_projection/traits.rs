@@ -1,18 +1,14 @@
 //! Conventional trait and implementation shells compared with independent tokens and real Rust compilation.
 
+use crate::support::observe_rustc;
 use macroonz_compiler::{
     Empty, GeneratedDelimiter, GeneratedToken, GeneratedTree, KeyedRoster, NonEmptyError, Overflow,
     associated_constant, associated_function, associated_type, decorated, documentation,
     exclusive_receiver, function_signature, group, implementation, keyed_roster_items,
     trait_declaration, tuple_struct, typed_parameter,
 };
-use std::path::PathBuf;
-use std::process::Command;
-use std::sync::atomic::{AtomicU32, Ordering};
 
 const MEMBER_LIMIT: usize = 4;
-
-static SPECIMEN_ORDINAL: AtomicU32 = AtomicU32::new(0);
 
 fn name(spelling: &str) -> GeneratedToken {
     GeneratedToken::word(spelling)
@@ -516,44 +512,6 @@ fn const_generic_inherent() -> Result<Vec<GeneratedToken>, Overflow> {
     )
 }
 
-fn specimen_path(extension: &str) -> PathBuf {
-    let ordinal = SPECIMEN_ORDINAL.fetch_add(1, Ordering::SeqCst);
-    PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!(
-        "macroonz_traits_{}_{ordinal}{extension}",
-        std::process::id()
-    ))
-}
-
-fn compile(source: &str) -> Result<std::process::Output, String> {
-    let source_path = specimen_path(".rs");
-    let executable = specimen_path(std::env::consts::EXE_SUFFIX);
-    std::fs::create_dir_all(env!("CARGO_TARGET_TMPDIR")).map_err(|error| error.to_string())?;
-    std::fs::write(&source_path, source).map_err(|error| error.to_string())?;
-    let output = Command::new("rustup")
-        .arg("run")
-        .arg("1.98.0")
-        .arg("rustc")
-        .arg(&source_path)
-        .arg("--edition=2024")
-        .arg("-o")
-        .arg(&executable)
-        .output()
-        .map_err(|error| error.to_string())?;
-    drop(std::fs::remove_file(&source_path));
-    if output.status.success() {
-        let executed = Command::new(&executable)
-            .output()
-            .map_err(|error| error.to_string())?;
-        drop(std::fs::remove_file(&executable));
-        if !executed.status.success() {
-            return Err(String::from_utf8_lossy(&executed.stderr).into_owned());
-        }
-    } else {
-        drop(std::fs::remove_file(&executable));
-    }
-    Ok(output)
-}
-
 /// Claim: trait and implementation composers own conventional punctuation without changing caller material.
 /// Subject: one generic trait and one generic implementation carrying an associated type, constant and required or provided method.
 /// Population: every complete public trait and implementation operation.
@@ -637,7 +595,7 @@ fn main() {
 }
 ",
     );
-    let output = compile(&source)?;
+    let output = observe_rustc("traits", &source, &[])?;
     if output.status.success() {
         Ok(())
     } else {
@@ -674,7 +632,7 @@ fn rustc_refuses_illegal_trait_and_implementation_contracts() -> Result<(), Stri
             "E0046",
         ),
     ] {
-        let output = compile(source)?;
+        let output = observe_rustc("traits", source, &[])?;
         if output.status.success() {
             return Err(format!(
                 "hostile compilation unexpectedly succeeded for {anchor}"

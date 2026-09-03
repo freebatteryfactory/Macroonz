@@ -6,6 +6,8 @@ mod codec_generated_behavior;
 mod descriptor_vocabulary;
 mod descriptor_output_oracle;
 mod path_magnitude;
+#[path = "../support/mod.rs"]
+mod support;
 
 use macroonz_compiler::descriptor::Grammar;
 use macroonz_compiler::descriptor::concurrency::ConcurrencyModule;
