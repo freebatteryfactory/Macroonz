@@ -88,6 +88,16 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     )?;
     assert_occurrences(
         &root,
+        "pub const MEMBER_CONTRACT: [MemberContract; 5]",
+        &["codec/bank.rs"],
+    )?;
+    assert_occurrences(
+        &root,
+        "pub const RESERVED_BINDINGS: [&str; 12]",
+        &["codec/bank.rs"],
+    )?;
+    assert_occurrences(
+        &root,
         "recipe issue category must be formatted exactly once",
         &["recipe/type_contract.rs", "recipe/type_contract.rs"],
     )

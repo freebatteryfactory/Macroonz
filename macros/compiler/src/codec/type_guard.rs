@@ -3,7 +3,7 @@
 //! Declared inside `types.rs` as its own child, which is what makes this home's walls structural.
 //! A shape is seated by one road, and that road refuses an empty roster, a doubled spelling, and a spelling the decode road has already taken — so a codec whose decode road could not refuse, or whose bindings would shadow one another, is a value nobody can write rather than a state a reader has to notice.
 
-use super::super::type_contract::RESERVED_BINDINGS;
+use super::super::bank::RESERVED_BINDINGS;
 use super::{
     AssemblyPosture, CODEC_ISSUE_LIMIT, Cardinality, CodecAssembly, CodecError, CodecIssue,
     CodecMember, CodecMemberShape, CodecShape, CodecTypePath, ModuleSpelling, PathRooting,

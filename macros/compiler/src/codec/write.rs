@@ -1,11 +1,11 @@
 //! The generated road that writes one declared shape's canonical bytes.
 
+use super::bank::rendering_contract;
 use super::spell::{
     CARRIED_BINDING, INTO_BINDING, MATERIAL_BINDING, NESTED_BINDING, appended, associated,
     borrowed_self_member, byte_sink, byte_slice, empty_vector, framed_length, generics, qualified,
     road_spelling, self_member, statement, type_path,
 };
-use super::type_contract::rendering_contract;
 use super::types::WriteRoad;
 use super::{Cardinality, CodecMember, CodecShape};
 use crate::bounded::Overflow;
