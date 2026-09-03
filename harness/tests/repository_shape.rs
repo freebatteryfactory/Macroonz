@@ -294,10 +294,13 @@ fn assert_test_support(root: &Path) -> Result<(), std::io::Error> {
     assert_occurrences(
         root,
         &fixture_import,
-        &[
-            "tests/fuzz_compose/main.rs",
-            "tests/reduction_instrument/main.rs",
-        ],
+        &["tests/reduction_instrument/main.rs"],
+    )?;
+    let shared_fixture_import = ["use super::trial_fixture::Trial", "Fixture;"].concat();
+    assert_occurrences(
+        root,
+        &shared_fixture_import,
+        &["tests/fuzz_compose/support.rs"],
     )?;
     for relative in [
         "tests/fuzz_compose/main.rs",
