@@ -14,11 +14,26 @@ use crate::request::Door;
 use crate::support::SupportName;
 use crate::token::{CapturedInput, GeneratedToken, GeneratedTree, SpanHandle};
 
-#[path = "account.rs"]
-mod account;
+#[path = "account/admit.rs"]
+mod admit;
 
-#[path = "relation_account.rs"]
-mod relation_account;
+#[path = "account/collisions.rs"]
+mod collisions;
+
+#[path = "account/contracts.rs"]
+mod contracts;
+
+#[path = "account/informed.rs"]
+mod informed;
+
+#[path = "account/relation.rs"]
+mod relation;
+
+#[path = "account/restore.rs"]
+mod restore;
+
+#[path = "account/settle.rs"]
+mod settle;
 
 #[path = "type_guard.rs"]
 mod guard;
