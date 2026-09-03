@@ -81,6 +81,16 @@ fn assert_single_owner_stamps(root: &Path) -> Result<(), std::io::Error> {
     )?;
     assert_occurrences(
         root,
+        "fn collected<Refusal>(",
+        &["muterprater/backend/roster.rs"],
+    )?;
+    assert_occurrences(
+        root,
+        "fn matched<Refusal>(",
+        &["muterprater/backend/roster.rs"],
+    )?;
+    assert_occurrences(
+        root,
         "macro_rules! namespaced_reference",
         &["descriptor/guard_name.rs"],
     )?;

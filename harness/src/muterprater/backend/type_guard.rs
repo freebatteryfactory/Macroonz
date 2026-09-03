@@ -10,6 +10,7 @@ use super::{
     SuitePressureRefusal, UnparsedLine, WrapReading, WrapRefusal, WrappedBackend,
 };
 use crate::identity::ContentAddress;
+use crate::muterprater::backend::roster::{collected, matched};
 use crate::muterprater::{CoordinateRefusal, MutationReport, MutationRun, MutationVerdict};
 use crate::report::{ForeignText, TargetBinding};
 use std::collections::BTreeMap;
@@ -235,32 +236,21 @@ impl CompiledSuiteArtifactCustody {
         manifest: CompiledSuiteArtifactManifest,
         current_sources: Vec<MutationSourceRevision>,
     ) -> Result<Self, ArtifactCustodyRefusal> {
-        let mut current = BTreeMap::new();
-        for source in current_sources {
-            let file = source.file().to_owned();
-            if current.insert(file.clone(), source).is_some() {
-                return Err(ArtifactCustodyRefusal::DuplicateCurrentSource(file));
-            }
-        }
+        let current = collected(
+            current_sources,
+            ArtifactCustodyRefusal::DuplicateCurrentSource,
+        )?;
         let expected: BTreeMap<&str, MutationSourceRevisionId> = manifest
             .sources()
             .iter()
             .map(|source| (source.file(), source.revision()))
             .collect();
-        for file in expected.keys().copied() {
-            if !current.contains_key(file) {
-                return Err(ArtifactCustodyRefusal::CurrentSourceMissing(
-                    file.to_owned(),
-                ));
-            }
-        }
-        for file in current.keys() {
-            if !expected.contains_key(file.as_str()) {
-                return Err(ArtifactCustodyRefusal::CurrentSourceUnexpected(
-                    file.to_owned(),
-                ));
-            }
-        }
+        matched(
+            &current,
+            &expected.keys().copied().collect(),
+            ArtifactCustodyRefusal::CurrentSourceMissing,
+            ArtifactCustodyRefusal::CurrentSourceUnexpected,
+        )?;
         for (file, expected_revision) in expected {
             match current.get(file) {
                 Some(found) if expected_revision != found.revision() => {

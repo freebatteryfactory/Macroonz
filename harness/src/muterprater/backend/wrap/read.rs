@@ -1,6 +1,7 @@
 //! The read role: the console profile, the two readings of a backend's output, and the record and target each mutant line composes into.
 
 use super::parse::{LineReading, read_line};
+use crate::muterprater::backend::roster::{collected, matched};
 use crate::muterprater::backend::types::{
     AdapterProfile, AnnouncedRoster, ArtifactManifestRefusal, BackendOutputId,
     BackendVersionPosture, CompiledSuiteArtifactManifest, FamilyLookup, GrammarVersion,
@@ -14,7 +15,7 @@ use crate::muterprater::types::{
     SourceCoordinate,
 };
 use crate::report::ForeignText;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 /// The version of the console line grammar this file's page states.
 ///
@@ -112,13 +113,7 @@ pub fn read_artifact(
         ),
     }
     .map_err(ArtifactManifestRefusal::Reading)?;
-    let mut supplied = BTreeMap::new();
-    for source in sources {
-        let file = source.file().to_owned();
-        if supplied.insert(file.clone(), source).is_some() {
-            return Err(ArtifactManifestRefusal::DuplicateSource(file));
-        }
-    }
+    let supplied = collected(sources, ArtifactManifestRefusal::DuplicateSource)?;
     let mut reported = BTreeSet::new();
     for report in reading.run().reports() {
         match report.target().site() {
@@ -130,18 +125,12 @@ pub fn read_artifact(
             }
         }
     }
-    for file in reported.iter().copied() {
-        if !supplied.contains_key(file) {
-            return Err(ArtifactManifestRefusal::ReportedSourceMissing(
-                file.to_owned(),
-            ));
-        }
-    }
-    for file in supplied.keys() {
-        if !reported.contains(file.as_str()) {
-            return Err(ArtifactManifestRefusal::SourceNotReported(file.to_owned()));
-        }
-    }
+    matched(
+        &supplied,
+        &reported,
+        ArtifactManifestRefusal::ReportedSourceMissing,
+        ArtifactManifestRefusal::SourceNotReported,
+    )?;
     Ok(CompiledSuiteArtifactManifest::recorded(
         invocation,
         BackendOutputId::derived(text.as_bytes()),
