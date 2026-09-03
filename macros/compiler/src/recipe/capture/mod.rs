@@ -1,4 +1,4 @@
-//! Reading the one inline-module recipe grammar into informed structural values.
+#![doc = include_str!("README.md")]
 
 use super::types::{
     PROJECTION_LIMIT, ProjectionStanding, RecipeCodec, RecipeError, RecipeIssue, RecipeParts,

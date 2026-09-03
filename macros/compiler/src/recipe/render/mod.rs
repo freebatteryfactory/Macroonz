@@ -1,4 +1,4 @@
-//! Projection through the one capability shared by standard and caller-owned projectors.
+#![doc = include_str!("README.md")]
 
 mod codec;
 mod companions;

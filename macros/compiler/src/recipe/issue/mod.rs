@@ -1,4 +1,4 @@
-//! The recipe refusal vocabulary: one issue roster, one refusal carrier, and their diagnostic contracts.
+#![doc = include_str!("README.md")]
 
 mod type_contract;
 mod types;
