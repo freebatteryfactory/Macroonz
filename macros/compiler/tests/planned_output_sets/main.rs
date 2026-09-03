@@ -80,6 +80,30 @@ impl Role for Seat {
     }
 }
 
+/// Two seats sharing one delivery, used to observe membership traversal order.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SharedDestinationSeat {
+    /// The first declared seat.
+    First,
+    /// The second declared seat.
+    Second,
+}
+
+impl Role for SharedDestinationSeat {
+    const ALL: &'static [Self] = &[Self::First, Self::Second];
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::First => "first",
+            Self::Second => "second",
+        }
+    }
+
+    fn destination(self) -> Destination {
+        Destination::DeclarationSite
+    }
+}
+
 /// One captured-declaration commitment over material this lane names.
 fn commitment(material: &[u8]) -> Identity<identity::CapturedDeclaration> {
     Identity::derived(Transcript::rooted(
@@ -116,6 +140,27 @@ fn subject() -> Identity<identity::Traced> {
 
 /// One planned member at one seat, over material derived from that seat's own name.
 fn member(seat: Seat) -> PlannedMember<Seat> {
+    let semantic_key = key(seat.name().as_bytes());
+    PlannedMember {
+        role: seat,
+        output: PlannedOutput {
+            semantic_key,
+            origin: OriginTrail::from_edge(OriginEdge {
+                from: node(b"authored"),
+                relation: OriginRelation::AuthoredDeclaration,
+                to: node(seat.name().as_bytes()),
+            }),
+            expected_profile: RUST_DECLARATION_PROFILE,
+            address: None,
+            digest_contract: DigestContract {
+                anchored_to: semantic_key,
+            },
+        },
+    }
+}
+
+/// One planned member at one shared-destination seat.
+fn shared_destination_member(seat: SharedDestinationSeat) -> PlannedMember<SharedDestinationSeat> {
     let semantic_key = key(seat.name().as_bytes());
     PlannedMember {
         role: seat,
@@ -224,6 +269,25 @@ fn a_plans_declared_set_is_whatever_its_declaration_admitted() -> Result<(), ()>
     assert_eq!(declared.count_to(Destination::DeclarationSite), 1);
     assert_eq!(declared.count_to(Destination::TestCarrier), 1);
     assert_eq!(declared.count_to(Destination::BenchCarrier), 0);
+    Ok(())
+}
+
+/// A membership's destination reading preserves the order in which its members were offered.
+#[test]
+fn destination_members_preserve_offered_order() -> Result<(), ()> {
+    let declared = Membership::declared(
+        shared_destination_member(SharedDestinationSeat::Second),
+        vec![shared_destination_member(SharedDestinationSeat::First)],
+    )
+    .map_err(|_| ())?;
+    let observed = declared
+        .members_to(Destination::DeclarationSite)
+        .map(|member| member.role)
+        .collect::<Vec<_>>();
+    assert_eq!(
+        observed,
+        [SharedDestinationSeat::Second, SharedDestinationSeat::First]
+    );
     Ok(())
 }
 

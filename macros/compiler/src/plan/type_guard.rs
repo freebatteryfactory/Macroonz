@@ -13,7 +13,7 @@ use crate::bounded::{Bounded, Capped, Capping, NonEmpty, Overflow};
 use crate::identity::{
     self, GENERATOR, Identity, PlanId, Profile, Provenance, Transcript, encode_bytes,
 };
-use crate::kind::{CanonicalContent, Destination, Kind, Role};
+use crate::kind::{CanonicalContent, Destination, JoinOrder, Kind, Role, rows_to, rows_under};
 use crate::origin::{DecisionTrace, Nonclaim, OriginTrail, TrailError};
 
 impl<K: Kind> ContentBinding<K> {
@@ -241,6 +241,11 @@ fn foreign<R: Role>(member: &PlannedMember<R>) -> Option<PlanIssue> {
     })
 }
 
+/// The role one planned member stands under.
+const fn planned_role<R: Role>(member: &PlannedMember<R>) -> R {
+    member.role
+}
+
 impl<R: Role> Membership<R> {
     /// The one-member output set.
     ///
@@ -322,16 +327,14 @@ impl<R: Role> Membership<R> {
     /// The member planned under one seat, where one is.
     #[must_use]
     pub fn under(&self, role: R) -> Option<&PlannedMember<R>> {
-        self.members().iter().find(|member| member.role == role)
+        self.members_under(role).next()
     }
 
     /// Every member planned under one seat, in declaration order.
     ///
     /// The road a complete-set comparison walks: comparing two memberships by their first member per seat would agree about two sets that differ in their second, which is exactly what a doubled seat produces.
     pub fn members_under(&self, role: R) -> impl Iterator<Item = &PlannedMember<R>> {
-        self.members()
-            .iter()
-            .filter(move |member| member.role == role)
+        rows_under(self.members(), role, planned_role::<R>)
     }
 
     /// How many members are planned under one seat.
@@ -344,9 +347,12 @@ impl<R: Role> Membership<R> {
     ///
     /// The reading that routes, and it elects nothing: a member's delivery is its seat's own constant answer ([`Role::destination`]), so a join asking which members it emits and a consumption target asking which cargo it receives take one answer rather than two that agree until one is edited.
     pub fn members_to(&self, destination: Destination) -> impl Iterator<Item = &PlannedMember<R>> {
-        self.members()
-            .iter()
-            .filter(move |member| member.role.destination() == destination)
+        rows_to(
+            self.members(),
+            destination,
+            JoinOrder::Offering,
+            planned_role::<R>,
+        )
     }
 
     /// How many members this plan declared into one delivery.
