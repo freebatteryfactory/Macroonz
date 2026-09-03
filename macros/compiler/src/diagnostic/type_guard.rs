@@ -1,19 +1,18 @@
-//! The diagnostic home's invariant nucleus: the one road that builds a related set, the two placement-safe roads that build diagnostics, and the roads its own values are read through.
+//! The diagnostic home's invariant nucleus: the one road that builds a related set, the private diagnostic assembly, and the roads its own values are read through.
 //!
 //! Declared inside `types.rs` as its own child, so the seats a caller may not write are reachable here and nowhere else.
 //!
 //! What lands here is what is about an ACT rather than about a value.
 //! The related-set road takes the issue material — not a count, and not identities somebody else already derived — and builds the set, so the capping and the identities are two readings of one act.
-//! The caller-placed road takes a refusal, a door, and the public placement vocabulary; the intrinsic road takes a refusal projection whose own type supplies its site.
-//! Both end at the same private composition, so a line naming one position beside a seat holding another is unrepresentable.
+//! The caller-placed and intrinsic roads obtain one informed projection from `project.rs` and assemble its private seats here, so a line naming one position beside a seat holding another is unrepresentable.
 
 use super::{
-    Diagnostic, DiagnosticName, DiagnosticNameRefusal, DiagnosticSeats, Family, IntrinsicRefused,
-    Line, LineSite, Observed, Phase, Placement, Refused, RelatedIdentity, RelatedSet, Repair,
-    Route, Site, SiteCoordinate,
+    Diagnostic, DiagnosticName, DiagnosticNameRefusal, DiagnosticProjection, DiagnosticSeats,
+    Family, IntrinsicRefused, Observed, Phase, Placement, Refused, RelatedIdentity, RelatedSet,
+    Repair, Route, Site, SiteCoordinate,
 };
 use crate::bounded::{Bounded, Capping};
-use crate::diagnostic::project::{composed, witnessed};
+use crate::diagnostic::project::{diagnostic, intrinsic_site, placement_site};
 use crate::identity::{
     Contract, Identity, RelatedBody, RelatedIssue, Role, ServiceEntry, Transcript, encode_bytes,
 };
@@ -270,7 +269,7 @@ impl Diagnostic {
     /// The site is built once and read twice — the prose and the seat are projections of the same value.
     /// Refusal types whose site is intrinsic expose their own diagnostic road and do not implement this method's public bound.
     pub fn refused<E: Refused>(refusal: &E, door: &Door, placement: &Placement<'_>) -> Self {
-        compose_diagnostic(refusal, door, placement_site(placement))
+        assemble_diagnostic(diagnostic(refusal, door, placement_site(placement)))
     }
 
     /// The step that was running.
@@ -325,50 +324,21 @@ impl Diagnostic {
 
 /// Compose one intrinsically placed refusal without accepting a second site beside it.
 pub(crate) fn intrinsic_diagnostic<E: IntrinsicRefused>(refusal: &E, door: &Door) -> Diagnostic {
-    compose_diagnostic(refusal, door, refusal.site())
+    assemble_diagnostic(diagnostic(refusal, door, intrinsic_site(refusal)))
 }
 
-/// Compose one refusal over the site its lawful road established.
-fn compose_diagnostic<E: Refused>(refusal: &E, door: &Door, site: Site) -> Diagnostic {
-    let related = RelatedSet::derived_over(E::FAMILY, &refusal.related());
-    let first = refusal.first();
-    let line = Line {
-        class: refusal.class(),
-        first: &first,
-        body: refusal.body(),
-    };
-    let composed_line = composed(door, &line, placement_line_site(site));
+/// Assemble one diagnostic from the informed projection without reopening any semantic choice.
+fn assemble_diagnostic(projection: DiagnosticProjection) -> Diagnostic {
     Diagnostic {
-        phase: E::PHASE,
-        site,
-        observed: refusal.observed(),
+        phase: projection.phase,
+        site: projection.site,
+        observed: projection.observed,
         carried: Box::new(DiagnosticSeats {
-            summary: witnessed(&composed_line, related.capping()),
-            expected: door.grammar(),
-            related,
-            repairs: refusal.repairs(),
-            route: Route::through(door.entry()),
+            summary: projection.summary,
+            expected: projection.expected,
+            related: projection.related,
+            repairs: projection.repairs,
+            route: projection.route,
         }),
-    }
-}
-
-/// The site one placement amounts to.
-///
-/// The whole-declaration placement answers with the whole-declaration site: the placement says there is nowhere narrower to point, and the site says exactly the same thing — no token, no coordinate, no manufactured first-token stand-in a machine reader could mistake for a resolved position.
-fn placement_site(placement: &Placement<'_>) -> Site {
-    match *placement {
-        Placement::WholeDeclaration => Site::whole_declaration(),
-        Placement::AtToken { token, spans } => {
-            Site::at_token(token, SiteCoordinate::answered(spans.coordinate_of(token)))
-        }
-    }
-}
-
-/// What the composed line says about where the refusal sits — a projection of the site, so the prose and the seat cannot disagree.
-fn placement_line_site(site: Site) -> LineSite {
-    match site {
-        Site::WholeDeclaration => LineSite::WholeDeclaration,
-        Site::AtToken { coordinate, .. } => LineSite::At(coordinate),
-        Site::BeforeCapture { coordinate } => LineSite::At(SiteCoordinate::Resolved(coordinate)),
     }
 }

@@ -89,6 +89,27 @@ fn assert_role_join_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
     Ok(())
 }
 
+fn assert_diagnostic_projection_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
+    assert_occurrences(
+        root,
+        "pub(super) fn diagnostic<E: Refused>",
+        &["diagnostic/project.rs"],
+    )?;
+    assert_occurrences(
+        root,
+        "pub(super) fn placement_site",
+        &["diagnostic/project.rs"],
+    )?;
+    assert_occurrences(
+        root,
+        "fn assemble_diagnostic",
+        &["diagnostic/type_guard.rs"],
+    )?;
+    assert_occurrences(root, "fn compose_diagnostic", &[])?;
+    assert_occurrences(root, "fn placement_line_site", &[])?;
+    Ok(())
+}
+
 fn assert_duplicate_group_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
     assert_occurrences(root, "fn admit_keys<", &["bounded/type_guard.rs"])?;
     assert_occurrences(
@@ -218,6 +239,7 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     assert_harness_path_debt_is_closed(&root)?;
     assert_declared_name_grammar_debt_is_closed(&root)?;
     assert_role_join_debt_is_closed(&root)?;
+    assert_diagnostic_projection_debt_is_closed(&root)?;
     assert_duplicate_group_debt_is_closed(&root)?;
     assert_doubled_set_debt_is_closed(&root)?;
     assert_helper_refusal_projection_debt_is_closed(&root)?;

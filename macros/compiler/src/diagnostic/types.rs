@@ -360,6 +360,18 @@ struct DiagnosticSeats {
     route: Route,
 }
 
+/// The informed values the projection operation hands to the invariant nucleus for one diagnostic.
+pub(super) struct DiagnosticProjection {
+    pub(super) phase: Phase,
+    pub(super) site: Site,
+    pub(super) observed: Observed,
+    pub(super) summary: String,
+    pub(super) expected: Identity<Contract>,
+    pub(super) related: RelatedSet,
+    pub(super) repairs: Bounded<Repair, REPAIR_LIMIT>,
+    pub(super) route: Route,
+}
+
 /// How one step of the road says no.
 ///
 /// A step refuses in the vocabulary of the home that owns it and implements this to say how that vocabulary reads; [`Diagnostic::refused`] projects caller-placed refusals, while intrinsically placed refusal types expose their own typed diagnostic road.

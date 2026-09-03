@@ -6,7 +6,11 @@
 //! The line is a SUMMARY and says so: the first established issue in full, then how many others there were, then whether the set that names them kept all of them, then where the refusal sits if it sits anywhere narrower than the declaration.
 //! The remainder is not lost — every issue has its own identity in the related set, and the typed body is the value the caller of the refusing step holds.
 
-use super::{Line, LineBody, LineSite, SiteCoordinate};
+use super::types::DiagnosticProjection;
+use super::{
+    IntrinsicRefused, Line, LineBody, LineSite, Placement, Refused, RelatedSet, Route, Site,
+    SiteCoordinate,
+};
 use crate::bounded::Capping;
 use crate::request::Door;
 use crate::token::CoordinateRole;
@@ -83,5 +87,51 @@ pub(crate) fn witnessed(line: &str, capping: Capping) -> String {
             "{line} (the related set was capped at the declared issue bound: one identity over the \
              complete body is carried and {omitted} per-issue identities are not)"
         ),
+    }
+}
+
+/// Project one refusal and its lawful site into every informed value the diagnostic carries.
+pub(super) fn diagnostic<E: Refused>(refusal: &E, door: &Door, site: Site) -> DiagnosticProjection {
+    let related = RelatedSet::derived_over(E::FAMILY, &refusal.related());
+    let first = refusal.first();
+    let line = Line {
+        class: refusal.class(),
+        first: &first,
+        body: refusal.body(),
+    };
+    let composed_line = composed(door, &line, line_site(site));
+    DiagnosticProjection {
+        phase: E::PHASE,
+        site,
+        observed: refusal.observed(),
+        summary: witnessed(&composed_line, related.capping()),
+        expected: door.grammar(),
+        related,
+        repairs: refusal.repairs(),
+        route: Route::through(door.entry()),
+    }
+}
+
+/// Project one caller-supplied placement into the site it states.
+pub(super) fn placement_site(placement: &Placement<'_>) -> Site {
+    match *placement {
+        Placement::WholeDeclaration => Site::whole_declaration(),
+        Placement::AtToken { token, spans } => {
+            Site::at_token(token, SiteCoordinate::answered(spans.coordinate_of(token)))
+        }
+    }
+}
+
+/// Project the intrinsic site carried by a refusal whose placing act already settled it.
+pub(super) fn intrinsic_site<E: IntrinsicRefused>(refusal: &E) -> Site {
+    refusal.site()
+}
+
+/// Project one diagnostic site into the posture its human-readable line carries.
+fn line_site(site: Site) -> LineSite {
+    match site {
+        Site::WholeDeclaration => LineSite::WholeDeclaration,
+        Site::AtToken { coordinate, .. } => LineSite::At(coordinate),
+        Site::BeforeCapture { coordinate } => LineSite::At(SiteCoordinate::Resolved(coordinate)),
     }
 }
