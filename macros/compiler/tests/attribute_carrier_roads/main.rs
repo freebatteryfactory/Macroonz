@@ -15,6 +15,7 @@ use macroonz_compiler::support::{
 use macroonz_compiler::{
     CrateBinding, Diagnostic, Door, Expansion, LineBody, Observed, Overflow, PartitionCargo, Phase,
     Producer, RefusalClass, Refused, SHELL_FAMILY, SUPPORT_DECLARATION_FAMILY, TextCapture,
+    encode_bytes,
 };
 
 /// The one value that says who is asking.
@@ -865,16 +866,6 @@ fn two_declarations_mint_two_exported_names() -> Result<(), ()> {
     Ok(())
 }
 
-/// Appends this lane's independent eight-byte length frame.
-fn framed(material: &[u8], into: &mut Vec<u8>) {
-    into.extend_from_slice(
-        &u64::try_from(material.len())
-            .unwrap_or(u64::MAX)
-            .to_be_bytes(),
-    );
-    into.extend_from_slice(material);
-}
-
 /// Claim: every support-declaration refusal has one stable slot, one canonical byte, and the typed diagnostic posture declared by the support home.
 /// Subject: the public support `DeclarationError` roster and its `Refused` implementation.
 /// Population: all five refusal variants.
@@ -950,8 +941,8 @@ fn every_shell_refusal_keeps_its_public_contract() -> Result<(), ()> {
     let planned = request::committed(planned_capture.input());
     let mismatch = ShellError::NotOneDeclaration { stated, planned };
     let mut mismatch_bytes = vec![0];
-    framed(stated.as_bytes(), &mut mismatch_bytes);
-    framed(planned.as_bytes(), &mut mismatch_bytes);
+    encode_bytes(stated.as_bytes(), &mut mismatch_bytes);
+    encode_bytes(planned.as_bytes(), &mut mismatch_bytes);
     assert_eq!(mismatch.slot(), 0);
     assert_eq!(mismatch.canonical_bytes(), mismatch_bytes);
     let mut mismatch_appended = vec![u8::MAX];

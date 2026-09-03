@@ -1,6 +1,6 @@
 //! The token seam's public paths, canonical bytes, and readable projection observed from outside its crate.
 //!
-//! The receipts below are rebuilt without the compiler's framing helpers, so a moved slot, delimiter, spacing row, framing boundary, or producer coordinate changes the observation.
+//! The receipts below rebuild every token slot, delimiter, spacing row, and producer coordinate while using the public framing contract.
 //! The generated projection is fixed beside the byte receipt because the projection and the identity bytes are different contracts and neither substitutes for the other.
 
 use core::convert::Infallible;
@@ -10,17 +10,14 @@ use macroonz_compiler::token::{
     GeneratedDelimiter, GeneratedLiteral, GeneratedToken as HomeGeneratedToken,
     GeneratedTree as HomeGeneratedTree, LiteralReadCause, TextLexicalCause, rust_keyword,
 };
-use macroonz_compiler::{CaptureBuildRefusal, CaptureBuilder, GeneratedToken, GeneratedTree};
+use macroonz_compiler::{
+    CaptureBuildRefusal, CaptureBuilder, GeneratedToken, GeneratedTree, encode_bytes,
+};
 
-/// Append one independently framed variable-width token payload.
-fn framed(slot: u8, material: &[u8], into: &mut Vec<u8>) {
+/// Append one independently stated token slot and its publicly framed payload.
+fn token_bytes(slot: u8, material: &[u8], into: &mut Vec<u8>) {
     into.push(slot);
-    into.extend_from_slice(
-        &u64::try_from(material.len())
-            .unwrap_or(u64::MAX)
-            .to_be_bytes(),
-    );
-    into.extend_from_slice(material);
+    encode_bytes(material, into);
 }
 
 /// The complete edition-2024 keyword roster and neighbouring ordinary names are classified at the public token boundary.
@@ -175,20 +172,20 @@ fn empty_group(
 /// The independently rebuilt bytes for [`captured`].
 fn captured_receipt() -> Vec<u8> {
     let mut bytes = Vec::new();
-    framed(1, b"w", &mut bytes);
-    framed(2, b":", &mut bytes);
-    framed(3, b"t", &mut bytes);
-    framed(4, b"01", &mut bytes);
+    token_bytes(1, b"w", &mut bytes);
+    token_bytes(2, b":", &mut bytes);
+    token_bytes(3, b"t", &mut bytes);
+    token_bytes(4, b"01", &mut bytes);
     for delimiter in 0u8..=3u8 {
         bytes.extend_from_slice(&[5, delimiter]);
         bytes.extend_from_slice(&0u64.to_be_bytes());
     }
-    framed(6, &[0, 0xff], &mut bytes);
-    framed(7, "é".as_bytes(), &mut bytes);
+    token_bytes(6, &[0, 0xff], &mut bytes);
+    token_bytes(7, "é".as_bytes(), &mut bytes);
     bytes.extend_from_slice(&[8, 0xff]);
-    framed(9, b"c", &mut bytes);
-    framed(10, b"type", &mut bytes);
-    framed(11, b"+", &mut bytes);
+    token_bytes(9, b"c", &mut bytes);
+    token_bytes(10, b"type", &mut bytes);
+    token_bytes(11, b"+", &mut bytes);
     bytes
 }
 
@@ -221,32 +218,32 @@ fn generated() -> Option<GeneratedTree> {
 /// The independently rebuilt bytes for [`generated`].
 fn generated_receipt() -> Vec<u8> {
     let mut bytes = Vec::new();
-    framed(1, b"word", &mut bytes);
+    token_bytes(1, b"word", &mut bytes);
     bytes.extend_from_slice(&[2, 0]);
     bytes.extend_from_slice(&1u64.to_be_bytes());
     bytes.push(b':');
     bytes.extend_from_slice(&[2, 1]);
     bytes.extend_from_slice(&1u64.to_be_bytes());
     bytes.push(b':');
-    framed(3, b"a\"\\", &mut bytes);
+    token_bytes(3, b"a\"\\", &mut bytes);
     for delimiter in 0u8..=2u8 {
         bytes.extend_from_slice(&[4, delimiter]);
         bytes.extend_from_slice(&0u64.to_be_bytes());
     }
     bytes.extend_from_slice(&[4, 3]);
     bytes.extend_from_slice(&1u64.to_be_bytes());
-    framed(1, b"inside", &mut bytes);
-    framed(5, &[0, 0xff], &mut bytes);
+    token_bytes(1, b"inside", &mut bytes);
+    token_bytes(5, &[0, 0xff], &mut bytes);
     bytes.push(6);
     bytes.extend_from_slice(&0x0102_0304_0506_0708u64.to_be_bytes());
-    framed(7, b"type", &mut bytes);
+    token_bytes(7, b"type", &mut bytes);
     bytes.push(8);
-    framed(0, b"0xFFu8", &mut bytes);
+    token_bytes(0, b"0xFFu8", &mut bytes);
     bytes.push(8);
-    framed(1, "é".as_bytes(), &mut bytes);
+    token_bytes(1, "é".as_bytes(), &mut bytes);
     bytes.extend_from_slice(&[8, 2, 0xff]);
     bytes.push(8);
-    framed(3, b"ab", &mut bytes);
+    token_bytes(3, b"ab", &mut bytes);
     bytes
 }
 

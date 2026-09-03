@@ -299,6 +299,23 @@ fn assert_roster_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
     Ok(())
 }
 
+fn assert_test_framing_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
+    let framed = ["fn frame", "d(material: &[u8], into: &mut Vec<u8>)"].concat();
+    assert_occurrences(
+        root,
+        &framed,
+        &[
+            "diagnostic_related_sets/main.rs",
+            "independent_identity_transcripts/main.rs",
+            "recorded_origins/main.rs",
+        ],
+    )?;
+    let frame = ["fn fra", "me(material: &[u8]"].concat();
+    assert_occurrences(root, &frame, &[])?;
+    let slotted = ["fn frame", "d(slot: u8"].concat();
+    assert_occurrences(root, &slotted, &[])
+}
+
 #[test]
 fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
@@ -365,5 +382,6 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
         &root,
         "recipe issue category must be formatted exactly once",
         &[],
-    )
+    )?;
+    assert_test_framing_debt_is_closed(&Path::new(env!("CARGO_MANIFEST_DIR")).join("tests"))
 }

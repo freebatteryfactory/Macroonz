@@ -13,7 +13,7 @@ use macroonz_compiler::{
     CrateBinding, Diagnostic, Door, FIRST_HELPER_FAMILY, Family, GeneratedToken, LineBody,
     NETWORK_HELPER_FAMILY, Observed, OwnerFact, OwnerIdentity, Phase, Placement, Producer,
     RefusalClass, Refused, SECOND_HELPER_FAMILY, SHADOW_HELPER_FAMILY, Site, SpanHandle,
-    TextCapture,
+    TextCapture, encode_bytes,
 };
 
 /// The public door that places composition refusals for this external lane.
@@ -547,16 +547,6 @@ fn provider(subject: &'static str, discriminator: u8) -> Provider {
     }
 }
 
-/// Appends one independently stated eight-byte length prefix and its material.
-fn framed(material: &[u8], into: &mut Vec<u8>) {
-    into.extend_from_slice(
-        &u64::try_from(material.len())
-            .unwrap_or(u64::MAX)
-            .to_be_bytes(),
-    );
-    into.extend_from_slice(material);
-}
-
 /// One declared provider roster with distinct identities.
 fn providers(count: usize) -> Vec<Provider> {
     (0..count)
@@ -799,7 +789,7 @@ fn composition_settles_magnitude_before_duplicate_work() -> Result<(), ()> {
 /// Claim: absence, magnitude, and each doubled identity publish their exact canonical issue material under stable public slots.
 /// Subject: `CompositionIssue::canonical_bytes`.
 /// Population: one absent provider seat, one overrun provider seat, and two doubled provider identities.
-/// Hostile control: independently framed expected vectors disagree with a moved slot, nested declaration row, field order, length, subject, or identity byte.
+/// Hostile control: expected vectors rebuilt from the public frame disagree with a moved slot, nested declaration row, field order, subject, or identity byte.
 /// Denominator: every current composition issue shape and two values of its identity-bearing shape.
 /// Evidence ceiling: this fixes the complete current byte grammar, not cryptographic collision resistance.
 /// Retained-regression policy: any changed vector requires an explicit canonical-byte ruling.
@@ -811,9 +801,9 @@ fn composition_issue_bytes_retain_exact_shape_and_identity() {
         },
     };
     let mut absent_refusal = vec![3];
-    framed(b"provider", &mut absent_refusal);
+    encode_bytes(b"provider", &mut absent_refusal);
     let mut absent_expected = vec![1];
-    framed(&absent_refusal, &mut absent_expected);
+    encode_bytes(&absent_refusal, &mut absent_expected);
 
     let unbounded = CompositionIssue::Declaration {
         refusal: DeclarationError::Unbounded {
@@ -823,29 +813,29 @@ fn composition_issue_bytes_retain_exact_shape_and_identity() {
         },
     };
     let mut unbounded_refusal = vec![5];
-    framed(b"provider", &mut unbounded_refusal);
+    encode_bytes(b"provider", &mut unbounded_refusal);
     unbounded_refusal.extend_from_slice(&64_u64.to_be_bytes());
     unbounded_refusal.extend_from_slice(&65_u64.to_be_bytes());
     let mut unbounded_expected = vec![1];
-    framed(&unbounded_refusal, &mut unbounded_expected);
+    encode_bytes(&unbounded_refusal, &mut unbounded_expected);
 
     let first_doubled = CompositionIssue::ProviderDoubled {
         provider: provider("lane/first-provider", 1).identity,
     };
     let mut first_citation = Vec::new();
-    framed(b"lane/first-provider", &mut first_citation);
-    framed(&[1; 32], &mut first_citation);
+    encode_bytes(b"lane/first-provider", &mut first_citation);
+    encode_bytes(&[1; 32], &mut first_citation);
     let mut first_expected = vec![0];
-    framed(&first_citation, &mut first_expected);
+    encode_bytes(&first_citation, &mut first_expected);
 
     let second_doubled = CompositionIssue::ProviderDoubled {
         provider: provider("lane/second-provider", 2).identity,
     };
     let mut second_citation = Vec::new();
-    framed(b"lane/second-provider", &mut second_citation);
-    framed(&[2; 32], &mut second_citation);
+    encode_bytes(b"lane/second-provider", &mut second_citation);
+    encode_bytes(&[2; 32], &mut second_citation);
     let mut second_expected = vec![0];
-    framed(&second_citation, &mut second_expected);
+    encode_bytes(&second_citation, &mut second_expected);
 
     let cases = [
         (absent, 1, absent_expected),
