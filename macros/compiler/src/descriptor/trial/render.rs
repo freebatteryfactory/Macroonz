@@ -144,8 +144,7 @@ pub fn row_schema_identity() -> Result<Vec<GeneratedToken>, Overflow> {
 /// The lens is a Rust identifier by construction and the seat's name is one of three declared words, so the composition is an identifier too — and two distinct lenses compose two distinct metavariables, which is what lets one matcher name every row's three seats without a register of what it has already spelled.
 #[must_use]
 pub fn attachment_metavariable(lens: &str, seat: HarnessWord) -> String {
-    let seat = seat.spelling();
-    format!("{lens}_{seat}")
+    crate::descriptor::emitting::row_metavariable(lens, seat)
 }
 
 /// One row's executable attachment: the two locals the row already parsed, the two revision commitments the consumption target declared, and the callable it named.

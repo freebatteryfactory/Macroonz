@@ -6,6 +6,7 @@
 
 use super::{BenchmarkDeclaration, Budgets, ContentionPosture, Row, WorkFormula};
 use crate::bounded::Overflow;
+use crate::descriptor::emitting::row_metavariable;
 use crate::descriptor::trial::{named_clause, table_schema_identity};
 use crate::descriptor::vocabulary::{self, HarnessName, HarnessWord};
 use crate::descriptor::{Emitter, Name};
@@ -131,13 +132,6 @@ pub fn observations(row: &Row) -> Result<Vec<GeneratedToken>, Overflow> {
         named.push(GeneratedToken::alone(','));
     }
     roster(named)
-}
-
-/// The target-owned expression one row receives under one declared seat.
-#[must_use]
-fn row_metavariable(lens: &str, seat: HarnessWord) -> String {
-    let seat = seat.spelling();
-    format!("{lens}_{seat}")
 }
 
 /// One row in the harness's exact declaration shape, over the four parsed reference locals.

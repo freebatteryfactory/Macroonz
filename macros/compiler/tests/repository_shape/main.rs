@@ -120,6 +120,11 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     assert_occurrences(&root, "impl RecipeRelationPayloadKind", &[])?;
     assert_occurrences(
         &root,
+        "format!(\"{lens}_{seat}\")",
+        &["descriptor/emitting.rs"],
+    )?;
+    assert_occurrences(
+        &root,
         "the complete relation-question roster guards this match",
         &[],
     )?;

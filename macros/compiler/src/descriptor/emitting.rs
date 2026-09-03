@@ -4,6 +4,7 @@
 
 use crate::bounded::Overflow;
 use crate::descriptor::DirectBinding;
+use crate::descriptor::vocabulary::HarnessWord;
 use crate::token::{
     GeneratedDelimiter, GeneratedToken, absolute_path, associated_function, attribute, comma_many,
     documentation, function_signature, group, implementation, result_type, typed_parameter,
@@ -22,6 +23,13 @@ pub(crate) fn direct_path(
         .chain(destination.iter().copied())
         .collect::<Vec<_>>();
     into.extend(absolute_path(&segments));
+}
+
+/// Compose one row lens and one declared attachment seat into their matcher metavariable.
+#[must_use]
+pub(crate) fn row_metavariable(lens: &str, seat: HarnessWord) -> String {
+    let seat = seat.spelling();
+    format!("{lens}_{seat}")
 }
 
 /// Append one `#[doc = "<text>"]` attribute.
