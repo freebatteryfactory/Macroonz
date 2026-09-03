@@ -2,8 +2,8 @@
 
 use super::{
     EffectiveProjection, LoweringSource, ProjectionError, ProjectionOffered, ProjectionRequest,
-    ProjectionSink, ProjectorReplacement, RELATION_TABLE_LIMIT, Recipe, RecipeBake, RecipeError,
-    RecipeIssue, RecipeProjection, RecipeRole, RecipeShell, RecipeShellContent, RecipeView,
+    ProjectionSink, ProjectorReplacement, RELATION_TABLE_LIMIT, Recipe, RecipeBake,
+    RecipeProjection, RecipeRole, RecipeShell, RecipeShellContent, RecipeView,
     RelationTableProjection,
 };
 use crate::bounded::Bounded;
@@ -271,24 +271,6 @@ impl<'output, 'plan> ProjectionSink<'output, 'plan> {
             .unit(self.role, tree)
             .map_err(ProjectionError::Render)?;
         Ok(ProjectionOffered { _private: () })
-    }
-}
-
-impl RecipeError {
-    pub(in crate::recipe) const fn at(issue: RecipeIssue, at: Option<SpanHandle>) -> Self {
-        Self { issue, at }
-    }
-
-    /// Reads the exact recipe issue.
-    #[must_use]
-    pub(in crate::recipe) const fn issue(&self) -> &RecipeIssue {
-        &self.issue
-    }
-
-    /// Reads the captured producer span available for this issue.
-    #[must_use]
-    pub(in crate::recipe) const fn token(&self) -> Option<SpanHandle> {
-        self.at
     }
 }
 

@@ -4,6 +4,7 @@ mod bake;
 mod capture;
 mod encode;
 mod evidence;
+mod issue;
 mod names;
 mod render;
 mod role;
