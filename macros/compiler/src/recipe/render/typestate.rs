@@ -1,7 +1,7 @@
 //! The standard typestate projection over one informed state vocabulary.
 
-use super::render_tokens::{derive, public, row_projection_error, static_str};
-use super::{ProjectionError, Recipe, RecipeMember};
+use super::super::{ProjectionError, Recipe, RecipeMember};
+use super::tokens::{derive, public, row_projection_error, static_str};
 use crate::token::{
     GeneratedDelimiter, GeneratedToken, GeneratedTree, absolute_path, associated_constant,
     associated_function, decorated, documentation, function_signature, group, implementation,

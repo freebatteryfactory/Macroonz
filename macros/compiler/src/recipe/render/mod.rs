@@ -1,17 +1,26 @@
 //! Projection through the one capability shared by standard and caller-owned projectors.
 
-use super::render_codec::codec;
-use super::render_companions::companions;
-use super::render_dispatch::dispatch;
-use super::render_evidence::{compile_contract, declaration_conformance};
-use super::render_relation_tables::relation_tables;
-use super::render_typestate::typestate;
+mod codec;
+mod companions;
+mod dispatch;
+mod evidence;
+mod relation_tables;
+mod tokens;
+mod typestate;
+
 use super::types::StandardProjector;
+use super::{EffectiveProjection, RecipeTransitionEffect};
 use super::{
     PreparedEvidence, ProjectionError, ProjectionRequest, ProjectionSink, Recipe, RecipeProjector,
     RecipeRole, RecipeView,
 };
 use crate::token::GeneratedTree;
+use codec::codec;
+use companions::companions;
+use dispatch::dispatch;
+use evidence::{compile_contract, declaration_conformance};
+use relation_tables::relation_tables;
+use typestate::typestate;
 
 impl<'evidence> StandardProjector<'evidence> {
     /// Bind the built-in catalog to the descriptor outputs prepared for this recipe walk.

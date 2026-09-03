@@ -1,10 +1,10 @@
 //! Typed membership and payload lookup projections over caller-named relations.
 
-use super::render_tokens::{comma_separated, public};
-use super::{
+use super::super::{
     EffectiveProjection, ProjectionError, Recipe, RecipeRelation, RecipeRelationPayload,
     RecipeRelationPayloadKind, RecipeRelationRow, RecipeVocabulary, RelationTableProjection,
 };
+use super::tokens::{comma_separated, public};
 use crate::token::{
     GeneratedDelimiter, GeneratedToken, GeneratedTree, decorated, documentation, function_item,
     function_signature, group, inline_module, match_arm, match_expression, typed_parameter,

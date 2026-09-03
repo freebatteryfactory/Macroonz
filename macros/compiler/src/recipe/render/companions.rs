@@ -1,11 +1,11 @@
 //! The standard roster and transition companion projection.
 
-use super::names::companion_constant;
-use super::render_tokens::{comma_separated, comma_tokens, public, super_path, variant};
-use super::{
+use super::super::names::companion_constant;
+use super::super::{
     ProjectionError, Recipe, RecipeMember, RecipeRelation, RecipeRelationPayload,
     RecipeRelationPayloadKind, RecipeRelationRow, RecipeVocabulary,
 };
+use super::tokens::{comma_separated, comma_tokens, public, super_path, variant};
 use crate::token::{
     GeneratedDelimiter, GeneratedToken, GeneratedTree, constant, decorated, documentation, group,
 };

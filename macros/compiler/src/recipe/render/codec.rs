@@ -1,6 +1,6 @@
 //! Standard codec projection through the existing codec owner.
 
-use super::{ProjectionError, Recipe};
+use super::super::{ProjectionError, Recipe};
 use crate::token::GeneratedTree;
 
 pub(super) fn codec(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError> {

@@ -1,9 +1,9 @@
 //! Standard compile-contract and declaration-conformance projections over one informed recipe.
 
-use super::render_tokens::{
+use super::super::{ProjectionError, Recipe, RecipeRelationRow, RecipeVocabulary};
+use super::tokens::{
     comma_separated, crate_baked_path, crate_recipe_path, crate_recipe_variant, dispatch_name,
 };
-use super::{ProjectionError, Recipe, RecipeRelationRow, RecipeVocabulary};
 use crate::token::{
     GeneratedDelimiter, GeneratedToken, GeneratedTree, attribute, decorated, function_item,
     function_signature, group,

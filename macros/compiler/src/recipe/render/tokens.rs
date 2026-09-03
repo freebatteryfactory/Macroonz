@@ -1,6 +1,6 @@
 //! Shared token mechanics used by the standard recipe projector families.
 
-use super::{EffectiveProjection, ProjectionError, Recipe, RecipeRole};
+use super::super::{EffectiveProjection, ProjectionError, Recipe, RecipeRole};
 use crate::bounded::NonEmptyError;
 use crate::token::{GeneratedDelimiter, GeneratedRowRefusal, GeneratedToken, attribute, group};
 

@@ -1,10 +1,10 @@
 //! The standard sparse dispatch projection over informed transition rows.
 
-use super::render_tokens::{call_variant, comma_separated, derive, public, super_path, variant};
-use super::{
+use super::super::{
     EffectiveProjection, ProjectionError, Recipe, RecipeRelation, RecipeRelationRow,
     RecipeTransitionEffect, RecipeVocabulary,
 };
+use super::tokens::{call_variant, comma_separated, derive, public, super_path, variant};
 use crate::relation::AbsencePosture;
 use crate::token::{
     GeneratedDelimiter, GeneratedToken, GeneratedTree, decorated, documentation, enumeration,

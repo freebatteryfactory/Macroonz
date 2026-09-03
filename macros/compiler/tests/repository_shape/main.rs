@@ -63,7 +63,7 @@ fn assert_harness_path_debt_is_closed(root: &Path) -> Result<(), std::io::Error>
         "pub(crate) fn owned_direct_path",
         &["descriptor/emitting.rs"],
     )?;
-    assert_occurrences(root, "fn harness_path(", &["recipe/render_evidence.rs"])?;
+    assert_occurrences(root, "fn harness_path(", &["recipe/render/evidence.rs"])?;
     Ok(())
 }
 
