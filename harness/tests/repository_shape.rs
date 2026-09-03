@@ -82,7 +82,7 @@ fn assert_single_owner_stamps(root: &Path) -> Result<(), std::io::Error> {
     assert_occurrences(
         root,
         "macro_rules! namespaced_reference",
-        &["descriptor/type_guard.rs"],
+        &["descriptor/guard_name.rs"],
     )?;
     assert_occurrences(
         root,
@@ -184,10 +184,10 @@ fn assert_content_address_denominator(root: &Path) -> Result<(), std::io::Error>
             "bench/declaration/types.rs",
             "corpus/type_guard.rs",
             "corpus/types.rs",
-            "descriptor/type_guard.rs",
-            "descriptor/type_guard.rs",
-            "descriptor/type_guard.rs",
-            "descriptor/type_guard.rs",
+            "descriptor/guard_row.rs",
+            "descriptor/guard_row.rs",
+            "descriptor/guard_row.rs",
+            "descriptor/guard_schema.rs",
             "descriptor/types.rs",
             "descriptor/types.rs",
             "descriptor/types.rs",
