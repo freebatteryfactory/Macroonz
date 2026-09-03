@@ -316,6 +316,53 @@ fn assert_test_framing_debt_is_closed(root: &Path) -> Result<(), std::io::Error>
     assert_occurrences(root, &slotted, &[])
 }
 
+fn assert_recipe_observation_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
+    let walker = ["fn ", "flattened(trees: &[CapturedTokenTree])"].concat();
+    assert_occurrences(root, &walker, &["support/captured_tokens.rs"])?;
+    for former_walk in [
+        ["fn collect_", "routes("].concat(),
+        ["fn collect_", "tokens("].concat(),
+        ["fn collect(trees: &[", "CapturedTokenTree]"].concat(),
+    ] {
+        assert_occurrences(root, &former_walk, &[])?;
+    }
+    let finders = "recipe_vertical_slice/support/tokens.rs";
+    for finder in [
+        ["enum ", "Occurrence"].concat(),
+        ["fn word_", "handle("].concat(),
+        ["fn group_after_", "word("].concat(),
+        ["fn narrow_group_", "containing("].concat(),
+        ["fn last_group_directly_", "containing("].concat(),
+    ] {
+        assert_occurrences(root, &finder, &[finders])?;
+    }
+    let driver = "recipe_vertical_slice/support/observe.rs";
+    for road in [
+        ["pub(crate) fn ", "refusal(source: &str)"].concat(),
+        ["fn refusal_", "under("].concat(),
+        ["fn bake_", "under("].concat(),
+        ["fn bake_", "with("].concat(),
+        ["fn bake_with_", "refusal("].concat(),
+    ] {
+        assert_occurrences(root, &road, &[driver])?;
+    }
+    assert_occurrences(
+        root,
+        &["macroonz_compiler::recipe::", "bake_with("].concat(),
+        &["recipe_vertical_slice/evidence_contract.rs", driver, driver],
+    )?;
+    let specimens = "support/attribute_specimens.rs";
+    for body in [
+        ["const TRIAL_", "BODY"].concat(),
+        ["const MUTATION_", "BODY"].concat(),
+        ["const MUTATION_", "ITEM"].concat(),
+        ["const BENCH_", "BODY"].concat(),
+    ] {
+        assert_occurrences(root, &body, &[specimens])?;
+    }
+    Ok(())
+}
+
 fn assert_compiler_test_support_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
     let specimen_path = ["fn specimen_", "path("].concat();
     let rustup = ["Command::new(\"", "rustup\")"].concat();
@@ -422,5 +469,6 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     )?;
     let tests = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests");
     assert_test_framing_debt_is_closed(&tests)?;
-    assert_compiler_test_support_debt_is_closed(&tests)
+    assert_compiler_test_support_debt_is_closed(&tests)?;
+    assert_recipe_observation_debt_is_closed(&tests)
 }

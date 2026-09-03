@@ -57,58 +57,13 @@ const BENCH_EMITTER: Emitter = Emitter {
     door: "bench",
 };
 
-/// One lawful trial declaration body.
-const TRIAL_BODY: &str = r#"
-    support = greet_support,
-    module = greet_trials,
-    table = named("lane", "greet-table"),
-    suite checks = named("lane", "unit") {
-        greet_answers {
-            claim = named("lane", "greet-answers"),
-            subject = named("lane", "greet"),
-            check = named("lane", "exact"),
-            population = named("lane", "smalls"),
-        },
-    },
-"#;
+#[path = "../support/attribute_specimens.rs"]
+mod attribute_specimens;
 
-/// One lawful mutation declaration body.
-const MUTATION_BODY: &str = r#"
-    module = pressed,
-    refusal = PressRefusal,
-    support = press_support,
-    family = named("lane", "refusals"),
-    point = named("lane", "press-point"),
-    fact = named("lane", "cause-order"),
-    map named("lane", "cause-order") = named("lane", "order-held"),
-    permit named("lane", "order-held") = ["declared-order-permutation"],
-"#;
-
-/// The item a mutation declaration sits on: three variants, so two adjacent transpositions exist.
-const MUTATION_ITEM: &str = "pub enum Cause { First, Second, Third }";
+use attribute_specimens::{BENCH_BODY, MUTATION_BODY, MUTATION_ITEM, TRIAL_BODY};
 
 /// The semantic item the trial and bench helpers exercise.
 const DECLARATION_ITEM: &str = "pub struct Declaration;";
-
-/// One lawful bench declaration body.
-const BENCH_BODY: &str = r#"
-    support = pace_support,
-    table_function = pace_table,
-    table = named("lane", "pace-table"),
-    reporter = pace_reporter,
-    encode_pace {
-        workload = named("lane", "encode"),
-        preflight = named("lane", "encode-correct"),
-        planted_worse = named("lane", "encode-worse"),
-        complexity = named("lane", "linear"),
-        axis = [2, 4, 8],
-        samples = 16,
-        warmups = 4,
-        ratio_numerator = 3,
-        ratio_denominator = 1,
-        observe = [named("lane", "bytes-touched")],
-    },
-"#;
 
 /// The trial road walked over one source, or nothing where the lane's own source did not capture.
 fn trials(source: &str) -> Option<Result<Expansion<SupportCarrier>, Diagnostic>> {

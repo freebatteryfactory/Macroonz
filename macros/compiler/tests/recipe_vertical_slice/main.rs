@@ -14,6 +14,8 @@ mod readback_contract;
 mod refusal_contract;
 mod structural_refusals;
 mod support;
+#[path = "../support/captured_tokens.rs"]
+mod captured_tokens;
 
 use support::{
     CALLER_OWNED_TRIAL_RECIPE, COMPANION_RECIPE, COMPLETE_RECIPE, CallerOwnedTrials, DOOR,

@@ -1,30 +1,7 @@
 //! Generic recipe refusals retain their narrowest authored token and declared precedence.
 
-use super::DOOR;
-use macroonz_compiler::recipe::HarnessPosture;
-use macroonz_compiler::{
-    CapturedTokenTree, CoordinateRole, Diagnostic, SiteCoordinate, SourceCoordinate, SpanHandle,
-    TextCapture,
-};
-
-fn refusal(source: &str) -> Result<Diagnostic, ()> {
-    let read = TextCapture::read(source).map_err(|_| ())?;
-    macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
-        .err()
-        .ok_or(())
-}
-
-fn collect_tokens<'tree>(
-    trees: &'tree [CapturedTokenTree],
-    into: &mut Vec<&'tree CapturedTokenTree>,
-) {
-    for tree in trees {
-        into.push(tree);
-        if let Some((_delimiter, children)) = tree.group() {
-            collect_tokens(children, into);
-        }
-    }
-}
+use super::support::{Occurrence, group_after_word, refusal, word_handle};
+use macroonz_compiler::{CoordinateRole, Diagnostic, SiteCoordinate, SourceCoordinate, SpanHandle};
 
 fn assert_at_handle(refusal: &Diagnostic, expected: SpanHandle) {
     assert!(refusal.related().carried().is_empty());
@@ -41,40 +18,6 @@ fn assert_at_handle(refusal: &Diagnostic, expected: SpanHandle) {
             position: u64::from(expected.index()),
         }))
     );
-}
-
-#[derive(Clone, Copy)]
-enum Occurrence {
-    First,
-    Last,
-}
-
-fn word_handle(source: &str, word: &str, occurrence: Occurrence) -> Result<SpanHandle, ()> {
-    let read = TextCapture::read(source).map_err(|_| ())?;
-    let mut flattened = Vec::new();
-    collect_tokens(read.input().trees(), &mut flattened);
-    let mut matching = flattened
-        .into_iter()
-        .filter(|tree| tree.word() == Some(word));
-    match occurrence {
-        Occurrence::First => matching.next().map(CapturedTokenTree::span).ok_or(()),
-        Occurrence::Last => matching.next_back().map(CapturedTokenTree::span).ok_or(()),
-    }
-}
-
-fn group_after_word(source: &str, word: &str) -> Result<SpanHandle, ()> {
-    let read = TextCapture::read(source).map_err(|_| ())?;
-    let mut flattened = Vec::new();
-    collect_tokens(read.input().trees(), &mut flattened);
-    let position = flattened
-        .iter()
-        .rposition(|tree| tree.word() == Some(word))
-        .ok_or(())?;
-    flattened
-        .get(position.saturating_add(1))
-        .filter(|tree| tree.group().is_some())
-        .map(|tree| tree.span())
-        .ok_or(())
 }
 
 #[test]

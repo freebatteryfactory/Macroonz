@@ -1,10 +1,11 @@
 //! Recipe refusals preserve exact issue, repair, site, and precedence across remaining public families.
 
-use super::DOOR;
-use macroonz_compiler::recipe::HarnessPosture;
-use macroonz_compiler::{
-    CapturedTokenTree, Diagnostic, Observed, Phase, RefusalClass, SpanHandle, TextCapture,
+use super::support::{
+    Occurrence, bake, last_group_directly_containing, narrow_group_containing, refusal,
+    refusal_under, word_handle,
 };
+use macroonz_compiler::recipe::HarnessPosture;
+use macroonz_compiler::{Diagnostic, Observed, Phase, RefusalClass, SpanHandle};
 
 const DUPLICATE_REPAIR: &str = "state each authored member, relation endpoint pair, transition seat, projection role, and generated name once";
 const EXACT_DISPATCH_REPAIR: &str = "remove the exact function body and leave the semicolon-terminated signature for the standard dispatch projector to fill";
@@ -16,18 +17,8 @@ const EMPTY_VOCABULARY_REPAIR: &str =
 const SEQUENCE_LIMIT_REPAIR: &str =
     "keep each captured sequence at or below its declared magnitude";
 
-fn refusal(source: &str, harness: HarnessPosture) -> Result<Diagnostic, ()> {
-    let read = TextCapture::read(source).map_err(|_| ())?;
-    macroonz_compiler::recipe::bake(read.input(), harness, &DOOR)
-        .err()
-        .ok_or(())
-}
-
 fn admitted(source: &str) -> Result<(), ()> {
-    let read = TextCapture::read(source).map_err(|_| ())?;
-    macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
-        .map(|_| ())
-        .map_err(|_| ())
+    bake(source).map(|_| ())
 }
 
 fn assert_refusal(
@@ -55,77 +46,16 @@ fn assert_refusal(
     Ok(())
 }
 
-fn flattened(source: &str) -> Result<Vec<CapturedTokenTree>, ()> {
-    let read = TextCapture::read(source).map_err(|_| ())?;
-    let mut tokens = Vec::new();
-    collect(read.input().trees(), &mut tokens);
-    Ok(tokens)
-}
-
-fn collect(trees: &[CapturedTokenTree], into: &mut Vec<CapturedTokenTree>) {
-    for tree in trees {
-        into.push(tree.clone());
-        if let Some((_delimiter, children)) = tree.group() {
-            collect(children, into);
-        }
-    }
-}
-
 fn last_word(source: &str, word: &str) -> Result<SpanHandle, ()> {
-    flattened(source)?
-        .into_iter()
-        .rfind(|tree| tree.word() == Some(word))
-        .map(|tree| tree.span())
-        .ok_or(())
+    word_handle(source, word, Occurrence::Last)
 }
 
 fn first_word(source: &str, word: &str) -> Result<SpanHandle, ()> {
-    flattened(source)?
-        .into_iter()
-        .find(|tree| tree.word() == Some(word))
-        .map(|tree| tree.span())
-        .ok_or(())
+    word_handle(source, word, Occurrence::First)
 }
 
 fn word_occurrence(source: &str, word: &str, occurrence: usize) -> Result<SpanHandle, ()> {
-    flattened(source)?
-        .into_iter()
-        .filter(|tree| tree.word() == Some(word))
-        .nth(occurrence)
-        .map(|tree| tree.span())
-        .ok_or(())
-}
-
-fn narrow_group_containing(source: &str, word: &str) -> Result<SpanHandle, ()> {
-    let read = TextCapture::read(source).map_err(|_| ())?;
-    find_group(read.input().trees(), word).ok_or(())
-}
-
-fn last_group_directly_containing(source: &str, word: &str) -> Result<SpanHandle, ()> {
-    flattened(source)?
-        .into_iter()
-        .rfind(|tree| {
-            tree.group().is_some_and(|(_delimiter, children)| {
-                children.iter().any(|child| child.word() == Some(word))
-            })
-        })
-        .map(|tree| tree.span())
-        .ok_or(())
-}
-
-fn find_group(trees: &[CapturedTokenTree], word: &str) -> Option<SpanHandle> {
-    for tree in trees {
-        let Some((_delimiter, children)) = tree.group() else {
-            continue;
-        };
-        if let Some(found) = find_group(children, word) {
-            return Some(found);
-        }
-        if children.iter().any(|child| child.word() == Some(word)) {
-            return Some(tree.span());
-        }
-    }
-    None
+    word_handle(source, word, Occurrence::Nth(occurrence))
 }
 
 #[test]
@@ -140,7 +70,7 @@ pub mod duplicate_member {
 }
 ";
     assert_refusal(
-        &refusal(member, HarnessPosture::Available)?,
+        &refusal(member)?,
         "states member `Draft` more than once",
         RefusalClass::DeclarationNotRead,
         Observed::IdentityDisagreement,
@@ -158,7 +88,7 @@ pub mod duplicate_projection {
 }
 ";
     assert_refusal(
-        &refusal(projection, HarnessPosture::Available)?,
+        &refusal(projection)?,
         "projection `companions` is requested more than once",
         RefusalClass::DeclarationNotRead,
         Observed::IdentityDisagreement,
@@ -185,7 +115,7 @@ pub mod unavailable {
 }
 ";
     assert_refusal(
-        &refusal(source, HarnessPosture::Unavailable)?,
+        &refusal_under(source, HarnessPosture::Unavailable)?,
         "projection `compile-contract` requires the facade harness feature",
         RefusalClass::DeclarationNotRead,
         Observed::ProfileDisagreement,
@@ -217,7 +147,7 @@ pub mod exact_body {
 }
 ";
     assert_refusal(
-        &refusal(source, HarnessPosture::Available)?,
+        &refusal(source)?,
         "exact dispatch cannot carry a caller-authored body",
         RefusalClass::DeclarationNotRead,
         Observed::ContractDisagreement,
@@ -252,7 +182,7 @@ pub mod exact_table_body {
 }
 ";
     assert_refusal(
-        &refusal(source, HarnessPosture::Available)?,
+        &refusal(source)?,
         "an exact relation table cannot carry a caller-authored body",
         RefusalClass::DeclarationNotRead,
         Observed::ContractDisagreement,
@@ -273,7 +203,7 @@ pub mod empty_vocabulary {
 }
 ";
     assert_refusal(
-        &refusal(empty, HarnessPosture::Available)?,
+        &refusal(empty)?,
         "authored enum `Empty` states no variants",
         RefusalClass::DeclarationNotRead,
         Observed::SeatAbsent,
@@ -289,7 +219,7 @@ pub mod empty_vocabulary {
         "pub mod member_limit {{ pub enum Stage {{ {variants} }} bake! {{ vocabularies {{ Stage; }}; projections {{ companions; }}; }} }}"
     );
     assert_refusal(
-        &refusal(members.as_str(), HarnessPosture::Available)?,
+        &refusal(members.as_str())?,
         "captured sequence carries more members than its declared magnitude of 64",
         RefusalClass::DeclarationNotRead,
         Observed::BoundExceeded,
@@ -309,7 +239,7 @@ pub mod empty_vocabulary {
         "pub mod vocabulary_limit {{ {enums} bake! {{ vocabularies {{ {names} }}; projections {{ companions; }}; }} }}"
     );
     assert_refusal(
-        &refusal(vocabularies.as_str(), HarnessPosture::Available)?,
+        &refusal(vocabularies.as_str())?,
         "captured sequence carries more members than its declared magnitude of 64",
         RefusalClass::DeclarationNotRead,
         Observed::BoundExceeded,
@@ -328,7 +258,7 @@ fn relation_magnitude_refusals_point_at_the_first_excess_row_and_relation() -> R
         "pub mod row_limit {{ pub enum Left {{ A }} pub enum Right {{ B }} bake! {{ vocabularies {{ Left; Right; }}; relations {{ links(Left, Right) {{ {rows} }}; }}; projections {{ companions; }}; }} }}"
     );
     assert_refusal(
-        &refusal(row_limit.as_str(), HarnessPosture::Available)?,
+        &refusal(row_limit.as_str())?,
         "captured sequence carries more members than its declared magnitude of 128",
         RefusalClass::DeclarationNotRead,
         Observed::BoundExceeded,
@@ -344,7 +274,7 @@ fn relation_magnitude_refusals_point_at_the_first_excess_row_and_relation() -> R
         "pub mod relation_limit {{ pub enum Left {{ A }} pub enum Right {{ B }} bake! {{ vocabularies {{ Left; Right; }}; relations {{ {relations} }}; projections {{ companions; }}; }} }}"
     );
     assert_refusal(
-        &refusal(relation_limit.as_str(), HarnessPosture::Available)?,
+        &refusal(relation_limit.as_str())?,
         "captured sequence carries more members than its declared magnitude of 64",
         RefusalClass::DeclarationNotRead,
         Observed::BoundExceeded,
@@ -422,7 +352,7 @@ fn codec_magnitude_refusal_points_at_the_first_excess_declaration() -> Result<()
         "pub mod codec_limit {{ {records} bake! {{ codecs {{ {codecs} }}; projections {{ codec; }}; }} }}"
     );
     assert_refusal(
-        &refusal(source.as_str(), HarnessPosture::Available)?,
+        &refusal(source.as_str())?,
         "captured sequence carries more members than its declared magnitude of 16",
         RefusalClass::DeclarationNotRead,
         Observed::BoundExceeded,
@@ -463,7 +393,7 @@ pub mod collision {
 }
 ";
     assert_refusal(
-        &refusal(source, HarnessPosture::Available)?,
+        &refusal(source)?,
         "generated recipe name `typestate` is already occupied",
         RefusalClass::DeclarationNotRead,
         Observed::IdentityDisagreement,
@@ -493,7 +423,7 @@ pub mod companion_collision {
 }
 ";
     assert_refusal(
-        &refusal(companion, HarnessPosture::Available)?,
+        &refusal(companion)?,
         "generated recipe name `STATE_VARIANTS` is already occupied",
         RefusalClass::DeclarationNotRead,
         Observed::IdentityDisagreement,
@@ -525,7 +455,7 @@ pub mod codec_collision {
 }
 ";
     assert_refusal(
-        &refusal(codec, HarnessPosture::Available)?,
+        &refusal(codec)?,
         "generated recipe name `SharedDecodeError` is already occupied",
         RefusalClass::DeclarationNotRead,
         Observed::IdentityDisagreement,
@@ -557,7 +487,7 @@ pub mod combined {
 }
 ";
     assert_refusal(
-        &refusal(codec, HarnessPosture::Available)?,
+        &refusal(codec)?,
         "generated recipe name `policy` is already occupied",
         RefusalClass::DeclarationNotRead,
         Observed::IdentityDisagreement,
@@ -587,7 +517,7 @@ pub mod combined {
 }
 "#;
     assert_refusal(
-        &refusal(network, HarnessPosture::Available)?,
+        &refusal(network)?,
         "generated recipe name `policy` is already occupied",
         RefusalClass::DeclarationNotRead,
         Observed::IdentityDisagreement,

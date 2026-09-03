@@ -1,18 +1,39 @@
 //! Caller-owned projectors observed against the standard projector authority ceiling.
 
 use super::support::{
-    CODEC_RECIPE, COMPANION_RECIPE, COMPLETE_RECIPE, DOOR, EVIDENCE_RECIPE, EXACT_EFFECT_RECIPE,
+    CODEC_RECIPE, COMPANION_RECIPE, COMPLETE_RECIPE, EVIDENCE_RECIPE, EXACT_EFFECT_RECIPE,
     MirroredCodec, MirroredCompanions, MirroredDispatch, MirroredRelationTables, MirroredTypestate,
-    bake, emitted_bytes,
+    bake, bake_with, bake_with_refusal, emitted_bytes,
 };
 use macroonz_compiler::recipe::{
-    HarnessPosture, PROJECTION_LIMIT, ProjectionError, ProjectionOffered, ProjectionRequest,
-    ProjectionSink, ProjectorReplacement, RecipeProjector, RecipeRole, RecipeView,
+    PROJECTION_LIMIT, ProjectionError, ProjectionOffered, ProjectionRequest, ProjectionSink,
+    ProjectorReplacement, RecipeBake, RecipeProjector, RecipeRole, RecipeView,
 };
-use macroonz_compiler::{
-    CanonicalContent, GeneratedToken, GeneratedTree, TextCapture, unit_struct,
-};
+use macroonz_compiler::{CanonicalContent, GeneratedToken, GeneratedTree, unit_struct};
 use std::cell::RefCell;
+
+/// The standard bake and the caller-owned bake of one recipe, whose projection, plan, and closure identities and emitted bytes must agree.
+fn same_authority(
+    source: &str,
+    replacements: &[ProjectorReplacement<'_>],
+) -> Result<(RecipeBake, RecipeBake), ()> {
+    let standard = bake(source)?;
+    let custom = bake_with(source, replacements)?;
+    assert_eq!(
+        standard.projection().identity(),
+        custom.projection().identity()
+    );
+    assert_eq!(
+        standard.projection().plan().identity(),
+        custom.projection().plan().identity()
+    );
+    assert_eq!(
+        standard.projection().closure().identity(),
+        custom.projection().closure().identity()
+    );
+    assert_eq!(emitted_bytes(&standard), emitted_bytes(&custom));
+    Ok((standard, custom))
+}
 
 struct RecordingProjector<'projector> {
     observed: &'projector RefCell<Vec<RecipeRole>>,
@@ -71,37 +92,17 @@ impl RecipeProjector for CatalogProjector<'_> {
 
 #[test]
 fn a_caller_owned_projector_has_the_standard_clients_exact_authority() -> Result<(), ()> {
-    let read = TextCapture::read(COMPANION_RECIPE).map_err(|_| ())?;
-    let standard = macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
-        .map_err(|_| ())?;
-    let custom = macroonz_compiler::recipe::bake_with(
-        read.input(),
-        HarnessPosture::Available,
-        &DOOR,
+    let (standard, custom) = same_authority(
+        COMPANION_RECIPE,
         &[ProjectorReplacement::for_role(
             RecipeRole::Companions,
             &MirroredCompanions,
         )],
-    )
-    .map_err(|_| ())?;
-
-    assert_eq!(
-        standard.projection().identity(),
-        custom.projection().identity()
-    );
-    assert_eq!(
-        standard.projection().plan().identity(),
-        custom.projection().plan().identity()
-    );
-    assert_eq!(
-        standard.projection().closure().identity(),
-        custom.projection().closure().identity()
-    );
+    )?;
     assert_eq!(
         standard.projection().explain().identity(),
         custom.projection().explain().identity()
     );
-    assert_eq!(emitted_bytes(&standard), emitted_bytes(&custom));
     Ok(())
 }
 
@@ -109,70 +110,30 @@ fn a_caller_owned_projector_has_the_standard_clients_exact_authority() -> Result
 fn a_caller_owned_dispatch_projector_uses_the_same_behavior_kernel_and_authority() -> Result<(), ()>
 {
     let source = COMPANION_RECIPE.replace("companions;", "dispatch(apply);");
-    let read = TextCapture::read(&source).map_err(|_| ())?;
-    let standard = macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
-        .map_err(|_| ())?;
-    let custom = macroonz_compiler::recipe::bake_with(
-        read.input(),
-        HarnessPosture::Available,
-        &DOOR,
+    let (standard, custom) = same_authority(
+        &source,
         &[ProjectorReplacement::for_role(
             RecipeRole::Dispatch,
             &MirroredDispatch,
         )],
-    )
-    .map_err(|_| ())?;
-
-    assert_eq!(
-        standard.projection().identity(),
-        custom.projection().identity()
-    );
-    assert_eq!(
-        standard.projection().plan().identity(),
-        custom.projection().plan().identity()
-    );
-    assert_eq!(
-        standard.projection().closure().identity(),
-        custom.projection().closure().identity()
-    );
+    )?;
     assert_eq!(
         standard.projection().explain().identity(),
         custom.projection().explain().identity()
     );
-    assert_eq!(emitted_bytes(&standard), emitted_bytes(&custom));
     Ok(())
 }
 
 #[test]
 fn exact_row_effects_give_standard_and_caller_owned_dispatch_equal_authority() -> Result<(), ()> {
-    let read = TextCapture::read(EXACT_EFFECT_RECIPE).map_err(|_| ())?;
-    let standard = macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
-        .map_err(|_| ())?;
-    let custom = macroonz_compiler::recipe::bake_with(
-        read.input(),
-        HarnessPosture::Available,
-        &DOOR,
+    same_authority(
+        EXACT_EFFECT_RECIPE,
         &[ProjectorReplacement::for_role(
             RecipeRole::Dispatch,
             &MirroredDispatch,
         )],
     )
-    .map_err(|_| ())?;
-
-    assert_eq!(
-        standard.projection().identity(),
-        custom.projection().identity()
-    );
-    assert_eq!(
-        standard.projection().plan().identity(),
-        custom.projection().plan().identity()
-    );
-    assert_eq!(
-        standard.projection().closure().identity(),
-        custom.projection().closure().identity()
-    );
-    assert_eq!(emitted_bytes(&standard), emitted_bytes(&custom));
-    Ok(())
+    .map(|_| ())
 }
 
 #[test]
@@ -194,96 +155,40 @@ pub mod graph {
     }
 }
 ";
-    let read = TextCapture::read(source).map_err(|_| ())?;
-    let standard = macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
-        .map_err(|_| ())?;
-    let custom = macroonz_compiler::recipe::bake_with(
-        read.input(),
-        HarnessPosture::Available,
-        &DOOR,
+    same_authority(
+        source,
         &[ProjectorReplacement::for_role(
             RecipeRole::RelationTables,
             &MirroredRelationTables,
         )],
     )
-    .map_err(|_| ())?;
-
-    assert_eq!(
-        standard.projection().identity(),
-        custom.projection().identity()
-    );
-    assert_eq!(
-        standard.projection().plan().identity(),
-        custom.projection().plan().identity()
-    );
-    assert_eq!(
-        standard.projection().closure().identity(),
-        custom.projection().closure().identity()
-    );
-    assert_eq!(emitted_bytes(&standard), emitted_bytes(&custom));
-    Ok(())
+    .map(|_| ())
 }
 
 #[test]
 fn a_caller_owned_typestate_projector_uses_the_same_item_kernel_and_authority() -> Result<(), ()> {
     let source = COMPANION_RECIPE.replace("companions;", "typestate(State);");
-    let read = TextCapture::read(&source).map_err(|_| ())?;
-    let standard = macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
-        .map_err(|_| ())?;
-    let custom = macroonz_compiler::recipe::bake_with(
-        read.input(),
-        HarnessPosture::Available,
-        &DOOR,
+    same_authority(
+        &source,
         &[ProjectorReplacement::for_role(
             RecipeRole::Typestate,
             &MirroredTypestate,
         )],
     )
-    .map_err(|_| ())?;
-
-    assert_eq!(
-        standard.projection().identity(),
-        custom.projection().identity()
-    );
-    assert_eq!(
-        standard.projection().closure().identity(),
-        custom.projection().closure().identity()
-    );
-    assert_eq!(emitted_bytes(&standard), emitted_bytes(&custom));
-    Ok(())
+    .map(|_| ())
 }
 
 #[test]
 fn a_caller_owned_codec_projector_uses_the_existing_codec_owner_and_same_authority()
 -> Result<(), ()> {
-    let read = TextCapture::read(CODEC_RECIPE).map_err(|_| ())?;
-    let standard = macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
-        .map_err(|_| ())?;
-    let custom = macroonz_compiler::recipe::bake_with(
-        read.input(),
-        HarnessPosture::Available,
-        &DOOR,
+    same_authority(
+        CODEC_RECIPE,
         &[ProjectorReplacement::for_role(
             RecipeRole::Codec,
             &MirroredCodec,
         )],
     )
-    .map_err(|_| ())?;
-
-    assert_eq!(
-        standard.projection().identity(),
-        custom.projection().identity()
-    );
-    assert_eq!(
-        standard.projection().plan().identity(),
-        custom.projection().plan().identity()
-    );
-    assert_eq!(
-        standard.projection().closure().identity(),
-        custom.projection().closure().identity()
-    );
-    assert_eq!(emitted_bytes(&standard), emitted_bytes(&custom));
-    Ok(())
+    .map(|_| ())
 }
 
 #[test]
@@ -354,45 +259,29 @@ fn observe_catalog_roles(
     roles: &[RecipeRole],
     projector: &dyn RecipeProjector,
 ) -> Result<(), ()> {
-    let read = TextCapture::read(source).map_err(|_| ())?;
     let replacements = roles
         .iter()
         .copied()
         .map(|role| ProjectorReplacement::for_role(role, projector))
         .collect::<Vec<_>>();
-    macroonz_compiler::recipe::bake_with(
-        read.input(),
-        HarnessPosture::Available,
-        &DOOR,
-        replacements.as_slice(),
-    )
-    .map(|_| ())
-    .map_err(|_| ())
+    bake_with(source, replacements.as_slice()).map(|_| ())
 }
 
 #[test]
 fn a_caller_owned_projector_cannot_replace_an_unselected_role() -> Result<(), ()> {
-    let read = TextCapture::read(COMPANION_RECIPE).map_err(|_| ())?;
-    let refusal = macroonz_compiler::recipe::bake_with(
-        read.input(),
-        HarnessPosture::Available,
-        &DOOR,
+    let refusal = bake_with_refusal(
+        COMPANION_RECIPE,
         &[ProjectorReplacement::for_role(
             RecipeRole::Dispatch,
             &MirroredCompanions,
         )],
-    )
-    .err()
-    .ok_or(())?;
+    )?;
     assert!(refusal.summary().contains("unselected role `dispatch`"));
     Ok(())
 }
 
 #[test]
 fn several_caller_owned_projectors_share_one_role_order_and_authority_ceiling() -> Result<(), ()> {
-    let read = TextCapture::read(COMPLETE_RECIPE).map_err(|_| ())?;
-    let standard = macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
-        .map_err(|_| ())?;
     let observed = RefCell::new(Vec::new());
     let typestate = RecordingProjector {
         observed: &observed,
@@ -411,13 +300,7 @@ fn several_caller_owned_projectors_share_one_role_order_and_authority_ceiling() 
         ProjectorReplacement::for_role(RecipeRole::Companions, &companions),
         ProjectorReplacement::for_role(RecipeRole::Dispatch, &dispatch),
     ];
-    let custom = macroonz_compiler::recipe::bake_with(
-        read.input(),
-        HarnessPosture::Available,
-        &DOOR,
-        &replacements,
-    )
-    .map_err(|_| ())?;
+    let (standard, custom) = same_authority(COMPLETE_RECIPE, &replacements)?;
 
     assert_eq!(
         observed.borrow().as_slice(),
@@ -428,43 +311,22 @@ fn several_caller_owned_projectors_share_one_role_order_and_authority_ceiling() 
         ]
     );
     assert_eq!(
-        standard.projection().identity(),
-        custom.projection().identity()
-    );
-    assert_eq!(
-        standard.projection().plan().identity(),
-        custom.projection().plan().identity()
-    );
-    assert_eq!(
-        standard.projection().closure().identity(),
-        custom.projection().closure().identity()
-    );
-    assert_eq!(
         standard.projection().explain().identity(),
         custom.projection().explain().identity()
     );
-    assert_eq!(emitted_bytes(&standard), emitted_bytes(&custom));
     Ok(())
 }
 
 #[test]
 fn caller_owned_projector_rosters_refuse_duplicate_and_unbounded_roles_before_projection()
 -> Result<(), ()> {
-    let read = TextCapture::read(COMPANION_RECIPE).map_err(|_| ())?;
     let observed = RefCell::new(Vec::new());
     let projector = RecordingProjector {
         observed: &observed,
         delegate: &MirroredCompanions,
     };
     let replacement = ProjectorReplacement::for_role(RecipeRole::Companions, &projector);
-    let repeated = macroonz_compiler::recipe::bake_with(
-        read.input(),
-        HarnessPosture::Available,
-        &DOOR,
-        &[replacement, replacement],
-    )
-    .err()
-    .ok_or(())?;
+    let repeated = bake_with_refusal(COMPANION_RECIPE, &[replacement, replacement])?;
     assert!(
         repeated
             .summary()
@@ -476,14 +338,7 @@ fn caller_owned_projector_rosters_refuse_duplicate_and_unbounded_roles_before_pr
         vec![replacement; PROJECTION_LIMIT - 1],
         vec![replacement; PROJECTION_LIMIT],
     ] {
-        let refusal = macroonz_compiler::recipe::bake_with(
-            read.input(),
-            HarnessPosture::Available,
-            &DOOR,
-            replacements.as_slice(),
-        )
-        .err()
-        .ok_or(())?;
+        let refusal = bake_with_refusal(COMPANION_RECIPE, replacements.as_slice())?;
         assert!(
             refusal
                 .summary()
@@ -493,14 +348,7 @@ fn caller_owned_projector_rosters_refuse_duplicate_and_unbounded_roles_before_pr
     assert!(observed.borrow().is_empty());
 
     let unbounded = [replacement; PROJECTION_LIMIT + 1];
-    let unbounded_refusal = macroonz_compiler::recipe::bake_with(
-        read.input(),
-        HarnessPosture::Available,
-        &DOOR,
-        &unbounded,
-    )
-    .err()
-    .ok_or(())?;
+    let unbounded_refusal = bake_with_refusal(COMPANION_RECIPE, &unbounded)?;
     assert!(
         unbounded_refusal
             .summary()

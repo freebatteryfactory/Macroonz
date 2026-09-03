@@ -343,7 +343,16 @@ impl RecipeProjector for MirroredCodec {
 
 #[path = "support/observe.rs"]
 mod observe;
-pub(super) use observe::{bake, cargo_bytes, emitted_bytes, refusal_summary};
+pub(super) use observe::{
+    bake, bake_under, bake_with, bake_with_refusal, cargo_bytes, emitted_bytes, refusal,
+    refusal_summary, refusal_under,
+};
+#[path = "support/tokens.rs"]
+mod tokens;
+pub(super) use tokens::{
+    Occurrence, group_after_word, last_group_directly_containing, narrow_group_containing,
+    word_handle,
+};
 
 fn roster_constant<'name>(
     constant_name: &str,
