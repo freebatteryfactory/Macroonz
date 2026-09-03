@@ -1,3 +1,8 @@
+//! Shared protocol material for the network-discipline claims.
+
+#[path = "../support/mod.rs"]
+mod test_support;
+
 pub(super) use macroonz_harness::descriptor::{NameRefusal, NamespacedName, PopulationRef};
 pub(super) use macroonz_harness::generate::RootSeed;
 pub(super) use macroonz_harness::interleave::{
@@ -86,9 +91,8 @@ pub(super) enum ServerKind {
     Deduplicating,
 }
 
-/// Everything a lane road can refuse, carried as itself.
+test_support::declare_exploration_lane_failure! {
 pub(super) enum LaneFailure {
-    Name(NameRefusal),
     Topology(TopologyRefusal),
     Span(TickSpanRefusal),
     Schedule(NetworkScheduleRefusal),
@@ -96,42 +100,7 @@ pub(super) enum LaneFailure {
     Selection(NetworkSelectionRefusal),
     Sim(SimNetRefusal),
     Send(SendRefusal),
-    Contract(ContractRefusal),
-    Strand(StrandRefusal),
-    Set(StrandSetRefusal),
-    Bound(ExplorationBoundRefusal),
-    Exploration(ExplorationRefusal),
-    /// A reading did not carry the shape the claim demanded.
-    Standing,
 }
-
-impl core::fmt::Debug for LaneFailure {
-    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::Name(refusal) => formatter.debug_tuple("Name").field(refusal).finish(),
-            Self::Topology(refusal) => formatter.debug_tuple("Topology").field(refusal).finish(),
-            Self::Span(refusal) => formatter.debug_tuple("Span").field(refusal).finish(),
-            Self::Schedule(refusal) => formatter.debug_tuple("Schedule").field(refusal).finish(),
-            Self::Campaign(refusal) => formatter.debug_tuple("Campaign").field(refusal).finish(),
-            Self::Selection(refusal) => formatter.debug_tuple("Selection").field(refusal).finish(),
-            Self::Sim(refusal) => formatter.debug_tuple("Sim").field(refusal).finish(),
-            Self::Send(refusal) => formatter.debug_tuple("Send").field(refusal).finish(),
-            Self::Contract(refusal) => formatter.debug_tuple("Contract").field(refusal).finish(),
-            Self::Strand(refusal) => formatter.debug_tuple("Strand").field(refusal).finish(),
-            Self::Set(refusal) => formatter.debug_tuple("Set").field(refusal).finish(),
-            Self::Bound(refusal) => formatter.debug_tuple("Bound").field(refusal).finish(),
-            Self::Exploration(refusal) => {
-                formatter.debug_tuple("Exploration").field(refusal).finish()
-            }
-            Self::Standing => formatter.write_str("Standing"),
-        }
-    }
-}
-
-impl From<NameRefusal> for LaneFailure {
-    fn from(refusal: NameRefusal) -> Self {
-        Self::Name(refusal)
-    }
 }
 
 impl From<TopologyRefusal> for LaneFailure {
@@ -173,36 +142,6 @@ impl From<SimNetRefusal> for LaneFailure {
 impl From<SendRefusal> for LaneFailure {
     fn from(refusal: SendRefusal) -> Self {
         Self::Send(refusal)
-    }
-}
-
-impl From<ContractRefusal> for LaneFailure {
-    fn from(refusal: ContractRefusal) -> Self {
-        Self::Contract(refusal)
-    }
-}
-
-impl From<StrandRefusal> for LaneFailure {
-    fn from(refusal: StrandRefusal) -> Self {
-        Self::Strand(refusal)
-    }
-}
-
-impl From<StrandSetRefusal> for LaneFailure {
-    fn from(refusal: StrandSetRefusal) -> Self {
-        Self::Set(refusal)
-    }
-}
-
-impl From<ExplorationBoundRefusal> for LaneFailure {
-    fn from(refusal: ExplorationBoundRefusal) -> Self {
-        Self::Bound(refusal)
-    }
-}
-
-impl From<ExplorationRefusal> for LaneFailure {
-    fn from(refusal: ExplorationRefusal) -> Self {
-        Self::Exploration(refusal)
     }
 }
 

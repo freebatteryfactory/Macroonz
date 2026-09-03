@@ -21,6 +21,9 @@ use macroonz_harness::properties::{
 };
 use macroonz_harness::report::{FindingCause, TrialConclusion};
 
+#[path = "../support/mod.rs"]
+mod test_support;
+
 /// The cause a history that overdraws is cited under.
 const NEVER_OVERDRAWN: FindingCause = FindingCause::named("lane", "never-overdrawn");
 
@@ -87,76 +90,13 @@ fn by_balance(earlier: &Account, later: &Account) -> Ordering {
     earlier.balance.cmp(&later.balance)
 }
 
-/// Everything a lane road can refuse, carried as itself.
+test_support::declare_exploration_lane_failure! {
 enum LaneFailure {
-    Name(NameRefusal),
-    Strand(StrandRefusal),
-    Set(StrandSetRefusal),
-    Bound(ExplorationBoundRefusal),
-    Exploration(ExplorationRefusal),
-    Contract(ContractRefusal),
     Encoding(EncodingRefusal),
     Campaign(FaultCampaignRefusal),
     Selection(FaultSelectionRefusal),
     Injection(FaultInjectionRefusal),
-    /// A reading did not carry the shape the claim demanded.
-    Standing,
 }
-
-impl core::fmt::Debug for LaneFailure {
-    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::Name(refusal) => formatter.debug_tuple("Name").field(refusal).finish(),
-            Self::Strand(refusal) => formatter.debug_tuple("Strand").field(refusal).finish(),
-            Self::Set(refusal) => formatter.debug_tuple("Set").field(refusal).finish(),
-            Self::Bound(refusal) => formatter.debug_tuple("Bound").field(refusal).finish(),
-            Self::Exploration(refusal) => {
-                formatter.debug_tuple("Exploration").field(refusal).finish()
-            }
-            Self::Contract(refusal) => formatter.debug_tuple("Contract").field(refusal).finish(),
-            Self::Encoding(refusal) => formatter.debug_tuple("Encoding").field(refusal).finish(),
-            Self::Campaign(refusal) => formatter.debug_tuple("Campaign").field(refusal).finish(),
-            Self::Selection(refusal) => formatter.debug_tuple("Selection").field(refusal).finish(),
-            Self::Injection(refusal) => formatter.debug_tuple("Injection").field(refusal).finish(),
-            Self::Standing => formatter.write_str("Standing"),
-        }
-    }
-}
-
-impl From<NameRefusal> for LaneFailure {
-    fn from(refusal: NameRefusal) -> Self {
-        Self::Name(refusal)
-    }
-}
-
-impl From<StrandRefusal> for LaneFailure {
-    fn from(refusal: StrandRefusal) -> Self {
-        Self::Strand(refusal)
-    }
-}
-
-impl From<StrandSetRefusal> for LaneFailure {
-    fn from(refusal: StrandSetRefusal) -> Self {
-        Self::Set(refusal)
-    }
-}
-
-impl From<ExplorationBoundRefusal> for LaneFailure {
-    fn from(refusal: ExplorationBoundRefusal) -> Self {
-        Self::Bound(refusal)
-    }
-}
-
-impl From<ExplorationRefusal> for LaneFailure {
-    fn from(refusal: ExplorationRefusal) -> Self {
-        Self::Exploration(refusal)
-    }
-}
-
-impl From<ContractRefusal> for LaneFailure {
-    fn from(refusal: ContractRefusal) -> Self {
-        Self::Contract(refusal)
-    }
 }
 
 impl From<EncodingRefusal> for LaneFailure {

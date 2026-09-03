@@ -236,6 +236,31 @@ fn assert_wrap_custody(root: &Path) -> Result<(), std::io::Error> {
     Ok(())
 }
 
+fn assert_test_support(root: &Path) -> Result<(), std::io::Error> {
+    let declaration = ["macro_rules! declare_exploration_", "lane_failure"].concat();
+    assert_occurrences(
+        root,
+        &declaration,
+        &["tests/support/exploration_lane_failure.rs"],
+    )?;
+    let invocation = ["test_support::declare_exploration_", "lane_failure!"].concat();
+    assert_occurrences(
+        root,
+        &invocation,
+        &[
+            "tests/interleave_exploration/main.rs",
+            "tests/network_discipline/support.rs",
+        ],
+    )?;
+    let manual_debug = ["impl core::fmt::Debug for ", "LaneFailure"].concat();
+    assert_occurrences(
+        root,
+        &manual_debug,
+        &["tests/network_transcript/support.rs"],
+    )?;
+    Ok(())
+}
+
 #[test]
 fn named_harness_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -243,5 +268,6 @@ fn named_harness_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     assert_single_owner_stamps(sources)?;
     assert_closed_shape_debt(sources)?;
     assert_content_address_denominator(sources)?;
-    assert_wrap_custody(root)
+    assert_wrap_custody(root)?;
+    assert_test_support(root)
 }
