@@ -157,6 +157,6 @@ fn stable_rustc_profiles_cross_generation_novelty_and_corpus() -> Result<(), Fuz
             .collect::<Vec<_>>(),
         vec![&[0][..], &[1][..], &[2][..], &[0x80][..]]
     );
-    std::fs::remove_dir_all(run).map_err(external)?;
+    run.removed()?;
     Ok(())
 }

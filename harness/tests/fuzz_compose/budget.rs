@@ -53,7 +53,7 @@ fn campaign_join_and_execution_budgets_refuse_before_process_start() -> Result<(
     assert_eq!(inputs.attempted_cases(), 0);
 
     for run in [first_run, other_run, case_run, input_run] {
-        std::fs::remove_dir_all(run).map_err(external)?;
+        run.removed()?;
     }
     Ok(())
 }
@@ -69,7 +69,7 @@ fn an_existing_case_directory_keeps_its_specific_refusal() -> Result<(), FuzzRoa
         Err(RustcProfileRefusal::CaseAlreadyExists(case))
     );
     assert_eq!(coverage.attempted_cases(), 1);
-    std::fs::remove_dir_all(run).map_err(external)?;
+    run.removed()?;
     Ok(())
 }
 
@@ -115,7 +115,7 @@ fn coverage_export_and_point_budgets_refuse_atomically() -> Result<(), FuzzRoadF
     assert!(points.interesting().is_empty());
 
     for run in [export_run, point_run] {
-        std::fs::remove_dir_all(run).map_err(external)?;
+        run.removed()?;
     }
     Ok(())
 }
@@ -123,18 +123,18 @@ fn coverage_export_and_point_budgets_refuse_atomically() -> Result<(), FuzzRoadF
 #[test]
 fn exact_coverage_export_byte_ceiling_is_inclusive() -> Result<(), FuzzRoadFailure> {
     let (ready, run) = rustc_profile_request("exact-export-bound")?;
-    let export_bytes = coverage_export_size(&ready, &run, &[0])?;
+    let export_bytes = coverage_export_size(&ready, run.path(), &[0])?;
     if export_bytes == 0 {
         return Err(FuzzRoadFailure::Fixture);
     }
     let campaign =
         coverage_campaign_with_budgets(coverage_budgets(1, 1, export_bytes, 1_000_000, 1, 1)?)?;
-    let exact = rebound_ready(&ready, &run, "exact-export-cases", campaign)?;
+    let exact = rebound_ready(&ready, run.path(), "exact-export-cases", campaign)?;
     let mut coverage = CoverageCorpus::opening(&exact);
     let result = observe_rustc_profile(&exact, &mut coverage, &[0], wait_for_exit)?;
     assert_eq!(result.execution(), FuzzExecution::Success);
     assert!(!result.observation().points().is_empty());
-    std::fs::remove_dir_all(run).map_err(external)?;
+    run.removed()?;
     Ok(())
 }
 
@@ -149,7 +149,7 @@ fn exact_coverage_point_ceiling_is_inclusive() -> Result<(), FuzzRoadFailure> {
     }
     let campaign =
         coverage_campaign_with_budgets(coverage_budgets(1, 1, 33_554_432, points, 1, 1)?)?;
-    let exact = rebound_ready(&ready, &run, "exact-point-cases", campaign)?;
+    let exact = rebound_ready(&ready, run.path(), "exact-point-cases", campaign)?;
     let mut coverage = CoverageCorpus::opening(&exact);
     let result = observe_rustc_profile(&exact, &mut coverage, &[0], wait_for_exit)?;
     assert!(matches!(
@@ -160,7 +160,7 @@ fn exact_coverage_point_ceiling_is_inclusive() -> Result<(), FuzzRoadFailure> {
         u64::try_from(coverage.observed().len()).map_err(external)?,
         points
     );
-    std::fs::remove_dir_all(run).map_err(external)?;
+    run.removed()?;
     Ok(())
 }
 
@@ -210,7 +210,7 @@ fn coverage_retention_budgets_refuse_without_advancing_the_frontier() -> Result<
     assert_eq!(bytes.retained_bytes(), 1);
 
     for run in [case_run, byte_run] {
-        std::fs::remove_dir_all(run).map_err(external)?;
+        run.removed()?;
     }
     Ok(())
 }

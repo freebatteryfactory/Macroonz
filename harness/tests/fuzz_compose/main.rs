@@ -8,4 +8,5 @@ mod compose;
 mod frontier;
 mod lcov;
 mod preflight;
+mod scratch;
 mod support;

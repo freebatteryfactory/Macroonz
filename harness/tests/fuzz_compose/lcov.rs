@@ -1,7 +1,7 @@
 //! The LCOV claims: points are canonical across declared source roots, compiled coverage is identical across two physical roots, and paths with no root-independent identity refuse.
 
 use super::support::{
-    FuzzRoadFailure, compile_instrumented_subject, coverage_campaign, external,
+    FuzzRoadFailure, RunScratch, compile_instrumented_subject, coverage_campaign, external,
     ready_for_compiled_root, rustc_path, wait_for_exit,
 };
 use macroonz_harness::descriptor::NamespacedName;
@@ -82,10 +82,12 @@ fn compiled_coverage_is_identical_across_two_physical_source_roots() -> Result<(
         .parent()
         .ok_or_else(|| FuzzRoadFailure::External("harness has no repository parent".to_owned()))?
         .to_path_buf();
-    let run = repository
-        .join("target")
-        .join("qualification")
-        .join(format!("fuzz-two-source-roots-{}", std::process::id()));
+    let run = RunScratch::created(
+        repository
+            .join("target")
+            .join("qualification")
+            .join(format!("fuzz-two-source-roots-{}", std::process::id())),
+    )?;
     let first_root = run.join("first-root");
     let second_root = run.join("second-root");
     let first_source = first_root.join("src").join("subject.rs");
@@ -123,7 +125,7 @@ fn compiled_coverage_is_identical_across_two_physical_source_roots() -> Result<(
     assert_eq!(first.standing(), second.standing());
     assert_eq!(first.observation(), second.observation());
     assert!(!first.observation().points().is_empty());
-    std::fs::remove_dir_all(run).map_err(external)?;
+    run.removed()?;
     Ok(())
 }
 

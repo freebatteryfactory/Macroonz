@@ -1,7 +1,7 @@
 //! The preflight claims: declared inputs refuse ambient paths, active preflight refuses a wrong compiler or mismatched tools, and the declared supervisor transports every execution class.
 
 use super::support::{
-    FuzzRoadFailure, SUPERVISED_MATERIALIZED_INPUT_BYTES, coverage_campaign, external,
+    FuzzRoadFailure, RunScratch, SUPERVISED_MATERIALIZED_INPUT_BYTES, coverage_campaign, external,
     preflight_double, preflight_double_request, process_is_running, rustc_field, rustc_path,
     rustc_profile_request, rustc_profile_request_with_arguments, stop_as, wait_for_crash,
 };
@@ -99,13 +99,15 @@ fn active_preflight_refuses_wrong_release_and_mismatched_llvm() -> Result<(), Fu
     let repository = manifest
         .parent()
         .ok_or_else(|| FuzzRoadFailure::External("harness has no repository parent".to_owned()))?;
-    let run = repository
-        .join("target")
-        .join("qualification")
-        .join(format!(
-            "fuzz-preflight-refusal-test-{}",
-            std::process::id()
-        ));
+    let run = RunScratch::created(
+        repository
+            .join("target")
+            .join("qualification")
+            .join(format!(
+                "fuzz-preflight-refusal-test-{}",
+                std::process::id()
+            )),
+    )?;
 
     let wrong_release = preflight_double(
         &rustc,
@@ -114,7 +116,8 @@ fn active_preflight_refuses_wrong_release_and_mismatched_llvm() -> Result<(), Fu
         &host,
         ["1.97.0", "22.1.8", "22.1.8", "22.1.8"],
     )?;
-    let wrong_request = preflight_double_request(wrong_release, repository, &run, "wrong-release")?;
+    let wrong_request =
+        preflight_double_request(wrong_release, repository, run.path(), "wrong-release")?;
     let Err(wrong_refusal) = preflight_ready(wrong_request) else {
         return Err(FuzzRoadFailure::Fixture);
     };
@@ -134,7 +137,7 @@ fn active_preflight_refuses_wrong_release_and_mismatched_llvm() -> Result<(), Fu
         [RUSTC_COVERAGE_TOOLCHAIN, "22.1.8", "22.1.8", "22.1.9"],
     )?;
     let mismatch_request =
-        preflight_double_request(mismatched_tools, repository, &run, "mismatched-tools")?;
+        preflight_double_request(mismatched_tools, repository, run.path(), "mismatched-tools")?;
     let Err(mismatch_refusal) = preflight_ready(mismatch_request) else {
         return Err(FuzzRoadFailure::Fixture);
     };
@@ -145,7 +148,7 @@ fn active_preflight_refuses_wrong_release_and_mismatched_llvm() -> Result<(), Fu
             cov: "22.1.9".to_owned(),
         }
     );
-    std::fs::remove_dir_all(run).map_err(external)?;
+    run.removed()?;
     Ok(())
 }
 
@@ -217,7 +220,7 @@ fn declared_supervisor_transports_crash_timeout_and_resource_classes() -> Result
         |child| stop_as(child, FuzzExecution::Timeout),
     )?;
     assert_eq!(large_input.execution(), FuzzExecution::Timeout);
-    std::fs::remove_dir_all(large_input_run).map_err(external)?;
-    std::fs::remove_dir_all(run).map_err(external)?;
+    large_input_run.removed()?;
+    run.removed()?;
     Ok(())
 }

@@ -210,14 +210,14 @@ pub(super) fn alternate_coverage_campaign() -> Result<CoverageCampaign, FuzzRoad
 
 pub(super) fn rustc_profile_request(
     stem: &str,
-) -> Result<(ReadyPreflight, PathBuf), FuzzRoadFailure> {
+) -> Result<(ReadyPreflight, RunScratch), FuzzRoadFailure> {
     rustc_profile_request_with_arguments(stem, Vec::new())
 }
 
 pub(super) fn rustc_profile_request_with_arguments(
     stem: &str,
     arguments: Vec<String>,
-) -> Result<(ReadyPreflight, PathBuf), FuzzRoadFailure> {
+) -> Result<(ReadyPreflight, RunScratch), FuzzRoadFailure> {
     rustc_profile_request_with_campaign(stem, arguments, coverage_campaign()?)
 }
 
@@ -225,7 +225,7 @@ pub(super) fn rustc_profile_request_with_campaign(
     stem: &str,
     arguments: Vec<String>,
     campaign: CoverageCampaign,
-) -> Result<(ReadyPreflight, PathBuf), FuzzRoadFailure> {
+) -> Result<(ReadyPreflight, RunScratch), FuzzRoadFailure> {
     let rustc = rustc_path()?;
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let repository = manifest
@@ -238,7 +238,7 @@ pub(super) fn rustc_profile_request_with_campaign(
             "fuzz-rustc-profile-test-{}-{stem}",
             std::process::id()
         ));
-    std::fs::create_dir_all(&run).map_err(external)?;
+    let run = RunScratch::created(run)?;
     let subject = run.join(format!(
         "rustc-coverage-subject{}",
         std::env::consts::EXE_SUFFIX
@@ -582,9 +582,48 @@ pub(super) fn interesting_bytes(
     let mut coverage = CoverageCorpus::opening(&ready);
     let result = observe_rustc_profile(&ready, &mut coverage, candidate, wait_for_exit)?;
     let admission = coverage.admit(result);
-    std::fs::remove_dir_all(run).map_err(external)?;
+    run.removed()?;
     match admission? {
         CoverageAdmission::Interesting(interesting) => Ok(interesting),
         CoverageAdmission::Known => Err(FuzzRoadFailure::Fixture),
+    }
+}
+/// One run directory beneath the task qualification root, removed when the claim that opened it ends, however it ends.
+///
+/// A claim ends with [`RunScratch::removed`], which takes the path out of the custody before it drops, so a removal that fails is reported; a claim that refuses earlier drops the value, and the drop removes the directory without a report.
+pub(super) struct RunScratch {
+    path: PathBuf,
+}
+
+impl RunScratch {
+    /// Create the run directory and take custody of it.
+    pub(super) fn created(path: PathBuf) -> Result<Self, FuzzRoadFailure> {
+        std::fs::create_dir_all(&path).map_err(external)?;
+        Ok(Self { path })
+    }
+
+    /// The run directory.
+    pub(super) fn path(&self) -> &std::path::Path {
+        &self.path
+    }
+
+    /// One seat beneath the run directory.
+    pub(super) fn join(&self, seat: impl AsRef<std::path::Path>) -> PathBuf {
+        self.path.join(seat)
+    }
+
+    /// Remove the run directory now, reporting a removal that failed.
+    pub(super) fn removed(self) -> Result<(), FuzzRoadFailure> {
+        let mut held = core::mem::ManuallyDrop::new(self);
+        let path = core::mem::take(&mut held.path);
+        std::fs::remove_dir_all(path).map_err(external)
+    }
+}
+
+impl Drop for RunScratch {
+    fn drop(&mut self) {
+        if self.path.exists() {
+            std::fs::remove_dir_all(&self.path).ok();
+        }
     }
 }
