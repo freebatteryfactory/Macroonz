@@ -1,4 +1,4 @@
-//! The identity home's declarations: the subject roster, the role roster, one profile constant per preimage grammar, the transcript and its derivation record, the generator facts, and the two citation shapes.
+//! The identity home's declarations: the subject roster, the role roster, the transcript and its derivation record, the generator facts, and the two citation shapes.
 //!
 //! Declarations only.
 //! Every constructor that must see a private field lives in `type_guard.rs`, declared below as this file's own child so the invariant nucleus and the fields it protects are never separated by a module boundary.

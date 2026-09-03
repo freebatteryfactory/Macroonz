@@ -1,4 +1,4 @@
-//! The identity-subject declaration stamp.
+//! The identity home's declaration stamps: the subject roster, and the static human projection with the const seam it builds on.
 
 /// Declares one roster of identity subjects under one stem, as the home's README shows.
 ///

@@ -1,4 +1,4 @@
-//! The kind home's declarations: the open semantic traits a consumer implements, the rosters the compiler owns, the disposition vocabulary, the complete-set witness, and the two stamps that write declarations down.
+//! The kind home's declarations: the open semantic traits a consumer implements, the rosters the compiler owns, the disposition vocabulary, and the complete-set witness.
 //!
 //! Declarations only, with every road that reaches a private field in `type_guard.rs`, this file's own child.
 
