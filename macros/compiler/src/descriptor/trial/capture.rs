@@ -40,10 +40,15 @@
 //! Order between ROSTER members is meaning and is preserved: the suites in the order they were written, the rows under each seat in the order they were written, and each row's roles and tags in the order they were written.
 
 use super::{References, Row, SuiteGroup, TrialCaptureError, Trials};
+use crate::descriptor::clause::{
+    Clause, assigned, assignment_clauses, declaration_clauses, identifier, named_reference,
+    named_value,
+};
 use crate::descriptor::{
     CaptureCause, DeclarationError, FunctionName, Grammar, ModuleName, Name, SupportName,
 };
 use crate::token::{CapturedDelimiter, CapturedTokenTree, SpanHandle};
+use core::convert::Infallible;
 
 /// The clause naming the exported support name.
 const SUPPORT: &str = "support";
@@ -56,9 +61,6 @@ const TABLE: &str = "table";
 
 /// The word one aggregate seat's group opens with.
 const SUITE: &str = "suite";
-
-/// The road every namespaced reference in this grammar is spelled by.
-const NAMED: &str = "named";
 
 /// The row clause naming the claim a row serves.
 const CLAIM: &str = "claim";
@@ -96,17 +98,17 @@ pub fn captured(
     at: SpanHandle,
     grammar: Grammar,
 ) -> Result<Trials, TrialCaptureError> {
-    let clauses = declaration_clauses(grammar, body)?;
-    let support = SupportName::declared(identifier(grammar, &clauses, SUPPORT, at)?)
+    let clauses = declaration_clauses(grammar, body, &DECLARABLE, suite_clause, refused)?;
+    let support = SupportName::declared(identifier(grammar, &clauses, SUPPORT, at, refused)?)
         .map_err(|refusal| carried(grammar, refusal, at))?;
-    let module = ModuleName::declared(identifier(grammar, &clauses, MODULE, at)?)
+    let module = ModuleName::declared(identifier(grammar, &clauses, MODULE, at, refused)?)
         .map_err(|refusal| carried(grammar, refusal, at))?;
-    let table = named_reference(grammar, &clauses, TABLE, at)?;
+    let table = named_reference(grammar, &clauses, TABLE, at, refused, carried)?;
 
     let mut groups: Vec<SuiteGroup> = Vec::new();
     for clause in &clauses {
-        if let Clause::Suite { seat, suite, rows } = clause {
-            groups.push(suite_group(grammar, seat, suite, rows)?);
+        if let Some(suite) = clause.nested_value() {
+            groups.push(suite_group(grammar, suite.seat, &suite.suite, &suite.rows)?);
         }
     }
     Trials::declared(support, module, table, groups)
@@ -123,117 +125,25 @@ const fn carried(grammar: Grammar, refusal: DeclarationError, at: SpanHandle) ->
     TrialCaptureError::vocabulary_refused(grammar, refusal, at)
 }
 
-/// One clause of a trial declaration's body, as the split read it.
-///
-/// Two shapes rather than one, because the grammar has two: an assignment states one key and one value, and a suite group states a seat, a reference, and a body of rows.
-enum Clause<'trees> {
-    /// `<key> = <value tokens>`.
-    Assigned {
-        /// The key the clause names.
-        key: &'trees str,
-        /// The tokens the value is spelled from.
-        value: Vec<&'trees CapturedTokenTree>,
-        /// The token the key sits at.
-        at: SpanHandle,
-    },
-    /// `suite <seat> = named(…) { <rows> }`.
-    Suite {
-        /// The seat the group declares.
-        seat: &'trees CapturedTokenTree,
-        /// The tokens the suite reference is spelled from.
-        suite: Vec<&'trees CapturedTokenTree>,
-        /// The trees inside the row body.
-        rows: Vec<&'trees CapturedTokenTree>,
-    },
+/// One trial-owned suite clause.
+struct SuiteClause<'trees> {
+    seat: &'trees CapturedTokenTree,
+    suite: Vec<&'trees CapturedTokenTree>,
+    rows: Vec<&'trees CapturedTokenTree>,
 }
 
-/// Cut one declaration body into its comma-separated clauses, refusing a separator that separates nothing.
-///
-/// A trailing comma after the last clause is ordinary Rust and lawful; a leading or doubled comma makes an empty group this reader would otherwise silently drop, so it refuses at the comma's own token.
-fn declaration_clauses<'trees>(
-    grammar: Grammar,
-    body: &[&'trees CapturedTokenTree],
-) -> Result<Vec<Clause<'trees>>, TrialCaptureError> {
-    let mut clauses: Vec<Clause<'trees>> = Vec::new();
-    let mut group: Vec<&CapturedTokenTree> = Vec::new();
-    for tree in body {
-        if tree.punct() == Some(',') {
-            if group.is_empty() {
-                return Err(refused(
-                    grammar,
-                    CaptureCause::SeparatorDangling,
-                    tree.span(),
-                ));
-            }
-            close(grammar, &group, &mut clauses)?;
-            group.clear();
-        } else {
-            group.push(tree);
-        }
-    }
-    close(grammar, &group, &mut clauses)?;
-    distinct(grammar, &clauses)?;
-    Ok(clauses)
-}
-
-/// Close one of a declaration body's comma-separated groups.
-///
-/// An empty group is a trailing comma and is lawful; an empty group standing at a comma was refused before this road is reached.
-fn close<'trees>(
-    grammar: Grammar,
-    group: &[&'trees CapturedTokenTree],
-    clauses: &mut Vec<Clause<'trees>>,
-) -> Result<(), TrialCaptureError> {
-    let Some((head, rest)) = group.split_first() else {
-        return Ok(());
-    };
-    if head.word() == Some(SUITE) {
-        clauses.push(suite_clause(grammar, rest, head.span())?);
-        return Ok(());
-    }
-    clauses.push(assignment(grammar, head, rest, &DECLARABLE)?);
-    Ok(())
-}
-
-/// Read one `<key> = <value>` assignment, admitted against the roster its own level declares.
-///
-/// The group's first tree arrives separately from the rest, so there is no empty case to answer for: a caller with no first tree has no clause to read.
-fn assignment<'trees>(
-    grammar: Grammar,
-    head: &'trees CapturedTokenTree,
-    rest: &[&'trees CapturedTokenTree],
-    declarable: &[&str],
-) -> Result<Clause<'trees>, TrialCaptureError> {
-    let opening = head.span();
-    let Some(key) = head.word() else {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, opening));
-    };
-    let Some((assigned_by, value)) = rest.split_first() else {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, opening));
-    };
-    if assigned_by.punct() != Some('=') || value.is_empty() {
-        return Err(refused(
-            grammar,
-            CaptureCause::ClauseUnread,
-            assigned_by.span(),
-        ));
-    }
-    if !declarable.contains(&key) {
-        return Err(refused(grammar, CaptureCause::ClauseUndeclared, opening));
-    }
-    Ok(Clause::Assigned {
-        key,
-        value: value.to_vec(),
-        at: opening,
-    })
-}
-
-/// Read one `suite <seat> = named(…) { <rows> }` clause off the trees after its opening word.
+/// Read one trial-owned suite where the group states one.
 fn suite_clause<'trees>(
     grammar: Grammar,
-    rest: &[&'trees CapturedTokenTree],
-    opening: SpanHandle,
-) -> Result<Clause<'trees>, TrialCaptureError> {
+    group: &[&'trees CapturedTokenTree],
+) -> Result<Option<SuiteClause<'trees>>, TrialCaptureError> {
+    let Some((head, rest)) = group.split_first() else {
+        return Ok(None);
+    };
+    if head.word() != Some(SUITE) {
+        return Ok(None);
+    }
+    let opening = head.span();
     let malformed = || refused(grammar, CaptureCause::GroupUnread, opening);
     let (seat, after_seat) = rest.split_first().ok_or_else(malformed)?;
     if seat.word().is_none() {
@@ -249,128 +159,19 @@ fn suite_clause<'trees>(
     }
     let (body, suite) = after_assignment.split_last().ok_or_else(malformed)?;
     match body.group() {
-        Some((CapturedDelimiter::Brace, inner)) => Ok(Clause::Suite {
+        Some((CapturedDelimiter::Brace, inner)) => Ok(Some(SuiteClause {
             seat,
             suite: suite.to_vec(),
             rows: inner.iter().collect(),
-        }),
+        })),
         Some(_) | None => Err(refused(grammar, CaptureCause::GroupUnread, body.span())),
     }
-}
-
-/// Refuse where one clause key is stated twice.
-///
-/// Assigned clauses alone: two suite groups are two seats, and the stamped module's own namespace law is what tells one seat from another — stated once at the payload rather than a second time here.
-fn distinct(grammar: Grammar, clauses: &[Clause<'_>]) -> Result<(), TrialCaptureError> {
-    for (position, clause) in clauses.iter().enumerate() {
-        let Clause::Assigned { key, at, .. } = clause else {
-            continue;
-        };
-        let earlier = clauses.iter().take(position).any(|other| match *other {
-            Clause::Assigned { key: seen, .. } => seen == *key,
-            Clause::Suite { .. } => false,
-        });
-        if earlier {
-            return Err(refused(grammar, CaptureCause::ClauseDoubled, *at));
-        }
-    }
-    Ok(())
-}
-
-/// The value tokens one assigned clause carries, and the token its key sits at.
-fn assigned<'trees, 'clauses>(
-    clauses: &'clauses [Clause<'trees>],
-    key: &str,
-) -> Option<(&'clauses [&'trees CapturedTokenTree], SpanHandle)> {
-    clauses.iter().find_map(|clause| match *clause {
-        Clause::Assigned {
-            key: named,
-            ref value,
-            at,
-        } if named == key => Some((value.as_slice(), at)),
-        Clause::Assigned { .. } | Clause::Suite { .. } => None,
-    })
-}
-
-/// One identifier a clause assigns.
-fn identifier<'trees>(
-    grammar: Grammar,
-    clauses: &[Clause<'trees>],
-    key: &str,
-    at: SpanHandle,
-) -> Result<&'trees str, TrialCaptureError> {
-    let (value, clause) =
-        assigned(clauses, key).ok_or_else(|| refused(grammar, CaptureCause::ClauseAbsent, at))?;
-    let [only] = value else {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, clause));
-    };
-    only.word()
-        .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, only.span()))
-}
-
-/// One `named(<namespace>, <stem>)` reference a clause assigns.
-fn named_reference(
-    grammar: Grammar,
-    clauses: &[Clause<'_>],
-    key: &str,
-    at: SpanHandle,
-) -> Result<Name, TrialCaptureError> {
-    let (value, clause) =
-        assigned(clauses, key).ok_or_else(|| refused(grammar, CaptureCause::ClauseAbsent, at))?;
-    named_value(grammar, value, clause)
-}
-
-/// One `named(<namespace>, <stem>)` reference, read off the tokens that spell it.
-///
-/// Exactly that shape and no other: the word, a parenthesized group, and inside it two text literals with one comma between them.
-/// A reader that admitted a looser shape would be deciding what an author meant by a value it could not read.
-fn named_value(
-    grammar: Grammar,
-    value: &[&CapturedTokenTree],
-    at: SpanHandle,
-) -> Result<Name, TrialCaptureError> {
-    let [word, arguments] = value else {
-        return Err(refused(grammar, CaptureCause::ReferenceUnread, at));
-    };
-    if word.word() != Some(NAMED) {
-        return Err(refused(grammar, CaptureCause::ReferenceUnread, word.span()));
-    }
-    let Some((CapturedDelimiter::Parenthesis, inner)) = arguments.group() else {
-        return Err(refused(
-            grammar,
-            CaptureCause::ReferenceUnread,
-            arguments.span(),
-        ));
-    };
-    let parts: Vec<&CapturedTokenTree> = inner.iter().collect();
-    let [namespace, separator, stem] = parts.as_slice() else {
-        return Err(refused(
-            grammar,
-            CaptureCause::ReferenceUnread,
-            arguments.span(),
-        ));
-    };
-    if separator.punct() != Some(',') {
-        return Err(refused(
-            grammar,
-            CaptureCause::ReferenceUnread,
-            separator.span(),
-        ));
-    }
-    let (Some(owner), Some(spelling)) = (namespace.text(), stem.text()) else {
-        return Err(refused(
-            grammar,
-            CaptureCause::ReferenceUnread,
-            arguments.span(),
-        ));
-    };
-    Name::named(owner, spelling).map_err(|refusal| carried(grammar, refusal, arguments.span()))
 }
 
 /// One bracketed roster of namespaced references a row clause assigns, or an empty roster where the clause is absent.
 fn roster(
     grammar: Grammar,
-    clauses: &[Clause<'_>],
+    clauses: &[Clause<'_, Infallible>],
     key: &str,
 ) -> Result<Vec<Name>, TrialCaptureError> {
     let Some((value, at)) = assigned(clauses, key) else {
@@ -397,14 +198,26 @@ fn roster(
                     tree.span(),
                 ));
             }
-            named.push(named_value(grammar, &group, bracketed.span())?);
+            named.push(named_value(
+                grammar,
+                &group,
+                bracketed.span(),
+                refused,
+                carried,
+            )?);
             group.clear();
         } else {
             group.push(tree);
         }
     }
     if !group.is_empty() {
-        named.push(named_value(grammar, &group, bracketed.span())?);
+        named.push(named_value(
+            grammar,
+            &group,
+            bracketed.span(),
+            refused,
+            carried,
+        )?);
     }
     Ok(named)
 }
@@ -422,7 +235,7 @@ fn suite_group(
         .ok_or_else(|| refused(grammar, CaptureCause::GroupUnread, at))?;
     let named =
         FunctionName::declared(spelling).map_err(|refusal| carried(grammar, refusal, at))?;
-    let selected = named_value(grammar, suite, at)?;
+    let selected = named_value(grammar, suite, at, refused, carried)?;
     let mut declared: Vec<Row> = Vec::new();
     let mut group: Vec<&CapturedTokenTree> = Vec::new();
     for tree in rows {
@@ -467,45 +280,14 @@ fn row(
         return Err(refused(grammar, CaptureCause::RowUnread, body.span()));
     };
     let trees: Vec<&CapturedTokenTree> = inner.iter().collect();
-    let clauses = row_clauses(grammar, &trees)?;
+    let clauses = assignment_clauses(grammar, &trees, &DECLARABLE_ROW, refused)?;
     let references = References {
-        claim: named_reference(grammar, &clauses, CLAIM, at)?,
-        subject: named_reference(grammar, &clauses, SUBJECT, at)?,
-        check: named_reference(grammar, &clauses, CHECK, at)?,
-        population: named_reference(grammar, &clauses, POPULATION, at)?,
+        claim: named_reference(grammar, &clauses, CLAIM, at, refused, carried)?,
+        subject: named_reference(grammar, &clauses, SUBJECT, at, refused, carried)?,
+        check: named_reference(grammar, &clauses, CHECK, at, refused, carried)?,
+        population: named_reference(grammar, &clauses, POPULATION, at, refused, carried)?,
     };
     let roles = roster(grammar, &clauses, ROLES)?;
     let tags = roster(grammar, &clauses, TAGS)?;
     Row::declared(lens, references, roles, tags).map_err(|refusal| carried(grammar, refusal, at))
-}
-
-/// Cut one row body into its comma-separated assignments.
-///
-/// A row admits no suite group, so the walk reads assignments alone and a `suite` written inside a row reaches the undeclarable-clause cause with every other key this level does not admit.
-fn row_clauses<'trees>(
-    grammar: Grammar,
-    body: &[&'trees CapturedTokenTree],
-) -> Result<Vec<Clause<'trees>>, TrialCaptureError> {
-    let mut clauses: Vec<Clause<'trees>> = Vec::new();
-    let mut group: Vec<&CapturedTokenTree> = Vec::new();
-    for tree in body {
-        if tree.punct() == Some(',') {
-            let Some((head, rest)) = group.split_first() else {
-                return Err(refused(
-                    grammar,
-                    CaptureCause::SeparatorDangling,
-                    tree.span(),
-                ));
-            };
-            clauses.push(assignment(grammar, head, rest, &DECLARABLE_ROW)?);
-            group.clear();
-        } else {
-            group.push(tree);
-        }
-    }
-    if let Some((head, rest)) = group.split_first() {
-        clauses.push(assignment(grammar, head, rest, &DECLARABLE_ROW)?);
-    }
-    distinct(grammar, &clauses)?;
-    Ok(clauses)
 }

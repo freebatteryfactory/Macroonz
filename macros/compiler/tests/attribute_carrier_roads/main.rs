@@ -451,6 +451,22 @@ fn a_mutation_body_without_a_support_address_refuses() -> Result<(), ()> {
     Ok(())
 }
 
+/// An unknown mutation key refuses as undeclared before its following tokens can imply another clause shape.
+#[test]
+fn mutation_unknown_keys_keep_their_declared_precedence() -> Result<(), ()> {
+    let body = MUTATION_BODY.replacen("module = pressed", "mystery pressed", 1);
+    let refusal = mutations(&body, MUTATION_ITEM).ok_or(())?.err().ok_or(())?;
+    assert_eq!(refusal.phase(), Phase::Capture);
+    assert!(
+        refusal
+            .summary()
+            .contains("a clause is not one the grammar declares"),
+        "{}",
+        refusal.summary()
+    );
+    Ok(())
+}
+
 /// A bench declaration becomes one carrier writing the bench form: stamped table, opaque reporter.
 #[test]
 fn a_bench_declaration_becomes_one_carrier_writing_the_bench_form() -> Result<(), ()> {
@@ -696,6 +712,32 @@ fn a_bench_axis_of_one_point_refuses() -> Result<(), ()> {
     "#;
     let refusal = bench(body).ok_or(())?.err().ok_or(())?;
     assert_eq!(refusal.phase(), Phase::Capture);
+    Ok(())
+}
+
+/// Attribute assignments require one equals sign before a non-empty value in every descriptor grammar.
+#[test]
+fn attribute_assignments_require_the_complete_shared_shape() -> Result<(), ()> {
+    let trial = TRIAL_BODY.replacen("support = greet_support", "support : greet_support", 1);
+    let mutation = MUTATION_BODY.replacen("module = pressed", "module : pressed", 1);
+    let benchmark = BENCH_BODY.replacen("reporter = pace_reporter", "reporter : pace_reporter", 1);
+    for refusal in [
+        trials(&trial).ok_or(())?.err().ok_or(())?,
+        mutations(&mutation, MUTATION_ITEM)
+            .ok_or(())?
+            .err()
+            .ok_or(())?,
+        bench(&benchmark).ok_or(())?.err().ok_or(())?,
+    ] {
+        assert_eq!(refusal.phase(), Phase::Capture);
+        assert!(
+            refusal
+                .summary()
+                .contains("a clause is not one key and one value"),
+            "{}",
+            refusal.summary()
+        );
+    }
     Ok(())
 }
 

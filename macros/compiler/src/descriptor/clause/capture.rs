@@ -1,155 +1,228 @@
 //! Mechanical clause readings over already captured tokens.
 
-use crate::descriptor::{CaptureCause, CaptureIssue, DirectBinding, Grammar};
-use crate::token::{CapturedTokenTree, SpanHandle, rendered_identifier, rust_keyword};
+use super::direct::comma_groups;
+use super::types::{Assignment, Clause};
+use crate::bounded::first_duplicate_position;
+use crate::descriptor::{CaptureCause, DeclarationError, Grammar, Name};
+use crate::token::{CapturedDelimiter, CapturedTokenTree, SpanHandle};
+use core::convert::Infallible;
 
 /// One grammar-specific projection of a mechanical capture cause.
 type Refused<Error> = fn(Grammar, CaptureCause, SpanHandle) -> Error;
 
-/// One grammar-specific projection of a physical-binding refusal.
-type BindingRefused<Error> = fn(Grammar, CaptureIssue, SpanHandle) -> Error;
+/// One grammar-specific projection of a descriptor-vocabulary refusal.
+type VocabularyRefused<Error> = fn(Grammar, DeclarationError, SpanHandle) -> Error;
 
-/// One primitive value reader under a grammar's concrete refusal family.
-type Reader<Value, Error> =
-    fn(Grammar, &[&CapturedTokenTree], Refused<Error>) -> Result<Value, Error>;
+/// One concrete grammar's reader for its nested clause shape.
+type NestedReader<'trees, Nested, Error> =
+    fn(Grammar, &[&'trees CapturedTokenTree]) -> Result<Option<Nested>, Error>;
 
-/// Cut tokens into comma-separated groups, refusing a separator that separates nothing.
-///
-/// A trailing comma is lawful and contributes no empty group.
-pub(crate) fn comma_groups<'trees, Error>(
+/// Read one declaration's assignments and grammar-owned nested clauses.
+pub(crate) fn declaration_clauses<'trees, Nested, Error>(
     grammar: Grammar,
-    trees: impl IntoIterator<Item = &'trees CapturedTokenTree>,
+    body: &[&'trees CapturedTokenTree],
+    declarable: &[&str],
+    nested: NestedReader<'trees, Nested, Error>,
     refused: Refused<Error>,
-) -> Result<Vec<Vec<&'trees CapturedTokenTree>>, Error> {
-    let mut groups: Vec<Vec<&CapturedTokenTree>> = Vec::new();
-    let mut group: Vec<&CapturedTokenTree> = Vec::new();
-    for tree in trees {
-        if tree.punct() == Some(',') {
-            if group.is_empty() {
-                return Err(refused(
-                    grammar,
-                    CaptureCause::SeparatorDangling,
-                    tree.span(),
-                ));
-            }
-            groups.push(core::mem::take(&mut group));
+) -> Result<Vec<Clause<'trees, Nested>>, Error> {
+    let mut clauses = Vec::new();
+    for group in comma_groups(grammar, body.iter().copied(), refused)? {
+        if let Some(read) = nested(grammar, &group)? {
+            clauses.push(Clause::nested(read));
         } else {
-            group.push(tree);
+            clauses.push(Clause::assigned(assignment(
+                grammar, &group, declarable, refused,
+            )?));
         }
     }
-    if !group.is_empty() {
-        groups.push(group);
-    }
-    Ok(groups)
+    distinct(grammar, &clauses, refused)?;
+    Ok(clauses)
 }
 
-/// The token one group opens at, or the declaration opening where none exists.
-pub(crate) fn opening(group: &[&CapturedTokenTree]) -> SpanHandle {
-    group.first().map_or(SpanHandle::at(0), |tree| tree.span())
-}
-
-/// The value trees after one clause's `<key> =` opening.
-pub(crate) fn value_of<'group, 'trees>(
-    group: &'group [&'trees CapturedTokenTree],
-) -> &'group [&'trees CapturedTokenTree] {
-    match group {
-        [_key, assigned_by, value @ ..] if assigned_by.punct() == Some('=') => value,
-        _malformed => &[],
-    }
-}
-
-/// Read one clause into its empty seat, refusing a doubled key.
-pub(crate) fn fill_once<Value, Error>(
+/// Read one body containing assignments alone.
+pub(crate) fn assignment_clauses<'trees, Error>(
     grammar: Grammar,
-    group: &[&CapturedTokenTree],
-    seat: &mut Option<Value>,
-    read: Reader<Value, Error>,
+    body: &[&'trees CapturedTokenTree],
+    declarable: &[&str],
     refused: Refused<Error>,
-) -> Result<(), Error> {
-    if seat.is_some() {
+) -> Result<Vec<Clause<'trees, Infallible>>, Error> {
+    let mut clauses = Vec::new();
+    for group in comma_groups(grammar, body.iter().copied(), refused)? {
+        clauses.push(Clause::assigned(assignment(
+            grammar, &group, declarable, refused,
+        )?));
+    }
+    distinct(grammar, &clauses, refused)?;
+    Ok(clauses)
+}
+
+/// Read one `<key> = <value>` assignment admitted by the concrete grammar's roster.
+fn assignment<'trees, Error>(
+    grammar: Grammar,
+    group: &[&'trees CapturedTokenTree],
+    declarable: &[&str],
+    refused: Refused<Error>,
+) -> Result<Assignment<'trees>, Error> {
+    let Some((head, rest)) = group.split_first() else {
         return Err(refused(
             grammar,
-            CaptureCause::ClauseDoubled,
-            opening(group),
+            CaptureCause::ClauseUnread,
+            SpanHandle::at(0),
         ));
-    }
-    *seat = Some(read(grammar, group, refused)?);
-    Ok(())
-}
-
-/// Read one direct dependency binding into its empty seat.
-pub(crate) fn binding_once<Error>(
-    grammar: Grammar,
-    group: &[&CapturedTokenTree],
-    seat: &mut Option<DirectBinding>,
-    refused: Refused<Error>,
-    binding_refused: BindingRefused<Error>,
-) -> Result<(), Error> {
-    if seat.is_some() {
-        return Err(refused(
-            grammar,
-            CaptureCause::ClauseDoubled,
-            opening(group),
-        ));
-    }
-    let binding = super::super::binding::direct_binding(value_of(group))
-        .map_err(|(issue, at)| binding_refused(grammar, issue, at))?;
-    *seat = Some(binding);
-    Ok(())
-}
-
-/// Read the one non-keyword identifier assigned by a clause.
-pub(crate) fn assigned_identifier<Error>(
-    grammar: Grammar,
-    group: &[&CapturedTokenTree],
-    refused: Refused<Error>,
-) -> Result<String, Error> {
-    let [value] = value_of(group) else {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, opening(group)));
     };
-    let word = value
+    let at = head.span();
+    let Some(key) = head.word() else {
+        return Err(refused(grammar, CaptureCause::ClauseUnread, at));
+    };
+    let Some((assigned_by, value)) = rest.split_first() else {
+        return Err(refused(grammar, CaptureCause::ClauseUnread, at));
+    };
+    if assigned_by.punct() != Some('=') || value.is_empty() {
+        return Err(refused(
+            grammar,
+            CaptureCause::ClauseUnread,
+            assigned_by.span(),
+        ));
+    }
+    if !declarable.contains(&key) {
+        return Err(refused(grammar, CaptureCause::ClauseUndeclared, at));
+    }
+    Ok(Assignment::admitted(key, value.to_vec(), at))
+}
+
+/// Refuse the first repeated assignment key while ignoring grammar-owned nested clauses.
+fn distinct<Nested, Error>(
+    grammar: Grammar,
+    clauses: &[Clause<'_, Nested>],
+    refused: Refused<Error>,
+) -> Result<(), Error> {
+    let assignments = clauses
+        .iter()
+        .filter_map(Clause::assignment)
+        .collect::<Vec<_>>();
+    let Some(position) =
+        first_duplicate_position(&assignments, |left, right| left.key() == right.key())
+    else {
+        return Ok(());
+    };
+    let Some(repeated) = assignments.get(position) else {
+        return Ok(());
+    };
+    Err(refused(grammar, CaptureCause::ClauseDoubled, repeated.at()))
+}
+
+/// The value tokens one assigned clause carries, and the token its key sits at.
+pub(crate) fn assigned<'trees, 'clauses, Nested>(
+    clauses: &'clauses [Clause<'trees, Nested>],
+    key: &str,
+) -> Option<(&'clauses [&'trees CapturedTokenTree], SpanHandle)> {
+    clauses.iter().find_map(|clause| {
+        let assignment = clause.assignment()?;
+        (assignment.key() == key).then(|| (assignment.value(), assignment.at()))
+    })
+}
+
+/// Read the one identifier a required assignment carries.
+pub(crate) fn identifier<'trees, Nested, Error>(
+    grammar: Grammar,
+    clauses: &[Clause<'trees, Nested>],
+    key: &str,
+    at: SpanHandle,
+    refused: Refused<Error>,
+) -> Result<&'trees str, Error> {
+    let (value, clause) =
+        assigned(clauses, key).ok_or_else(|| refused(grammar, CaptureCause::ClauseAbsent, at))?;
+    let [only] = value else {
+        return Err(refused(grammar, CaptureCause::ClauseUnread, clause));
+    };
+    (*only)
         .word()
-        .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, value.span()))?;
-    if !rendered_identifier(word) {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, value.span()));
-    }
-    if rust_keyword(word) {
-        return Err(refused(grammar, CaptureCause::NameReserved, value.span()));
-    }
-    Ok(word.to_owned())
+        .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, only.span()))
 }
 
-/// Read the one text literal assigned by a clause.
-pub(crate) fn assigned_text<Error>(
+/// Read one assigned `named(<namespace>, <stem>)` reference.
+pub(crate) fn named_reference<Nested, Error>(
     grammar: Grammar,
-    group: &[&CapturedTokenTree],
+    clauses: &[Clause<'_, Nested>],
+    key: &str,
+    at: SpanHandle,
     refused: Refused<Error>,
-) -> Result<String, Error> {
-    let [value] = value_of(group) else {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, opening(group)));
-    };
-    value
-        .text()
-        .map(str::to_owned)
-        .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, value.span()))
+    carried: VocabularyRefused<Error>,
+) -> Result<Name, Error> {
+    let (value, clause) =
+        assigned(clauses, key).ok_or_else(|| refused(grammar, CaptureCause::ClauseAbsent, at))?;
+    named_value(grammar, value, clause, refused, carried)
 }
 
-/// Read the one unsigned number assigned by a clause at the receiving seat's width.
-pub(crate) fn assigned_number<Number, Error>(
+/// Read one `named(<namespace>, <stem>)` reference from its exact captured tokens.
+pub(crate) fn named_value<Error>(
     grammar: Grammar,
-    group: &[&CapturedTokenTree],
+    value: &[&CapturedTokenTree],
+    at: SpanHandle,
+    refused: Refused<Error>,
+    carried: VocabularyRefused<Error>,
+) -> Result<Name, Error> {
+    let [word, arguments] = value else {
+        return Err(refused(grammar, CaptureCause::ReferenceUnread, at));
+    };
+    if word.word() != Some("named") {
+        return Err(refused(grammar, CaptureCause::ReferenceUnread, word.span()));
+    }
+    let Some((CapturedDelimiter::Parenthesis, inner)) = arguments.group() else {
+        return Err(refused(
+            grammar,
+            CaptureCause::ReferenceUnread,
+            arguments.span(),
+        ));
+    };
+    let parts = inner.iter().collect::<Vec<_>>();
+    let [namespace, separator, stem] = parts.as_slice() else {
+        return Err(refused(
+            grammar,
+            CaptureCause::ReferenceUnread,
+            arguments.span(),
+        ));
+    };
+    if separator.punct() != Some(',') {
+        return Err(refused(
+            grammar,
+            CaptureCause::ReferenceUnread,
+            separator.span(),
+        ));
+    }
+    let (Some(owner), Some(spelling)) = (namespace.text(), stem.text()) else {
+        return Err(refused(
+            grammar,
+            CaptureCause::ReferenceUnread,
+            arguments.span(),
+        ));
+    };
+    Name::named(owner, spelling).map_err(|error| carried(grammar, error, arguments.span()))
+}
+
+/// Read one unsuffixed decimal assignment at the receiving seat's width.
+pub(crate) fn number<Number, Nested, Error>(
+    grammar: Grammar,
+    clauses: &[Clause<'_, Nested>],
+    key: &str,
+    at: SpanHandle,
     refused: Refused<Error>,
 ) -> Result<Number, Error>
 where
     Number: core::str::FromStr,
 {
-    let [value] = value_of(group) else {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, opening(group)));
+    let (value, clause) =
+        assigned(clauses, key).ok_or_else(|| refused(grammar, CaptureCause::ClauseAbsent, at))?;
+    let [only] = value else {
+        return Err(refused(grammar, CaptureCause::ClauseUnread, clause));
     };
-    let digits = value
+    let spelling = only
         .number()
-        .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, value.span()))?;
-    digits
+        .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, only.span()))?;
+    if !spelling.bytes().all(|byte| byte.is_ascii_digit()) {
+        return Err(refused(grammar, CaptureCause::ClauseUnread, only.span()));
+    }
+    spelling
         .parse::<Number>()
-        .map_err(|_beyond| refused(grammar, CaptureCause::NumberBeyondSeat, value.span()))
+        .map_err(|_| refused(grammar, CaptureCause::NumberBeyondSeat, only.span()))
 }

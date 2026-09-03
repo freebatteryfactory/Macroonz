@@ -136,13 +136,36 @@ fn assert_direct_clause_mechanics_debt_is_closed(root: &Path) -> Result<(), std:
         "pub(crate) fn assigned_text",
         "pub(crate) fn assigned_number",
     ] {
-        assert_occurrences(root, operation, &["descriptor/clause/capture.rs"])?;
+        assert_occurrences(root, operation, &["descriptor/clause/direct.rs"])?;
     }
     for obsolete in [
         "fn assigned_once(",
         "fn assigned_ident(",
         "fn read_binding(",
         "fn number_once",
+    ] {
+        assert_occurrences(root, obsolete, &[])?;
+    }
+    Ok(())
+}
+
+fn assert_attribute_clause_mechanics_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
+    for operation in [
+        "pub(crate) fn declaration_clauses",
+        "pub(crate) fn assignment_clauses",
+        "pub(crate) fn assigned<",
+        "pub(crate) fn identifier<",
+        "pub(crate) fn named_reference<",
+        "pub(crate) fn named_value<",
+        "pub(crate) fn number<",
+    ] {
+        assert_occurrences(root, operation, &["descriptor/clause/capture.rs"])?;
+    }
+    for obsolete in [
+        "enum Clause<'trees>",
+        "fn declaration_clauses<'trees>",
+        "fn row_clauses<'trees>",
+        "fn distinct(grammar: Grammar, clauses:",
     ] {
         assert_occurrences(root, obsolete, &[])?;
     }
@@ -281,6 +304,7 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     assert_diagnostic_projection_debt_is_closed(&root)?;
     assert_owned_vector_spelling_debt_is_closed(&root)?;
     assert_direct_clause_mechanics_debt_is_closed(&root)?;
+    assert_attribute_clause_mechanics_debt_is_closed(&root)?;
     assert_duplicate_group_debt_is_closed(&root)?;
     assert_doubled_set_debt_is_closed(&root)?;
     assert_helper_refusal_projection_debt_is_closed(&root)?;
