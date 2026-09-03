@@ -1,10 +1,11 @@
 //! Outside observations owned by the interpretation semantic home.
 
 use super::support::{
-    COMPILED_SPECIMEN_HOST, CompiledRosterMeaning, EVALUATION, EvaluationFn, MEANING_DISAGREEMENT,
-    MutationRoadFailure, OWNER, REVISION_TAG, SELECTED_OPERATION, SPECIMEN_MATERIALIZER,
-    active_selection, check, check_ref, claim, compiled_suite_pressure, family, invocation,
-    lock_specimen_tests, pair, policy, production, same, surface_with, trial_binding,
+    CompiledRosterMeaning, EVALUATION, EvaluationFn, MEANING_DISAGREEMENT, MutationRoadFailure,
+    OWNER, REVISION_TAG, SELECTED_OPERATION, active_selection, check, check_ref, claim,
+    compiled_suite_pressure, family, invocation, lock_specimen_tests, opened_trust, pair, policy,
+    production, qualification_of, qualified_no_mutation, same, standard_projection, surface_with,
+    trial_binding, witness,
 };
 use macroonz_harness::descriptor::{CheckRef, RevisionBinding};
 use macroonz_harness::identity::ContentAddress;
@@ -12,7 +13,6 @@ use macroonz_harness::muterprater::discover::lower_discoveries;
 use macroonz_harness::muterprater::interpret::{
     availability, execute_active, observe_no_mutation, plan_pass, qualify_no_mutation,
 };
-use macroonz_harness::muterprater::specimen::demonstrate_compiled_projection;
 use macroonz_harness::muterprater::{
     EvaluationBinding, EvaluationCallRefusal, EvaluationDirective, EvaluationObservation,
     EvaluationPair, EvaluationPairRefusal, InterpretedExecutionRefusal, InterpreterAvailability,
@@ -20,7 +20,7 @@ use macroonz_harness::muterprater::{
     MutationVerdict, MutationWitness, MutationWitnessRefusal, NO_MUTATION_PAIRING,
     NoMutationObservationRefusal, PARITY_DECLARATION_SUBSTRATE, PARITY_RENDERING_SUBSTRATE,
     ParityQualificationRefusal, PlanRefusal, PlannedDamage, PressureBudget, PressureLane,
-    ProductionBinding, ScopeShape, ScopedInvocation, SpecimenMaterializerBinding,
+    ProductionBinding, ScopeShape, ScopedInvocation,
 };
 use macroonz_harness::properties::{SharedSubstrate, SubstrateRef, agreement};
 use macroonz_harness::report::{RunAttempt, TrialConclusion};
@@ -280,37 +280,16 @@ pub(super) fn interpreted_survivor() -> Result<MutationReport, MutationRoadFailu
     let surface = surface_with(family, vec![b"a <= b"])?;
     let pair = pair(family, &surface, ACTIVATION_SURVIVES)?;
     let input = [1u32, 0, 0];
-    let witness = MutationWitness::bound(trial_binding()?, check_ref()?, check)?;
-    let standing =
-        qualify_no_mutation(observe_no_mutation(&pair, witness, &input, &invocation()?)?);
-    let qualification =
-        standing
-            .qualification()
-            .ok_or(MutationRoadFailure::MissingQualification(
-                ParityQualificationRefusal::MeaningsDisagreed,
-            ))?;
+    let standing = qualified_no_mutation(&pair, witness()?, &input)?;
+    let qualification = qualification_of(&standing)?;
     let suite = compiled_suite_pressure()?;
     let selection = active_selection(&surface)?;
-    let materializer = SpecimenMaterializerBinding::bound(&pair, SPECIMEN_MATERIALIZER);
-    let projection = demonstrate_compiled_projection(
-        &surface,
-        qualification,
-        &materializer,
-        selection,
-        &invocation()?,
-        COMPILED_SPECIMEN_HOST,
-    )?;
-    let trust = match availability(Some(&surface), Some(&suite), Some(&projection)) {
-        InterpreterAvailability::Available(trust) => trust,
-        InterpreterAvailability::NoConformingSurface => {
-            return Err(MutationRoadFailure::MissingTrust(
-                MissingTrustEvidence::CompiledProjectionPressure,
-            ));
-        }
-        InterpreterAvailability::TrustNotOpened { missing } => {
-            return Err(MutationRoadFailure::MissingTrust(missing));
-        }
-    };
+    let projection = standard_projection(&surface, qualification, &pair, selection)?;
+    let trust = opened_trust(availability(
+        Some(&surface),
+        Some(&suite),
+        Some(&projection),
+    ))?;
     let evidence = execute_active(&trust, &invocation()?)?;
     assert!(matches!(
         (evidence.report().attempt(), evidence.mutation().outcome()),
@@ -341,10 +320,12 @@ fn no_mutation_agreement_must_be_earned() -> Result<(), MutationRoadFailure> {
     let family = family("parity-hostile-family")?;
     let surface = surface_with(family, vec![b"a <= b"])?;
     let pair = pair(family, &surface, PARITY_BROKEN)?;
-    let witness = MutationWitness::bound(trial_binding()?, check_ref()?, check_passes)?;
     let input = [1u32, 0, 0];
-    let standing =
-        qualify_no_mutation(observe_no_mutation(&pair, witness, &input, &invocation()?)?);
+    let standing = qualified_no_mutation(
+        &pair,
+        MutationWitness::bound(trial_binding()?, check_ref()?, check_passes)?,
+        &input,
+    )?;
     let rejection = standing
         .rejection()
         .ok_or(MutationRoadFailure::MissingQualification(
@@ -376,12 +357,7 @@ fn no_mutation_report_roles_and_refusal_priority_are_observed() -> Result<(), Mu
     let pair = pair(family, &surface, PARITY_BROKEN)?;
     let input = [1u32, 0, 0];
 
-    let evaluation_rejected = qualify_no_mutation(observe_no_mutation(
-        &pair,
-        MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
-        &input,
-        &invocation()?,
-    )?);
+    let evaluation_rejected = qualified_no_mutation(&pair, witness()?, &input)?;
     assert!(matches!(
         evaluation_rejected.rejection(),
         Some(rejection)
@@ -427,10 +403,8 @@ fn no_mutation_requires_zero_firings() -> Result<(), MutationRoadFailure> {
     let family = family("no-mutation-firing-family")?;
     let surface = surface_with(family, vec![b"a <= b"])?;
     let pair = pair(family, &surface, NO_MUTATION_ACTIVATES)?;
-    let witness = MutationWitness::bound(trial_binding()?, check_ref()?, check)?;
     let input = [1u32, 0, 0];
-    let standing =
-        qualify_no_mutation(observe_no_mutation(&pair, witness, &input, &invocation()?)?);
+    let standing = qualified_no_mutation(&pair, witness()?, &input)?;
     let rejection = standing
         .rejection()
         .ok_or(MutationRoadFailure::MissingQualification(
@@ -473,12 +447,7 @@ fn evaluation_call_refusals_preserve_directive_posture() -> Result<(), MutationR
     let input = [1u32, 0, 0];
     NO_MUTATION_CALL_ORDER.store(0, Ordering::SeqCst);
     assert!(matches!(
-        observe_no_mutation(
-            &no_mutation_pair,
-            MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
-            &input,
-            &invocation()?,
-        ),
+        observe_no_mutation(&no_mutation_pair, witness()?, &input, &invocation()?),
         Err(NoMutationObservationRefusal::EvaluationCall(
             EvaluationCallRefusal::NoMutationNotImplemented,
         ))
@@ -488,40 +457,16 @@ fn evaluation_call_refusals_preserve_directive_posture() -> Result<(), MutationR
     let active_family = family("active-branch-omitted")?;
     let active_surface = surface_with(active_family, vec![SELECTED_OPERATION])?;
     let active_pair = pair(active_family, &active_surface, active_branch_omitted)?;
-    let standing = qualify_no_mutation(observe_no_mutation(
-        &active_pair,
-        MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
-        &input,
-        &invocation()?,
-    )?);
-    let qualification =
-        standing
-            .qualification()
-            .ok_or(MutationRoadFailure::MissingQualification(
-                ParityQualificationRefusal::MeaningsDisagreed,
-            ))?;
+    let standing = qualified_no_mutation(&active_pair, witness()?, &input)?;
+    let qualification = qualification_of(&standing)?;
     let selection = active_selection(&active_surface)?;
-    let materializer = SpecimenMaterializerBinding::bound(&active_pair, SPECIMEN_MATERIALIZER);
-    let projection = demonstrate_compiled_projection(
-        &active_surface,
-        qualification,
-        &materializer,
-        selection,
-        &invocation()?,
-        COMPILED_SPECIMEN_HOST,
-    )?;
+    let projection = standard_projection(&active_surface, qualification, &active_pair, selection)?;
     let suite = compiled_suite_pressure()?;
-    let trust = match availability(Some(&active_surface), Some(&suite), Some(&projection)) {
-        InterpreterAvailability::Available(trust) => trust,
-        InterpreterAvailability::NoConformingSurface => {
-            return Err(MutationRoadFailure::MissingTrust(
-                MissingTrustEvidence::CompiledProjectionPressure,
-            ));
-        }
-        InterpreterAvailability::TrustNotOpened { missing } => {
-            return Err(MutationRoadFailure::MissingTrust(missing));
-        }
-    };
+    let trust = opened_trust(availability(
+        Some(&active_surface),
+        Some(&suite),
+        Some(&projection),
+    ))?;
     assert!(matches!(
         execute_active(&trust, &invocation()?),
         Err(InterpretedExecutionRefusal::EvaluationCall(
@@ -545,38 +490,17 @@ fn an_unfired_selection_is_not_mutation_evidence() -> Result<(), MutationRoadFai
     let family = family("dud-family")?;
     let surface = surface_with(family, vec![b"a <= b"])?;
     let pair = pair(family, &surface, ACTIVATION_MISSING)?;
-    let witness = MutationWitness::bound(trial_binding()?, check_ref()?, check)?;
     let input = [1u32, 0, 0];
-    let standing =
-        qualify_no_mutation(observe_no_mutation(&pair, witness, &input, &invocation()?)?);
-    let qualification =
-        standing
-            .qualification()
-            .ok_or(MutationRoadFailure::MissingQualification(
-                ParityQualificationRefusal::MeaningsDisagreed,
-            ))?;
+    let standing = qualified_no_mutation(&pair, witness()?, &input)?;
+    let qualification = qualification_of(&standing)?;
     let suite = compiled_suite_pressure()?;
     let selection = active_selection(&surface)?;
-    let materializer = SpecimenMaterializerBinding::bound(&pair, SPECIMEN_MATERIALIZER);
-    let projection = demonstrate_compiled_projection(
-        &surface,
-        qualification,
-        &materializer,
-        selection,
-        &invocation()?,
-        COMPILED_SPECIMEN_HOST,
-    )?;
-    let trust = match availability(Some(&surface), Some(&suite), Some(&projection)) {
-        InterpreterAvailability::Available(trust) => trust,
-        InterpreterAvailability::NoConformingSurface => {
-            return Err(MutationRoadFailure::MissingTrust(
-                MissingTrustEvidence::CompiledProjectionPressure,
-            ));
-        }
-        InterpreterAvailability::TrustNotOpened { missing } => {
-            return Err(MutationRoadFailure::MissingTrust(missing));
-        }
-    };
+    let projection = standard_projection(&surface, qualification, &pair, selection)?;
+    let trust = opened_trust(availability(
+        Some(&surface),
+        Some(&suite),
+        Some(&projection),
+    ))?;
     assert!(matches!(
         execute_active(&trust, &invocation()?),
         Err(InterpretedExecutionRefusal::DudPlant(dud)) if dud.selection() == selection

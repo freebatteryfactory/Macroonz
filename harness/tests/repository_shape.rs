@@ -304,6 +304,27 @@ fn assert_test_support(root: &Path) -> Result<(), std::io::Error> {
         !fs::read_to_string(root.join("tests/recipe_economics/breadth.rs"))?.contains("fn debug"),
         "tests/recipe_economics/breadth.rs"
     );
+    let trust_support = ["tests/trust_opening_evidence/", "support.rs"].concat();
+    for owner in [
+        ["fn ", "witness() -> Result<MutationWitness"].concat(),
+        ["fn qualified_", "no_mutation<"].concat(),
+        ["fn qualification_", "of<"].concat(),
+        ["fn standard_", "projection<"].concat(),
+        ["fn opened_", "trust<"].concat(),
+        ["InterpreterAvailability::NoConformingSurface", " => Err("].concat(),
+    ] {
+        assert_occurrences(root, &owner, &[trust_support.as_str()])?;
+    }
+    for former_copy in [
+        ["InterpreterAvailability::Available(trust)", " => trust,"].concat(),
+        [
+            ".qualification()\n            .ok_or(MutationRoadFailure::",
+            "MissingQualification(",
+        ]
+        .concat(),
+    ] {
+        assert_occurrences(root, &former_copy, &[])?;
+    }
     Ok(())
 }
 

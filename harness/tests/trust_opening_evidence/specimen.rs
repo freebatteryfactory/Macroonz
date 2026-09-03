@@ -10,17 +10,16 @@ use super::support::{
     CLAIM_MISMATCH_EVALUATION_CALLS, EVALUATION, MutationRoadFailure, ORIGINAL_OPERATION, OWNER,
     SELECTED_OPERATION, active_selection, check, check_ref, claim, evaluation_counted,
     evaluation_reads_resolved_payload, family, foreign_invocation, invocation, pair,
-    pair_with_evaluation_revision, surface_with, trial_binding, trial_binding_for,
+    pair_with_evaluation_revision, qualification_of, qualified_no_mutation, surface_with,
+    trial_binding_for, witness,
 };
 use macroonz_harness::descriptor::ClaimRef;
 use macroonz_harness::identity::ContentAddress;
-use macroonz_harness::muterprater::interpret::{observe_no_mutation, qualify_no_mutation};
 use macroonz_harness::muterprater::specimen::demonstrate_compiled_projection;
 use macroonz_harness::muterprater::{
     ARTIFACT_CONTENT_TAG, CompiledProjectionRefusal, CompiledSpecimenHostRefusal,
     CompiledSpecimenObservationMismatch, EvaluationPairStandingMismatch, MutationWitness,
-    ParityQualificationRefusal, SelectionRefusal, SpecimenMaterializerBinding,
-    SpecimenMaterializerRefusal,
+    SelectionRefusal, SpecimenMaterializerBinding, SpecimenMaterializerRefusal,
 };
 use std::sync::atomic::Ordering;
 
@@ -39,18 +38,8 @@ fn exact_projection_requires_one_real_selected_artifact() -> Result<(), Mutation
     let surface = surface_with(family, vec![b"a <= b"])?;
     let pair = pair(family, &surface, evaluation_reads_resolved_payload)?;
     let input = [1u32, 0, 0];
-    let standing = qualify_no_mutation(observe_no_mutation(
-        &pair,
-        MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
-        &input,
-        &invocation()?,
-    )?);
-    let qualification =
-        standing
-            .qualification()
-            .ok_or(MutationRoadFailure::MissingQualification(
-                ParityQualificationRefusal::MeaningsDisagreed,
-            ))?;
+    let standing = qualified_no_mutation(&pair, witness()?, &input)?;
+    let qualification = qualification_of(&standing)?;
     let selection = active_selection(&surface)?;
 
     let baseline_omitted = SpecimenMaterializerBinding::bound(&pair, omitted_baseline_branch);
@@ -144,18 +133,8 @@ fn host_observations_must_join_the_current_specimen_request() -> Result<(), Muta
     let surface = surface_with(family, vec![b"a <= b"])?;
     let pair = pair(family, &surface, EVALUATION)?;
     let input = [1u32, 0, 0];
-    let standing = qualify_no_mutation(observe_no_mutation(
-        &pair,
-        MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
-        &input,
-        &invocation()?,
-    )?);
-    let qualification =
-        standing
-            .qualification()
-            .ok_or(MutationRoadFailure::MissingQualification(
-                ParityQualificationRefusal::MeaningsDisagreed,
-            ))?;
+    let standing = qualified_no_mutation(&pair, witness()?, &input)?;
+    let qualification = qualification_of(&standing)?;
     let selection = active_selection(&surface)?;
     let materializer = SpecimenMaterializerBinding::bound(&pair, SPECIMEN_MATERIALIZER);
     clear_cached_sibling_observation()?;
@@ -197,18 +176,8 @@ fn compiled_baseline_must_pass_before_selected_execution() -> Result<(), Mutatio
     let surface = surface_with(family, vec![SELECTED_OPERATION])?;
     let pair = pair(family, &surface, EVALUATION)?;
     let input = [0u32, 0, 0];
-    let standing = qualify_no_mutation(observe_no_mutation(
-        &pair,
-        MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
-        &input,
-        &invocation()?,
-    )?);
-    let qualification =
-        standing
-            .qualification()
-            .ok_or(MutationRoadFailure::MissingQualification(
-                ParityQualificationRefusal::MeaningsDisagreed,
-            ))?;
+    let standing = qualified_no_mutation(&pair, witness()?, &input)?;
+    let qualification = qualification_of(&standing)?;
     let selection = active_selection(&surface)?;
     let materializer = SpecimenMaterializerBinding::bound(&pair, SPECIMEN_MATERIALIZER);
     SPECIMEN_MATERIALIZER_CALLS.store(0, Ordering::SeqCst);
@@ -245,18 +214,8 @@ fn selected_compiled_behavior_must_reject_under_qualified_execution()
     let surface = surface_with(family, vec![b"input > 0"])?;
     let pair = pair(family, &surface, EVALUATION)?;
     let input = [1u32, 0, 0];
-    let standing = qualify_no_mutation(observe_no_mutation(
-        &pair,
-        MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
-        &input,
-        &invocation()?,
-    )?);
-    let qualification =
-        standing
-            .qualification()
-            .ok_or(MutationRoadFailure::MissingQualification(
-                ParityQualificationRefusal::MeaningsDisagreed,
-            ))?;
+    let standing = qualified_no_mutation(&pair, witness()?, &input)?;
+    let qualification = qualification_of(&standing)?;
     let selection = active_selection(&surface)?;
     let materializer = SpecimenMaterializerBinding::bound(&pair, SPECIMEN_MATERIALIZER);
     SPECIMEN_MATERIALIZER_CALLS.store(0, Ordering::SeqCst);
@@ -311,18 +270,8 @@ fn projection_requires_its_witness_claim_and_surface_selection() -> Result<(), M
     let foreign_witness =
         MutationWitness::bound(trial_binding_for("another-behaviour")?, check_ref()?, check)?;
     let input = [1u32, 0, 0];
-    let standing = qualify_no_mutation(observe_no_mutation(
-        &pair,
-        foreign_witness,
-        &input,
-        &invocation()?,
-    )?);
-    let qualification =
-        standing
-            .qualification()
-            .ok_or(MutationRoadFailure::MissingQualification(
-                ParityQualificationRefusal::MeaningsDisagreed,
-            ))?;
+    let standing = qualified_no_mutation(&pair, foreign_witness, &input)?;
+    let qualification = qualification_of(&standing)?;
     let selection = active_selection(&surface)?;
     let materializer = SpecimenMaterializerBinding::bound(&pair, SPECIMEN_MATERIALIZER);
     let expected_claim = claim()?;
@@ -347,18 +296,8 @@ fn projection_requires_its_witness_claim_and_surface_selection() -> Result<(), M
     assert_eq!(SPECIMEN_MATERIALIZER_CALLS.load(Ordering::SeqCst), 0);
     assert_eq!(SPECIMEN_HOST_CALLS.load(Ordering::SeqCst), 0);
 
-    let local_standing = qualify_no_mutation(observe_no_mutation(
-        &pair,
-        MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
-        &input,
-        &invocation()?,
-    )?);
-    let local_qualification =
-        local_standing
-            .qualification()
-            .ok_or(MutationRoadFailure::MissingQualification(
-                ParityQualificationRefusal::MeaningsDisagreed,
-            ))?;
+    let local_standing = qualified_no_mutation(&pair, witness()?, &input)?;
+    let local_qualification = qualification_of(&local_standing)?;
     let foreign_surface = surface_with(family, vec![b"a >= b"])?;
     let foreign_selection = active_selection(&foreign_surface)?;
     let expected_surface = surface.identity();
@@ -398,18 +337,8 @@ fn materializer_must_match_the_qualified_pair_revision() -> Result<(), MutationR
     let surface = surface_with(family, vec![b"a <= b"])?;
     let pair = pair(family, &surface, EVALUATION)?;
     let input = [1u32, 0, 0];
-    let standing = qualify_no_mutation(observe_no_mutation(
-        &pair,
-        MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
-        &input,
-        &invocation()?,
-    )?);
-    let qualification =
-        standing
-            .qualification()
-            .ok_or(MutationRoadFailure::MissingQualification(
-                ParityQualificationRefusal::MeaningsDisagreed,
-            ))?;
+    let standing = qualified_no_mutation(&pair, witness()?, &input)?;
+    let qualification = qualification_of(&standing)?;
     let revision_pair = pair_with_evaluation_revision(
         family,
         &surface,

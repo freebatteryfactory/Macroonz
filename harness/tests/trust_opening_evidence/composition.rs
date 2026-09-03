@@ -1,23 +1,18 @@
 //! Outside observations of mutation planning and cross-owner evidence composition.
 
 use super::support::{
-    COMPILED_SPECIMEN_HOST, CompiledRosterMeaning, EVALUATION, MutationRoadFailure,
-    SELECTED_OPERATION, SPECIMEN_MATERIALIZER, active_selection, check, check_ref,
-    compiled_suite_pressure, family, interpreted_kill, invocation, lock_specimen_tests, pair,
-    policy, surface_with, trial_binding,
+    CompiledRosterMeaning, EVALUATION, MutationRoadFailure, SELECTED_OPERATION, active_selection,
+    compiled_suite_pressure, family, interpreted_kill, lock_specimen_tests, pair, policy,
+    qualification_of, qualified_no_mutation, standard_projection, surface_with, witness,
 };
 use macroonz_harness::depot::operator_families::OPERATOR_FAMILIES;
 use macroonz_harness::muterprater::discover::lower_discoveries;
-use macroonz_harness::muterprater::interpret::{
-    availability, observe_no_mutation, qualify_no_mutation,
-};
+use macroonz_harness::muterprater::interpret::availability;
 use macroonz_harness::muterprater::rewrite::{admission, planned, unrealized_families};
-use macroonz_harness::muterprater::specimen::demonstrate_compiled_projection;
 use macroonz_harness::muterprater::{
     ARTIFACT_MUTATIONS, ArtifactMutation, InterpreterAvailability, MissingTrustEvidence,
-    MutationVerdict, MutationWitness, OperatorFamilyRef, ParityQualificationRefusal,
-    RewriteAdmission, RewriteCandidate, RewriteDescriptor, RewriteRefusal, RewriteRoster,
-    RewriteTrust, RewriteWithheld, RosterRefusal, ScopeShape, SpecimenMaterializerBinding,
+    MutationVerdict, OperatorFamilyRef, RewriteAdmission, RewriteCandidate, RewriteDescriptor,
+    RewriteRefusal, RewriteRoster, RewriteTrust, RewriteWithheld, RosterRefusal, ScopeShape,
 };
 use std::collections::BTreeSet;
 
@@ -263,16 +258,9 @@ fn point_free_trust_does_not_admit_mutation_execution() -> Result<(), MutationRo
     let policy = policy(family)?;
     let surface = lower_discoveries(&policy, Vec::new())?.into_parts().1;
     let pair = pair(family, &surface, EVALUATION)?;
-    let witness = MutationWitness::bound(trial_binding()?, check_ref()?, check)?;
     let input = [1u32, 0, 0];
-    let standing =
-        qualify_no_mutation(observe_no_mutation(&pair, witness, &input, &invocation()?)?);
-    let qualification =
-        standing
-            .qualification()
-            .ok_or(MutationRoadFailure::MissingQualification(
-                ParityQualificationRefusal::MeaningsDisagreed,
-            ))?;
+    let standing = qualified_no_mutation(&pair, witness()?, &input)?;
+    let qualification = qualification_of(&standing)?;
     let suite = compiled_suite_pressure()?;
     let availability =
         availability::<[u32; 3], CompiledRosterMeaning>(Some(&surface), Some(&suite), None);
@@ -325,28 +313,14 @@ fn compiled_pressure_cannot_open_trust_for_another_surface() -> Result<(), Mutat
     let another_surface = surface_with(family, vec![SELECTED_OPERATION])?;
     let another_pair = pair(family, &another_surface, EVALUATION)?;
     assert_ne!(another_pair.standing(), evaluation_pair.standing());
-    let another_standing = qualify_no_mutation(observe_no_mutation(
-        &another_pair,
-        MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
-        &input,
-        &invocation()?,
-    )?);
-    let another_qualification =
-        another_standing
-            .qualification()
-            .ok_or(MutationRoadFailure::MissingQualification(
-                ParityQualificationRefusal::MeaningsDisagreed,
-            ))?;
+    let another_standing = qualified_no_mutation(&another_pair, witness()?, &input)?;
+    let another_qualification = qualification_of(&another_standing)?;
     let another_selection = active_selection(&another_surface)?;
-    let another_materializer =
-        SpecimenMaterializerBinding::bound(&another_pair, SPECIMEN_MATERIALIZER);
-    let another_projection = demonstrate_compiled_projection(
+    let another_projection = standard_projection(
         &another_surface,
         another_qualification,
-        &another_materializer,
+        &another_pair,
         another_selection,
-        &invocation()?,
-        COMPILED_SPECIMEN_HOST,
     )?;
     let suite = compiled_suite_pressure()?;
     assert!(matches!(
