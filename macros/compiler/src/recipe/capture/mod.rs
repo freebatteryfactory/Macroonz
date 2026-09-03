@@ -15,19 +15,12 @@ use crate::token::{
     preserved_tree,
 };
 
-#[path = "capture_bake.rs"]
 mod bake;
-#[path = "capture_codec.rs"]
 mod codec;
-#[path = "capture_dispatch.rs"]
 mod dispatch;
-#[path = "capture_evidence.rs"]
 mod evidence;
-#[path = "capture_module.rs"]
 mod module;
-#[path = "capture_projection.rs"]
 mod projection;
-#[path = "capture_relation.rs"]
 mod relation;
 
 use bake::read_bake;
