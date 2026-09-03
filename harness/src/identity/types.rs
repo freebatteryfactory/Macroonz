@@ -44,3 +44,11 @@ pub const HARNESS_IDENTITY_PROFILE: IdentityProfile =
 /// The byte-lexicographic order exists so addresses can key an ordered map deterministically, and means nothing else.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ContentAddress(pub(super) [u8; 32]);
+
+/// A bounded cursor over one canonical body, parameterized by its owning home's refusal vocabulary.
+pub(crate) struct BodyReader<'body, Refusal> {
+    body: &'body [u8],
+    at: usize,
+    truncated: Refusal,
+    length_outside_platform: fn(u64) -> Refusal,
+}

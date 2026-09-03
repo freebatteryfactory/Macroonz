@@ -1,6 +1,6 @@
 //! Constructors and readers for the identity substrate.
 
-use super::{ContentAddress, DomainTag, IdentityProfile, IdentityProfileVersion};
+use super::{BodyReader, ContentAddress, DomainTag, IdentityProfile, IdentityProfileVersion};
 use crate::identity::HARNESS_IDENTITY_PROFILE;
 
 impl IdentityProfileVersion {
@@ -77,6 +77,9 @@ impl IdentityProfile {
 }
 
 impl ContentAddress {
+    /// The fixed width of every content address.
+    pub(crate) const WIDTH: usize = size_of::<[u8; 32]>();
+
     /// Derive the address of one preimage under one kind's domain tag.
     ///
     /// The bytes handed in are the preimage: an address is never a digest of source text, and a preimage is never "the id".
@@ -92,5 +95,67 @@ impl ContentAddress {
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8; 32] {
         &self.0
+    }
+}
+
+impl<'body, Refusal: Copy> BodyReader<'body, Refusal> {
+    /// Open at the first body byte under the calling home's refusal vocabulary.
+    pub(crate) const fn over(
+        body: &'body [u8],
+        truncated: Refusal,
+        length_outside_platform: fn(u64) -> Refusal,
+    ) -> Self {
+        Self {
+            body,
+            at: 0,
+            truncated,
+            length_outside_platform,
+        }
+    }
+
+    /// Read one fixed-width 32-bit integer.
+    pub(crate) fn u32(&mut self) -> Result<u32, Refusal> {
+        self.fixed::<4>().map(u32::from_be_bytes)
+    }
+
+    /// Read one fixed-width 64-bit integer.
+    pub(crate) fn u64(&mut self) -> Result<u64, Refusal> {
+        self.fixed::<8>().map(u64::from_be_bytes)
+    }
+
+    /// Read one declared count, refused where the platform cannot index it.
+    pub(crate) fn count(&mut self) -> Result<usize, Refusal> {
+        let declared = self.u64()?;
+        usize::try_from(declared)
+            .map_err(|_beyond_platform| (self.length_outside_platform)(declared))
+    }
+
+    /// Read one length-prefixed byte string.
+    pub(crate) fn bytes(&mut self) -> Result<&'body [u8], Refusal> {
+        let length = self.count()?;
+        self.take(length)
+    }
+
+    /// How many bytes remain unread.
+    pub(crate) const fn remaining(&self) -> usize {
+        self.body.len().saturating_sub(self.at)
+    }
+
+    /// Read one fixed-width byte array.
+    fn fixed<const WIDTH: usize>(&mut self) -> Result<[u8; WIDTH], Refusal> {
+        let bytes = self.take(WIDTH)?;
+        <[u8; WIDTH]>::try_from(bytes).map_err(|_unexpected_width| self.truncated)
+    }
+
+    /// Advance over exactly this many bytes, or refuse the body as truncated.
+    fn take(&mut self, width: usize) -> Result<&'body [u8], Refusal> {
+        let Some(end) = self.at.checked_add(width) else {
+            return Err(self.truncated);
+        };
+        let Some(bytes) = self.body.get(self.at..end) else {
+            return Err(self.truncated);
+        };
+        self.at = end;
+        Ok(bytes)
     }
 }

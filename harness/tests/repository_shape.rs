@@ -89,15 +89,16 @@ fn named_harness_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
             "descriptor/type_guard.rs",
         ],
     )?;
+    assert_occurrences(&root.join("src"), "struct BodyReader<'body>", &[])?;
     assert_occurrences(
         &root.join("src"),
-        "struct BodyReader<'body>",
-        &["corpus/decode.rs", "network/transcript/read.rs"],
+        "struct BodyReader<'body, Refusal>",
+        &["identity/types.rs"],
     )?;
     assert_occurrences(
         &root.join("src"),
-        "fn addressed_body(",
-        &["corpus/decode.rs", "network/transcript/read.rs"],
+        "fn addressed_body<Address, Refusal>(",
+        &["identity/read.rs"],
     )?;
     assert_occurrences(
         &root.join("src"),
