@@ -6,6 +6,7 @@
 //! # Reversals
 //!
 //! A road that closed over anything would satisfy every positive assertion here, so each is paired with the shape that must refuse: a set the rendering outgrew, a rendering short of the set, a renderer that wrote nothing, and each of the three ways three separately produced values can disagree about their parentage.
+//! The support assembly the closure's deliveries feed is observed in the `support_assembly` module, so the claims here are closure evidence alone.
 
 mod hostile;
 mod support_assembly;

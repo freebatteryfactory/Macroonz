@@ -1,6 +1,7 @@
 //! The two declaration roads, exercised from outside: a lawful body in, the builder or exploration module out, and every malformed clause refused at capture.
 //!
 //! The positive lanes hold the emitted text to the shapes the grammars promise; the refusal lanes reverse one clause each — an undeclared key, a doubled name, a foreign endpoint, an unreadable phrase, a missing fact, an empty declaration, a separator separating nothing.
+//! The target also hosts, as named modules with their own doors, the codec owner's generated behavior, the harness-facing descriptor vocabulary, the descriptor output oracle, and the rendered-path magnitude.
 
 mod codec_generated_behavior;
 mod descriptor_vocabulary;

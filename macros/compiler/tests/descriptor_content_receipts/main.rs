@@ -2,6 +2,7 @@
 //!
 //! Each byte length and digest keeps every declared field, physical binding segment, and authored roster position externally observable without importing a private encoder.
 //! The reversal changes only authored order, so an encoder that sorted a roster would fail beside the exact receipts rather than appearing equivalent.
+//! The provider roster's composition contract is observed in the `provider_roster` module rather than beside the receipts.
 
 use macroonz_compiler::descriptor::{
     CaptureCause, CaptureIssue, DeclarationError, Grammar, Name, Seat, bench, concurrency,

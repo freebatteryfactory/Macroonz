@@ -1,4 +1,5 @@
 //! Recipe behavior observed through callable, wrapper, projector, and refusal claims.
+//! The codec projection is observed in its own module beside the generic account.
 
 mod caller_rust;
 mod codec_projection;

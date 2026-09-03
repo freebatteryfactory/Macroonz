@@ -1,4 +1,5 @@
 //! The token seam's public paths, canonical bytes, and readable projection observed from outside its crate.
+//! The keyword-name claim at the foot of this lane asks every programmatic name constructor to read the roster this lane pins.
 //!
 //! The receipts below rebuild every token slot, delimiter, spacing row, and producer coordinate while using the public framing contract.
 //! The generated projection is fixed beside the byte receipt because the projection and the identity bytes are different contracts and neither substitutes for the other.

@@ -2,6 +2,7 @@
 //!
 //! Every claim below is asked through the road a proc host takes — `descriptor::door` — with nothing reached around it.
 //! The positive lanes establish that each road's carrier really composes what its reading produced, and each refusal lane reverses one clause of that, so a road that stopped reading or stopped refusing is caught from this side of the wall.
+//! The support home's two refusal rosters, which these roads produce, are observed in the `support_refusals` module rather than beside the roads.
 
 use macroonz_compiler::descriptor::bench::BENCH_HELPER_POSITION;
 use macroonz_compiler::descriptor::door;
