@@ -2,6 +2,9 @@
 
 mod capture;
 mod generation;
+mod types;
+
+pub(crate) use types::RENDERED_PATH_SEGMENT_LIMIT;
 
 #[cfg(feature = "host")]
 pub(crate) use capture::encode_token_path;

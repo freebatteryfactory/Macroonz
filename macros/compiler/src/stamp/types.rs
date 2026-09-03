@@ -14,7 +14,7 @@ mod guard;
 /// Segments one spelled path may carry.
 ///
 /// A path reaching deeper than eight segments has stopped naming an item and started describing a tree, and the repair is a re-export at the address rather than a longer spelling at this end.
-pub const PATH_SEGMENT_LIMIT: usize = 8;
+pub const PATH_SEGMENT_LIMIT: usize = crate::token::RENDERED_PATH_SEGMENT_LIMIT;
 
 /// Parts one pattern may declare, and therefore the most arguments one site can carry.
 pub const PART_LIMIT: usize = 64;

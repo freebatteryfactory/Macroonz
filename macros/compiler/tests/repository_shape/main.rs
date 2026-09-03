@@ -51,13 +51,18 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     assert_occurrences(
         &root,
-        "PATH_SEGMENT_LIMIT: usize = 8;",
-        &[
-            "codec/types.rs",
-            "descriptor/types.rs",
-            "stamp/types.rs",
-            "support/types.rs",
-        ],
+        "RENDERED_PATH_SEGMENT_LIMIT: usize = 8;",
+        &["token/types.rs"],
+    )?;
+    assert_occurrences(
+        &root,
+        "pub const PATH_SEGMENT_LIMIT: usize = crate::token::RENDERED_PATH_SEGMENT_LIMIT;",
+        &["descriptor/types.rs", "stamp/types.rs", "support/types.rs"],
+    )?;
+    assert_occurrences(
+        &root,
+        "CODEC_PATH_SEGMENT_LIMIT: usize = crate::token::RENDERED_PATH_SEGMENT_LIMIT;",
+        &["codec/types.rs"],
     )?;
     assert_occurrences(
         &root,
