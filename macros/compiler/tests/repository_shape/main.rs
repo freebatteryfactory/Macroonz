@@ -80,6 +80,12 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
         "const NAME_REFUSAL: (&str, &[&str], &str)",
         &["descriptor/fault.rs"],
     )?;
+    assert_occurrences(&root, "macro_rules! subjects", &["identity/stamp.rs"])?;
+    assert_occurrences(
+        &root,
+        "pub const CAPTURED_DECLARATION_PROFILE: Profile",
+        &["identity/bank.rs"],
+    )?;
     assert_occurrences(
         &root,
         "recipe issue category must be formatted exactly once",

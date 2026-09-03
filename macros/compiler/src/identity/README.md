@@ -19,6 +19,7 @@ The final identity is the only compression in the road.
 
 [`Subject`](super::Subject) is open so an adopter declares its own key spaces under its own stem.
 The [`subjects!`](crate::subjects) macro declares a roster and refuses names that would not remain distinct inside that owner's context.
+Its stamping operation is separate from the declarations it produces, so subject types remain ordinary identity vocabulary.
 
 ```rust
 macroonz_compiler::subjects! {
@@ -43,6 +44,7 @@ Changing any of those facts moves the binding before a plan exists.
 ## One version per grammar
 
 A [`Profile`](super::Profile) names one preimage grammar and carries that grammar's [`Version`](super::Version).
+The authored profile bank keeps those grammars together without turning the declaration nucleus into a data table.
 Changing a version renames identities derived under that profile and does not rename another profile's identities.
 This keeps independent grammars from moving together merely because they share the identity machinery.
 
