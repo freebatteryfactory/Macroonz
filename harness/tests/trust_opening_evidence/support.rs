@@ -58,14 +58,17 @@ use std::sync::atomic::{AtomicU32, Ordering};
 pub(super) const OWNER: &str = "harness.mutation.receiver";
 pub(super) const BACKEND_CONSOLE: &str =
     include_str!("current-compiled-pressure-artifact/cargo-mutants-27.0.0-console.txt");
-pub(super) const BACKEND_SOURCE: &[u8] =
-    include_bytes!("current-compiled-pressure-artifact/wrap.rs");
 pub(super) const CURRENT_BACKEND_SOURCE: &[u8] =
     include_bytes!("../../src/muterprater/backend/wrap.rs");
+/// The harness-derived revision identity of the wrapped-backend source the current campaign ran against.
+///
+/// The `0.2.0` release receipt under `.durafx` records that source's Git blob, hash, and reconstruction road.
+pub(super) const CAMPAIGN_BACKEND_REVISION: [u8; 32] = [
+    188, 115, 167, 208, 190, 202, 73, 105, 105, 41, 30, 17, 229, 34, 61, 7, 156, 213, 225, 25, 208,
+    146, 124, 37, 104, 111, 234, 81, 194, 119, 0, 88,
+];
 pub(super) const HISTORICAL_BACKEND_CONSOLE: &str =
     include_str!("compiled-pressure-artifact/cargo-mutants-27.0.0-console.txt");
-pub(super) const HISTORICAL_BACKEND_SOURCE: &[u8] =
-    include_bytes!("compiled-pressure-artifact/wrap.rs");
 pub(super) const BACKEND_NO_KILL: &str = "Found 1 mutant to test\n\
     ok Unmutated baseline in 3.1s\n\
     missed src/subject/lane.rs:41:9: replace is_qualified -> bool with true in 4.0s";
@@ -147,6 +150,7 @@ pub(super) enum MutationRoadFailure {
     MissingActiveSelection,
     MissingQualification(ParityQualificationRefusal),
     MissingTrust(MissingTrustEvidence),
+    CampaignSourceMoved,
     Proof(ProofRefusal),
     ReductionPlan(ReductionPlanRefusal),
     ReductionProbe(ReductionProbeRefusal),
@@ -730,9 +734,19 @@ pub(super) fn current_custody(
     )?)
 }
 
+/// The current wrapped-backend source, admitted only while it is the exact source the retained campaign ran against.
+pub(super) fn campaign_source() -> Result<MutationSourceRevision, MutationRoadFailure> {
+    let source = source_revision(CURRENT_BACKEND_SOURCE)?;
+    if source.revision().address().as_bytes() != &CAMPAIGN_BACKEND_REVISION {
+        return Err(MutationRoadFailure::CampaignSourceMoved);
+    }
+    Ok(source)
+}
+
 pub(super) fn compiled_suite_pressure() -> Result<CompiledSuitePressure, MutationRoadFailure> {
     let version = BackendVersion::stated(BACKEND_VERSION).map_err(|_| MutationRoadFailure::Name)?;
-    let manifest = compiled_artifact(BACKEND_CONSOLE, version.clone(), BACKEND_SOURCE)?;
+    campaign_source()?;
+    let manifest = compiled_artifact(BACKEND_CONSOLE, version.clone(), CURRENT_BACKEND_SOURCE)?;
     let qualification =
         AdapterQualification::of(manifest.reading(), GrammarStanding::Checked(version))?;
     let custody = current_custody(manifest, CURRENT_BACKEND_SOURCE)?;

@@ -227,11 +227,28 @@ fn assert_content_address_denominator(root: &Path) -> Result<(), std::io::Error>
 fn assert_wrap_custody(root: &Path) -> Result<(), std::io::Error> {
     assert_eq!(
         paths_named(root, "wrap.rs")?,
-        [
-            "src/muterprater/backend/wrap.rs",
-            "tests/trust_opening_evidence/compiled-pressure-artifact/wrap.rs",
-            "tests/trust_opening_evidence/current-compiled-pressure-artifact/wrap.rs",
-        ]
+        ["src/muterprater/backend/wrap.rs"]
+    );
+    let evidence = root.join("tests/trust_opening_evidence");
+    for copied_source in ["wrap.rs", "compare.rs", "conclude.rs", "type_guard.rs"] {
+        assert_eq!(
+            paths_named(&evidence, copied_source)?,
+            Vec::<String>::new(),
+            "{copied_source}"
+        );
+    }
+    let campaign_pin = ["fn campaign_", "source()"].concat();
+    assert_occurrences(
+        root,
+        &campaign_pin,
+        &["tests/trust_opening_evidence/support.rs"],
+    )?;
+    let receipt = root
+        .parent()
+        .map(|repository| repository.join(".durafx/package/release-0.2.0/receipt.md"));
+    assert!(
+        receipt.is_some_and(|receipt| receipt.is_file()),
+        "the 0.2.0 release receipt records the campaign source custody"
     );
     Ok(())
 }
