@@ -46,6 +46,59 @@ fn assert_occurrences(root: &Path, needle: &str, expected: &[&str]) -> Result<()
     Ok(())
 }
 
+fn assert_visibility_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
+    assert_occurrences(
+        root,
+        "pub(crate) fn declared_reach_tokens",
+        &["stamp/render.rs"],
+    )?;
+    assert_occurrences(root, "fn crate_visibility(", &[])?;
+    assert_occurrences(root, "fn visibility()", &[])?;
+    Ok(())
+}
+
+fn assert_roster_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
+    assert_occurrences(root, "macro_rules! subjects", &["identity/stamp.rs"])?;
+    assert_occurrences(root, "const RUST_KEYWORDS: &[&str]", &["token/bank.rs"])?;
+    assert_occurrences(
+        root,
+        "const RAW_IDENTIFIER_EXCLUSIONS: &[&str]",
+        &["token/bank.rs"],
+    )?;
+    assert_occurrences(
+        root,
+        "pub fn rust_keyword(spelling: &str) -> bool",
+        &["token/bank.rs"],
+    )?;
+    assert_occurrences(
+        root,
+        "pub(crate) enum RelationQuestion",
+        &["relation/types.rs"],
+    )?;
+    assert_occurrences(root, "RELATION_QUESTION_NAMES", &[])?;
+    assert_occurrences(
+        root,
+        "pub(crate) fn roster_row<Row: Copy>",
+        &["kind/type_contract.rs"],
+    )?;
+    assert_occurrences(
+        root,
+        "macro_rules! vocabulary",
+        &["descriptor/vocabulary/stamp.rs"],
+    )?;
+    assert_occurrences(root, "impl HarnessName", &[])?;
+    assert_occurrences(root, "impl HarnessWord", &[])?;
+    assert_occurrences(root, "impl TextLexicalCause", &[])?;
+    assert_occurrences(root, "impl CaptureBound", &[])?;
+    assert_occurrences(root, "impl LiteralReadCause", &[])?;
+    assert_occurrences(root, "macro_rules! named_vocabulary", &["recipe/stamp.rs"])?;
+    assert_occurrences(root, "impl HarnessPosture", &[])?;
+    assert_occurrences(root, "impl LoweringSource", &[])?;
+    assert_occurrences(root, "impl ProjectionDisposition", &[])?;
+    assert_occurrences(root, "impl RecipeRelationPayloadKind", &[])?;
+    Ok(())
+}
+
 #[test]
 fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
@@ -80,49 +133,13 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
         "const NAME_REFUSAL: (&str, &[&str], &str)",
         &["descriptor/fault.rs"],
     )?;
-    assert_occurrences(&root, "macro_rules! subjects", &["identity/stamp.rs"])?;
-    assert_occurrences(&root, "const RUST_KEYWORDS: &[&str]", &["token/bank.rs"])?;
-    assert_occurrences(
-        &root,
-        "const RAW_IDENTIFIER_EXCLUSIONS: &[&str]",
-        &["token/bank.rs"],
-    )?;
-    assert_occurrences(
-        &root,
-        "pub fn rust_keyword(spelling: &str) -> bool",
-        &["token/bank.rs"],
-    )?;
-    assert_occurrences(
-        &root,
-        "pub(crate) enum RelationQuestion",
-        &["relation/types.rs"],
-    )?;
-    assert_occurrences(&root, "RELATION_QUESTION_NAMES", &[])?;
-    assert_occurrences(
-        &root,
-        "pub(crate) fn roster_row<Row: Copy>",
-        &["kind/type_contract.rs"],
-    )?;
-    assert_occurrences(
-        &root,
-        "macro_rules! vocabulary",
-        &["descriptor/vocabulary/stamp.rs"],
-    )?;
-    assert_occurrences(&root, "impl HarnessName", &[])?;
-    assert_occurrences(&root, "impl HarnessWord", &[])?;
-    assert_occurrences(&root, "impl TextLexicalCause", &[])?;
-    assert_occurrences(&root, "impl CaptureBound", &[])?;
-    assert_occurrences(&root, "impl LiteralReadCause", &[])?;
-    assert_occurrences(&root, "macro_rules! named_vocabulary", &["recipe/stamp.rs"])?;
-    assert_occurrences(&root, "impl HarnessPosture", &[])?;
-    assert_occurrences(&root, "impl LoweringSource", &[])?;
-    assert_occurrences(&root, "impl ProjectionDisposition", &[])?;
-    assert_occurrences(&root, "impl RecipeRelationPayloadKind", &[])?;
+    assert_roster_debt_is_closed(&root)?;
     assert_occurrences(
         &root,
         "format!(\"{lens}_{seat}\")",
         &["descriptor/emitting.rs"],
     )?;
+    assert_visibility_debt_is_closed(&root)?;
     assert_occurrences(
         &root,
         "the complete relation-question roster guards this match",

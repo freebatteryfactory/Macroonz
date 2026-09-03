@@ -18,6 +18,7 @@
 use super::{
     Fragment, Part, Pattern, Seat, Seating, Site, Stamp, StampError, TransportedReach, Visibility,
 };
+use crate::bounded::Overflow;
 use crate::token::{self, GeneratedDelimiter, GeneratedToken};
 
 /// The internal arm a front arm forwards a declaration through.
@@ -135,6 +136,11 @@ pub fn forwarded(seat: &Seat) -> Result<Vec<GeneratedToken>, StampError> {
 ///
 /// Returns [`StampError::TokensUnbounded`] where the tokens outgrow the declared token magnitude.
 pub fn declared_reach(reach: Visibility) -> Result<Vec<GeneratedToken>, StampError> {
+    Ok(declared_reach_tokens(reach)?)
+}
+
+/// The declared visibility tokens shared by compiler renderers.
+pub(crate) fn declared_reach_tokens(reach: Visibility) -> Result<Vec<GeneratedToken>, Overflow> {
     match reach {
         Visibility::Private => Ok(Vec::new()),
         Visibility::Module => scoped(vec![GeneratedToken::word("self")]),
@@ -150,18 +156,18 @@ pub fn declared_reach(reach: Visibility) -> Result<Vec<GeneratedToken>, StampErr
 ///
 /// Returns [`StampError::TokensUnbounded`] where the tokens outgrow the declared token magnitude.
 pub fn transported_reach(reach: TransportedReach) -> Result<Vec<GeneratedToken>, StampError> {
-    match reach {
-        TransportedReach::Enclosing => scoped(vec![GeneratedToken::word("super")]),
+    Ok(match reach {
+        TransportedReach::Enclosing => scoped(vec![GeneratedToken::word("super")])?,
         TransportedReach::Ancestor => scoped(vec![
             GeneratedToken::word("in"),
             GeneratedToken::word("super"),
             GeneratedToken::joint(':'),
             GeneratedToken::alone(':'),
             GeneratedToken::word("super"),
-        ]),
-        TransportedReach::Crate => scoped(vec![GeneratedToken::word("crate")]),
-        TransportedReach::Public => Ok(vec![GeneratedToken::word("pub")]),
-    }
+        ])?,
+        TransportedReach::Crate => scoped(vec![GeneratedToken::word("crate")])?,
+        TransportedReach::Public => vec![GeneratedToken::word("pub")],
+    })
 }
 
 /// One front arm: the reach the site writes literally, and the forward into the internal arm carrying both reaches as literal tokens.
@@ -289,7 +295,7 @@ fn repeated(
 }
 
 /// One scoped visibility `pub(inside)`.
-fn scoped(inside: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, StampError> {
+fn scoped(inside: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, Overflow> {
     Ok(vec![
         GeneratedToken::word("pub"),
         token::group(GeneratedDelimiter::Parenthesis, inside)?,

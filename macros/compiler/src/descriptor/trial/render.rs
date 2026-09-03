@@ -19,6 +19,7 @@ use crate::bounded::Overflow;
 use crate::descriptor::vocabulary::{self, HarnessName, HarnessWord};
 use crate::descriptor::{Emitter, Name};
 use crate::kind::Kind;
+use crate::stamp::{Visibility, declared_reach_tokens};
 use crate::token::{
     GeneratedDelimiter, GeneratedToken, bound_local, comma, group, metavariable, method_call,
     roster, text_pair,
@@ -456,15 +457,9 @@ pub fn stamped_module(payload: &Trials, emitter: Emitter) -> Result<Vec<Generate
     for seated in payload.groups() {
         body.extend(suite_group(seated, emitter)?);
     }
-    let mut tokens = vec![
-        GeneratedToken::word("pub"),
-        group(
-            GeneratedDelimiter::Parenthesis,
-            vec![GeneratedToken::word("crate")],
-        )?,
-        GeneratedToken::word("mod"),
-        GeneratedToken::word(payload.module().spelling()),
-    ];
+    let mut tokens = declared_reach_tokens(Visibility::Crate)?;
+    tokens.push(GeneratedToken::word("mod"));
+    tokens.push(GeneratedToken::word(payload.module().spelling()));
     tokens.extend(named_clause(payload.table())?);
     tokens.push(group(GeneratedDelimiter::Brace, body)?);
     Ok(tokens)

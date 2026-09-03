@@ -6,6 +6,7 @@ mod type_contract;
 mod types;
 
 pub use plan::planned;
+pub(crate) use render::declared_reach_tokens;
 pub use render::{
     DECLARED_REACH, OPAQUE_REACH_REFUSAL, TRANSCRIBE_ARM, TRANSPORTED_REACH, declared_reach,
     definition, forwarded, invocation, transported_reach,
