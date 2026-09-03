@@ -7,7 +7,7 @@ use core::convert::Infallible;
 use macroonz_compiler::token::{
     CaptureBuildRefusal as HomeCaptureBuildRefusal, CaptureBuilder as HomeCaptureBuilder,
     CapturedAtom, CapturedDelimiter, CapturedInput, GeneratedDelimiter, GeneratedLiteral,
-    GeneratedToken as HomeGeneratedToken, GeneratedTree as HomeGeneratedTree,
+    GeneratedToken as HomeGeneratedToken, GeneratedTree as HomeGeneratedTree, rust_keyword,
 };
 use macroonz_compiler::{CaptureBuildRefusal, CaptureBuilder, GeneratedToken, GeneratedTree};
 
@@ -20,6 +20,32 @@ fn framed(slot: u8, material: &[u8], into: &mut Vec<u8>) {
             .to_be_bytes(),
     );
     into.extend_from_slice(material);
+}
+
+/// The complete edition-2024 keyword roster and neighbouring ordinary names are classified at the public token boundary.
+#[test]
+fn rust_keywords_are_one_exact_language_roster() {
+    let keywords = [
+        "abstract", "as", "async", "await", "become", "box", "break", "const", "continue", "crate",
+        "do", "dyn", "else", "enum", "extern", "false", "final", "fn", "for", "gen", "if", "impl",
+        "in", "let", "loop", "macro", "match", "mod", "move", "mut", "override", "priv", "pub",
+        "ref", "return", "self", "Self", "static", "struct", "super", "trait", "true", "try",
+        "type", "typeof", "unsafe", "unsized", "use", "virtual", "where", "while", "yield",
+    ];
+    assert!(keywords.into_iter().all(rust_keyword));
+    assert!(
+        [
+            "",
+            "_",
+            "State",
+            "async_task",
+            "selfish",
+            "yielded",
+            "r#type"
+        ]
+        .into_iter()
+        .all(|spelling| !rust_keyword(spelling))
+    );
 }
 
 /// One capture carrying every payload slot and every captured delimiter slot.

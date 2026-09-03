@@ -19,7 +19,7 @@ pub(crate) use compose::segmented_twin_path;
 pub use compose::{
     absolute_path, and_all, attribute, bound_local, bound_path, call, comma, comma_many, constant,
     documentation, equality, group, metavariable, method_call, method_chain, rendered_identifier,
-    rendered_name, result_type, roster, rust_keyword, text_pair, twin_path,
+    rendered_name, result_type, roster, text_pair, twin_path,
 };
 pub use items::{
     decorated, enumeration, generic_parameters, inline_module, named_field, named_struct,

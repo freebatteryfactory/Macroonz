@@ -1,9 +1,11 @@
 #![doc = include_str!("README.md")]
 
+mod bank;
 mod capture;
 mod generation;
 mod types;
 
+pub use bank::rust_keyword;
 pub(crate) use types::RENDERED_PATH_SEGMENT_LIMIT;
 
 #[cfg(feature = "host")]
@@ -30,8 +32,8 @@ pub use generation::{
     implementation, inline_module, keyed_assignment_items, keyed_assignment_slice,
     keyed_roster_items, keyed_roster_slice, match_arm, match_expression, metavariable, method_call,
     method_chain, named_field, named_struct, named_variant, pinned_receiver, rendered_identifier,
-    rendered_name, result_type, roster, rust_keyword, shared_receiver, text_pair,
-    trait_declaration, tuple_struct, tuple_variant, twin_path, type_alias, typed_parameter,
-    unit_struct, unit_variant, use_item, where_clause,
+    rendered_name, result_type, roster, shared_receiver, text_pair, trait_declaration,
+    tuple_struct, tuple_variant, twin_path, type_alias, typed_parameter, unit_struct, unit_variant,
+    use_item, where_clause,
 };
 pub(crate) use generation::{preserved_tree, segmented_twin_path};

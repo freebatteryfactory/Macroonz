@@ -11,6 +11,7 @@ use super::{
     TokenPath, capture_literal,
 };
 use crate::bounded::Bounded;
+use crate::token::bank::raw_identifier_is_reserved;
 use ra_ap_rustc_lexer::{DocStyle, FrontmatterAllowed, LiteralKind, TokenKind, tokenize};
 
 impl TextCapture {
@@ -384,11 +385,6 @@ fn capture_prefixed_identifier<'capture>(
         lexeme.at,
         CapturedAtom::RawIdentifier(name.to_owned()),
     )
-}
-
-/// Whether one lexer-admitted raw name is forbidden by Rust's raw-identifier grammar.
-fn raw_identifier_is_reserved(name: &str) -> bool {
-    matches!(name, "" | "_" | "crate" | "self" | "Self" | "super")
 }
 
 /// Lower one doc comment into the attribute tokens a proc macro receives.

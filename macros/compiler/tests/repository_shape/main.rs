@@ -81,6 +81,17 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
         &["descriptor/fault.rs"],
     )?;
     assert_occurrences(&root, "macro_rules! subjects", &["identity/stamp.rs"])?;
+    assert_occurrences(&root, "const RUST_KEYWORDS: &[&str]", &["token/bank.rs"])?;
+    assert_occurrences(
+        &root,
+        "const RAW_IDENTIFIER_EXCLUSIONS: &[&str]",
+        &["token/bank.rs"],
+    )?;
+    assert_occurrences(
+        &root,
+        "pub fn rust_keyword(spelling: &str) -> bool",
+        &["token/bank.rs"],
+    )?;
     assert_occurrences(
         &root,
         "pub const CAPTURED_DECLARATION_PROFILE: Profile",

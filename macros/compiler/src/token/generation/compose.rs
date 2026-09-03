@@ -8,6 +8,7 @@
 
 use super::{GeneratedDelimiter, GeneratedToken};
 use crate::bounded::Overflow;
+use crate::token::bank::rust_keyword;
 
 /// Whether one spelling is a single Rust identifier a rendering is willing to write.
 ///
@@ -29,72 +30,9 @@ pub fn rendered_identifier(spelling: &str) -> bool {
     characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
 }
 
-/// Whether one spelling is a Rust keyword no rendered item can be named by.
-///
-/// The language's own roster — the strict and reserved keywords through edition 2024 — written down once beside the identifier alphabet, because it is the same law from the other side: an alphabet says which spellings CAN be a name, and this roster says which of those the language already took.
-/// A grammar that let a keyword through would refuse nowhere and hand the collision to the adopter's build, inside an expansion whose lints rustc has silenced.
-#[must_use]
-pub fn rust_keyword(spelling: &str) -> bool {
-    matches!(
-        spelling,
-        "abstract"
-            | "as"
-            | "async"
-            | "await"
-            | "become"
-            | "box"
-            | "break"
-            | "const"
-            | "continue"
-            | "crate"
-            | "do"
-            | "dyn"
-            | "else"
-            | "enum"
-            | "extern"
-            | "false"
-            | "final"
-            | "fn"
-            | "for"
-            | "gen"
-            | "if"
-            | "impl"
-            | "in"
-            | "let"
-            | "loop"
-            | "macro"
-            | "match"
-            | "mod"
-            | "move"
-            | "mut"
-            | "override"
-            | "priv"
-            | "pub"
-            | "ref"
-            | "return"
-            | "self"
-            | "Self"
-            | "static"
-            | "struct"
-            | "super"
-            | "trait"
-            | "true"
-            | "try"
-            | "type"
-            | "typeof"
-            | "unsafe"
-            | "unsized"
-            | "use"
-            | "virtual"
-            | "where"
-            | "while"
-            | "yield"
-    )
-}
-
 /// Whether one spelling can NAME a rendered item: a single identifier the language has not already taken.
 ///
-/// The two seats above are the two halves of one law, and this is the law whole — the alphabet says which spellings can be a name, the keyword roster says which of those the language took, and an item name must clear both.
+/// The identifier alphabet here and the keyword bank are the two halves of one law: the alphabet says which spellings can be a name, the bank says which of those the language took, and an item name must clear both.
 /// The direct grammars keep reading the two halves separately, because an authored declaration deserves a refusal naming which half disagreed at which token; every constructor that mints a name or a path segment programmatically reads this one.
 #[must_use]
 pub fn rendered_name(spelling: &str) -> bool {

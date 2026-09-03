@@ -74,13 +74,15 @@ fn compound_punctuation_keeps_proc_macro_spacing() -> Result<(), ()> {
 /// A lexer-admitted spelling forbidden by raw-identifier grammar refuses before host emission can reach a panicking constructor.
 #[test]
 fn forbidden_raw_identifier_spelling_refuses_typed() {
-    assert_eq!(
-        TextCapture::read("r#self"),
-        Err(TextReadRefusal {
-            cause: TextReadCause::Lexical(TextLexicalCause::InvalidIdentifier),
-            at: 0,
-        })
-    );
+    for source in ["r#_", "r#crate", "r#self", "r#Self", "r#super"] {
+        assert_eq!(
+            TextCapture::read(source),
+            Err(TextReadRefusal {
+                cause: TextReadCause::Lexical(TextLexicalCause::InvalidIdentifier),
+                at: 0,
+            })
+        );
+    }
 }
 
 /// Ordinary comments disappear while an inner doc comment becomes the compiler's attribute-shaped token sequence.
