@@ -104,6 +104,24 @@ fn assert_duplicate_group_debt_is_closed(root: &Path) -> Result<(), std::io::Err
     Ok(())
 }
 
+fn assert_doubled_set_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
+    assert_occurrences(
+        root,
+        "pub(crate) fn first_duplicate_position",
+        &["bounded/type_guard.rs"],
+    )?;
+    for relative in [
+        "descriptor/bench/type_guard.rs",
+        "descriptor/mutation/type_guard.rs",
+        "descriptor/trial/type_guard.rs",
+        "stamp/type_guard.rs",
+    ] {
+        let source = fs::read_to_string(root.join(relative))?;
+        assert!(!source.contains("BTreeSet"), "{relative}");
+    }
+    Ok(())
+}
+
 fn assert_roster_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
     assert_occurrences(root, "macro_rules! subjects", &["identity/stamp.rs"])?;
     assert_occurrences(root, "const RUST_KEYWORDS: &[&str]", &["token/bank.rs"])?;
@@ -169,6 +187,7 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     assert_declared_name_grammar_debt_is_closed(&root)?;
     assert_role_join_debt_is_closed(&root)?;
     assert_duplicate_group_debt_is_closed(&root)?;
+    assert_doubled_set_debt_is_closed(&root)?;
     assert_occurrences(&root, "const FAULT_ARMS:", &[])?;
     assert_occurrences(
         &root,

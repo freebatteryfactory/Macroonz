@@ -568,6 +568,111 @@ fn benchmark_budget_width_and_observation_roster_are_closed() -> Result<(), ()> 
     Ok(())
 }
 
+/// Benchmark axis and lens namespaces refuse repeated identities before rendering.
+#[test]
+fn benchmark_namespaces_refuse_repeated_identities() -> Result<(), ()> {
+    let doubled_axis = BENCH_BODY.replacen("axis = [2, 4, 8],", "axis = [2, 4, 2],", 1);
+    let doubled_lens = BENCH_BODY.replacen(
+        "    encode_pace {",
+        "    encode_pace {\n        workload = named(\"lane\", \"other\"),\n        preflight = named(\"lane\", \"other-correct\"),\n        planted_worse = named(\"lane\", \"other-worse\"),\n        complexity = named(\"lane\", \"linear\"),\n        axis = [2, 4],\n        samples = 8,\n        warmups = 2,\n        ratio_numerator = 2,\n        ratio_denominator = 1,\n        observe = [named(\"lane\", \"other-bytes\")],\n    },\n    encode_pace {",
+        1,
+    );
+    for (source, cause) in [
+        (
+            &doubled_axis,
+            "one axis-size of the declaration is stated twice",
+        ),
+        (&doubled_lens, "one lens of the declaration is stated twice"),
+    ] {
+        let refusal = bench(source).ok_or(())?.err().ok_or(())?;
+        assert_eq!(refusal.phase(), Phase::Capture);
+        assert!(refusal.summary().contains(cause), "{}", refusal.summary());
+    }
+    Ok(())
+}
+
+/// Mutation policy namespaces refuse repeated families, facts, and claims.
+#[test]
+fn mutation_policy_namespaces_refuse_repeated_identities() -> Result<(), ()> {
+    let doubled_family = MUTATION_BODY.replacen(
+        "[\"declared-order-permutation\"]",
+        "[\"declared-order-permutation\", \"declared-order-permutation\"]",
+        1,
+    );
+    let doubled_fact = MUTATION_BODY.replacen(
+        "map named(\"lane\", \"cause-order\") = named(\"lane\", \"order-held\"),",
+        "map named(\"lane\", \"cause-order\") = named(\"lane\", \"order-held\"),\n    map named(\"lane\", \"cause-order\") = named(\"lane\", \"other\"),",
+        1,
+    );
+    let doubled_claim = MUTATION_BODY.replacen(
+        "permit named(\"lane\", \"order-held\") = [\"declared-order-permutation\"],",
+        "permit named(\"lane\", \"order-held\") = [\"declared-order-permutation\"],\n    permit named(\"lane\", \"order-held\") = [\"other-family\"],",
+        1,
+    );
+    for (source, cause) in [
+        (
+            &doubled_family,
+            "one operator-family of the declaration is stated twice",
+        ),
+        (
+            &doubled_fact,
+            "one fact-mapping of the declaration is stated twice",
+        ),
+        (
+            &doubled_claim,
+            "one permission of the declaration is stated twice",
+        ),
+    ] {
+        let refusal = mutations(source, MUTATION_ITEM)
+            .ok_or(())?
+            .err()
+            .ok_or(())?;
+        assert_eq!(refusal.phase(), Phase::Capture);
+        assert!(refusal.summary().contains(cause), "{}", refusal.summary());
+    }
+    Ok(())
+}
+
+/// Trial label and generated namespaces refuse repeated identities and cross-seat shadows.
+#[test]
+fn trial_namespaces_refuse_repeated_identities() -> Result<(), ()> {
+    let doubled_role = TRIAL_BODY.replacen(
+        "claim = named(\"lane\", \"greet-answers\"),",
+        "claim = named(\"lane\", \"greet-answers\"),\n            roles = [named(\"lane\", \"reader\"), named(\"lane\", \"reader\")],",
+        1,
+    );
+    let doubled_tag = TRIAL_BODY.replacen(
+        "claim = named(\"lane\", \"greet-answers\"),",
+        "claim = named(\"lane\", \"greet-answers\"),\n            tags = [named(\"lane\", \"fast\"), named(\"lane\", \"fast\")],",
+        1,
+    );
+    let doubled_aggregate = format!(
+        "{TRIAL_BODY}\n    suite checks = named(\"lane\", \"other-suite\") {{\n        other_answers {{\n            claim = named(\"lane\", \"other-answers\"),\n            subject = named(\"lane\", \"other\"),\n            check = named(\"lane\", \"exact\"),\n            population = named(\"lane\", \"smalls\"),\n        }},\n    }},"
+    );
+    let doubled_lens = format!(
+        "{TRIAL_BODY}\n    suite other = named(\"lane\", \"other-suite\") {{\n        greet_answers {{\n            claim = named(\"lane\", \"other-answers\"),\n            subject = named(\"lane\", \"other\"),\n            check = named(\"lane\", \"exact\"),\n            population = named(\"lane\", \"smalls\"),\n        }},\n    }},"
+    );
+    let shadowed_lens = TRIAL_BODY.replacen("        greet_answers {", "        checks {", 1);
+    for (source, cause) in [
+        (&doubled_role, "one role of the declaration is stated twice"),
+        (&doubled_tag, "one tag of the declaration is stated twice"),
+        (
+            &doubled_aggregate,
+            "one aggregate of the declaration is stated twice",
+        ),
+        (&doubled_lens, "one lens of the declaration is stated twice"),
+        (
+            &shadowed_lens,
+            "one lens of the declaration is stated twice",
+        ),
+    ] {
+        let refusal = trials(source).ok_or(())?.err().ok_or(())?;
+        assert_eq!(refusal.phase(), Phase::Capture);
+        assert!(refusal.summary().contains(cause), "{}", refusal.summary());
+    }
+    Ok(())
+}
+
 /// A bench axis of one point is not a curve, and the road refuses the row rather than reading a growth class off a point.
 #[test]
 fn a_bench_axis_of_one_point_refuses() -> Result<(), ()> {

@@ -2,7 +2,7 @@
 
 use macroonz_compiler::stamp::{
     DECLARED_REACH, Fragment, Landing, OPAQUE_REACH_REFUSAL, Part, Pattern, PublicationGround,
-    PublishedStamp, Seat, Seating, Site, SiteRoot, Stamp, StampName, TRANSPORTED_REACH,
+    PublishedStamp, Seat, Seating, Site, SiteRoot, Stamp, StampError, StampName, TRANSPORTED_REACH,
     TransportedReach, Visibility, declared_reach, planned, transported_reach,
 };
 use macroonz_compiler::{
@@ -160,6 +160,40 @@ fn declared_stamp(site_order: &[Visibility]) -> Result<Stamp, String> {
         })
         .collect::<Result<Vec<_>, String>>()?;
     Stamp::declared(name, pattern, sites).map_err(|refusal| refusal.to_string())
+}
+
+/// Pattern and site namespaces refuse the first repeated spelling at its declared position.
+#[test]
+fn stamp_namespaces_refuse_the_first_repeated_spelling() -> Result<(), String> {
+    let first_seat = Seat::declared("name", Seating::One(Fragment::Identifier))
+        .map_err(|refusal| refusal.to_string())?;
+    let second_seat = Seat::declared("name", Seating::One(Fragment::Identifier))
+        .map_err(|refusal| refusal.to_string())?;
+    let doubled_pattern = Pattern::declared(
+        "Carries two declared seats.",
+        vec![Part::Seat(first_seat), Part::Seat(second_seat)],
+        pattern_body()?,
+    );
+    assert_eq!(doubled_pattern, Err(StampError::SeatNameDoubled { at: 1 }));
+
+    let pattern = declared_stamp(&[Visibility::Private])?.pattern().clone();
+    let root =
+        SiteRoot::spelled(vec!["crate".to_owned()]).map_err(|refusal| refusal.to_string())?;
+    let first = Site::declared(
+        "same",
+        root.clone(),
+        Visibility::Private,
+        vec![argument("first")?],
+    )
+    .map_err(|refusal| refusal.to_string())?;
+    let second = Site::declared("same", root, Visibility::Public, vec![argument("second")?])
+        .map_err(|refusal| refusal.to_string())?;
+    let name = StampName::declared("doubled_sites").map_err(|refusal| refusal.to_string())?;
+    assert_eq!(
+        Stamp::declared(name, pattern, vec![first, second]),
+        Err(StampError::SiteNameDoubled { at: 1 })
+    );
+    Ok(())
 }
 
 fn published(site_order: &[Visibility]) -> Result<PublishedStamp, String> {

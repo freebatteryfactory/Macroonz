@@ -6,6 +6,8 @@
 #[path = "type_guard.rs"]
 mod guard;
 
+pub(crate) use guard::first_duplicate_position;
+
 /// An ordered collection of at most `N` items.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Bounded<T, const N: usize>(Vec<T>);

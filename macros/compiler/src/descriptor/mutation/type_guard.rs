@@ -9,10 +9,9 @@ use super::{
     MutationCaptureError, OPERATOR_FAMILY_LIMIT, PERMISSION_LIMIT, Permission, Policy, Site,
     Surface,
 };
-use crate::bounded::{Bounded, NonEmpty};
+use crate::bounded::{Bounded, NonEmpty, first_duplicate_position};
 use crate::descriptor::{CaptureCause, DeclarationError, Grammar, HelperRefusal, Name, Seat};
 use crate::token::{GeneratedToken, SpanHandle};
-use std::collections::BTreeSet;
 
 impl FamilySlug {
     /// One operator family, by the slug the address resolves it under.
@@ -49,8 +48,7 @@ impl Permission {
             });
         }
         let offered = families.len();
-        let distinct: BTreeSet<&FamilySlug> = families.iter().collect();
-        if distinct.len() != offered {
+        if first_duplicate_position(&families, |left, right| left == right).is_some() {
             return Err(DeclarationError::Doubled {
                 seat: Seat::OperatorFamily,
             });
@@ -88,14 +86,14 @@ impl Policy {
         mappings: Vec<FactMapping>,
         permissions: Vec<Permission>,
     ) -> Result<Self, DeclarationError> {
-        let mapped: BTreeSet<&Name> = mappings.iter().map(|mapping| &mapping.fact).collect();
-        if mapped.len() != mappings.len() {
+        if first_duplicate_position(&mappings, |left, right| left.fact == right.fact).is_some() {
             return Err(DeclarationError::Doubled {
                 seat: Seat::FactMapping,
             });
         }
-        let claimed: BTreeSet<&Name> = permissions.iter().map(Permission::claim).collect();
-        if claimed.len() != permissions.len() {
+        if first_duplicate_position(&permissions, |left, right| left.claim() == right.claim())
+            .is_some()
+        {
             return Err(DeclarationError::Doubled {
                 seat: Seat::Permission,
             });
@@ -199,8 +197,11 @@ impl Site {
         unchanged: Vec<u8>,
         alternatives: Vec<Alternative>,
     ) -> Result<Self, DeclarationError> {
-        let distinct: BTreeSet<&[u8]> = alternatives.iter().map(Alternative::operation).collect();
-        if distinct.len() != alternatives.len() {
+        if first_duplicate_position(&alternatives, |left, right| {
+            left.operation() == right.operation()
+        })
+        .is_some()
+        {
             return Err(DeclarationError::Doubled {
                 seat: Seat::Alternative,
             });

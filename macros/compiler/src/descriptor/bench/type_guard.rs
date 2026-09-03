@@ -8,13 +8,12 @@ use super::{
     BENCH_ROW_LIMIT, BenchCaptureError, BenchmarkDeclaration, INPUT_SIZE_LIMIT, Measurement,
     References, Reporter, Row, WORK_FORMULA_LIMIT, WORK_OBSERVATION_LIMIT, WorkFormula,
 };
-use crate::bounded::{Bounded, NonEmpty};
+use crate::bounded::{Bounded, NonEmpty, first_duplicate_position};
 use crate::descriptor::{
     CaptureCause, DeclarationError, FunctionName, Grammar, HelperRefusal, ModuleName, Name, Seat,
     SupportName,
 };
 use crate::token::SpanHandle;
-use std::collections::BTreeSet;
 
 impl WorkFormula {
     /// One declared work formula, over the declaration's own encoded bytes.
@@ -62,8 +61,7 @@ impl Row {
                 observed: u64::try_from(offered).unwrap_or(u64::MAX),
             });
         }
-        let distinct: BTreeSet<&u64> = axis.iter().collect();
-        if distinct.len() != offered {
+        if first_duplicate_position(&axis, |left, right| left == right).is_some() {
             return Err(DeclarationError::Doubled {
                 seat: Seat::AxisSize,
             });
@@ -75,13 +73,10 @@ impl Row {
                 seat: Seat::WorkObservation,
             });
         }
-        let mut distinct_observations: BTreeSet<&Name> = BTreeSet::new();
-        for observation in &observations {
-            if !distinct_observations.insert(observation) {
-                return Err(DeclarationError::Doubled {
-                    seat: Seat::WorkObservation,
-                });
-            }
+        if first_duplicate_position(&observations, |left, right| left == right).is_some() {
+            return Err(DeclarationError::Doubled {
+                seat: Seat::WorkObservation,
+            });
         }
         let observation_count = observations.len();
         let admitted_observations = Bounded::new(observations).map_err(|_| {
@@ -239,11 +234,12 @@ impl BenchCaptureError {
 ///
 /// Refused here rather than left to the consumer's compiler, which would report a duplicate definition inside an expansion nobody wrote.
 fn lens_namespace_closed(rows: &[Row]) -> Result<(), DeclarationError> {
-    let mut taken: BTreeSet<&str> = BTreeSet::new();
-    for row in rows {
-        if !taken.insert(row.lens().spelling()) {
-            return Err(DeclarationError::Doubled { seat: Seat::Lens });
-        }
+    if first_duplicate_position(rows, |left, right| {
+        left.lens().spelling() == right.lens().spelling()
+    })
+    .is_some()
+    {
+        return Err(DeclarationError::Doubled { seat: Seat::Lens });
     }
     Ok(())
 }

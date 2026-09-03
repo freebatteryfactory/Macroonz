@@ -5,13 +5,13 @@
 
 use macroonz_compiler::descriptor::{
     CaptureCause, CaptureIssue, Composition, CompositionIssue, DESCRIPTOR_MEANING_FACT,
-    DeclarationError, Grammar, PROVIDER_LIMIT, Provider, Seat, bench, concurrency, mutation,
+    DeclarationError, Grammar, Name, PROVIDER_LIMIT, Provider, Seat, bench, concurrency, mutation,
     network, shadow, trial,
 };
 use macroonz_compiler::{
-    CanonicalContent, Capping, CapturedInput, CrateBinding, Diagnostic, Door, LineBody, Observed,
-    OwnerFact, OwnerIdentity, Phase, Placement, Producer, RefusalClass, Refused, Site, SpanHandle,
-    TextCapture,
+    CanonicalContent, Capping, CapturedInput, CrateBinding, Diagnostic, Door, GeneratedToken,
+    LineBody, Observed, OwnerFact, OwnerIdentity, Phase, Placement, Producer, RefusalClass,
+    Refused, Site, SpanHandle, TextCapture,
 };
 
 /// The public door that places composition refusals for this external lane.
@@ -381,6 +381,46 @@ fn declared_order_completion_counts_emitted_alternatives_at_its_limit() -> Resul
                 bound: 64,
                 observed: 65,
             },
+        }
+    );
+    Ok(())
+}
+
+/// Claim: one mutation site refuses two alternatives carrying the same operation before admitting its bounded roster.
+/// Subject: the public mutation alternative and site constructors.
+/// Population: two alternatives whose families and meanings differ while their semantic operation bytes agree.
+/// Hostile control: the differing family and meaning prevent whole-value equality from detecting the duplicate.
+/// Denominator: the site constructor's operation-identity duplicate boundary.
+/// Evidence ceiling: this establishes operation identity and refusal precedence, not completion's separate generation of adjacent transpositions.
+/// Retained-regression policy: admitting both operations or reporting magnitude first requires an explicit mutation-vocabulary ruling.
+#[test]
+fn mutation_sites_refuse_doubled_operations_before_magnitude() -> Result<(), ()> {
+    let first = mutation::Alternative::stated(
+        mutation::FamilySlug::declared("first").map_err(|_| ())?,
+        vec![7],
+        vec![GeneratedToken::word("First")],
+    )
+    .map_err(|_| ())?;
+    let second = mutation::Alternative::stated(
+        mutation::FamilySlug::declared("second").map_err(|_| ())?,
+        vec![7],
+        vec![GeneratedToken::word("Second")],
+    )
+    .map_err(|_| ())?;
+    let refusal = mutation::Site::declared(
+        Name::named("lane", "point").map_err(|_| ())?,
+        Name::named("lane", "fact").map_err(|_| ())?,
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        vec![first, second],
+    )
+    .err()
+    .ok_or(())?;
+    assert_eq!(
+        refusal,
+        DeclarationError::Doubled {
+            seat: Seat::Alternative,
         }
     );
     Ok(())

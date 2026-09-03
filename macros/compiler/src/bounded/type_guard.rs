@@ -334,6 +334,19 @@ impl<K, const N: usize> DuplicateKey<K, N> {
     }
 }
 
+pub(crate) fn first_duplicate_position<T>(
+    items: &[T],
+    equivalent: impl Fn(&T, &T) -> bool,
+) -> Option<usize> {
+    items.iter().enumerate().find_map(|(position, item)| {
+        items
+            .iter()
+            .take(position)
+            .any(|earlier| equivalent(earlier, item))
+            .then_some(position)
+    })
+}
+
 fn keyed_magnitude_refusal<K, const N: usize>(error: NonEmptyError) -> KeyedRosterError<K, N> {
     match error {
         NonEmptyError::Empty(empty) => KeyedRosterError::Empty(empty),

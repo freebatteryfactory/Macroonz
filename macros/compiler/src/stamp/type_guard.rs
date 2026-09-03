@@ -11,11 +11,10 @@ use super::{
     PublishedStamp, SITE_LIMIT, Seat, Seating, Site, SiteRoot, Stamp, StampError, StampName,
     StampedPlan, Visibility,
 };
-use crate::bounded::{Bounded, NonEmpty, NonEmptyError};
+use crate::bounded::{Bounded, NonEmpty, NonEmptyError, first_duplicate_position};
 use crate::identity::{self, Identity};
 use crate::plan::DigestContract;
 use crate::token::{GeneratedTree, rendered_name};
-use std::collections::BTreeSet;
 
 impl Seat {
     /// Declare one metavariable seat.
@@ -429,16 +428,14 @@ impl PublishedStamp {
 ///
 /// Two seats under one name bind one metavariable twice, which the consumer's compiler would report inside an expansion nobody wrote.
 fn seat_names_closed(parts: &[Part]) -> Result<(), StampError> {
-    let mut named: BTreeSet<&str> = BTreeSet::new();
-    for (position, part) in parts.iter().enumerate() {
-        let Part::Seat(seat) = part else {
-            continue;
-        };
-        if !named.insert(seat.name()) {
-            return Err(StampError::SeatNameDoubled {
-                at: counted(position),
-            });
-        }
+    let doubled = first_duplicate_position(parts, |left, right| match (left, right) {
+        (Part::Seat(left), Part::Seat(right)) => left.name() == right.name(),
+        (Part::Literal(_) | Part::Reach, _) | (_, Part::Literal(_) | Part::Reach) => false,
+    });
+    if let Some(position) = doubled {
+        return Err(StampError::SeatNameDoubled {
+            at: counted(position),
+        });
     }
     Ok(())
 }
@@ -447,13 +444,12 @@ fn seat_names_closed(parts: &[Part]) -> Result<(), StampError> {
 ///
 /// Two sites under one name are one manifest row written twice, and nothing downstream could tell which landing a row is about.
 fn site_names_closed(sites: &[Site]) -> Result<(), StampError> {
-    let mut named: BTreeSet<&str> = BTreeSet::new();
-    for (position, site) in sites.iter().enumerate() {
-        if !named.insert(site.name()) {
-            return Err(StampError::SiteNameDoubled {
-                at: counted(position),
-            });
-        }
+    if let Some(position) =
+        first_duplicate_position(sites, |left, right| left.name() == right.name())
+    {
+        return Err(StampError::SiteNameDoubled {
+            at: counted(position),
+        });
     }
     Ok(())
 }
