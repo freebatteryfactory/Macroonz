@@ -86,6 +86,27 @@ fn named_harness_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
         "macro_rules! namespaced_reference",
         &["descriptor/type_guard.rs"],
     )?;
+    assert_occurrences(
+        &root.join("src"),
+        "macro_rules! artifact_mutation_bank",
+        &["depot/artifact_mutation/bank.rs"],
+    )?;
+    assert_occurrences(
+        &root.join("src"),
+        "macro_rules! generated_support_field_banks",
+        &["depot/producer_field/bank.rs"],
+    )?;
+    assert_occurrences(&root.join("src"), "ArtifactMutation::OrderPermuted,", &[])?;
+    assert_occurrences(
+        &root.join("src"),
+        "\"candidate_alternatives\"",
+        &["depot/producer_field/bank.rs"],
+    )?;
+    assert_occurrences(
+        &root.join("src"),
+        "\"planted_worse_falsifier\"",
+        &["depot/producer_field/bank.rs"],
+    )?;
     assert_occurrences(&root.join("src"), "struct BodyReader<'body>", &[])?;
     assert_occurrences(
         &root.join("src"),

@@ -679,100 +679,54 @@ declare_descriptor_fields! {
     Origin => "origin" => FieldShape::ClosedChoice(ORIGIN_CHOICES) => FieldCardinality::ExactlyOne,
 }
 
-/// The mutation-discovery vocabulary's canonical field roster: what a producer states about one candidate site before admission.
-///
-/// The runtime types that carry these values belong to the lane that owns them ([`crate::muterprater`]); what is declared here is the producer-facing vocabulary.
-///
-/// The owner claim is optional because discovery must retain an unmapped site rather than invent an owner.
-/// The original operation is carried as rendered bytes rather than as a name, because two different operations a producer happened to name alike would otherwise encode identically.
-/// The alternatives are the damages the producer discovered, and the roster is nonempty because a site with no alternative states no candidate.
-/// The activation site is named rather than path-spelled, for the reason a trial's identity is not its site: a file move must rename nothing.
-///
-/// Discovery grants no permission and makes no alternative executable.
-pub const MUTATION_DISCOVERY_FIELDS: &[SchemaField] = &[
-    SchemaField::declared(
-        "identity",
-        FieldShape::NamespacedName,
-        FieldCardinality::ExactlyOne,
-    ),
-    SchemaField::declared(
-        "owner_claim",
-        FieldShape::NamespacedName,
-        FieldCardinality::ZeroOrOne,
-    ),
-    SchemaField::declared(
-        "original_operation",
-        FieldShape::Bytes,
-        FieldCardinality::ExactlyOne,
-    ),
-    SchemaField::declared(
-        "candidate_alternatives",
-        FieldShape::MutationAlternative,
-        FieldCardinality::OneOrMore,
-    ),
-    SchemaField::declared(
-        "activation_site",
-        FieldShape::NamespacedName,
-        FieldCardinality::ExactlyOne,
-    ),
-];
+macro_rules! declare_generated_support_field_banks {
+    (
+        mutation_discovery {
+            $( $mutation_name:literal => $mutation_shape:expr => $mutation_cardinality:expr, )+
+        }
+        bench {
+            $( $bench_name:literal => $bench_shape:expr => $bench_cardinality:expr, )+
+        }
+    ) => {
+        /// The mutation-discovery vocabulary's canonical field roster: what a producer states about one candidate site before admission.
+        ///
+        /// The runtime types that carry these values belong to the lane that owns them ([`crate::muterprater`]); the depot owns the authored producer-field bank projected here.
+        ///
+        /// The owner claim is optional because discovery must retain an unmapped site rather than invent an owner.
+        /// The original operation is carried as rendered bytes rather than as a name, because two different operations a producer happened to name alike would otherwise encode identically.
+        /// The alternatives are the damages the producer discovered, and the roster is nonempty because a site with no alternative states no candidate.
+        /// The activation site is named rather than path-spelled, for the reason a trial's identity is not its site: a file move must rename nothing.
+        ///
+        /// Discovery grants no permission and makes no alternative executable.
+        pub const MUTATION_DISCOVERY_FIELDS: &[SchemaField] = &[
+            $(
+                SchemaField::declared($mutation_name, $mutation_shape, $mutation_cardinality),
+            )+
+        ];
 
-/// The bench-row vocabulary's canonical field roster: what a producer states about one measured workload.
-///
-/// The input-size axis is a roster rather than one size, because a growth class is read off a curve and never off one point.
-///
-/// The correctness preflight and the planted-worse falsifier are the two gates that run before any backend is invoked: a failing operation is never benchmarked, and a measurement that cannot separate a deliberately worse implementation from the real one has not been shown to measure anything.
-/// Both are references, and the callables behind them ride the bench binding.
-///
-/// The declared budgets are the gate's own tolerances, stated beside the row so a threshold is spec rather than a number somebody tuned.
-/// The contention posture is required, because a measurement under an undeclared posture is inadmissible; its closed choice carries one arm because one arm is all the declared facts support.
-/// The work formula is optional because only some operations declare one, and where one is declared the gate reads work counts against it and wall time is the secondary observation.
-/// The complexity claim is a neutral reference: a standalone public vocabulary never names a consumer's type, so a consumer maps its own complexity contract into this seat from its own side.
-///
-/// A roster of declared budgets carries counts and states nothing about what a run spent.
-/// The posture's one arm claims no quiet host: it says nothing was declared beside the measurement, which is a fact about a declaration and never about a host.
-pub const BENCH_FIELDS: &[SchemaField] = &[
-    SchemaField::declared(
-        "workload_identity",
-        FieldShape::NamespacedName,
-        FieldCardinality::ExactlyOne,
-    ),
-    SchemaField::declared(
-        "input_size_axis",
-        FieldShape::Count,
-        FieldCardinality::ZeroOrMore,
-    ),
-    SchemaField::declared(
-        "correctness_preflight",
-        FieldShape::NamespacedName,
-        FieldCardinality::ExactlyOne,
-    ),
-    SchemaField::declared(
-        "planted_worse_falsifier",
-        FieldShape::NamespacedName,
-        FieldCardinality::ExactlyOne,
-    ),
-    SchemaField::declared(
-        "declared_budgets",
-        FieldShape::Count,
-        FieldCardinality::ZeroOrMore,
-    ),
-    SchemaField::declared(
-        "contention_posture",
-        FieldShape::ClosedChoice(&["no-declared-contention"]),
-        FieldCardinality::ExactlyOne,
-    ),
-    SchemaField::declared(
-        "work_formula",
-        FieldShape::Bytes,
-        FieldCardinality::ZeroOrOne,
-    ),
-    SchemaField::declared(
-        "complexity_claim",
-        FieldShape::NamespacedName,
-        FieldCardinality::ExactlyOne,
-    ),
-];
+        /// The bench-row vocabulary's canonical field roster: what a producer states about one measured workload.
+        ///
+        /// The input-size axis is a roster rather than one size, because a growth class is read off a curve and never off one point.
+        ///
+        /// The correctness preflight and the planted-worse falsifier are the two gates that run before any backend is invoked: a failing operation is never benchmarked, and a measurement that cannot separate a deliberately worse implementation from the real one has not been shown to measure anything.
+        /// Both are references, and the callables behind them ride the bench binding.
+        ///
+        /// The declared budgets are the gate's own tolerances, stated beside the row so a threshold is spec rather than a number somebody tuned.
+        /// The contention posture is required, because a measurement under an undeclared posture is inadmissible; its closed choice carries one arm because one arm is all the declared facts support.
+        /// The work formula is optional because only some operations declare one, and where one is declared the gate reads work counts against it and wall time is the secondary observation.
+        /// The complexity claim is a neutral reference: a standalone public vocabulary never names a consumer's type, so a consumer maps its own complexity contract into this seat from its own side.
+        ///
+        /// A roster of declared budgets carries counts and states nothing about what a run spent.
+        /// The posture's one arm claims no quiet host: it says nothing was declared beside the measurement, which is a fact about a declaration and never about a host.
+        pub const BENCH_FIELDS: &[SchemaField] = &[
+            $(
+                SchemaField::declared($bench_name, $bench_shape, $bench_cardinality),
+            )+
+        ];
+    };
+}
+
+crate::depot::generated_support_field_banks!(declare_generated_support_field_banks);
 
 #[path = "type_guard.rs"]
 mod guard;
