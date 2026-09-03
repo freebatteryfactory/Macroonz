@@ -265,7 +265,7 @@ impl Route {
 impl Diagnostic {
     /// Project one caller-placed refused step into the diagnostic its door hands back.
     ///
-    /// Every seat that could be written two ways is written once on this road: the line through [`composed`], the expected contract and the reproduction route off the door, and the site through the placement the caller states.
+    /// Every seat that could be written two ways is written once on this road: the line through [`composed`](crate::diagnostic::composed), the expected contract and the reproduction route off the door, and the site through the placement the caller states.
     /// The site is built once and read twice — the prose and the seat are projections of the same value.
     /// Refusal types whose site is intrinsic expose their own diagnostic road and do not implement this method's public bound.
     pub fn refused<E: Refused>(refusal: &E, door: &Door, placement: &Placement<'_>) -> Self {
