@@ -16,3 +16,5 @@ mod negative_space;
 mod renamed_facade;
 #[path = "recipe_facade_crossing/support.rs"]
 mod support;
+#[path = "support/scratch.rs"]
+mod scratch;

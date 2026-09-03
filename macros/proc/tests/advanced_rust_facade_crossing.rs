@@ -3,11 +3,13 @@
 use macroonz_compiler::{
     GeneratedToken, GeneratedTree, decorated, documentation, function_item, function_signature,
 };
-use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::path::Path;
+use std::process::Output;
 
-static SCRATCH_ORDINAL: AtomicU32 = AtomicU32::new(0);
+#[path = "support/scratch.rs"]
+mod scratch;
+
+use scratch::{cargo, command_refusal, manifest_path, observed_in_scratch_for, repository_root};
 
 #[derive(Clone, Copy)]
 enum Boundary {
@@ -23,42 +25,7 @@ enum SafetyContract {
 
 #[test]
 fn advanced_rust_and_explicit_unsafe_remain_caller_and_rustc_authority() -> Result<(), String> {
-    observed_in_scratch(observe_matrix)
-}
-
-fn scratch_root() -> Result<PathBuf, String> {
-    let parent = PathBuf::from(env!("CARGO_TARGET_TMPDIR"));
-    for _attempt in 0u16..1_024u16 {
-        let ordinal = SCRATCH_ORDINAL.fetch_add(1, Ordering::SeqCst);
-        let candidate = parent.join(format!(
-            "macroonz_advanced_rust_{}_{ordinal}",
-            std::process::id()
-        ));
-        match std::fs::create_dir(&candidate) {
-            Ok(()) => return Ok(candidate),
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
-            Err(error) => return Err(error.to_string()),
-        }
-    }
-    Err("no unoccupied advanced-Rust scratch seat remained".to_owned())
-}
-
-fn observed_in_scratch(observe: impl FnOnce(&Path) -> Result<(), String>) -> Result<(), String> {
-    let scratch = scratch_root()?;
-    let observed = observe(&scratch);
-    let removed = std::fs::remove_dir_all(&scratch).map_err(|error| error.to_string());
-    match (observed, removed) {
-        (Ok(()), Ok(())) => Ok(()),
-        (Err(refusal), Ok(())) => Err(refusal),
-        (Ok(()), Err(cleanup)) => Err(format!(
-            "advanced-Rust qualification passed but scratch cleanup refused at {}: {cleanup}",
-            scratch.display()
-        )),
-        (Err(refusal), Err(cleanup)) => Err(format!(
-            "{refusal}\nadvanced-Rust scratch cleanup also refused at {}: {cleanup}",
-            scratch.display()
-        )),
-    }
+    observed_in_scratch_for("advanced_rust", observe_matrix)
 }
 
 fn observe_matrix(scratch: &Path) -> Result<(), String> {
@@ -241,27 +208,11 @@ fn observe_rustc_refusals(scratch: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn cargo(scratch: &Path, arguments: &[&str]) -> Result<Output, String> {
-    let (subcommand, rest) = arguments
-        .split_first()
-        .ok_or_else(|| "a Cargo observation requires one subcommand".to_owned())?;
-    Command::new("cargo")
-        .arg("+1.98.0")
-        .arg(subcommand)
-        .arg("--manifest-path")
-        .arg(scratch.join("Cargo.toml"))
-        .args(rest)
-        .current_dir(scratch)
-        .env("CARGO_TARGET_DIR", scratch.join("target"))
-        .output()
-        .map_err(|error| error.to_string())
-}
-
 fn require_success(label: &str, output: &Output) -> Result<(), String> {
     if output.status.success() {
         Ok(())
     } else {
-        Err(command_reading(label, output))
+        Err(command_refusal(label, output))
     }
 }
 
@@ -284,21 +235,8 @@ fn require_refusal(label: &str, output: &Output, anchors: &[&str]) -> Result<(),
     Ok(())
 }
 
-fn command_reading(label: &str, output: &Output) -> String {
-    format!(
-        "{label} refused with status {}\nstdout:\n{}\nstderr:\n{}",
-        output.status,
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
-    )
-}
-
 fn write_specimen(scratch: &Path) -> Result<(), String> {
-    let repository = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .ok_or_else(|| "the proc package is not below the repository root".to_owned())?;
-    let facade = manifest_path(repository)?;
+    let facade = manifest_path(repository_root()?)?;
     for relative in ["src", "src/bin", "tests"] {
         std::fs::create_dir(scratch.join(relative)).map_err(|error| error.to_string())?;
     }
@@ -377,12 +315,6 @@ fn generated_function(
         "#![deny(warnings)]\n#![deny(clippy::missing_safety_doc)]\n{}\nfn main() {{}}\n",
         generated.inspected()
     ))
-}
-
-fn manifest_path(path: &Path) -> Result<String, String> {
-    path.to_str()
-        .map(|spelling| spelling.replace('\\', "\\\\").replace('"', "\\\""))
-        .ok_or_else(|| format!("package path is not UTF-8: {}", path.display()))
 }
 
 const ADVANCED_MANIFEST: &str = r#"[package]
