@@ -3,6 +3,7 @@
 //! The positive lanes hold the emitted text to the shapes the grammars promise; the refusal lanes reverse one clause each — an undeclared key, a doubled name, a foreign endpoint, an unreadable phrase, a missing fact, an empty declaration, a separator separating nothing.
 
 mod codec_generated_behavior;
+mod descriptor_vocabulary;
 mod descriptor_output_oracle;
 mod path_magnitude;
 
