@@ -125,6 +125,26 @@ fn assert_owned_vector_spelling_debt_is_closed(root: &Path) -> Result<(), std::i
     Ok(())
 }
 
+fn assert_token_generation_spelling_seats_are_distinct(root: &Path) -> Result<(), std::io::Error> {
+    assert_occurrences(
+        root,
+        "pub fn rendered_identifier(spelling: &str) -> bool",
+        &["token/generation/spelling.rs"],
+    )?;
+    assert_occurrences(
+        root,
+        "pub fn rendered_name(spelling: &str) -> bool",
+        &["token/generation/spelling.rs"],
+    )?;
+    assert_occurrences(root, "fn absolute_path(", &["token/generation/compose.rs"])?;
+    assert_occurrences(
+        root,
+        "pub fn documentation(sentence: &str)",
+        &["token/generation/compose.rs"],
+    )?;
+    Ok(())
+}
+
 fn assert_direct_clause_mechanics_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
     for operation in [
         "pub(crate) fn comma_groups",
@@ -297,12 +317,12 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
         "CODEC_PATH_SEGMENT_LIMIT: usize = crate::token::RENDERED_PATH_SEGMENT_LIMIT;",
         &["codec/types.rs"],
     )?;
-    assert_occurrences(&root, "fn absolute_path(", &["token/generation/compose.rs"])?;
     assert_harness_path_debt_is_closed(&root)?;
     assert_declared_name_grammar_debt_is_closed(&root)?;
     assert_role_join_debt_is_closed(&root)?;
     assert_diagnostic_projection_debt_is_closed(&root)?;
     assert_owned_vector_spelling_debt_is_closed(&root)?;
+    assert_token_generation_spelling_seats_are_distinct(&root)?;
     assert_direct_clause_mechanics_debt_is_closed(&root)?;
     assert_attribute_clause_mechanics_debt_is_closed(&root)?;
     assert_duplicate_group_debt_is_closed(&root)?;
