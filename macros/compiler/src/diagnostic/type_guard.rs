@@ -54,7 +54,7 @@ impl DiagnosticName {
         if name.is_empty() {
             return Err(DiagnosticNameRefusal::Empty);
         }
-        if !diagnostic_name_is_kebab_case(name.as_bytes()) {
+        if !crate::identity::name_is_grammatical(name) {
             return Err(DiagnosticNameRefusal::NotKebabCase);
         }
         Ok(Self(name))
@@ -65,26 +65,6 @@ impl DiagnosticName {
     pub const fn spelling(self) -> &'static str {
         self.0
     }
-}
-
-/// Whether one non-empty spelling is lowercase ASCII kebab-case.
-const fn diagnostic_name_is_kebab_case(name: &[u8]) -> bool {
-    let mut rest = name;
-    let mut separator = true;
-    while let Some((byte, remaining)) = rest.split_first() {
-        if *byte == b'-' {
-            if separator {
-                return false;
-            }
-            separator = true;
-        } else if byte.is_ascii_lowercase() || byte.is_ascii_digit() {
-            separator = false;
-        } else {
-            return false;
-        }
-        rest = remaining;
-    }
-    !separator
 }
 
 /// Whether the first `/` in the bytes has material on both sides.

@@ -10,7 +10,7 @@ use core::marker::PhantomData;
 mod guard;
 
 pub use guard::names_are_separating;
-pub(crate) use guard::{human_projection, static_bytes};
+pub(crate) use guard::{human_projection, name_is_grammatical, static_bytes};
 
 /// The stem every subject and every grammar this compiler owns is declared under.
 pub const MACROONZ_STEM: &str = "macroonz/identity";

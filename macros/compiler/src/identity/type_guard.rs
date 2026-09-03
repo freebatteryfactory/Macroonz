@@ -483,7 +483,7 @@ enum Segment {
 }
 
 /// Whether one declared name stands inside the closed context grammar.
-const fn name_is_grammatical(name: &str) -> bool {
+pub(crate) const fn name_is_grammatical(name: &str) -> bool {
     grammatical(name.as_bytes(), Segment::Opening)
 }
 

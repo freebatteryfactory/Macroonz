@@ -25,4 +25,4 @@ pub use types::{
     RelatedBody, RelatedIssue, RenderedUnit, Role, ServiceEntry, ShapeVersion, Subject, Traced,
     Transcript, Version, names_are_separating,
 };
-pub(crate) use types::{human_projection, static_bytes};
+pub(crate) use types::{human_projection, name_is_grammatical, static_bytes};
