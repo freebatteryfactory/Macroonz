@@ -574,34 +574,40 @@ pub struct CensusDelta {
     direction: CensusDirection,
 }
 
-/// One trial present in both runs whose authored row was edited between them.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct RowRevisionChange {
-    trial: TrialId,
-    before: RowRevisionId,
-    after: RowRevisionId,
+crate::report::declare_change_pair! {
+    /// One trial present in both runs whose authored row was edited between them.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct RowRevisionChange {
+        context { trial: TrialId, }
+        value: RowRevisionId,
+    }
 }
 
-/// One trial present in both runs whose subject or check revision standing moved.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ExecutionRevisionChange {
-    trial: TrialId,
-    before: ExecutionRevisions,
-    after: ExecutionRevisions,
+crate::report::declare_change_pair! {
+    /// One trial present in both runs whose subject or check revision standing moved.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct ExecutionRevisionChange {
+        context { trial: TrialId, }
+        value: ExecutionRevisions,
+    }
 }
 
-/// How the conclusion-relevant invocation profile moved between two runs.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct InvocationProfileChange {
-    before: InvocationProfile,
-    after: InvocationProfile,
+crate::report::declare_change_pair! {
+    /// How the conclusion-relevant invocation profile moved between two runs.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct InvocationProfileChange {
+        context {}
+        value: InvocationProfile,
+    }
 }
 
-/// How the exact target and toolchain pair moved between two runs.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TargetBindingChange {
-    before: TargetBinding,
-    after: TargetBinding,
+crate::report::declare_change_pair! {
+    /// How the exact target and toolchain pair moved between two runs.
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    pub struct TargetBindingChange {
+        context {}
+        value: TargetBinding,
+    }
 }
 
 /// The normalized outcome of one row of the denominator.
@@ -623,12 +629,13 @@ pub enum OutcomeClass {
     NotSelected(NotSelectedReason),
 }
 
-/// One trial whose outcome differs between the two runs.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ConclusionFlip {
-    trial: TrialId,
-    before: OutcomeClass,
-    after: OutcomeClass,
+crate::report::declare_change_pair! {
+    /// One trial whose outcome differs between the two runs.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct ConclusionFlip {
+        context { trial: TrialId, }
+        value: OutcomeClass,
+    }
 }
 
 /// The table-population half of a report difference.

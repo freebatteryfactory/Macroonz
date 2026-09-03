@@ -116,6 +116,26 @@ fn assert_single_owner_stamps(root: &Path) -> Result<(), std::io::Error> {
         "macro_rules! with_network_census_seats",
         &["network/simulation/types.rs"],
     )?;
+    assert_occurrences(
+        root,
+        "macro_rules! declare_change_pair",
+        &["report/stamp.rs"],
+    )?;
+    assert_occurrences(
+        root,
+        "macro_rules! implement_copy_change_pair",
+        &["report/stamp.rs"],
+    )?;
+    assert_occurrences(
+        root,
+        "macro_rules! implement_borrowed_change_pair",
+        &["report/stamp.rs"],
+    )?;
+    assert_occurrences(root, "impl RowRevisionChange", &[])?;
+    assert_occurrences(root, "impl ExecutionRevisionChange", &[])?;
+    assert_occurrences(root, "impl InvocationProfileChange", &[])?;
+    assert_occurrences(root, "impl TargetBindingChange", &[])?;
+    assert_occurrences(root, "impl ConclusionFlip", &[])?;
     Ok(())
 }
 

@@ -4,8 +4,13 @@ mod compare;
 mod coverage;
 mod encode;
 mod resolve;
+mod stamp;
 mod type_contract;
 mod types;
+
+pub(crate) use stamp::{
+    declare_change_pair, implement_borrowed_change_pair, implement_copy_change_pair,
+};
 
 pub use compare::compare;
 pub use coverage::claim_coverage;

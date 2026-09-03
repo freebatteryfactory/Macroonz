@@ -44,148 +44,53 @@ impl CensusDelta {
     }
 }
 
-impl RowRevisionChange {
-    /// One trial whose authored row was edited between the two runs.
-    #[must_use]
-    pub(in crate::report) const fn between(
-        trial: TrialId,
-        before: RowRevisionId,
-        after: RowRevisionId,
-    ) -> Self {
-        Self {
-            trial,
-            before,
-            after,
-        }
-    }
-
-    /// The trial.
-    #[must_use]
-    pub const fn trial(self) -> TrialId {
-        self.trial
-    }
-
-    /// The row revision the baseline recorded.
-    #[must_use]
-    pub const fn before(self) -> RowRevisionId {
-        self.before
-    }
-
-    /// The row revision the current report records.
-    #[must_use]
-    pub const fn after(self) -> RowRevisionId {
-        self.after
+crate::report::implement_copy_change_pair! {
+    RowRevisionChange {
+        context { trial: TrialId => "The trial.", }
+        value: RowRevisionId,
+        construction: "One trial whose authored row was edited between the two runs.",
+        before: "The row revision the baseline recorded.",
+        after: "The row revision the current report records.",
     }
 }
 
-impl ExecutionRevisionChange {
-    /// One trial whose subject or check revision standing moved between the two runs.
-    #[must_use]
-    pub(in crate::report) const fn between(
-        trial: TrialId,
-        before: ExecutionRevisions,
-        after: ExecutionRevisions,
-    ) -> Self {
-        Self {
-            trial,
-            before,
-            after,
-        }
-    }
-
-    /// The trial.
-    #[must_use]
-    pub const fn trial(self) -> TrialId {
-        self.trial
-    }
-
-    /// The baseline's subject and check revisions.
-    #[must_use]
-    pub const fn before(self) -> ExecutionRevisions {
-        self.before
-    }
-
-    /// The current report's subject and check revisions.
-    #[must_use]
-    pub const fn after(self) -> ExecutionRevisions {
-        self.after
+crate::report::implement_copy_change_pair! {
+    ExecutionRevisionChange {
+        context { trial: TrialId => "The trial.", }
+        value: ExecutionRevisions,
+        construction: "One trial whose subject or check revision standing moved between the two runs.",
+        before: "The baseline's subject and check revisions.",
+        after: "The current report's subject and check revisions.",
     }
 }
 
-impl InvocationProfileChange {
-    /// One changed conclusion-relevant invocation profile.
-    #[must_use]
-    pub(in crate::report) const fn between(
-        before: InvocationProfile,
-        after: InvocationProfile,
-    ) -> Self {
-        Self { before, after }
-    }
-
-    /// The baseline's invocation profile.
-    #[must_use]
-    pub const fn before(self) -> InvocationProfile {
-        self.before
-    }
-
-    /// The current report's invocation profile.
-    #[must_use]
-    pub const fn after(self) -> InvocationProfile {
-        self.after
+crate::report::implement_copy_change_pair! {
+    InvocationProfileChange {
+        context {}
+        value: InvocationProfile,
+        construction: "One changed conclusion-relevant invocation profile.",
+        before: "The baseline's invocation profile.",
+        after: "The current report's invocation profile.",
     }
 }
 
-impl TargetBindingChange {
-    /// One changed target and toolchain pair.
-    #[must_use]
-    pub(in crate::report) const fn between(before: TargetBinding, after: TargetBinding) -> Self {
-        Self { before, after }
-    }
-
-    /// The baseline's target and toolchain.
-    #[must_use]
-    pub const fn before(&self) -> &TargetBinding {
-        &self.before
-    }
-
-    /// The current report's target and toolchain.
-    #[must_use]
-    pub const fn after(&self) -> &TargetBinding {
-        &self.after
+crate::report::implement_borrowed_change_pair! {
+    TargetBindingChange {
+        context {}
+        value: TargetBinding,
+        construction: "One changed target and toolchain pair.",
+        before: "The baseline's target and toolchain.",
+        after: "The current report's target and toolchain.",
     }
 }
 
-impl ConclusionFlip {
-    /// One trial whose outcome differs between the two runs.
-    #[must_use]
-    pub(in crate::report) const fn between(
-        trial: TrialId,
-        before: OutcomeClass,
-        after: OutcomeClass,
-    ) -> Self {
-        Self {
-            trial,
-            before,
-            after,
-        }
-    }
-
-    /// The trial.
-    #[must_use]
-    pub const fn trial(self) -> TrialId {
-        self.trial
-    }
-
-    /// What the baseline recorded.
-    #[must_use]
-    pub const fn before(self) -> OutcomeClass {
-        self.before
-    }
-
-    /// What the current report records.
-    #[must_use]
-    pub const fn after(self) -> OutcomeClass {
-        self.after
+crate::report::implement_copy_change_pair! {
+    ConclusionFlip {
+        context { trial: TrialId => "The trial.", }
+        value: OutcomeClass,
+        construction: "One trial whose outcome differs between the two runs.",
+        before: "What the baseline recorded.",
+        after: "What the current report records.",
     }
 }
 
