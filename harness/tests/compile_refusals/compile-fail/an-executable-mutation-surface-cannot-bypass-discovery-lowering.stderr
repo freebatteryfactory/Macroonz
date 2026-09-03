@@ -4,7 +4,7 @@ error[E0624]: associated function `admitted` is private
 25 |       let _ = MutationPoint::admitted(policy, claim, point_site);
    |                              ^^^^^^^^ private associated function
    |
-  ::: src/muterprater/discovery/type_guard.rs
+  ::: src/muterprater/discovery/guard_lowering.rs
    |
    | /     pub(in crate::muterprater) fn admitted(
    | |         policy: &MutationPolicy,
@@ -19,7 +19,7 @@ error[E0624]: associated function `recorded` is private
 26 |       let entry = DiscoveryEntry::recorded(entry_site, disposition);
    |                                   ^^^^^^^^ private associated function
    |
-  ::: src/muterprater/discovery/type_guard.rs
+  ::: src/muterprater/discovery/guard_lowering.rs
    |
    | /     pub(in crate::muterprater) fn recorded(
    | |         site: DiscoveredMutationSite,
@@ -33,7 +33,7 @@ error[E0624]: associated function `recorded` is private
 27 |       let _ = MutationDiscoveryReading::recorded(policy, vec![entry]);
    |                                         ^^^^^^^^ private associated function
    |
-  ::: src/muterprater/discovery/type_guard.rs
+  ::: src/muterprater/discovery/guard_lowering.rs
    |
    | /     pub(in crate::muterprater) fn recorded(
    | |         policy: &MutationPolicy,
@@ -47,7 +47,7 @@ error[E0624]: associated function `admitted` is private
 28 |       let _ = EvaluationSurface::admitted(policy, vec![point]);
    |                                  ^^^^^^^^ private associated function
    |
-  ::: src/muterprater/discovery/type_guard.rs
+  ::: src/muterprater/discovery/guard_lowering.rs
    |
    | /     pub(in crate::muterprater) fn admitted(
    | |         policy: &MutationPolicy,
@@ -61,7 +61,7 @@ error[E0624]: associated function `lowered` is private
 29 |       let _ = MutationSurfaceLowering::lowered(discovery, surface);
    |                                        ^^^^^^^ private associated function
    |
-  ::: src/muterprater/discovery/type_guard.rs
+  ::: src/muterprater/discovery/guard_lowering.rs
    |
    | /     pub(in crate::muterprater) fn lowered(
    | |         discovery: MutationDiscoveryReading,
