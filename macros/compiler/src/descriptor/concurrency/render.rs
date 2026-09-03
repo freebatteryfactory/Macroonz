@@ -8,26 +8,8 @@ use crate::descriptor::DirectBinding;
 use crate::descriptor::emitting::{
     derive_attribute, direct_path, doc_attribute, fallible_return, from_impl,
 };
+use crate::descriptor::fault::CONCURRENCY_FAULT_ARMS;
 use crate::token::{GeneratedDelimiter, GeneratedToken, absolute_path};
-
-/// The fault enum's arms: the arm, the refusal it carries, and its stated doc.
-const FAULT_ARMS: [(&str, [&str; 2], &str); 3] = [
-    (
-        "Name",
-        ["descriptor", "NameRefusal"],
-        "A declared name was refused by the name vocabulary.",
-    ),
-    (
-        "Bound",
-        ["interleave", "ExplorationBoundRefusal"],
-        "The declared bound was refused by its own guard.",
-    ),
-    (
-        "Exploration",
-        ["interleave", "ExplorationRefusal"],
-        "The exploration itself refused to run.",
-    ),
-];
 
 /// The declaration-site tokens one concurrency payload renders to.
 ///
@@ -63,8 +45,8 @@ fn fault_enum(harness: &DirectBinding, into: &mut Vec<GeneratedToken>) -> Result
     into.push(GeneratedToken::word("enum"));
     into.push(GeneratedToken::word("Fault"));
     let mut arms = Vec::new();
-    for (arm, path, doc) in &FAULT_ARMS {
-        doc_attribute(doc, &mut arms)?;
+    for (arm, path, documentation) in &CONCURRENCY_FAULT_ARMS {
+        doc_attribute(documentation, &mut arms)?;
         arms.push(GeneratedToken::word(arm));
         let mut carried = Vec::new();
         direct_path(harness, path, &mut carried);
@@ -75,7 +57,7 @@ fn fault_enum(harness: &DirectBinding, into: &mut Vec<GeneratedToken>) -> Result
         arms.push(GeneratedToken::alone(','));
     }
     into.push(GeneratedToken::group(GeneratedDelimiter::Brace, arms)?);
-    for (arm, path, _doc) in &FAULT_ARMS {
+    for (arm, path, _documentation) in &CONCURRENCY_FAULT_ARMS {
         from_impl(harness_path(harness, path), "Fault", arm, into)?;
     }
     Ok(())

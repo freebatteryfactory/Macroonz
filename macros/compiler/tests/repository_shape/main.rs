@@ -74,6 +74,12 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
             "recipe/render_evidence.rs",
         ],
     )?;
+    assert_occurrences(&root, "const FAULT_ARMS:", &[])?;
+    assert_occurrences(
+        &root,
+        "const NAME_REFUSAL: (&str, &[&str], &str)",
+        &["descriptor/fault.rs"],
+    )?;
     assert_occurrences(
         &root,
         "recipe issue category must be formatted exactly once",

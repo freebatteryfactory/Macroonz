@@ -8,6 +8,7 @@ use crate::descriptor::DirectBinding;
 use crate::descriptor::emitting::{
     derive_attribute, direct_path, doc_attribute, fallible_return, from_impl,
 };
+use crate::descriptor::fault::NETWORK_FAULT_ARMS;
 use crate::token::{GeneratedDelimiter, GeneratedToken, absolute_path};
 
 /// The names the generated module writes beside the authored ones, which no schedule may take.
@@ -20,30 +21,6 @@ const TOPOLOGY_ROAD: &str = "topology";
 
 /// The generated fault enum's name.
 const FAULT_ENUM: &str = "Fault";
-
-/// The fault enum's arms: the arm, the refusal it carries, and its stated doc.
-const FAULT_ARMS: [(&str, [&str; 2], &str); 4] = [
-    (
-        "Name",
-        ["descriptor", "NameRefusal"],
-        "A declared name was refused by the name vocabulary.",
-    ),
-    (
-        "Topology",
-        ["network", "TopologyRefusal"],
-        "The declared topology was refused by its own guard.",
-    ),
-    (
-        "Span",
-        ["network", "TickSpanRefusal"],
-        "A declared delay span was refused by its own guard.",
-    ),
-    (
-        "Schedule",
-        ["network", "NetworkScheduleRefusal"],
-        "A declared schedule was refused by its own guard.",
-    ),
-];
 
 /// The declaration-site tokens one network payload renders to.
 ///
@@ -80,8 +57,8 @@ fn fault_enum(harness: &DirectBinding, into: &mut Vec<GeneratedToken>) -> Result
     into.push(GeneratedToken::word("enum"));
     into.push(GeneratedToken::word(FAULT_ENUM));
     let mut arms = Vec::new();
-    for (arm, path, doc) in &FAULT_ARMS {
-        doc_attribute(doc, &mut arms)?;
+    for (arm, path, documentation) in &NETWORK_FAULT_ARMS {
+        doc_attribute(documentation, &mut arms)?;
         arms.push(GeneratedToken::word(arm));
         let mut carried = Vec::new();
         direct_path(harness, path, &mut carried);
@@ -92,7 +69,7 @@ fn fault_enum(harness: &DirectBinding, into: &mut Vec<GeneratedToken>) -> Result
         arms.push(GeneratedToken::alone(','));
     }
     into.push(GeneratedToken::group(GeneratedDelimiter::Brace, arms)?);
-    for (arm, path, _doc) in &FAULT_ARMS {
+    for (arm, path, _documentation) in &NETWORK_FAULT_ARMS {
         from_impl(harness_path(harness, path), FAULT_ENUM, arm, into)?;
     }
     Ok(())

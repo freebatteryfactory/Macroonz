@@ -11,6 +11,7 @@ pub mod trial;
 
 mod binding;
 mod emitting;
+mod fault;
 pub mod vocabulary;
 
 mod composition;
