@@ -1,0 +1,127 @@
+//! The harness package's named shape debt, held at its exact current denominator until each owner closes it.
+
+use std::fs;
+use std::path::{Path, PathBuf};
+
+fn rust_sources(root: &Path) -> Result<Vec<PathBuf>, std::io::Error> {
+    let mut pending = vec![root.to_path_buf()];
+    let mut sources = Vec::new();
+    while let Some(directory) = pending.pop() {
+        for entry in fs::read_dir(directory)? {
+            let path = entry?.path();
+            if path.is_dir() {
+                pending.push(path);
+            } else if path.extension().is_some_and(|extension| extension == "rs") {
+                sources.push(path);
+            }
+        }
+    }
+    sources.sort();
+    Ok(sources)
+}
+
+fn occurrence_paths(root: &Path, needle: &str) -> Result<Vec<String>, std::io::Error> {
+    let mut observed = Vec::new();
+    for path in rust_sources(root)? {
+        let source = fs::read_to_string(&path)?;
+        let relative = path
+            .strip_prefix(root)
+            .map_err(|error| std::io::Error::other(error.to_string()))?
+            .to_string_lossy()
+            .replace('\\', "/");
+        for _occurrence in source.match_indices(needle) {
+            observed.push(relative.clone());
+        }
+    }
+    observed.sort();
+    Ok(observed)
+}
+
+fn paths_named(root: &Path, name: &str) -> Result<Vec<String>, std::io::Error> {
+    let mut observed = Vec::new();
+    let mut pending = vec![root.to_path_buf()];
+    while let Some(directory) = pending.pop() {
+        for entry in fs::read_dir(directory)? {
+            let path = entry?.path();
+            if path.is_dir() {
+                pending.push(path);
+            } else if path.file_name().is_some_and(|candidate| candidate == name) {
+                observed.push(
+                    path.strip_prefix(root)
+                        .map_err(|error| std::io::Error::other(error.to_string()))?
+                        .to_string_lossy()
+                        .replace('\\', "/"),
+                );
+            }
+        }
+    }
+    observed.sort();
+    Ok(observed)
+}
+
+fn assert_occurrences(root: &Path, needle: &str, expected: &[&str]) -> Result<(), std::io::Error> {
+    let expected = expected
+        .iter()
+        .map(|path| (*path).to_owned())
+        .collect::<Vec<_>>();
+    assert_eq!(occurrence_paths(root, needle)?, expected, "{needle}");
+    Ok(())
+}
+
+#[test]
+fn named_harness_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert_occurrences(
+        &root.join("src"),
+        "macro_rules! namespaced_reference",
+        &[
+            "bench/declaration/type_guard.rs",
+            "descriptor/type_guard.rs",
+        ],
+    )?;
+    assert_occurrences(
+        &root.join("src"),
+        "struct BodyReader<'body>",
+        &["corpus/decode.rs", "network/transcript/read.rs"],
+    )?;
+    assert_occurrences(
+        &root.join("src"),
+        "fn addressed_body(",
+        &["corpus/decode.rs", "network/transcript/read.rs"],
+    )?;
+    assert_occurrences(
+        &root.join("src"),
+        "(ContentAddress);",
+        &[
+            "bench/declaration/types.rs",
+            "corpus/types.rs",
+            "descriptor/types.rs",
+            "descriptor/types.rs",
+            "descriptor/types.rs",
+            "descriptor/types.rs",
+            "generate/generation/types.rs",
+            "muterprater/backend/types.rs",
+            "muterprater/backend/types.rs",
+            "muterprater/discovery/types.rs",
+            "muterprater/discovery/types.rs",
+            "muterprater/discovery/types.rs",
+            "muterprater/discovery/types.rs",
+            "muterprater/specimen/types.rs",
+            "muterprater/verdict/types.rs",
+            "network/transcript/types.rs",
+            "report/types.rs",
+            "report/types.rs",
+            "report/types.rs",
+            "report/types.rs",
+        ],
+    )?;
+    assert_eq!(
+        paths_named(root, "wrap.rs")?,
+        [
+            "src/muterprater/backend/wrap.rs",
+            "tests/trust_opening_evidence/compiled-pressure-artifact/wrap.rs",
+            "tests/trust_opening_evidence/current-compiled-pressure-artifact/wrap.rs",
+        ]
+    );
+    Ok(())
+}

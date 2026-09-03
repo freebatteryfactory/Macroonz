@@ -165,6 +165,81 @@ fn manifest_paths_are_exact_toml_basic_string_bodies() {
     );
 }
 
+/// The proc package's named support debt stays at its exact current denominator until one support owner replaces it.
+#[test]
+fn named_proc_test_support_debt_does_not_expand() -> Result<(), String> {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests");
+    assert_source_occurrences(
+        &root,
+        concat!("fn ", "scratch_root("),
+        &[
+            "advanced_rust_facade_crossing.rs",
+            "generated_support_crossing.rs",
+            "recipe_facade_crossing/support.rs",
+        ],
+    )?;
+    assert_source_occurrences(
+        &root,
+        concat!("fn ", "cargo("),
+        &[
+            "advanced_rust_facade_crossing.rs",
+            "generated_support_crossing.rs",
+            "recipe_facade_crossing/support.rs",
+        ],
+    )?;
+    assert_source_occurrences(
+        &root,
+        concat!("fn ", "write_specimen("),
+        &[
+            "advanced_rust_facade_crossing.rs",
+            "generated_support_crossing.rs",
+            "recipe_facade_crossing/support.rs",
+        ],
+    )?;
+    assert_source_occurrences(
+        &root,
+        concat!("fn ", "manifest_path("),
+        &[
+            "advanced_rust_facade_crossing.rs",
+            "generated_support_crossing.rs",
+            "recipe_facade_crossing/support.rs",
+        ],
+    )
+}
+
+/// Assert the exact current file roster that defines one proc-test support operation.
+fn assert_source_occurrences(root: &Path, needle: &str, expected: &[&str]) -> Result<(), String> {
+    let mut observed = Vec::new();
+    let mut pending = vec![root.to_path_buf()];
+    while let Some(directory) = pending.pop() {
+        for entry in std::fs::read_dir(&directory).map_err(|error| error.to_string())? {
+            let path = entry.map_err(|error| error.to_string())?.path();
+            if path.is_dir() {
+                pending.push(path);
+            } else if path.extension().is_some_and(|extension| extension == "rs") {
+                let source = std::fs::read_to_string(&path).map_err(|error| error.to_string())?;
+                let relative = path
+                    .strip_prefix(root)
+                    .map_err(|error| error.to_string())?
+                    .to_string_lossy()
+                    .replace('\\', "/");
+                observed.extend(
+                    source
+                        .match_indices(needle)
+                        .map(|_occurrence| relative.clone()),
+                );
+            }
+        }
+    }
+    observed.sort();
+    let expected = expected
+        .iter()
+        .map(|path| (*path).to_owned())
+        .collect::<Vec<_>>();
+    assert_eq!(observed, expected, "{needle}");
+    Ok(())
+}
+
 /// A downstream crate invokes the real carrier and compiles every generated mutation road under the strict wall.
 #[test]
 fn a_downstream_crate_invokes_the_proc_emitted_mutation_carrier() -> Result<(), String> {

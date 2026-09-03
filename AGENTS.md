@@ -116,6 +116,7 @@ A README has no yaml blocks, no ledgers, no status tables.
 - **Red is a sensor.** A failing lane, lint, metric, or search result is evidence; the owner rules on the substance before code changes to answer it. No code is edited to silence a finding.
 - **Unused is not dead.** `unused`, `uncalled`, and `unreached` are wiring facts, never deletion authority.
 - **Read whole.** Every assigned file, top to bottom, before classifying or editing it. Search output enumerates candidates; it is never the denominator.
+- **Search sibling homes before writing a helper.** Reuse or extend the existing intra-crate owner when the semantics match; do not create a second local owner merely because the caller sits in another home.
 - **Name the plane.** "Complete", "closed", and "proven" are never written bare. Local green is not hosted, packaged, or accepted.
 - **Agents commit accepted work:** an agent may stage and commit qualified files within the authorized task after its required checks pass, using a truthful message and never folding unrelated dirty work into the commit.
 - **Task boundaries control:** an active task-specific no-commit instruction overrides autonomous commit authority until that boundary is lifted.
