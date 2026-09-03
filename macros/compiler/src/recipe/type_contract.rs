@@ -3,65 +3,13 @@
 #[cfg(feature = "host")]
 use super::RecipeBake;
 use super::types::{RECIPE_FACT, RecipeError, RecipeIssue, RecipeShell, RecipeShellContent};
-use super::{
-    HarnessPosture, LoweringSource, PROJECTION_LIMIT, ProjectionDisposition, ProjectionError,
-    Recipe, RecipeProjection, RecipeRelationPayloadKind, RecipeRole,
-};
+use super::{PROJECTION_LIMIT, ProjectionError, Recipe, RecipeProjection, RecipeRole};
 use crate::bounded::{Bounded, Overflow};
 use crate::diagnostic::{LineBody, Observed, Phase, REPAIR_LIMIT, RefusalClass, Refused, Repair};
 use crate::identity::human_projection;
 use crate::kind::{Destination, Kind, NoQuestions, Role, SoleRole};
 use crate::render::RenderError;
 use core::fmt;
-
-impl HarnessPosture {
-    /// Reads the stable declared name.
-    #[must_use]
-    pub const fn name(self) -> &'static str {
-        match self {
-            Self::Available => "available",
-            Self::Unavailable => "unavailable",
-        }
-    }
-}
-
-impl LoweringSource {
-    /// Reads the stable declared name.
-    #[must_use]
-    pub const fn name(self) -> &'static str {
-        match self {
-            Self::Preset => "preset",
-            Self::Configuration => "configuration",
-            Self::ExactRust => "exact-rust",
-        }
-    }
-}
-
-impl ProjectionDisposition {
-    /// Reads the stable declared name.
-    #[must_use]
-    pub const fn name(self) -> &'static str {
-        match self {
-            Self::Generated => "generated",
-            Self::NotRequested => "not-requested",
-            Self::FeatureUnavailable => "feature-unavailable",
-            Self::TargetUnavailable => "target-unavailable",
-        }
-    }
-}
-
-impl RecipeRelationPayloadKind {
-    /// Reads the stable declared name.
-    #[must_use]
-    pub const fn name(self) -> &'static str {
-        match self {
-            Self::Unlabeled => "unlabeled",
-            Self::Path => "path",
-            Self::ExactRust => "exact-rust",
-            Self::Transition => "transition",
-        }
-    }
-}
 
 impl Role for RecipeRole {
     const ALL: &'static [Self] = Self::ALL;

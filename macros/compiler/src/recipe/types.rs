@@ -1,5 +1,6 @@
 //! The informed recipe, its projection vocabulary, and the capability boundary shared by both execution hosts.
 
+use super::stamp::named_vocabulary;
 use crate::bounded::{Bounded, KeyedRoster};
 use crate::diagnostic::{Diagnostic, Family};
 use crate::expansion::Expansion;
@@ -54,13 +55,14 @@ pub(super) const RECIPE_FACT: OwnerFact = OwnerFact {
     name: "one-informed-recipe-selects-and-delivers-every-requested-projection",
 };
 
-/// Whether the facade posture makes harness-owned evidence projections available.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum HarnessPosture {
-    /// The facade carries its optional harness owner.
-    Available,
-    /// The facade omits its optional harness owner.
-    Unavailable,
+named_vocabulary! {
+    /// Whether the facade posture makes harness-owned evidence projections available.
+    pub enum HarnessPosture {
+        /// The facade carries its optional harness owner.
+        Available = "available",
+        /// The facade omits its optional harness owner.
+        Unavailable = "unavailable",
+    }
 }
 
 /// One member read from an authored Rust enum.
@@ -116,18 +118,19 @@ pub enum RecipeTransitionEffect {
     },
 }
 
-/// Which one row-payload contract every row in one relation follows.
-#[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum RecipeRelationPayloadKind {
-    /// Relation rows carry endpoints only.
-    Unlabeled,
-    /// Relation rows carry ordinary caller-owned paths.
-    Path,
-    /// Relation rows carry exact caller-authored Rust material.
-    ExactRust,
-    /// Relation rows carry the target and effect required by transition lowering.
-    Transition,
+named_vocabulary! {
+    /// Which one row-payload contract every row in one relation follows.
+    #[non_exhaustive]
+    pub enum RecipeRelationPayloadKind {
+        /// Relation rows carry endpoints only.
+        Unlabeled = "unlabeled",
+        /// Relation rows carry ordinary caller-owned paths.
+        Path = "path",
+        /// Relation rows carry exact caller-authored Rust material.
+        ExactRust = "exact-rust",
+        /// Relation rows carry the target and effect required by transition lowering.
+        Transition = "transition",
+    }
 }
 
 /// One informed row in a caller-named binary relation.
@@ -331,16 +334,17 @@ pub(crate) trait EvidenceCompiler {
 /// The sealed marker whose sole implementation lives at the crate composition root.
 pub(crate) struct ConfiguredEvidence;
 
-/// Where one effective mechanical projection value came from.
-#[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum LoweringSource {
-    /// The projector's documented conventional spelling.
-    Preset,
-    /// A named recipe seat replaced the conventional spelling.
-    Configuration,
-    /// Exact caller-authored Rust replaced the conventional mechanical seat.
-    ExactRust,
+named_vocabulary! {
+    /// Where one effective mechanical projection value came from.
+    #[non_exhaustive]
+    pub enum LoweringSource {
+        /// The projector's documented conventional spelling.
+        Preset = "preset",
+        /// A named recipe seat replaced the conventional spelling.
+        Configuration = "configuration",
+        /// Exact caller-authored Rust replaced the conventional mechanical seat.
+        ExactRust = "exact-rust",
+    }
 }
 
 /// The effective mechanical configuration of one generated projection.
@@ -383,17 +387,18 @@ pub(super) enum ProjectionStanding {
     TargetUnavailable,
 }
 
-/// The public readback of what happened to one possible recipe projection.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ProjectionDisposition {
-    /// The role is selected and generated.
-    Generated,
-    /// The caller did not request the role.
-    NotRequested,
-    /// The facade feature posture does not carry the required harness owner.
-    FeatureUnavailable,
-    /// The caller declared that the target plane is unavailable.
-    TargetUnavailable,
+named_vocabulary! {
+    /// The public readback of what happened to one possible recipe projection.
+    pub enum ProjectionDisposition {
+        /// The role is selected and generated.
+        Generated = "generated",
+        /// The caller did not request the role.
+        NotRequested = "not-requested",
+        /// The facade feature posture does not carry the required harness owner.
+        FeatureUnavailable = "feature-unavailable",
+        /// The caller declared that the target plane is unavailable.
+        TargetUnavailable = "target-unavailable",
+    }
 }
 
 /// One informed recipe over caller-owned vocabularies, relations, and selected projections.

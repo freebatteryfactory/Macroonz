@@ -7,6 +7,7 @@ mod evidence;
 mod names;
 mod render;
 mod role;
+mod stamp;
 mod render_companions;
 mod render_codec;
 mod render_dispatch;

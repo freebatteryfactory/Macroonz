@@ -7,7 +7,7 @@ use macroonz_compiler::host::Emittable;
 use macroonz_compiler::recipe::{
     HarnessPosture, LoweringSource, ProjectionDisposition, ProjectionError, ProjectionOffered,
     ProjectionRequest, ProjectionSink, ProjectorReplacement, RecipeProjector,
-    RecipeRelationPayload, RecipeRole, RecipeView,
+    RecipeRelationPayload, RecipeRelationPayloadKind, RecipeRole, RecipeView,
 };
 use macroonz_compiler::{
     AbsencePosture, CompletenessPosture, CyclePosture, DensityPosture, Destination, EmptyPosture,
@@ -184,6 +184,10 @@ fn public_recipe_names_are_exact_and_stable() {
     assert_eq!(LoweringSource::Preset.name(), "preset");
     assert_eq!(LoweringSource::Configuration.name(), "configuration");
     assert_eq!(LoweringSource::ExactRust.name(), "exact-rust");
+    assert_eq!(RecipeRelationPayloadKind::Unlabeled.name(), "unlabeled");
+    assert_eq!(RecipeRelationPayloadKind::Path.name(), "path");
+    assert_eq!(RecipeRelationPayloadKind::ExactRust.name(), "exact-rust");
+    assert_eq!(RecipeRelationPayloadKind::Transition.name(), "transition");
     assert_eq!(ProjectionDisposition::Generated.name(), "generated");
     assert_eq!(ProjectionDisposition::NotRequested.name(), "not-requested");
     assert_eq!(

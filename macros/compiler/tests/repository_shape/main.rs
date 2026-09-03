@@ -113,6 +113,11 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     assert_occurrences(&root, "impl TextLexicalCause", &[])?;
     assert_occurrences(&root, "impl CaptureBound", &[])?;
     assert_occurrences(&root, "impl LiteralReadCause", &[])?;
+    assert_occurrences(&root, "macro_rules! named_vocabulary", &["recipe/stamp.rs"])?;
+    assert_occurrences(&root, "impl HarnessPosture", &[])?;
+    assert_occurrences(&root, "impl LoweringSource", &[])?;
+    assert_occurrences(&root, "impl ProjectionDisposition", &[])?;
+    assert_occurrences(&root, "impl RecipeRelationPayloadKind", &[])?;
     assert_occurrences(
         &root,
         "the complete relation-question roster guards this match",
