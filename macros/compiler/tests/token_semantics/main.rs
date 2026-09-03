@@ -298,3 +298,49 @@ fn generated_slots_and_readable_spelling_are_exact() -> Result<(), ()> {
     );
     Ok(())
 }
+
+/// A keyword cannot name a rendered item: every programmatic name constructor reads the composed law, not the alphabet alone.
+///
+/// Paths read position-aware the way the language does: the stamp site root admits `crate`, `self`, or a leading run of `super` at the root, the codec path types its qualifier as the rooting — so every later segment is an item name the keyword roster refuses.
+#[test]
+fn a_keyword_cannot_name_a_rendered_item() {
+    assert!(macroonz_compiler::descriptor::ModuleName::declared("type").is_err());
+    assert!(macroonz_compiler::descriptor::SupportName::declared("mod").is_err());
+    assert!(macroonz_compiler::descriptor::TypeName::declared("gen").is_err());
+    assert!(macroonz_compiler::descriptor::FunctionName::declared("fn").is_err());
+    assert!(macroonz_compiler::descriptor::ModuleName::declared("lawful_name").is_ok());
+    assert!(macroonz_compiler::stamp::StampName::declared("type").is_err());
+    assert!(macroonz_compiler::support::SupportName::declared("loop").is_err());
+    assert!(macroonz_compiler::codec::ModuleSpelling::spelled("type").is_err());
+    assert!(macroonz_compiler::stamp::SiteRoot::spelled(vec!["crate".to_owned()]).is_ok());
+    assert!(
+        macroonz_compiler::stamp::SiteRoot::spelled(vec!["crate".to_owned(), "type".to_owned()])
+            .is_err()
+    );
+    assert!(
+        macroonz_compiler::stamp::SiteRoot::spelled(vec![
+            "super".to_owned(),
+            "super".to_owned(),
+            "stamps".to_owned(),
+        ])
+        .is_ok()
+    );
+    assert!(
+        macroonz_compiler::stamp::SiteRoot::spelled(vec!["stamps".to_owned(), "self".to_owned()])
+            .is_err()
+    );
+    assert!(
+        macroonz_compiler::codec::CodecTypePath::spelled(
+            macroonz_compiler::codec::PathRooting::ParentScoped,
+            vec!["Thing".to_owned()],
+        )
+        .is_ok()
+    );
+    assert!(
+        macroonz_compiler::codec::CodecTypePath::spelled(
+            macroonz_compiler::codec::PathRooting::InScope,
+            vec!["self".to_owned(), "Thing".to_owned()],
+        )
+        .is_err()
+    );
+}
