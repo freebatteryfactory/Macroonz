@@ -1,8 +1,14 @@
 //! The item home's declarations: the structural item family, the borrowed lens, and how a lens read refuses.
 //!
 //! Declarations only.
+//! Every road that reaches a private field lives in `lens.rs`, this file's own child.
 
-use super::{CapturedDelimiter, CapturedFragment, CapturedTokenTree, SpanHandle};
+use super::super::{
+    CapturedDelimiter, CapturedFragment, CapturedInput, CapturedTokenTree, SpanHandle,
+};
+
+#[path = "lens.rs"]
+mod lens;
 
 /// The structural Rust item family one authored-item lens recognized.
 ///
@@ -42,19 +48,19 @@ pub enum AuthoredItemKind {
 /// The lens identifies only an item's outer attributes, visibility, qualifiers, family, optional name, generic-parameter run, where-clause run, signature run, and optional body group.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AuthoredItem<'tokens> {
-    pub(super) preserved: CapturedFragment<'tokens>,
-    pub(super) attributes: CapturedFragment<'tokens>,
-    pub(super) visibility: CapturedFragment<'tokens>,
-    pub(super) qualifiers: CapturedFragment<'tokens>,
-    pub(super) signature: CapturedFragment<'tokens>,
-    pub(super) generics: Option<CapturedFragment<'tokens>>,
-    pub(super) where_clause: Option<CapturedFragment<'tokens>>,
-    pub(super) body: Option<CapturedFragment<'tokens>>,
-    pub(super) body_delimiter: Option<CapturedDelimiter>,
-    pub(super) kind: AuthoredItemKind,
-    pub(super) kind_token: &'tokens CapturedTokenTree,
-    pub(super) name_token: Option<&'tokens CapturedTokenTree>,
-    pub(super) unsafe_token: Option<&'tokens CapturedTokenTree>,
+    preserved: CapturedFragment<'tokens>,
+    attributes: CapturedFragment<'tokens>,
+    visibility: CapturedFragment<'tokens>,
+    qualifiers: CapturedFragment<'tokens>,
+    signature: CapturedFragment<'tokens>,
+    generics: Option<CapturedFragment<'tokens>>,
+    where_clause: Option<CapturedFragment<'tokens>>,
+    body: Option<CapturedFragment<'tokens>>,
+    body_delimiter: Option<CapturedDelimiter>,
+    kind: AuthoredItemKind,
+    kind_token: &'tokens CapturedTokenTree,
+    name_token: Option<&'tokens CapturedTokenTree>,
+    unsafe_token: Option<&'tokens CapturedTokenTree>,
 }
 
 /// Why one captured input could not provide an authored-item structural lens.
@@ -80,6 +86,6 @@ pub enum AuthoredItemReadIssue {
 #[must_use = "an authored-item refusal carries its structural issue and exact available span"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AuthoredItemReadRefusal {
-    pub(super) issue: AuthoredItemReadIssue,
-    pub(super) at: Option<SpanHandle>,
+    issue: AuthoredItemReadIssue,
+    at: Option<SpanHandle>,
 }

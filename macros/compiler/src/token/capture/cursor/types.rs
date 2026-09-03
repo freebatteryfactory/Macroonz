@@ -1,8 +1,14 @@
 //! The cursor home's declarations: the mechanical read cursor, the shapes it asks for, and how a read refuses.
 //!
 //! Declarations only.
+//! Every road that reaches a private field lives in `read.rs`, this file's own child.
 
-use super::{CapturedDelimiter, CapturedTokenTree, SpanHandle};
+use super::super::{
+    CapturedDelimiter, CapturedFragment, CapturedInput, CapturedTokenTree, SpanHandle,
+};
+
+#[path = "read.rs"]
+mod read;
 
 /// A read cursor over one normalized captured-token sequence.
 ///
@@ -10,9 +16,9 @@ use super::{CapturedDelimiter, CapturedTokenTree, SpanHandle};
 /// It knows token structure and no declaration vocabulary beyond an exact word the caller asks it to read.
 #[derive(Debug, Clone)]
 pub struct CaptureCursor<'tokens> {
-    pub(super) tokens: &'tokens [CapturedTokenTree],
-    pub(super) next: usize,
-    pub(super) end: Option<SpanHandle>,
+    tokens: &'tokens [CapturedTokenTree],
+    next: usize,
+    end: Option<SpanHandle>,
 }
 
 /// Whether one punctuation seat is joined to what follows or stands alone.
@@ -77,6 +83,6 @@ pub enum CaptureReadIssue {
 #[must_use = "a capture read refusal carries its mechanical issue and exact available span"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CaptureReadRefusal {
-    pub(super) issue: CaptureReadIssue,
-    pub(super) at: Option<SpanHandle>,
+    issue: CaptureReadIssue,
+    at: Option<SpanHandle>,
 }
