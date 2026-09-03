@@ -64,11 +64,7 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
         "CODEC_PATH_SEGMENT_LIMIT: usize = crate::token::RENDERED_PATH_SEGMENT_LIMIT;",
         &["codec/types.rs"],
     )?;
-    assert_occurrences(
-        &root,
-        "fn absolute_path(",
-        &["descriptor/emitting.rs", "token/generation/compose.rs"],
-    )?;
+    assert_occurrences(&root, "fn absolute_path(", &["token/generation/compose.rs"])?;
     assert_occurrences(
         &root,
         "fn harness_path(",

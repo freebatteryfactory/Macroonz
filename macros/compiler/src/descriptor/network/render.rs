@@ -6,9 +6,9 @@ use super::{DisciplineRow, FaultRow, LinkRow, NetworkDeclaration, ScheduleRow};
 use crate::bounded::Overflow;
 use crate::descriptor::DirectBinding;
 use crate::descriptor::emitting::{
-    absolute_path, derive_attribute, direct_path, doc_attribute, fallible_return, from_impl,
+    derive_attribute, direct_path, doc_attribute, fallible_return, from_impl,
 };
-use crate::token::{GeneratedDelimiter, GeneratedToken};
+use crate::token::{GeneratedDelimiter, GeneratedToken, absolute_path};
 
 /// The names the generated module writes beside the authored ones, which no schedule may take.
 ///
@@ -153,14 +153,14 @@ fn vec_expr(
     into: &mut Vec<GeneratedToken>,
 ) -> Result<(), Overflow> {
     if members.is_empty() {
-        absolute_path(&["std", "vec", "Vec", "new"], into);
+        into.extend(absolute_path(&["std", "vec", "Vec", "new"]));
         into.push(GeneratedToken::group(
             GeneratedDelimiter::Parenthesis,
             Vec::new(),
         )?);
         return Ok(());
     }
-    absolute_path(&["std", "vec", "Vec", "from"], into);
+    into.extend(absolute_path(&["std", "vec", "Vec", "from"]));
     let mut listed = Vec::new();
     for (position, member) in members.into_iter().enumerate() {
         if position > 0 {
@@ -196,7 +196,7 @@ fn topology_fn(
     );
     fallible_return(ok_seat, FAULT_ENUM, into);
     let mut body = Vec::new();
-    absolute_path(&["core", "result", "Result", "Ok"], &mut body);
+    body.extend(absolute_path(&["core", "result", "Result", "Ok"]));
     let mut inner = Vec::new();
     direct_path(
         declaration.harness(),
@@ -267,7 +267,7 @@ fn schedule_fn(
     );
     fallible_return(ok_seat, FAULT_ENUM, into);
     let mut body = Vec::new();
-    absolute_path(&["core", "result", "Result", "Ok"], &mut body);
+    body.extend(absolute_path(&["core", "result", "Result", "Ok"]));
     let mut inner = Vec::new();
     direct_path(
         declaration.harness(),

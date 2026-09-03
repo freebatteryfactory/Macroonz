@@ -6,9 +6,9 @@ use super::{ConcurrencyDeclaration, ExplorationRow};
 use crate::bounded::Overflow;
 use crate::descriptor::DirectBinding;
 use crate::descriptor::emitting::{
-    absolute_path, derive_attribute, direct_path, doc_attribute, fallible_return, from_impl,
+    derive_attribute, direct_path, doc_attribute, fallible_return, from_impl,
 };
-use crate::token::{GeneratedDelimiter, GeneratedToken};
+use crate::token::{GeneratedDelimiter, GeneratedToken, absolute_path};
 
 /// The fault enum's arms: the arm, the refusal it carries, and its stated doc.
 const FAULT_ARMS: [(&str, [&str; 2], &str); 3] = [
@@ -114,7 +114,7 @@ fn row_fn(
     let mut body = Vec::new();
     explored_let(declaration, row, &mut body)?;
     concluded_let(declaration.harness(), &mut body)?;
-    absolute_path(&["core", "result", "Result", "Ok"], &mut body);
+    body.extend(absolute_path(&["core", "result", "Result", "Ok"]));
     body.push(GeneratedToken::group(
         GeneratedDelimiter::Parenthesis,
         vec![GeneratedToken::group(
@@ -137,7 +137,7 @@ fn generics(into: &mut Vec<GeneratedToken>) {
     into.push(GeneratedToken::alone(','));
     into.push(GeneratedToken::word("Command"));
     into.push(GeneratedToken::alone(':'));
-    absolute_path(&["core", "clone", "Clone"], into);
+    into.extend(absolute_path(&["core", "clone", "Clone"]));
     into.push(GeneratedToken::alone('>'));
 }
 
