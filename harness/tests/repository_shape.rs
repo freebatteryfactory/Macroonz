@@ -280,6 +280,30 @@ fn assert_test_support(root: &Path) -> Result<(), std::io::Error> {
             "{relative}"
         );
     }
+    let work_family = ["trait Work", "Family"].concat();
+    assert_occurrences(
+        root,
+        &work_family,
+        &["tests/recipe_economics/bench_driver.rs"],
+    )?;
+    assert_occurrences(
+        root,
+        &["fn preflight_call<F: Work", "Family>"].concat(),
+        &["tests/recipe_economics/bench_driver.rs"],
+    )?;
+    for relative in [
+        "tests/recipe_economics/main.rs",
+        "tests/recipe_economics/breadth_bench.rs",
+    ] {
+        let source = fs::read_to_string(root.join(relative))?;
+        assert!(!source.contains("enum Control"), "{relative}");
+        assert!(!source.contains("fn trial_binding"), "{relative}");
+        assert!(!source.contains("fn observations()"), "{relative}");
+    }
+    assert!(
+        !fs::read_to_string(root.join("tests/recipe_economics/breadth.rs"))?.contains("fn debug"),
+        "tests/recipe_economics/breadth.rs"
+    );
     Ok(())
 }
 
