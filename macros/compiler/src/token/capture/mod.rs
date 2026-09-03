@@ -15,9 +15,9 @@ pub use cursor::{
 };
 #[cfg(feature = "host")]
 pub(crate) use encode::encode_token_path;
+pub use item::{AuthoredItem, AuthoredItemKind, AuthoredItemReadIssue, AuthoredItemReadRefusal};
 pub use literal::capture_literal;
 pub use types::{
-    AuthoredItem, AuthoredItemKind, AuthoredItemReadIssue, AuthoredItemReadRefusal,
     CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound,
     CaptureBuildRefusal, CaptureBuilder, CaptureLevel, CaptureWalk, CapturedAtom,
     CapturedDelimiter, CapturedFragment, CapturedInput, CapturedPayload, CapturedTokenTree,
