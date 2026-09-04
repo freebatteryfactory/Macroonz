@@ -4,7 +4,7 @@
 
 - This page is the single receipt for the Macroonz `0.2.0` release plane.
 - No `0.2.0` package has been published, no `v0.2.0` tag exists, and no GitHub Release exists at the time this page was opened.
-- The first section below records local shape-lot custody that tests cannot retain; every later section appends only after its own hosted, registry, tag, release, or acceptance authority exists.
+- The first section below records local shape-lot custody that tests cannot retain; every later section appends only after its own local qualification, hosted, registry, tag, release, or acceptance authority exists.
 
 ## Compiled-pressure source custody
 
@@ -159,3 +159,60 @@ The C drive had `17.26` GiB free after cleanup.
 
 The next boundary is the owner's editor recheck followed by separate authorization for a complete manual hosted pulse at an explicitly selected revision.
 Push, hosted dispatch, merge, registry upload, tag, GitHub Release, final acceptance, and packet archive remain unauthorized.
+
+## Rust 1.98.1 upgrade qualification
+
+### Source and toolchain
+
+Qualified source: `5baca339824708ae932da02cb283efc5c9633acf`, tree `b46ddae85959487aa1167da388231c49c974dcb4`, after the skill correction at `2244d89`.
+The owner authorized the global and repository toolchain upgrade before publication.
+The root pin, workspace and Clippy minimums, active subprocess launchers, adopter minimums, hosted commands, and `RUSTC_COVERAGE_TOOLCHAIN` now select `1.98.1`.
+Historical receipts and synthetic comparison inputs retain their original toolchain identities.
+The dependency lockfile, dependency pins, feature graph, and four product-package boundaries are unchanged.
+
+This Windows x86_64 observation used `rustc 1.98.1 (48a229cea 2026-09-01)`, compiler commit `48a229ceaefd4985c50990b14116b6d856af0985`, Cargo `1.98.1 (797e8a9bc 2026-08-05)`, and LLVM `22.1.8`.
+The installed components include rustfmt, Clippy, rust-src, matching LLVM tools, and `wasm32-unknown-unknown`.
+The global default is the exact 1.98.1 toolchain; older installed toolchains were retained for historical reproduction.
+Rustup's normal installer self-update moved rustup from `1.29.0` to `1.29.1`.
+
+### Local observations
+
+Formatting, all-target/all-feature workspace checking, strict Clippy, all five doctests, dependency policy, warnings-denied rustdoc, Wasm compilation, and the stable-rustc coverage example passed.
+Nine separate compiler, proc, harness, and facade feature postures passed, including an executed no-harness recipe test.
+The complete ordinary Nextest run `47a64b19-60cd-4df3-bf3f-fc76f4d66484` ran 661 tests across 75 binaries in 781.613 seconds: 660 passed and one failed, with 11 previously classified skips.
+The historical-subject adopter failed during compilation with `memory allocation of 2097152 bytes failed`, not a product assertion or diagnostic mismatch.
+That exact test passed unchanged in 104.663 seconds under run `bfc069c0-fb91-4ab8-bbc0-25693730219b` after `CARGO_BUILD_JOBS=1` constrained nested compilation.
+All 661 ordinary tests therefore have passing observations across those two runs; the first run is not relabeled green.
+No test expectation or product algorithm was changed to answer the allocation failure.
+
+All five named long tests passed: the maximal recipe in 413.94 seconds, both interleave campaigns together in 1.89 seconds, network in 0.06 seconds, and preemption in 2.39 seconds.
+The maximal recipe retains its exact 4,548,871 canonical-byte expectation and derived-bound headroom.
+These interactive-host durations do not establish a performance comparison.
+No compiler or proc product operation changed in this upgrade; the earlier mutation evidence retains its recorded source and toolchain rather than claiming a new campaign.
+
+### Regenerated package candidates
+
+Locked offline packaging from the clean qualified source produced:
+
+- `macroonz-compiler 0.2.0`: 468 entries, 582,183 bytes, SHA-256 `E91E60D572E0136F26115122E9FBDCCA6D7A710CA915F0E7155C5767CB7016BF`.
+- `macroonz-harness 0.2.0`: 423 entries, 477,114 bytes, SHA-256 `FB7D1B82F26E8A461A7D9A3192756F51A4412647A5D85FD10EB0A50AD7349DC9`.
+- `macroonz-macros 0.2.0`: 78 entries, 47,614 bytes, SHA-256 `515BAB9565A98688F9FEF78CA5AA80AA4324AAF56BEFCEB2804CAE66EF53F8B6`.
+- `macroonz 0.2.0`: 25 entries, 136,619 bytes, SHA-256 `ECA738917C46B294D03F082AD62B2F81AEC622C1A14F97A4B6BE24CEE6E7C269`.
+
+All four archives embed `5baca339824708ae932da02cb283efc5c9633acf` and declare minimum Rust `1.98.1`.
+Their ordered path rosters and LF-roster SHA-256 values are identical to the preceding shape-lot candidates.
+No archive contains tracked receipt material, workflows, build output, qualification material, build scripts, or the excluded proc observer package.
+
+The extracted package graph passed locked offline all-target/all-feature compilation after standalone lock resolution, with every local dependency confined to the extracted packages and the disposable consumer.
+The packaged facade recipe, compiler custom-projector example, and harness temporal-property example executed successfully.
+The packaged skill is byte-identical to the tracked skill, SHA-256 `A8887F585AB7F54AF4407B9680579FA520C85DFB6A2BB576566B4A63358B1C36`.
+A consumer executed its generic relation recipe and the clarified extra-parameter dispatch with an exact row body, independently checking admitted and absent behavior.
+Single-package registry delivery remains unobserved until dependency-ordered publication.
+
+### Custody and boundary
+
+The source-law and whitespace checks passed with no lockfile movement, personal-path finding, lint hatch, symlink, or tracked build output.
+Raw upgrade output and candidate copies remain disposable; this record retains their source, hashes, observations, and ceilings without a new evidence payload.
+This receipt-only successor is excluded from the package archives and does not replace their qualified source.
+The next boundary is the owner's editor recheck, followed by separately authorized branch publication and manual hosted qualification at an explicit revision.
+No hosted result, merge, registry upload, tag, GitHub Release, final acceptance, or packet archive is established by this upgrade.
