@@ -3,7 +3,7 @@
 use super::super::names::companion_constant;
 use super::super::{
     ProjectionError, Recipe, RecipeMember, RecipeRelation, RecipeRelationPayload,
-    RecipeRelationPayloadKind, RecipeRelationRow, RecipeVocabulary,
+    RecipeRelationPayloadKind, RecipeRelationRow, RecipeTransitionEffect, RecipeVocabulary,
 };
 use super::tokens::{comma_separated, comma_tokens, public, super_path, variant};
 use crate::token::{
@@ -168,7 +168,7 @@ fn relation_payload_constant(
                 }
                 RecipeRelationPayload::Transition {
                     target_name,
-                    effect: super::RecipeTransitionEffect::Path(effect),
+                    effect: RecipeTransitionEffect::Path(effect),
                     ..
                 } => {
                     let mut tokens = vec![target_name.clone(), GeneratedToken::alone(',')];
@@ -178,7 +178,7 @@ fn relation_payload_constant(
                 RecipeRelationPayload::Transition {
                     target_name,
                     effect:
-                        super::RecipeTransitionEffect::ExactRust {
+                        RecipeTransitionEffect::ExactRust {
                             target_binding,
                             body,
                         },

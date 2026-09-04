@@ -1,6 +1,6 @@
 //! The standard typestate projection over one informed state vocabulary.
 
-use super::super::{ProjectionError, Recipe, RecipeMember};
+use super::super::{EffectiveProjection, ProjectionError, Recipe, RecipeMember, RecipeRole};
 use super::tokens::{derive, public, row_projection_error, static_str};
 use crate::token::{
     GeneratedDelimiter, GeneratedToken, GeneratedTree, absolute_path, associated_constant,
@@ -10,8 +10,8 @@ use crate::token::{
 
 pub(super) fn typestate(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError> {
     let Some(subject) = recipe
-        .effective(super::RecipeRole::Typestate)
-        .and_then(super::EffectiveProjection::subject)
+        .effective(RecipeRole::Typestate)
+        .and_then(EffectiveProjection::subject)
         .and_then(|name| recipe.vocabulary(name))
     else {
         return Err(ProjectionError::Render(
