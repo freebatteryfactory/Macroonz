@@ -214,5 +214,23 @@ Single-package registry delivery remains unobserved until dependency-ordered pub
 The source-law and whitespace checks passed with no lockfile movement, personal-path finding, lint hatch, symlink, or tracked build output.
 Raw upgrade output and candidate copies remain disposable; this record retains their source, hashes, observations, and ceilings without a new evidence payload.
 This receipt-only successor is excluded from the package archives and does not replace their qualified source.
-The next boundary is the owner's editor recheck, followed by separately authorized branch publication and manual hosted qualification at an explicit revision.
+The owner's editor recheck is recorded below; the next boundary is separately authorized branch publication and manual hosted qualification at an explicit revision.
 No hosted result, merge, registry upload, tag, GitHub Release, final acceptance, or packet archive is established by this upgrade.
+
+### Owner-observed editor recheck
+
+On 2026-09-04 the owner exercised `examples/recipe.rs` in Cursor with rust-analyzer after the Rust 1.98.1 upgrade, against the unchanged example at receipt successor `d8ed4dc`.
+The observation consists of the owner's checklist responses, five screenshots, and the recursive expansion of the configured recipe; the editor and bundled analyzer versions were not independently recorded.
+
+- Rust highlighting and hover on the authored `State` declaration displayed its enum and documentation; the screenshot does not independently establish every recipe-reference hover.
+- Effect-path definition navigation worked, and the reference view included both recipe effect uses of `record_open`.
+- The owner reported rename working across the recipe boundary.
+- Removing the semicolon after `absence(refused)` produced a live Macroonz grammar diagnostic at the following `projections` token, rather than a missing-token insertion marker.
+- Formatting produced no change.
+- Generated namespace completion offered `apply`, both vocabulary companions, `TRANSITIONS`, and `TransitionRefusal`.
+- Generated `apply` hover displayed its signature and documentation, and definition navigation reached the authored `dispatch(apply)` request rather than a generated body.
+- Recursive expansion displayed readable ordinary Rust containing the declared row, effect call, successful target, and typed absent-row refusal.
+
+The final screenshot showed no detected workspace problems and no visible recurrence of the codec `count` diagnostic.
+This closes the tested local editor recheck, not universal editor support, hosted qualification, or release acceptance.
+The previously named grammar-word hover and by-spelling source-attribution ceilings remain unchanged.
