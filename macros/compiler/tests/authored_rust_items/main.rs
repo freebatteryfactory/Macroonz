@@ -2,6 +2,8 @@
 //!
 //! The fixtures carry structural pressure from ordinary and advanced Rust without asking Macroonz to interpret what any item means.
 
+mod item_cases;
+
 use core::convert::Infallible;
 use core::hash::{Hash, Hasher};
 use macroonz_compiler::{
@@ -58,103 +60,11 @@ fn exact_literal_forms_project_without_a_source_string_round_trip() -> Result<()
 /// Evidence ceiling: the lens recognizes structural envelopes and does not claim to replace Rustc's grammar judgment.
 #[test]
 fn item_lens_preserves_required_rust_families() -> Result<(), ()> {
-    let cases = [
-        (
-            "pub mod room { pub const WIDTH: usize = 4; }",
-            AuthoredItemKind::Module,
-            Some("room"),
-            false,
-        ),
-        (
-            "#[doc = \"state\"] pub enum State<'a, T, const N: usize> where T: 'a { Ready(&'a T), Bytes([u8; N]) }",
-            AuthoredItemKind::Enumeration,
-            Some("State"),
-            false,
-        ),
-        (
-            "pub union Storage { word: u64, bytes: [u8; 8] }",
-            AuthoredItemKind::Union,
-            Some("Storage"),
-            false,
-        ),
-        (
-            "pub(crate) struct Packet<T, const N: usize>(T, [u8; N]) where T: Copy;",
-            AuthoredItemKind::Structure,
-            Some("Packet"),
-            false,
-        ),
-        (
-            "pub unsafe trait Contract<'a, T> where T: 'a { type Item<'b> where Self: 'b; unsafe fn read(&'a self) -> impl Copy + use<'a, T>; }",
-            AuthoredItemKind::Trait,
-            Some("Contract"),
-            true,
-        ),
-        (
-            "pub const unsafe extern \"C\" fn apply<'a, T: Copy>(value: &'a mut T) -> impl Copy + use<'a, T> where T: 'a { *value }",
-            AuthoredItemKind::Function,
-            Some("apply"),
-            true,
-        ),
-        (
-            "pub extern fn default_abi() {}",
-            AuthoredItemKind::Function,
-            Some("default_abi"),
-            false,
-        ),
-        (
-            "pub const extern fn constant_default_abi() {}",
-            AuthoredItemKind::Function,
-            Some("constant_default_abi"),
-            false,
-        ),
-        (
-            "unsafe impl<'a, T> Contract<'a, T> for Packet<T, 4> where T: Copy + 'a { type Item<'b> = &'b T where Self: 'b; unsafe fn read(&'a self) -> impl Copy + use<'a, T> { &self.0 } }",
-            AuthoredItemKind::Implementation,
-            None,
-            true,
-        ),
-        (
-            "pub type Alias<T> where T: Copy = T;",
-            AuthoredItemKind::TypeAlias,
-            Some("Alias"),
-            false,
-        ),
-        (
-            "pub const WIDTH: usize = 4;",
-            AuthoredItemKind::Constant,
-            Some("WIDTH"),
-            false,
-        ),
-        (
-            "pub static mut COUNT: usize = 0;",
-            AuthoredItemKind::Static,
-            Some("COUNT"),
-            false,
-        ),
-        (
-            "pub static LIMIT: usize = 4;",
-            AuthoredItemKind::Static,
-            Some("LIMIT"),
-            false,
-        ),
-        (
-            "pub use crate::room::WIDTH;",
-            AuthoredItemKind::Use,
-            None,
-            false,
-        ),
-        (
-            "extern crate core;",
-            AuthoredItemKind::ExternalCrate,
-            Some("core"),
-            false,
-        ),
-    ];
-    for (source, expected_kind, expected_name, expected_unsafe) in cases {
-        let (kind, name, item_unsafe) = item_facts(source)?;
-        assert_eq!(kind, expected_kind);
-        assert_eq!(name.as_deref(), expected_name);
-        assert_eq!(item_unsafe, expected_unsafe);
+    for case in item_cases::REQUIRED_ITEM_CASES {
+        let (kind, name, item_unsafe) = item_facts(case.source)?;
+        assert_eq!(kind, case.kind);
+        assert_eq!(name.as_deref(), case.name);
+        assert_eq!(item_unsafe, case.safety.expects_unsafe());
     }
     Ok(())
 }
