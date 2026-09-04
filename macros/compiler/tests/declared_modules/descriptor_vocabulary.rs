@@ -1,3 +1,5 @@
+//! The exact published descriptor vocabulary spellings.
+
 use macroonz_compiler::descriptor::vocabulary::{HarnessName, HarnessWord};
 
 const HARNESS_NAME_CASES: &[(HarnessName, &str)] = &[
