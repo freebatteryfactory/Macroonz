@@ -345,3 +345,21 @@ fn a_keyword_cannot_name_a_rendered_item() {
         .is_err()
     );
 }
+
+/// Every programmatic item-name constructor reads the same Rust identifier alphabet.
+///
+/// A leading digit is outside that alphabet, while a leading underscore followed by a name character is lawful; the pair catches a guard that accidentally reverses underscore admission.
+#[test]
+fn programmatic_item_names_share_one_identifier_alphabet() {
+    for invalid in ["7thing", "thing-name"] {
+        assert!(macroonz_compiler::descriptor::ModuleName::declared(invalid).is_err());
+        assert!(macroonz_compiler::stamp::StampName::declared(invalid).is_err());
+        assert!(macroonz_compiler::codec::ModuleSpelling::spelled(invalid).is_err());
+    }
+
+    for lawful in ["Thing", "_thing", "thing_7"] {
+        assert!(macroonz_compiler::descriptor::ModuleName::declared(lawful).is_ok());
+        assert!(macroonz_compiler::stamp::StampName::declared(lawful).is_ok());
+        assert!(macroonz_compiler::codec::ModuleSpelling::spelled(lawful).is_ok());
+    }
+}

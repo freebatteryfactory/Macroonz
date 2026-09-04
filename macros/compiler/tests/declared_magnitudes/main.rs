@@ -21,7 +21,7 @@ use macroonz_compiler::{
     CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound,
     CaptureBuildRefusal, CaptureBuilder, CapturedAtom, CapturedDelimiter, CapturedInput,
     CapturedTokenTree, CoordinateRole, TEXT_SOURCE_BYTE_LIMIT, TOKEN_PATH_DEPTH_LIMIT, TextCapture,
-    TextReadCause, TextReadRefusal, TokenPath,
+    TextLexicalCause, TextReadCause, TextReadRefusal, TokenPath,
 };
 
 #[path = "../support/captured_tokens.rs"]
@@ -220,6 +220,13 @@ fn malformed_text_shapes_refuse_at_their_established_bytes() {
             "\"\\q\"",
             TextReadRefusal {
                 cause: TextReadCause::NotEscapeFree,
+                at: 0,
+            },
+        ),
+        (
+            r#"b"é""#,
+            TextReadRefusal {
+                cause: TextReadCause::Lexical(TextLexicalCause::MalformedLiteral),
                 at: 0,
             },
         ),
