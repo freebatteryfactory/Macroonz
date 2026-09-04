@@ -21,7 +21,7 @@
 use macroonz_compiler::request;
 use macroonz_compiler::{
     CrateBinding, Door, Expansion, GeneratedToken, GeneratedTree, Kind, NoQuestions, Producer,
-    Request, Role, SoleRole, TextCapture,
+    Request, Role, SoleRole, TextCapture, names_are_separating,
 };
 
 // ---------------------------------------------------------------------------
@@ -315,6 +315,29 @@ fn produced() -> Option<(Vec<u8>, Expansion<Greeting>)> {
         })
         .ok()?;
     Some((material, bound))
+}
+
+/// The published subject-name grammar separates lawful rosters and refuses every boundary that could collapse one context into another.
+#[test]
+fn subject_names_obey_the_complete_published_grammar() {
+    let lawful = [Vec::<&str>::new(), vec!["alpha"], vec!["alpha-7", "beta2"]];
+    let refused = [
+        vec!["Bad"],
+        vec!["alpha", "Bad"],
+        vec!["alpha", "alpha"],
+        vec!["alpha", "beta", "alpha"],
+        vec!["-alpha"],
+        vec!["alpha-"],
+        vec!["alpha--beta"],
+        vec!["alpha_beta"],
+    ];
+
+    for names in lawful {
+        assert!(names_are_separating(&names), "lawful roster {names:?}");
+    }
+    for names in refused {
+        assert!(!names_are_separating(&names), "refused roster {names:?}");
+    }
 }
 
 /// The kind's declared name and the seat's own, each framed, which is what a seat's identities are derived over.
