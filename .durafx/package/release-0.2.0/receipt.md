@@ -46,7 +46,7 @@ The source copies that once sat beside those consoles are gone; each console now
 - Qualified product source: `29fd396b61c6677c040aaae6984092016f18041f`.
 - Qualified product tree: `27951501d2e20bccd53a328106cb31ae9cdf4af4`.
 - Shape-lot baseline: merge `90bd660190fbeae8f7088d8e55f53c0c0dc8fcee`, tree `4c7b5837199dcfaa29d57ffe35a15249de50ed7a`.
-- Scope: `86` commits, `322` changed paths, `17,292` insertions, and `16,616` deletions from baseline through the qualified product source.
+- Scope: `86` commits, `323` changed paths, `17,292` insertions, and `16,616` deletions from baseline through the qualified product source.
 - Purpose: ownership, file shape, duplicate-authority removal, test-support custody, and compact evidence custody without a product-behavior change.
 - The commit that appends this section is an evidentiary successor to the qualified product source and is excluded from every package archive by the facade's anchored package roster.
 - No hosted result, registry delivery, tag, GitHub Release, final acceptance, or packet archive is established here.
