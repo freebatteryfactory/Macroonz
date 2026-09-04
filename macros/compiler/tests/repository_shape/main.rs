@@ -258,6 +258,11 @@ fn assert_helper_refusal_projection_debt_is_closed(root: &Path) -> Result<(), st
 }
 
 fn assert_roster_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
+    assert_occurrences(
+        root,
+        "pub(super) fn slot_in<T: Copy + Eq>",
+        &["kind/type_contract.rs"],
+    )?;
     assert_occurrences(root, "macro_rules! subjects", &["identity/stamp.rs"])?;
     assert_occurrences(root, "const RUST_KEYWORDS: &[&str]", &["token/bank.rs"])?;
     assert_occurrences(
@@ -415,6 +420,15 @@ fn assert_compiler_test_support_debt_is_closed(root: &Path) -> Result<(), std::i
     assert_occurrences(root, &discarded_cleanup, &[])
 }
 
+fn assert_structural_projection_debt_is_closed(root: &Path) -> Result<(), std::io::Error> {
+    let member_limit = ["const MEMBER_", "LIMIT: usize = 4;"].concat();
+    assert_occurrences(
+        root,
+        &member_limit,
+        &["structural_token_projection/main.rs"],
+    )
+}
+
 #[test]
 fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
@@ -485,5 +499,6 @@ fn named_compiler_shape_debt_does_not_expand() -> Result<(), std::io::Error> {
     let tests = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests");
     assert_test_framing_debt_is_closed(&tests)?;
     assert_compiler_test_support_debt_is_closed(&tests)?;
+    assert_structural_projection_debt_is_closed(&tests)?;
     assert_recipe_observation_debt_is_closed(&tests)
 }
