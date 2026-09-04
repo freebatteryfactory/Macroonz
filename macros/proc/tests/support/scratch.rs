@@ -112,17 +112,35 @@ fn hexadecimal_digit(value: u32) -> Result<char, String> {
 ///
 /// The subcommand leads and the manifest path follows it, so trailing tool arguments after `--` stay where the subcommand expects them.
 pub(crate) fn cargo(scratch: &Path, arguments: &[&str]) -> Result<Output, String> {
+    cargo_with_target(scratch, &scratch.join("target"), arguments)
+}
+
+/// Run a Cargo observation whose manifest and disposable build root have separate declared custody.
+pub(crate) fn cargo_with_target(
+    manifest_root: &Path,
+    target: &Path,
+    arguments: &[&str],
+) -> Result<Output, String> {
     let (subcommand, rest) = arguments
         .split_first()
         .ok_or_else(|| "a Cargo observation requires one subcommand".to_owned())?;
-    Command::new("cargo")
-        .arg("+1.98.1")
-        .arg(subcommand)
+    let mut command = Command::new("cargo");
+    command.arg("+1.98.1").arg(subcommand);
+    let remaining = if *subcommand == "nextest" {
+        let (verb, remaining) = rest
+            .split_first()
+            .ok_or_else(|| "a Nextest observation requires its subcommand".to_owned())?;
+        command.arg(verb);
+        remaining
+    } else {
+        rest
+    };
+    command
         .arg("--manifest-path")
-        .arg(scratch.join("Cargo.toml"))
-        .args(rest)
-        .current_dir(scratch)
-        .env("CARGO_TARGET_DIR", scratch.join("target"))
+        .arg(manifest_root.join("Cargo.toml"))
+        .args(remaining)
+        .current_dir(manifest_root)
+        .env("CARGO_TARGET_DIR", target)
         .output()
         .map_err(|error| error.to_string())
 }

@@ -1,5 +1,7 @@
 //! Root recipe behavior observed through package-shaped journeys and the proc-carrier contract.
 
+#[path = "recipe_facade_crossing/archive_delivery.rs"]
+mod archive_delivery;
 #[path = "recipe_facade_crossing/carrier_contract.rs"]
 mod carrier_contract;
 #[path = "recipe_facade_crossing/generic_recipe.rs"]

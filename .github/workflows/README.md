@@ -10,6 +10,16 @@ Every native lane owns compilation, strict linting, external tests, doctests, ex
 Feature postures are checked package by package so an all-feature workspace build cannot hide a missing dependency in a lighter facade or compiler surface.
 The no-harness facade, recipe entrance, and mechanical carrier controls execute independently rather than borrowing the all-feature result.
 
+Each native lane also executes the extracted-archive delivery claim in the existing proc integration target.
+Cargo assembles the packages, and only their extracted source supplies the compiler, proc carrier, harness, and facade to that observation.
+The normalized facade manifest gains an aggregate workspace and patches pointing only to its extracted siblings; the committed lockfile is copied unchanged and checked again after execution.
+The resolved package graph must name those extracted locations, never checkout or registry substitutes for a first-party package.
+Every delivered target compiles, the facade recipe and no-harness controls execute, all shipped examples run, and the extracted workspace crosses the all-feature Wasm check.
+The skill's first complete recipe is read from the archive and executed unchanged against an independently authored full-domain policy expectation in one standalone Rust consumer.
+That consumer names only the extracted facade's compiled library and dependency directory, denies warnings, and forbids unsafe code; it does not inherit the facade's maintainer-only documentation lints.
+Missing or incomplete recipe material refuses rather than skipping that consumer.
+This establishes package composition before first publication, not registry availability or execution of every packaged test.
+
 Named long campaigns run explicitly beside the ordinary test population without changing their inputs, assertions, or ignored standing.
 An exact selection that names no test refuses; ignored child-process fixtures remain owned by the parents that launch them.
 Repeated cross-host commands use shared YAML definitions, while every host retains its own execution result.
@@ -33,6 +43,9 @@ The dependency cache contains Cargo registry packages and Git database material 
 The ordinary Nextest wall writes structured JUnit output for the runner's test analytics.
 Separate posture and long-campaign invocations retain their outcomes in step logs without overwriting that report.
 Step logs retain human-readable failures.
+The archive campaign also retains successful child-command output and Cargo source records in its step log, then removes its exclusively owned scratch directory.
+Archive tools are runner-provided and their versions are recorded.
+Development archive tests permit a dirty checkout; the hosted lane refuses tracked-source movement before assembly, while final release qualification separately requires a clean committed source and exact candidate hashes.
 The hosted observation becomes durable only when a compact receipt or promoted regression enters Git through ordinary review.
 
 ## Deliberate limits

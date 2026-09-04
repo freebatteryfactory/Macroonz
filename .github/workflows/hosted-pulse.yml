@@ -55,6 +55,8 @@ jobs:
           cargo +1.98.1 --version --verbose
           cargo nextest --version
           cargo deny --version
+          git --version
+          tar --version
 
       - name: Fetch the locked dependency graph
         run: |
@@ -141,6 +143,14 @@ jobs:
         name: Run the preemption campaign
         run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --test preemption_exploration --all-features --locked --run-ignored only --no-tests fail -E 'test(=supported::the_longer_fused_counter_holds_over_its_bounded_space)'
 
+      - &archive-source
+        name: Refuse tracked-source changes before packaging
+        run: git diff --exit-code HEAD --
+
+      - &archive-delivery
+        name: Run extracted package delivery
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-macros --test recipe_facade_crossing --locked --run-ignored only --no-tests fail --success-output final -E 'test(=archive_delivery::the_four_archives_resolve_and_execute_without_checkout_fallback)'
+
       - name: Run documentation examples
         run: cargo +1.98.1 test -j1 --doc --workspace --all-features --locked
 
@@ -201,6 +211,8 @@ jobs:
           rustc +1.98.1 --version --verbose
           cargo +1.98.1 --version --verbose
           cargo nextest --version
+          git --version
+          tar --version
 
       - name: Fetch the locked dependency graph
         run: |
@@ -233,6 +245,8 @@ jobs:
       - *interleave-sampled
       - *network-long
       - *preemption-long
+      - *archive-source
+      - *archive-delivery
 
       - name: Run documentation examples
         run: cargo +1.98.1 test -j1 --doc --workspace --all-features --locked
@@ -278,6 +292,8 @@ jobs:
           rustc +1.98.1 --version --verbose
           cargo +1.98.1 --version --verbose
           cargo nextest --version
+          git --version
+          tar --version
 
       - name: Fetch the locked dependency graph
         shell: pwsh
@@ -311,6 +327,8 @@ jobs:
       - *interleave-sampled
       - *network-long
       - *preemption-long
+      - *archive-source
+      - *archive-delivery
 
       - name: Run documentation examples
         run: cargo +1.98.1 test -j1 --doc --workspace --all-features --locked
