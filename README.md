@@ -142,8 +142,9 @@ dispatch {
 ```
 
 Parentheses carry flat configuration names, while braces carry exact Rust material.
-An exact dispatch signature owns its attributes, visibility, qualifiers, name, generics, two simple caller-named parameter bindings and types, result, and where clause.
-The standard projector still owns the relation-accounted body; a caller-owned body belongs on the custom-projector road.
+An exact dispatch signature remains caller-authored Rust, including additional parameters when `dispatch(state_binding, event_binding) { exact signature };` selects the two bindings consumed by the generated match.
+The compiler's [projection disclosure contract](macros/compiler/src/recipe/README.md#projection-disclosure) owns the exact-signature rules.
+The standard projector owns the complete row-accounted match; individual rows may carry exact behavior through `with(target) { exact Rust }`, while a custom whole-function body belongs on the custom-projector road.
 
 Two values for one seat refuse.
 Semantic postures are stated once in the structural account and consumed by every projector that needs them.
