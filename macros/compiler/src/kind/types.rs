@@ -2,6 +2,7 @@
 //!
 //! Declarations only, with every road that reaches a private field in `type_guard.rs`, this file's own child.
 
+use super::type_contract::slot_in;
 use crate::identity::{GeneratedUnit, Identity, OwnerFact, Profile};
 use core::marker::PhantomData;
 
@@ -242,13 +243,4 @@ pub enum DispositionSetError {
         /// The kind name the record surrendered at this position.
         observed: &'static str,
     },
-}
-
-/// One row's position in its roster, or the roster's length where the roster does not carry it.
-fn slot_in<T: Copy + Eq>(roster: &[T], row: T) -> u16 {
-    let position = roster
-        .iter()
-        .position(|other| *other == row)
-        .unwrap_or(roster.len());
-    u16::try_from(position).unwrap_or(u16::MAX)
 }
