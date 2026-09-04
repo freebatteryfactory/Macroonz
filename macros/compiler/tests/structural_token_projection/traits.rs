@@ -1,5 +1,6 @@
 //! Conventional trait and implementation shells compared with independent tokens and real Rust compilation.
 
+use super::MEMBER_LIMIT;
 use crate::support::observe_rustc;
 use macroonz_compiler::{
     Empty, GeneratedDelimiter, GeneratedToken, GeneratedTree, KeyedRoster, NonEmptyError, Overflow,
@@ -7,8 +8,6 @@ use macroonz_compiler::{
     exclusive_receiver, function_signature, group, implementation, keyed_roster_items,
     trait_declaration, tuple_struct, typed_parameter,
 };
-
-const MEMBER_LIMIT: usize = 4;
 
 fn name(spelling: &str) -> GeneratedToken {
     GeneratedToken::word(spelling)
