@@ -12,4 +12,3 @@ Dependency-bearing Cargo specimens remain with the claim that requires their sep
 `attribute_specimens.rs` owns the lawful trial, mutation, and benchmark declaration bodies that the attribute-road and descriptor-content lanes drive.
 
 Each integration crate is compiled on its own, so a crate includes exactly the files it consumes through `#[path]` rather than one door that would leave unused mechanics behind the warning wall.
-
