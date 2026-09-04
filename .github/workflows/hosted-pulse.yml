@@ -13,6 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  CARGO_BUILD_JOBS: "1"
   CARGO_INCREMENTAL: "0"
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: "1"
@@ -70,7 +71,75 @@ jobs:
         run: cargo +1.98.1 clippy --workspace --all-targets --all-features --locked -- -D warnings
 
       - name: Run the complete external test wall
-        run: cargo +1.98.1 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast
+        run: cargo +1.98.1 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast --no-tests fail
+
+      - &compiler-core
+        name: Check the compiler core posture
+        run: cargo +1.98.1 check -p macroonz-compiler --all-targets --no-default-features --locked
+
+      - &compiler-host
+        name: Check the compiler host posture
+        run: cargo +1.98.1 check -p macroonz-compiler --all-targets --no-default-features --features host --locked
+
+      - &proc-host
+        name: Check the proc-host posture
+        run: cargo +1.98.1 check -p macroonz-macros --all-targets --locked
+
+      - &harness-core
+        name: Check the harness core posture
+        run: cargo +1.98.1 check -p macroonz-harness --all-targets --no-default-features --locked
+
+      - &harness-preemption
+        name: Check the harness preemption posture
+        run: cargo +1.98.1 check -p macroonz-harness --all-targets --no-default-features --features preemption --locked
+
+      - &facade-diet
+        name: Check the facade diet posture
+        run: cargo +1.98.1 check -p macroonz --all-targets --no-default-features --locked
+
+      - &facade-harness
+        name: Check the facade harness-only posture
+        run: cargo +1.98.1 check -p macroonz --all-targets --no-default-features --features harness --locked
+
+      - &facade-preemption
+        name: Check the facade preemption posture
+        run: cargo +1.98.1 check -p macroonz --all-targets --no-default-features --features preemption --locked
+
+      - &facade-full
+        name: Check the facade full posture
+        run: cargo +1.98.1 check -p macroonz --all-targets --all-features --locked
+
+      - &diet-owner
+        name: Run the no-harness facade owner control
+        run: cargo +1.98.1 nextest run -j1 -p macroonz --no-default-features --test facade_surface --locked --no-tests fail
+
+      - &diet-recipe
+        name: Run the no-harness recipe entrance control
+        run: cargo +1.98.1 nextest run -j1 -p macroonz --no-default-features --test recipe_no_harness_surface --locked --no-tests fail
+
+      - &diet-carrier
+        name: Run the no-harness mechanical carrier control
+        run: cargo +1.98.1 nextest run -j1 -p macroonz --no-default-features --test recipe_carrier_hostile --locked --no-tests fail
+
+      - &maximal-recipe
+        name: Run the maximal recipe campaign
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-compiler --test recipe_vertical_slice --all-features --locked --run-ignored only --no-tests fail -E 'test(=maximal_recipe::the_catalog_bearing_maximal_load_fits_the_derived_render_envelope_with_pinned_headroom)'
+
+      - &interleave-exhaustive
+        name: Run the exhaustive interleave campaign
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --test interleave_exploration --all-features --locked --run-ignored only --no-tests fail -E 'test(=a_long_exhaustive_campaign_walks_every_counted_schedule)'
+
+      - &interleave-sampled
+        name: Run the sampled interleave campaign
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --test interleave_exploration --all-features --locked --run-ignored only --no-tests fail -E 'test(=a_long_sampled_campaign_repeats_without_claiming_the_space)'
+
+      - &network-long
+        name: Run the network transcript campaign
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --test network_transcript --all-features --locked --run-ignored only --no-tests fail -E 'test(=custody::a_long_network_campaign_reproduces_and_exhausts_exactly)'
+
+      - &preemption-long
+        name: Run the preemption campaign
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --test preemption_exploration --all-features --locked --run-ignored only --no-tests fail -E 'test(=supported::the_longer_fused_counter_holds_over_its_bounded_space)'
 
       - name: Run documentation examples
         run: cargo +1.98.1 test -j1 --doc --workspace --all-features --locked
@@ -145,7 +214,25 @@ jobs:
         run: cargo +1.98.1 clippy --workspace --all-targets --all-features --locked -- -D warnings
 
       - name: Run the complete external test wall
-        run: cargo +1.98.1 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast
+        run: cargo +1.98.1 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast --no-tests fail
+
+      - *compiler-core
+      - *compiler-host
+      - *proc-host
+      - *harness-core
+      - *harness-preemption
+      - *facade-diet
+      - *facade-harness
+      - *facade-preemption
+      - *facade-full
+      - *diet-owner
+      - *diet-recipe
+      - *diet-carrier
+      - *maximal-recipe
+      - *interleave-exhaustive
+      - *interleave-sampled
+      - *network-long
+      - *preemption-long
 
       - name: Run documentation examples
         run: cargo +1.98.1 test -j1 --doc --workspace --all-features --locked
@@ -205,7 +292,25 @@ jobs:
         run: cargo +1.98.1 clippy --workspace --all-targets --all-features --locked -- -D warnings
 
       - name: Run the complete external test wall
-        run: cargo +1.98.1 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast
+        run: cargo +1.98.1 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast --no-tests fail
+
+      - *compiler-core
+      - *compiler-host
+      - *proc-host
+      - *harness-core
+      - *harness-preemption
+      - *facade-diet
+      - *facade-harness
+      - *facade-preemption
+      - *facade-full
+      - *diet-owner
+      - *diet-recipe
+      - *diet-carrier
+      - *maximal-recipe
+      - *interleave-exhaustive
+      - *interleave-sampled
+      - *network-long
+      - *preemption-long
 
       - name: Run documentation examples
         run: cargo +1.98.1 test -j1 --doc --workspace --all-features --locked
