@@ -44,7 +44,7 @@ fn compiled(source: &str) -> Result<Output, String> {
     std::fs::write(source_dir.join("main.rs"), source).map_err(|error| error.to_string())?;
     let output = Command::new("rustup")
         .arg("run")
-        .arg("1.98.0")
+        .arg("1.98.1")
         .arg("cargo")
         .arg("build")
         .arg("--offline")

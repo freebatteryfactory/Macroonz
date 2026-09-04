@@ -14,7 +14,7 @@ mod guard;
 struct AbsolutePath(PathBuf);
 
 /// The stable product toolchain whose coverage format this home qualifies.
-pub const RUSTC_COVERAGE_TOOLCHAIN: &str = "1.98.0";
+pub const RUSTC_COVERAGE_TOOLCHAIN: &str = "1.98.1";
 
 /// One logical source root and its physical checkout seat.
 #[derive(Debug, Clone, PartialEq, Eq)]

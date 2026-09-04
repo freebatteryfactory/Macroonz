@@ -41,7 +41,7 @@ fn observe_in(scratch: &Path, source: &str, extra: &[&str]) -> Result<Output, St
     let mut command = Command::new("rustup");
     command
         .arg("run")
-        .arg("1.98.0")
+        .arg("1.98.1")
         .arg("rustc")
         .arg(&source_path)
         .arg("--edition=2024")

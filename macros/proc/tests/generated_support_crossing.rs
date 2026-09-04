@@ -21,7 +21,7 @@ fn write_specimen(scratch: &Path) -> Result<(), String> {
 name = "macroonz-generated-support-observer"
 version = "0.0.0"
 edition = "2024"
-rust-version = "1.98.0"
+rust-version = "1.98.1"
 publish = false
 autobins = false
 autoexamples = false

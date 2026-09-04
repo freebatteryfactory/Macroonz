@@ -87,7 +87,7 @@ fn write_specimen_for_edition(
 name = "renamed-recipe-adopter"
 version = "0.0.0"
 edition = "{edition}"
-rust-version = "1.98.0"
+rust-version = "1.98.1"
 publish = false
 autobins = false
 autoexamples = false

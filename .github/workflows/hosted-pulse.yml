@@ -36,10 +36,10 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git/db
-          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.0-${{ hashFiles('Cargo.lock') }}
+          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.1-${{ hashFiles('Cargo.lock') }}
 
       - name: Install the declared Rust toolchain
-        run: rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy --component rust-src --component llvm-tools-preview --target wasm32-unknown-unknown
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy --component rust-src --component llvm-tools-preview --target wasm32-unknown-unknown
 
       - name: Install declared qualification tools
         uses: taiki-e/install-action@5b4d68e2e660441203ab128a23676f1e4faf1532 # v2.86.3
@@ -50,42 +50,42 @@ jobs:
       - name: Record host and tool identities
         run: |
           uname -a
-          rustc +1.98.0 --version --verbose
-          cargo +1.98.0 --version --verbose
+          rustc +1.98.1 --version --verbose
+          cargo +1.98.1 --version --verbose
           cargo nextest --version
           cargo deny --version
 
       - name: Fetch the locked dependency graph
         run: |
-          cargo +1.98.0 fetch --locked
+          cargo +1.98.1 fetch --locked
           echo "CARGO_NET_OFFLINE=true" >> "$GITHUB_ENV"
 
       - name: Check formatting
-        run: cargo +1.98.0 fmt --all -- --check
+        run: cargo +1.98.1 fmt --all -- --check
 
       - name: Check every target and feature
-        run: cargo +1.98.0 check --workspace --all-targets --all-features --locked
+        run: cargo +1.98.1 check --workspace --all-targets --all-features --locked
 
       - name: Run the strict lint wall
-        run: cargo +1.98.0 clippy --workspace --all-targets --all-features --locked -- -D warnings
+        run: cargo +1.98.1 clippy --workspace --all-targets --all-features --locked -- -D warnings
 
       - name: Run the complete external test wall
-        run: cargo +1.98.0 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast
+        run: cargo +1.98.1 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast
 
       - name: Run documentation examples
-        run: cargo +1.98.0 test -j1 --doc --workspace --all-features --locked
+        run: cargo +1.98.1 test -j1 --doc --workspace --all-features --locked
 
       - name: Check dependency policy
         run: cargo deny --workspace check
 
       - name: Build warnings-denied documentation
-        run: cargo +1.98.0 doc --workspace --all-features --no-deps --locked
+        run: cargo +1.98.1 doc --workspace --all-features --no-deps --locked
 
       - name: Check the all-feature Wasm posture
-        run: cargo +1.98.0 check --workspace --all-features --target wasm32-unknown-unknown --locked
+        run: cargo +1.98.1 check --workspace --all-features --target wasm32-unknown-unknown --locked
 
       - name: Run the stable-rustc coverage crossing
-        run: cargo +1.98.0 run -j1 --example rustc_coverage --features harness --locked
+        run: cargo +1.98.1 run -j1 --example rustc_coverage --features harness --locked
 
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --
@@ -115,10 +115,10 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git/db
-          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.0-${{ hashFiles('Cargo.lock') }}
+          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.1-${{ hashFiles('Cargo.lock') }}
 
       - name: Install the declared Rust toolchain
-        run: rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy --component rust-src --component llvm-tools-preview --target wasm32-unknown-unknown
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy --component rust-src --component llvm-tools-preview --target wasm32-unknown-unknown
 
       - name: Install the declared test runner
         uses: taiki-e/install-action@5b4d68e2e660441203ab128a23676f1e4faf1532 # v2.86.3
@@ -129,29 +129,29 @@ jobs:
       - name: Record host and tool identities
         run: |
           uname -a
-          rustc +1.98.0 --version --verbose
-          cargo +1.98.0 --version --verbose
+          rustc +1.98.1 --version --verbose
+          cargo +1.98.1 --version --verbose
           cargo nextest --version
 
       - name: Fetch the locked dependency graph
         run: |
-          cargo +1.98.0 fetch --locked
+          cargo +1.98.1 fetch --locked
           echo "CARGO_NET_OFFLINE=true" >> "$GITHUB_ENV"
 
       - name: Check every target and feature
-        run: cargo +1.98.0 check --workspace --all-targets --all-features --locked
+        run: cargo +1.98.1 check --workspace --all-targets --all-features --locked
 
       - name: Run the strict lint wall
-        run: cargo +1.98.0 clippy --workspace --all-targets --all-features --locked -- -D warnings
+        run: cargo +1.98.1 clippy --workspace --all-targets --all-features --locked -- -D warnings
 
       - name: Run the complete external test wall
-        run: cargo +1.98.0 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast
+        run: cargo +1.98.1 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast
 
       - name: Run documentation examples
-        run: cargo +1.98.0 test -j1 --doc --workspace --all-features --locked
+        run: cargo +1.98.1 test -j1 --doc --workspace --all-features --locked
 
       - name: Run the stable-rustc coverage crossing
-        run: cargo +1.98.0 run -j1 --example rustc_coverage --features harness --locked
+        run: cargo +1.98.1 run -j1 --example rustc_coverage --features harness --locked
 
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --
@@ -173,10 +173,10 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git/db
-          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.0-${{ hashFiles('Cargo.lock') }}
+          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.1-${{ hashFiles('Cargo.lock') }}
 
       - name: Install the declared Rust toolchain
-        run: rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy --component rust-src --component llvm-tools-preview --target wasm32-unknown-unknown
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy --component rust-src --component llvm-tools-preview --target wasm32-unknown-unknown
 
       - name: Install the declared test runner
         uses: taiki-e/install-action@5b4d68e2e660441203ab128a23676f1e4faf1532 # v2.86.3
@@ -188,30 +188,30 @@ jobs:
         shell: pwsh
         run: |
           Get-ComputerInfo | Select-Object WindowsProductName, WindowsVersion, OsArchitecture
-          rustc +1.98.0 --version --verbose
-          cargo +1.98.0 --version --verbose
+          rustc +1.98.1 --version --verbose
+          cargo +1.98.1 --version --verbose
           cargo nextest --version
 
       - name: Fetch the locked dependency graph
         shell: pwsh
         run: |
-          cargo +1.98.0 fetch --locked
+          cargo +1.98.1 fetch --locked
           Add-Content -LiteralPath $env:GITHUB_ENV -Value 'CARGO_NET_OFFLINE=true'
 
       - name: Check every target and feature
-        run: cargo +1.98.0 check --workspace --all-targets --all-features --locked
+        run: cargo +1.98.1 check --workspace --all-targets --all-features --locked
 
       - name: Run the strict lint wall
-        run: cargo +1.98.0 clippy --workspace --all-targets --all-features --locked -- -D warnings
+        run: cargo +1.98.1 clippy --workspace --all-targets --all-features --locked -- -D warnings
 
       - name: Run the complete external test wall
-        run: cargo +1.98.0 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast
+        run: cargo +1.98.1 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast
 
       - name: Run documentation examples
-        run: cargo +1.98.0 test -j1 --doc --workspace --all-features --locked
+        run: cargo +1.98.1 test -j1 --doc --workspace --all-features --locked
 
       - name: Run the stable-rustc coverage crossing
-        run: cargo +1.98.0 run -j1 --example rustc_coverage --features harness --locked
+        run: cargo +1.98.1 run -j1 --example rustc_coverage --features harness --locked
 
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --

@@ -16,7 +16,7 @@ use std::path::PathBuf;
 
 #[test]
 fn declared_execution_inputs_refuse_ambient_paths() -> Result<(), FuzzRoadFailure> {
-    assert_eq!(RUSTC_COVERAGE_TOOLCHAIN, "1.98.0");
+    assert_eq!(RUSTC_COVERAGE_TOOLCHAIN, "1.98.1");
     assert_eq!(
         InstrumentedTarget::declared(PathBuf::new(), Vec::new()),
         Err(RustcProfileRequestRefusal::Target)

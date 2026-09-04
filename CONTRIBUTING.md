@@ -14,15 +14,15 @@ Run the complete wall from the repository root before you ask for acceptance.
 Every Cargo operation is locked to the declared dependency graph, and every compilation operation uses the pinned stable Rust 1.98 toolchain.
 
 ```sh
-cargo +1.98.0 fmt --all -- --check
-cargo +1.98.0 check -j1 --workspace --all-targets --all-features --locked
-cargo +1.98.0 clippy -j1 --workspace --all-targets --all-features --locked -- -D warnings
-cargo +1.98.0 nextest run -j1 --workspace --all-features --locked --no-fail-fast
-cargo +1.98.0 test -j1 --doc --workspace --all-features --locked
+cargo +1.98.1 fmt --all -- --check
+cargo +1.98.1 check -j1 --workspace --all-targets --all-features --locked
+cargo +1.98.1 clippy -j1 --workspace --all-targets --all-features --locked -- -D warnings
+cargo +1.98.1 nextest run -j1 --workspace --all-features --locked --no-fail-fast
+cargo +1.98.1 test -j1 --doc --workspace --all-features --locked
 cargo deny --workspace check
-cargo +1.98.0 doc -j1 --workspace --all-features --no-deps --locked
-cargo +1.98.0 check -j1 --workspace --all-features --target wasm32-unknown-unknown --locked
-cargo +1.98.0 run -j1 --example rustc_coverage --features harness --locked
+cargo +1.98.1 doc -j1 --workspace --all-features --no-deps --locked
+cargo +1.98.1 check -j1 --workspace --all-features --target wasm32-unknown-unknown --locked
+cargo +1.98.1 run -j1 --example rustc_coverage --features harness --locked
 ```
 
 Set `RUSTDOCFLAGS` to `-Dwarnings` for the documentation command so rustdoc warnings are part of the wall.

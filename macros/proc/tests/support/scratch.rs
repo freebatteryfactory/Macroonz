@@ -116,7 +116,7 @@ pub(crate) fn cargo(scratch: &Path, arguments: &[&str]) -> Result<Output, String
         .split_first()
         .ok_or_else(|| "a Cargo observation requires one subcommand".to_owned())?;
     Command::new("cargo")
-        .arg("+1.98.0")
+        .arg("+1.98.1")
         .arg(subcommand)
         .arg("--manifest-path")
         .arg(scratch.join("Cargo.toml"))
