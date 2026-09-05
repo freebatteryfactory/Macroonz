@@ -3,6 +3,9 @@
 #[path = "memory_report.rs"]
 mod memory;
 
+#[path = "build_report.rs"]
+mod build;
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::{Read, Write};
 
