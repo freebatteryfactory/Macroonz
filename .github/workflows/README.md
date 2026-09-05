@@ -70,6 +70,31 @@ Deadline delivery remains subject to operating-system scheduling latency.
 Case, byte, export, coverage-point, and retained-corpus bounds belong to the declared campaign; reaching an execution ceiling cannot be reported as an unbounded search.
 Stable line-coverage guidance is neither edge-coverage fuzzing nor a proof that the grammar has no defects.
 
+## Changed-source mutation
+
+A separate Linux x64 job enumerates compiler and proc mutation candidates against the declared comparison commit, with exact rename detection retaining move-only exemptions.
+The comparison is never silently replaced by the latest main branch.
+All selected compiler candidates must belong to one nonoverlapping execution family or an explicitly reviewed, exact-source equivalence before mutation begins.
+An empty family, missing candidate, repeated candidate, changed equivalence source, or new unmapped proc candidate refuses the qualification.
+An empty proc enumeration describes the tool's candidate boundary, not proc behavior coverage.
+
+The compiler families execute their owning integration targets, including the diagnostic and magnitude observers for token capture.
+Authored span mutations execute the existing real proc observer through both the backend's native baseline and mutated builds.
+The ordinary release wall still owns the complete package-adoption population and explicitly named long campaigns; per-mutation selection does not replace them.
+Cargo jobs, backend workers and test threads are bounded, the lint wall stays active, and both build and test phases have explicit deadlines.
+The job deadline bounds the combined campaign; a terminated campaign is incomplete rather than a smaller passing denominator.
+
+Each family has fresh copied source and build storage, with no compiled output inherited from another mutation family or the current-source observer.
+The runner compares recorded, current and retained executed-copy source bytes after completion.
+The existing harness integration target reads the unchanged native console and its declared command, tool, target and source material through the public backend adapter.
+It reconciles exact mutant identities and permits only reported assertion rejections or compiler-unviable variants; misses, timeouts and infrastructure failures are not credited as catches.
+Unparsed console lines remain visible, and the receiver does not infer activation, semantic ownership or operator-family membership.
+Reviewed empty-vector equivalences remain separate source-bound dispositions, never synthetic catches or a general survivor exception.
+
+The tool does not expand every macro definition and retains its declared default call exclusions.
+Source mutation coverage is therefore bounded by the enumerated instrument, not a proof that every incorrect program would be detected.
+Native reports remain disposable; successful source and report custody precedes exact build cleanup, and no mutation build cache is reused for current-source verification.
+
 ## Reproducibility and custody
 
 The workflow installs the repository's exact stable Rust toolchain and exact auxiliary tool versions.

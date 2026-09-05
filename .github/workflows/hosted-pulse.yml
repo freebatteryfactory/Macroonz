@@ -394,6 +394,203 @@ jobs:
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --
 
+  mutation-campaign:
+    name: Linux x64 changed-source mutation
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 300
+    defaults:
+      run:
+        shell: bash
+    env:
+      MUTATION_ROOT: ${{ github.workspace }}/target/qualification/mutation
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target/qualification/mutation-reader
+      MUTATION_BASELINE: 90bd660190fbeae8f7088d8e55f53c0c0dc8fcee
+
+    steps:
+      - name: Check out the declared revision and its comparison history
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Restore declared Cargo registry material
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git/db
+          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.1-${{ hashFiles('Cargo.lock') }}
+
+      - name: Install the declared Rust toolchain
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy --component rust-src --component llvm-tools-preview --target wasm32-unknown-unknown
+
+      - name: Install declared mutation tools
+        uses: taiki-e/install-action@5b4d68e2e660441203ab128a23676f1e4faf1532 # v2.86.3
+        with:
+          tool: cargo-nextest@0.9.132,cargo-mutants@27.0.0
+          fallback: none
+
+      - name: Record host and tool identities
+        run: |
+          uname -a
+          rustc +1.98.1 --version --verbose
+          cargo +1.98.1 --version --verbose
+          cargo nextest --version
+          cargo mutants --version
+          git --version
+          bash --version
+          df -h "$GITHUB_WORKSPACE"
+
+      - name: Fetch the locked dependency graph
+        run: |
+          cargo +1.98.1 fetch --locked
+          echo "CARGO_NET_OFFLINE=true" >> "$GITHUB_ENV"
+
+      - name: Qualify the current-campaign receiver
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --all-features --test trust_opening_evidence --locked --no-tests fail
+
+      - name: Qualify the exact proc-span selection
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-macros --all-features --test recipe_facade_crossing --locked --no-tests fail -E 'test(=span_custody::real_proc_tokens_preserve_recipe_spans_and_normalization)'
+
+      - name: Declare the complete changed-source denominator
+        run: |
+          git diff --exit-code HEAD --
+          git merge-base --is-ancestor "$MUTATION_BASELINE" HEAD
+          mkdir -p "$MUTATION_ROOT"
+          git rev-parse HEAD HEAD^{tree}
+          git diff --find-renames=100% --binary --output="$MUTATION_ROOT/source.patch" "$MUTATION_BASELINE"..HEAD --
+          selection=(--in-diff "$MUTATION_ROOT/source.patch" --colors never --line-col true)
+          cargo +1.98.1 mutants --manifest-path macros/compiler/Cargo.toml "${selection[@]}" --list > "$MUTATION_ROOT/compiler.txt"
+          cargo +1.98.1 mutants --manifest-path macros/proc/Cargo.toml "${selection[@]}" --list > "$MUTATION_ROOT/proc.txt"
+          test -s "$MUTATION_ROOT/compiler.txt"
+          if test -s "$MUTATION_ROOT/proc.txt"; then
+            printf 'Proc source acquired mutation candidates requiring an explicit owning test selection:\n' >&2
+            cat "$MUTATION_ROOT/proc.txt" >&2
+            exit 1
+          fi
+          printf 'Proc source has no tool-generated candidates; real proc witnesses remain separately required.\n'
+          test "$(git rev-parse HEAD:macros/compiler/src/recipe/issue/type_contract.rs)" = 2fc3070bdb774170fecfd0ad96cdd9256ff450d8
+          test "$(git rev-parse HEAD:macros/compiler/src/token/capture/text/type_contract.rs)" = 80e5062fd7de16abcd567f539aa97a5b64ae88da
+          printf '%s\n' \
+            'macros/compiler/src/recipe/issue/type_contract.rs:598:9: replace <impl Refused for RecipeError>::related -> Vec<Vec<u8>> with vec![]' \
+            "macros/compiler/src/token/capture/text/type_contract.rs:112:9: replace <impl Refused for IntrinsicTextRead<'_>>::related -> Vec<Vec<u8>> with vec![]" \
+            > "$MUTATION_ROOT/equivalent.txt"
+          while IFS= read -r variant; do
+            test "$(grep -Fxc -- "$variant" "$MUTATION_ROOT/compiler.txt")" = 1
+          done < "$MUTATION_ROOT/equivalent.txt"
+          printf 'Reviewed source-bound equivalences, not assertion catches:\n'
+          cat "$MUTATION_ROOT/equivalent.txt"
+          sha256sum "$MUTATION_ROOT/source.patch" "$MUTATION_ROOT/compiler.txt" "$MUTATION_ROOT/equivalent.txt"
+
+      - name: Execute and reconcile every declared mutation family
+        run: |
+          observer_target="$CARGO_TARGET_DIR"
+          cargo_executable="$(rustup which --toolchain 1.98.1 cargo)"
+          common=(--manifest-path macros/compiler/Cargo.toml --in-diff "$MUTATION_ROOT/source.patch"
+            --copy-target false --jobs 1 --jobserver-tasks 1 --cap-lints false
+            --baseline run --timeout 300 --build-timeout 300 --leak-dirs
+            --all-features --caught --unviable --no-times --colors never --line-col true --annotations none
+            -C --locked -C --offline)
+          equivalent='(RecipeError|IntrinsicTextRead).*::related.*with vec!\[\]$'
+          spans='(Recipe::module_body_at|RecipeRelationRow::effect_binding_at).*with None$'
+          : > "$MUTATION_ROOT/planned.txt"
+          for family in recipe token descriptor shared spans; do
+            filters=()
+            tests=()
+            trailing=(--test-threads=1)
+            case "$family" in
+              recipe)
+                filters=(--file 'macros/compiler/src/recipe/**' --exclude-re "$equivalent" --exclude-re "$spans")
+                tests=(recipe_vertical_slice recipe_grammar_adversary authored_rust_items)
+                ;;
+              token)
+                filters=(--file 'macros/compiler/src/token/**' --exclude-re "$equivalent")
+                tests=(token_semantics captured_grammar_mechanics captured_literal_forms token_normalization
+                  host_capture_identity structural_token_projection authored_rust_items published_stamps
+                  independent_identity_transcripts recipe_vertical_slice refusal_line_grammar declared_magnitudes)
+                ;;
+              descriptor)
+                filters=(--file 'macros/compiler/src/descriptor/**')
+                tests=(attribute_carrier_roads declared_modules descriptor_content_receipts shadow_faces
+                  recipe_vertical_slice refusal_line_grammar compile_refusals)
+                ;;
+              shared)
+                filters=(--file 'macros/compiler/src/**' --exclude 'macros/compiler/src/recipe/**'
+                  --exclude 'macros/compiler/src/token/**' --exclude 'macros/compiler/src/descriptor/**')
+                tests=(bounded_collections kind_accounting planned_output_sets rendered_outputs
+                  independent_identity_transcripts diagnostic_related_sets content_bound_identities
+                  proved_closures bound_expansions covered_explanations published_stamps declared_modules
+                  descriptor_content_receipts structural_token_projection refusal_line_grammar
+                  declared_magnitudes compile_refusals recipe_vertical_slice)
+                ;;
+              spans)
+                filters=(--file 'macros/compiler/src/recipe/**' --re "$spans"
+                  -C --test=recipe_facade_crossing -C --package=macroonz-macros)
+                trailing=(span_custody::real_proc_tokens_preserve_recipe_spans_and_normalization --exact --nocapture --test-threads=1)
+                ;;
+            esac
+            root="$MUTATION_ROOT/$family"
+            test ! -e "$root"
+            mkdir -p "$root/input/recorded" "$root/scratch"
+            export CARGO_TARGET_DIR="$root/build" TMPDIR="$root/scratch" TMP="$root/scratch" TEMP="$root/scratch"
+            command=("$cargo_executable" mutants "${common[@]}" "${filters[@]}" --output "$root/report")
+            "${command[@]}" --list > "$root/selected.txt"
+            test -s "$root/selected.txt"
+            : > "$root/input/expected.tsv"
+            while IFS=: read -r file line column damage; do
+              printf '%s\t%s\t%s\t%s\n' "$file" "$line" "$column" "${damage# }" >> "$root/input/expected.tsv"
+            done < "$root/selected.txt"
+            cut -f1 "$root/input/expected.tsv" | LC_ALL=C sort -u > "$root/input/sources.txt"
+            while IFS= read -r file; do
+              git ls-files --error-unmatch -- "$file" > /dev/null
+              mkdir -p "$root/input/recorded/$(dirname "$file")"
+              cp -- "$file" "$root/input/recorded/$file"
+              cmp -- "$file" "$root/input/recorded/$file"
+            done < "$root/input/sources.txt"
+            command+=(--)
+            for test_target in "${tests[@]}"; do command+=(--test "$test_target"); done
+            command+=(-- "${trailing[@]}")
+            printf '%s\n' "${command[@]}" > "$root/input/command.txt"
+            printf '%s\n' 27.0.0 > "$root/input/version.txt"
+            rustc +1.98.1 -vV | sed -n 's/^host: //p' > "$root/input/target.txt"
+            rustc +1.98.1 --version > "$root/input/toolchain.txt"
+            cat "$root/selected.txt" >> "$MUTATION_ROOT/planned.txt"
+          done
+          cat "$MUTATION_ROOT/planned.txt" "$MUTATION_ROOT/equivalent.txt" | LC_ALL=C sort > "$MUTATION_ROOT/accounted.txt"
+          LC_ALL=C sort "$MUTATION_ROOT/compiler.txt" > "$MUTATION_ROOT/declared.txt"
+          uniq -d "$MUTATION_ROOT/accounted.txt" > "$MUTATION_ROOT/duplicates.txt"
+          test ! -s "$MUTATION_ROOT/duplicates.txt"
+          cmp "$MUTATION_ROOT/declared.txt" "$MUTATION_ROOT/accounted.txt"
+          : > "$MUTATION_ROOT/executed.txt"
+          for family in recipe token descriptor shared spans; do
+            root="$MUTATION_ROOT/$family"
+            export CARGO_TARGET_DIR="$root/build" TMPDIR="$root/scratch" TMP="$root/scratch" TEMP="$root/scratch"
+            mapfile -t command < "$root/input/command.txt"
+            status=0
+            "${command[@]}" 2>&1 | tee "$root/input/console.txt" || status=$?
+            mapfile -t copies < <(find "$root/scratch" -mindepth 1 -maxdepth 1 -type d -name 'cargo-mutants-*')
+            test "${#copies[@]}" = 1
+            while IFS= read -r file; do
+              cmp -- "$file" "$root/input/recorded/$file"
+              cmp -- "${copies[0]}/$file" "$root/input/recorded/$file"
+            done < "$root/input/sources.txt"
+            sha256sum "$root/input/console.txt" "$root/input/command.txt" "$root/selected.txt" "$root/report/mutants.out/outcomes.json"
+            mkdir -p "$observer_target/tmp/mutation-campaign"
+            cp -R "$root/input/." "$observer_target/tmp/mutation-campaign/"
+            CARGO_TARGET_DIR="$observer_target" cargo +1.98.1 nextest run -j1 -p macroonz-harness --all-features \
+              --test trust_opening_evidence --locked --run-ignored only --no-tests fail --success-output final \
+              -E 'test(=campaign_input::a_completed_backend_campaign_matches_its_declared_roster_and_current_sources)'
+            test "$status" = 0
+            cat "$root/selected.txt" >> "$MUTATION_ROOT/executed.txt"
+            case "$CARGO_TARGET_DIR" in
+              "$GITHUB_WORKSPACE/target/qualification/mutation/"*/build) cargo +1.98.1 clean --target-dir "$CARGO_TARGET_DIR" ;;
+              *) printf 'Unexpected cleanup target\n' >&2; exit 1 ;;
+            esac
+          done
+          cmp "$MUTATION_ROOT/planned.txt" "$MUTATION_ROOT/executed.txt"
+          wc -l "$MUTATION_ROOT/executed.txt" "$MUTATION_ROOT/equivalent.txt" "$MUTATION_ROOT/accounted.txt"
+          git diff --exit-code HEAD --
+
   source-coverage:
     name: Linux x64 source coverage
     runs-on: blacksmith-4vcpu-ubuntu-2404
