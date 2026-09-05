@@ -7,6 +7,7 @@ mod inspect;
 mod items;
 mod preserve;
 mod project;
+mod spelling;
 mod traits;
 mod type_contract;
 mod types;
@@ -15,12 +16,12 @@ pub use behavior::{
     consuming_receiver, exclusive_receiver, function, function_item, function_signature, match_arm,
     match_expression, pinned_receiver, shared_receiver, typed_parameter,
 };
-pub(crate) use compose::segmented_twin_path;
 pub use compose::{
     absolute_path, and_all, attribute, bound_local, bound_path, call, comma, comma_many, constant,
-    documentation, equality, group, metavariable, method_call, method_chain, rendered_identifier,
-    rendered_name, result_type, roster, rust_keyword, text_pair, twin_path,
+    documentation, equality, group, metavariable, method_call, method_chain, result_type, roster,
+    text_pair, twin_path,
 };
+pub(crate) use compose::{segmented_twin_path, vector};
 pub use items::{
     decorated, enumeration, generic_parameters, inline_module, named_field, named_struct,
     named_variant, tuple_struct, tuple_variant, type_alias, unit_struct, unit_variant, use_item,
@@ -29,6 +30,7 @@ pub use items::{
 pub(crate) use preserve::preserved_tree;
 pub use project::{keyed_assignment_items, keyed_roster_items};
 pub use project::{keyed_assignment_slice, keyed_roster_slice};
+pub use spelling::{rendered_identifier, rendered_name};
 pub use traits::{
     associated_constant, associated_function, associated_type, implementation, trait_declaration,
 };

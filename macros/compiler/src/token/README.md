@@ -3,6 +3,7 @@
 What a producer hands the compiler, and what a renderer hands back.
 
 The private `capture/` and `generation/` homes own the two directions while this module keeps the established public `token` paths unchanged.
+The shared rendered-path magnitude lives at this seam, while each declaring home retains its established public compatibility constant.
 
 ## Why it is typed
 

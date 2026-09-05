@@ -9,6 +9,7 @@ It cannot carry a callable, a clock, a judgment, or a report.
 The encoder preserves authored axis order and the exact byte grammar stated by the public row constructor.
 
 Construction refuses a vacuous or repeated input axis, invalid budgets, an empty present formula, and a row whose canonical preimage exceeds its declared encoding width.
+The descriptor adapter establishes that final public refusal before delegating the bytes to the shared identity framing; the refusal is unreachable on every supported target and remains as a compatibility ceiling.
 The public constructor contract and an independent external transcript establish the exact row preimage.
 
 The child is private.

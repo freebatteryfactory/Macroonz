@@ -5,7 +5,7 @@
 use super::super::simulation::{
     DeliveryCopy, Link, NetworkSchedule, SendOrdinal, SendRefusal, SimNetRefusal, Tick, Topology,
 };
-use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use crate::identity::{DomainTag, IdentityProfileVersion};
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -96,11 +96,13 @@ pub struct TranscriptEntry {
     copy: DeliveryCopy,
 }
 
-/// The content address of one complete transcript body.
-///
-/// Only the writer and the reader mint one, and both derive it under [`TRANSCRIPT_TAG`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct TranscriptAddress(ContentAddress);
+crate::identity::content_address_reference! {
+    /// The content address of one complete transcript body.
+    ///
+    /// Only the writer and the reader mint one, and both derive it under [`TRANSCRIPT_TAG`].
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct TranscriptAddress;
+}
 
 /// One admitted transcript: its topology, source material, deliveries in delivery order, and the envelope carrying them.
 ///

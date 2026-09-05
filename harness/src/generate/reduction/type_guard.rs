@@ -5,12 +5,12 @@
 
 use super::{
     ByteReducerExecution, ByteReducerId, FingerprintPreservation, FingerprintProbe,
-    ReductionBudget, ReductionCensus, ReductionEvidence, ReductionHalt, ReductionOutcome,
-    ReductionPlan, ReductionPlanRefusal, ReductionProbeBinding, ReductionProbeRefusal,
-    SemanticCandidateRefusal, SemanticCandidates, SemanticReducerBinding, SemanticReducerCall,
-    SemanticReducerExecution, SemanticReducerId, ShrinkVerdict,
+    ReductionBudget, ReductionCensus, ReductionCensusSeat, ReductionEvidence, ReductionHalt,
+    ReductionOutcome, ReductionPlan, ReductionPlanRefusal, ReductionProbeBinding,
+    ReductionProbeRefusal, SemanticCandidateRefusal, SemanticCandidates, SemanticReducerBinding,
+    SemanticReducerCall, SemanticReducerExecution, SemanticReducerId, ShrinkVerdict,
 };
-use crate::descriptor::{GeneratedSupportSchemaId, NameRefusal, NamespacedName, RevisionBinding};
+use crate::descriptor::{GeneratedSupportSchemaId, RevisionBinding, namespaced_reference};
 use crate::report::{
     Fingerprint, GenerationProfile, MinimizationProfile, ReplayPosture, RunAttempt,
     TrialConclusion, TrialReport, TrialRunStanding,
@@ -19,28 +19,7 @@ use std::collections::BTreeSet;
 
 // The reduction plan and the reducers it binds.
 
-impl SemanticReducerId {
-    /// This reducer, parsed from the owner that declares it and the spelling it carries.
-    ///
-    /// # Errors
-    ///
-    /// Refuses an empty namespace, then an empty stem.
-    pub fn named(namespace: &'static str, stem: &'static str) -> Result<Self, NameRefusal> {
-        NamespacedName::named(namespace, stem).map(Self)
-    }
-
-    /// This reducer, over a name already parsed.
-    #[must_use]
-    pub const fn over(name: NamespacedName) -> Self {
-        Self(name)
-    }
-
-    /// The namespaced name this reducer carries.
-    #[must_use]
-    pub const fn name(self) -> NamespacedName {
-        self.0
-    }
-}
+namespaced_reference!(SemanticReducerId);
 
 impl SemanticCandidates {
     /// The ordered candidates one semantic reducer proposes for this input.
@@ -318,58 +297,78 @@ impl ReductionProbeBinding {
 
 // What a reduction counts and leaves behind.
 
-impl ReductionCensus {
-    /// An accounting opened with every seat at zero.
-    #[must_use]
-    pub const fn opening() -> Self {
-        Self {
-            accepted: 0,
-            fingerprint_moved: 0,
-            no_failure: 0,
-        }
-    }
-
-    /// Count one candidate under the verdict it earned.
-    pub fn count(&mut self, verdict: ShrinkVerdict) {
-        match verdict {
-            ShrinkVerdict::Accepted => self.accepted = self.accepted.saturating_add(1),
-            ShrinkVerdict::RejectedFingerprintMoved { found: _ } => {
-                self.fingerprint_moved = self.fingerprint_moved.saturating_add(1);
-            }
-            ShrinkVerdict::RejectedNoFailure => {
-                self.no_failure = self.no_failure.saturating_add(1);
+macro_rules! implement_reduction_census {
+    (
+        $(
+            $(#[$variant_meta:meta])*
+            $variant:ident
+            $( { $( $(#[$field_meta:meta])* $field:ident: $field_type:ty, )+ } )?
+            => $seat:ident,
+        )+
+    ) => {
+        crate::census::implement_census! {
+            impl ReductionCensus {
+                count: u32,
+                zero: 0u32,
+                seat: ReductionCensusSeat,
+                context {}
+                fields {
+                    $( $variant => $seat, )+
+                }
             }
         }
-    }
 
-    /// How many candidates carried the fingerprint through.
-    #[must_use]
-    pub const fn accepted(self) -> u32 {
-        self.accepted
-    }
+        impl ReductionCensus {
+            /// An accounting opened with every seat at zero.
+            #[must_use]
+            pub const fn opening() -> Self {
+                Self::empty()
+            }
 
-    /// How many candidates failed under a different fingerprint.
-    ///
-    /// Every one of these is a shrink the reduction refused, so the count is the evidence that minimization stayed on the bug it started from.
-    #[must_use]
-    pub const fn fingerprint_moved(self) -> u32 {
-        self.fingerprint_moved
-    }
+            /// Count one candidate under the verdict it earned.
+            pub fn count(&mut self, verdict: ShrinkVerdict) {
+                let seat = match verdict {
+                    $(
+                        ShrinkVerdict::$variant
+                        $( { $( $field: _, )+ } )?
+                            => ReductionCensusSeat::$variant,
+                    )+
+                };
+                self.increment(seat, 1u32);
+            }
 
-    /// How many candidates stopped failing.
-    #[must_use]
-    pub const fn no_failure(self) -> u32 {
-        self.no_failure
-    }
+            /// How many candidates carried the fingerprint through.
+            #[must_use]
+            pub const fn accepted(self) -> u32 {
+                self.count_at(ReductionCensusSeat::Accepted)
+            }
 
-    /// How many candidate probes were spent, over every seat.
-    #[must_use]
-    pub const fn probes(self) -> u32 {
-        self.accepted
-            .saturating_add(self.fingerprint_moved)
-            .saturating_add(self.no_failure)
-    }
+            /// How many candidates failed under a different fingerprint.
+            ///
+            /// Every one of these is a shrink the reduction refused, so the count is the evidence that minimization stayed on the bug it started from.
+            #[must_use]
+            pub const fn fingerprint_moved(self) -> u32 {
+                self.count_at(ReductionCensusSeat::RejectedFingerprintMoved)
+            }
+
+            /// How many candidates stopped failing.
+            #[must_use]
+            pub const fn no_failure(self) -> u32 {
+                self.count_at(ReductionCensusSeat::RejectedNoFailure)
+            }
+
+            /// How many candidate probes were spent, over every seat.
+            #[must_use]
+            pub const fn probes(self) -> u32 {
+                self.accepted()
+                    .saturating_add(self.fingerprint_moved())
+                    .saturating_add(self.no_failure())
+            }
+        }
+    };
 }
+
+with_shrink_verdicts!(implement_reduction_census);
 
 impl ReductionOutcome {
     /// What one reduction produced.

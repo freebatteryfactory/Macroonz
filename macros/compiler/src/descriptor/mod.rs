@@ -10,12 +10,16 @@ pub mod shadow;
 pub mod trial;
 
 mod binding;
+mod clause;
 mod emitting;
+mod fault;
 pub mod vocabulary;
 
 mod composition;
 mod type_contract;
 mod types;
+
+pub(crate) use type_contract::impl_helper_capture_contract;
 
 pub use types::{
     CaptureCause, CaptureIssue, Composition, CompositionError, CompositionIssue,

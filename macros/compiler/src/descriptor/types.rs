@@ -18,7 +18,7 @@ pub use guard::{rendered_identifier, rendered_name};
 /// Segments one rendered path may carry after the crate binding it is rooted at.
 ///
 /// A path reaching deeper than this has stopped naming an item and started describing a tree, and the repair is a re-export at the address rather than a longer spelling here.
-pub const PATH_SEGMENT_LIMIT: usize = 8;
+pub const PATH_SEGMENT_LIMIT: usize = crate::token::RENDERED_PATH_SEGMENT_LIMIT;
 
 /// Providers one composition may declare.
 ///

@@ -15,33 +15,25 @@ use crate::depot::operator_families::OPERATOR_FAMILIES;
 use crate::depot::types::OperatorFamily;
 use crate::muterprater::{InterpreterAvailability, ScopeShape};
 
-impl ArtifactMutation {
-    /// The damage rendered for a person.
-    ///
-    /// A projection, and no decision anywhere consults it.
-    #[must_use]
-    pub const fn described(self) -> &'static str {
-        match self {
-            Self::OrderPermuted => "the emitted members are written in reverse of declared order",
-            Self::IdentityRecycled => {
-                "every emitted member is written under the first member's key"
+macro_rules! describe_artifact_mutations {
+    ($( $(#[$variant_doc:meta])* $variant:ident => $description:literal, )+) => {
+        impl ArtifactMutation {
+            /// The damage rendered for a person.
+            ///
+            /// A projection, and no decision anywhere consults it.
+            #[must_use]
+            pub const fn described(self) -> &'static str {
+                match self {
+                    $(
+                        Self::$variant => $description,
+                    )+
+                }
             }
-            Self::PlannedOutputOmitted => "a planned output is deleted",
-            Self::UnplannedOutputAdded => "an unplanned output is appended",
-            Self::ImplTargetAltered => "the implementation targets a different type",
-            Self::ShapeAltered => "the declared body shape is changed",
-            Self::OutputDuplicated => "a planned output is emitted twice",
-            Self::TraitPathWrong => "the trait path names a different contract",
-            Self::DecoyInComment => "the anchored bytes are planted in a comment",
-            Self::ImplMemberDuplicated => "one member constant is emitted twice",
-            Self::ImplMemberUnexpected => "a member nobody planned joins the implementation",
-            Self::ConstructorPathAltered => "a row is built through another constructor",
-            Self::ImplPostureAltered => "the implementation is written under another posture",
-            Self::MeaningBearingAttributeAdded => "an attribute that decides something is added",
-            Self::MalformedRust => "the artifact stops being well-formed Rust",
         }
-    }
+    };
 }
+
+crate::depot::artifact_mutation_bank!(describe_artifact_mutations);
 
 /// Plan one roster's descriptors as audit candidates under one scope.
 ///

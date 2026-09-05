@@ -6,7 +6,7 @@
 //! A plan binds those values; what they mean is written where they are declared.
 
 use crate::descriptor::PopulationRef;
-use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use crate::identity::{DomainTag, IdentityProfileVersion};
 use crate::report::{ByteBudget, CaseBudget, GenerationProfile};
 use arbitrary::Unstructured;
 use std::num::NonZeroU32;
@@ -51,14 +51,20 @@ macro_rules! declare_generation_dispositions {
         ]
         .len();
 
-        /// The per-population accounting over generation dispositions.
-        ///
-        /// One seat exists per arm of [`GenerationDisposition`], always, so the denominator cannot silently shrink.
-        /// Every case a plan reached is counted once, and [`GenerationCensus::attempted`] is the sum of the seats rather than a total kept beside them.
-        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-        pub struct GenerationCensus {
-            population: PopulationRef,
-            counts: [u32; GENERATION_DISPOSITION_SEATS],
+        crate::census::declare_census! {
+            /// The per-population accounting over generation dispositions.
+            ///
+            /// One seat exists per arm of [`GenerationDisposition`], always, so the denominator cannot silently shrink.
+            /// Every case a plan reached is counted once, and [`GenerationCensus::attempted`] is the sum of the seats rather than a total kept beside them.
+            #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+            pub struct GenerationCensus {
+                count: u32,
+                seat: GenerationCensusSeat,
+                context { population: PopulationRef, }
+                array counts [GENERATION_DISPOSITION_SEATS] {
+                    $( $variant => $seat, )+
+                }
+            }
         }
     };
 }
@@ -188,12 +194,14 @@ pub const GENERATION_CHUNK_TAG: DomainTag = DomainTag::declared(
 /// The width is the identity substrate's address width, because a derived chunk is one address's bytes, and the supplied arm is read over the same grid.
 pub const SOURCE_CHUNK_BYTES: usize = 32;
 
-/// The address one plan's derived byte stream is counted from.
-///
-/// It is derived from the plan's population, generation profile, and input origin, and from nothing else.
-/// Growing the case budget or changing the size progression re-windows the same stream rather than renaming it, so a longer run reproduces every case a shorter one produced.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ByteSourceAddress(ContentAddress);
+crate::identity::content_address_reference! {
+    /// The address one plan's derived byte stream is counted from.
+    ///
+    /// It is derived from the plan's population, generation profile, and input origin, and from nothing else.
+    /// Growing the case budget or changing the size progression re-windows the same stream rather than renaming it, so a longer run reproduces every case a shorter one produced.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct ByteSourceAddress;
+}
 
 /// One position in a byte stream: which chunk, and how far into it.
 ///

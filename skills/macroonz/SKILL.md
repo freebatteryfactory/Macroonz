@@ -92,9 +92,13 @@ dispatch {
 };
 ```
 
-The exact dispatch seat accepts one semicolon-terminated function signature with two simple caller-named parameter bindings.
+The exact dispatch seat accepts one semicolon-terminated function signature.
+With only state and event parameters, their two simple caller-named bindings are read directly.
+For additional parameters, use `dispatch(state_binding, event_binding) { exact signature };` to select the two bindings the generated match consumes.
 Macroonz supplies only the transition-row-accounted body.
-Use a caller-owned projector when the algorithm or body itself is custom.
+Use `with(path)` for a zero-argument effect call, or `with(target) { exact Rust }` for caller-authored row behavior with the declared target bound under the chosen name.
+Exact row bodies may use the additional signature parameters while Macroonz retains the complete match and one arm per declared row.
+Use a caller-owned projector when the projection algorithm or entire dispatch body is custom.
 Preserve explicit caller-authored unsafe syntax exactly; never ask Macroonz to infer, widen, or justify it.
 
 ## Route custom algorithms

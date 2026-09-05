@@ -1,16 +1,12 @@
 //! Conventional namespace and data items compared with independently assembled canonical tokens.
 
+use crate::support::observe_rustc;
 use macroonz_compiler::{
     GeneratedDelimiter, GeneratedToken, GeneratedTree, absolute_path, attribute, constant,
     decorated, documentation, enumeration, generic_parameters, group, inline_module, named_field,
     named_struct, named_variant, tuple_struct, tuple_variant, type_alias, unit_struct,
     unit_variant, use_item, where_clause,
 };
-use std::path::PathBuf;
-use std::process::Command;
-use std::sync::atomic::{AtomicU32, Ordering};
-
-static SPECIMEN_ORDINAL: AtomicU32 = AtomicU32::new(0);
 
 fn public() -> Vec<GeneratedToken> {
     vec![GeneratedToken::word("pub")]
@@ -399,42 +395,6 @@ fn raw_choice() -> Result<Vec<GeneratedToken>, ()> {
     ])
 }
 
-fn specimen_path(extension: &str) -> PathBuf {
-    let ordinal = SPECIMEN_ORDINAL.fetch_add(1, Ordering::SeqCst);
-    std::env::temp_dir().join(format!(
-        "macroonz_namespace_data_{}_{ordinal}{extension}",
-        std::process::id()
-    ))
-}
-
-fn compile_and_run(source: &str) -> Result<(), String> {
-    let source_path = specimen_path(".rs");
-    let executable = specimen_path(std::env::consts::EXE_SUFFIX);
-    std::fs::write(&source_path, source).map_err(|error| error.to_string())?;
-    let compiled = Command::new("rustup")
-        .arg("run")
-        .arg("1.98.0")
-        .arg("rustc")
-        .arg(&source_path)
-        .arg("--edition=2024")
-        .arg("-o")
-        .arg(&executable)
-        .output()
-        .map_err(|error| error.to_string())?;
-    drop(std::fs::remove_file(&source_path));
-    if !compiled.status.success() {
-        return Err(String::from_utf8_lossy(&compiled.stderr).into_owned());
-    }
-    let executed = Command::new(&executable)
-        .output()
-        .map_err(|error| error.to_string())?;
-    drop(std::fs::remove_file(&executable));
-    if !executed.status.success() {
-        return Err(String::from_utf8_lossy(&executed.stderr).into_owned());
-    }
-    Ok(())
-}
-
 const SPECIMEN_ASSERTIONS: &str = r"
 fn main() {
     let value = 7_u8;
@@ -481,7 +441,12 @@ fn namespace_and_data_composers_emit_executable_rust_1_98() -> Result<(), String
         .map_err(|()| "the paved module refused".to_owned())?
         .inspected();
     source.push_str(SPECIMEN_ASSERTIONS);
-    compile_and_run(&source)
+    let output = observe_rustc("namespace-data", &source, &[])?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).into_owned())
+    }
 }
 
 /// Claim: empty generic and where rosters add no invisible syntax.

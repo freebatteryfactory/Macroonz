@@ -4,16 +4,11 @@ mod bake;
 mod capture;
 mod encode;
 mod evidence;
+mod issue;
 mod names;
 mod render;
 mod role;
-mod render_companions;
-mod render_codec;
-mod render_dispatch;
-mod render_evidence;
-mod render_relation_tables;
-mod render_tokens;
-mod render_typestate;
+mod stamp;
 mod type_contract;
 mod types;
 

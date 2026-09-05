@@ -6,8 +6,8 @@
 use super::Shadows;
 use crate::bounded::Overflow;
 use crate::descriptor::DirectBinding;
-use crate::descriptor::emitting::{absolute_path, direct_path};
-use crate::token::{GeneratedDelimiter, GeneratedToken};
+use crate::descriptor::emitting::direct_path;
+use crate::token::{GeneratedDelimiter, GeneratedToken, absolute_path};
 
 /// Which of a row's two faces one arm writes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -64,7 +64,7 @@ fn arm(
     into.push(GeneratedToken::word("use"));
     match binding {
         Some(root) => direct_path(root, path, into),
-        None => absolute_path(path, into),
+        None => into.extend(absolute_path(path)),
     }
     into.push(GeneratedToken::alone(';'));
     Ok(())

@@ -8,6 +8,7 @@ pub mod types;
 
 pub use encode::encode_generated_support_schema;
 pub use gate::PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID;
+pub(crate) use types::namespaced_reference;
 pub use types::{
     AdmissionFacts, AdmissionGround, AuthoredTable, AuthoredTableName, AuthoredTableRefusal,
     BENCH_FIELDS, BenchSchema, Binding, BindingRefusal, CanonicalRowBytes, CapsulePosture,

@@ -2,9 +2,10 @@
 
 use super::{
     Action, Delivery, DeliveryCopy, Link, LinkDiscipline, LinkFault, NetworkCampaign,
-    NetworkCampaignRefusal, NetworkCensus, NetworkSchedule, NetworkScheduleRefusal,
-    NetworkSelection, NetworkSelectionRefusal, NodeRef, SendFate, SendOrdinal, SendReceipt, SimNet,
-    SimNetRefusal, Tick, TickSpan, TickSpanRefusal, Topology, TopologyRefusal,
+    NetworkCampaignRefusal, NetworkCensus, NetworkCensusSeat, NetworkSchedule,
+    NetworkScheduleRefusal, NetworkSelection, NetworkSelectionRefusal, NodeRef, SendFate,
+    SendOrdinal, SendReceipt, SimNet, SimNetRefusal, Tick, TickSpan, TickSpanRefusal, Topology,
+    TopologyRefusal,
 };
 use crate::descriptor::NamespacedName;
 use std::collections::{BTreeMap, BTreeSet};
@@ -325,13 +326,7 @@ impl<Payload> SimNet<Payload> {
             in_flight: Vec::new(),
             actions: Vec::new(),
             history: Vec::new(),
-            census: NetworkCensus {
-                sends: 0u64,
-                scheduled_deliveries: 0u64,
-                delivered: 0u64,
-                dropped_by_discipline: 0u64,
-                dropped_by_partition: 0u64,
-            },
+            census: NetworkCensus::empty(),
         })
     }
 
@@ -456,34 +451,52 @@ impl<Payload> Delivery<Payload> {
     }
 }
 
-impl NetworkCensus {
-    /// How many sends were placed.
-    #[must_use]
-    pub const fn sends(self) -> u64 {
-        self.sends
-    }
+macro_rules! implement_network_census {
+    ($($variant:ident => $seat:ident),+ $(,)?) => {
+        crate::census::implement_census! {
+            impl NetworkCensus {
+                count: u64,
+                zero: 0u64,
+                seat: NetworkCensusSeat,
+                context {}
+                fields {
+                    $( $variant => $seat, )+
+                }
+            }
+        }
 
-    /// How many deliveries were scheduled, duplicates included.
-    #[must_use]
-    pub const fn scheduled_deliveries(self) -> u64 {
-        self.scheduled_deliveries
-    }
+        impl NetworkCensus {
+            /// How many sends were placed.
+            #[must_use]
+            pub const fn sends(self) -> u64 {
+                self.count_at(NetworkCensusSeat::Sends)
+            }
 
-    /// How many deliveries have come due.
-    #[must_use]
-    pub const fn delivered(self) -> u64 {
-        self.delivered
-    }
+            /// How many deliveries were scheduled, duplicates included.
+            #[must_use]
+            pub const fn scheduled_deliveries(self) -> u64 {
+                self.count_at(NetworkCensusSeat::ScheduledDeliveries)
+            }
 
-    /// How many sends a drop fault took.
-    #[must_use]
-    pub const fn dropped_by_discipline(self) -> u64 {
-        self.dropped_by_discipline
-    }
+            /// How many deliveries have come due.
+            #[must_use]
+            pub const fn delivered(self) -> u64 {
+                self.count_at(NetworkCensusSeat::Delivered)
+            }
 
-    /// How many sends an open partition took.
-    #[must_use]
-    pub const fn dropped_by_partition(self) -> u64 {
-        self.dropped_by_partition
-    }
+            /// How many sends a drop fault took.
+            #[must_use]
+            pub const fn dropped_by_discipline(self) -> u64 {
+                self.count_at(NetworkCensusSeat::DroppedByDiscipline)
+            }
+
+            /// How many sends an open partition took.
+            #[must_use]
+            pub const fn dropped_by_partition(self) -> u64 {
+                self.count_at(NetworkCensusSeat::DroppedByPartition)
+            }
+        }
+    };
 }
+
+with_network_census_seats!(implement_network_census);

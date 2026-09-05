@@ -3,7 +3,7 @@
 use super::{CodecTypePath, DecodeRefusal, PathRooting};
 use crate::bounded::Overflow;
 use crate::token::{
-    GeneratedDelimiter, GeneratedToken, absolute_path, bound_path, call, group, method_call,
+    GeneratedDelimiter, GeneratedToken, absolute_path, bound_path, call, group, method_call, vector,
 };
 
 /// The decode road's one parameter: the material read.
@@ -156,9 +156,7 @@ pub(super) fn byte_slice() -> Result<Vec<GeneratedToken>, Overflow> {
 
 /// `::std::vec::Vec::new()` — one empty gathering.
 pub(super) fn empty_vector() -> Result<Vec<GeneratedToken>, Overflow> {
-    let mut tokens = absolute_path(&["std", "vec", "Vec"]);
-    tokens.extend(associated("new"));
-    call(tokens, Vec::new())
+    vector(Vec::new())
 }
 
 /// `&u64::try_from(material.len()).unwrap_or(u64::MAX).to_be_bytes()` — one framed length, written without a numeric literal.

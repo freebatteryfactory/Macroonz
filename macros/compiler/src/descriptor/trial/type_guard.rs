@@ -8,13 +8,12 @@ use super::{
     ROLE_LIMIT, ROW_LIMIT, References, Row, SUITE_GROUP_LIMIT, SuiteGroup, TAG_LIMIT,
     TrialCaptureError, Trials,
 };
-use crate::bounded::{Bounded, NonEmpty};
+use crate::bounded::{Bounded, NonEmpty, first_duplicate_position};
 use crate::descriptor::{
     CaptureCause, DeclarationError, FunctionName, Grammar, HelperRefusal, ModuleName, Name, Seat,
     SupportName,
 };
 use crate::token::SpanHandle;
-use std::collections::BTreeSet;
 
 impl Row {
     /// Declare one descriptor row.
@@ -31,13 +30,13 @@ impl Row {
         roles: Vec<Name>,
         tags: Vec<Name>,
     ) -> Result<Self, DeclarationError> {
-        if names_doubled(&roles) {
+        if first_duplicate_position(&roles, |left, right| left == right).is_some() {
             return Err(DeclarationError::Doubled { seat: Seat::Role });
         }
         let offered_roles = roles.len();
         let admitted_roles: Bounded<Name, ROLE_LIMIT> = Bounded::new(roles)
             .map_err(|_| DeclarationError::unbounded(Seat::Role, ROLE_LIMIT, offered_roles))?;
-        if names_doubled(&tags) {
+        if first_duplicate_position(&tags, |left, right| left == right).is_some() {
             return Err(DeclarationError::Doubled { seat: Seat::Tag });
         }
         let offered_tags = tags.len();
@@ -215,31 +214,34 @@ impl TrialCaptureError {
     }
 }
 
-/// Whether two of one roster's names carry one spelling.
-fn names_doubled(names: &[Name]) -> bool {
-    let distinct: BTreeSet<&Name> = names.iter().collect();
-    distinct.len() != names.len()
-}
-
 /// The stamped module's ONE namespace, closed: every seat spelling and every lens spelling across every group, distinct.
 ///
 /// Seats and lenses are both functions in the module the stamp writes, so they share one namespace and a seat colliding with a lens is the same defect as two lenses colliding.
 /// Refused here rather than left to the consumer's compiler, which would report a duplicate definition inside an expansion nobody wrote.
 fn stamped_namespace_closed(groups: &[SuiteGroup]) -> Result<(), DeclarationError> {
-    let mut taken: BTreeSet<&str> = BTreeSet::new();
-    for group in groups {
-        if !taken.insert(group.seat().spelling()) {
-            return Err(DeclarationError::Doubled {
-                seat: Seat::Aggregate,
-            });
-        }
+    if first_duplicate_position(groups, |left, right| {
+        left.seat().spelling() == right.seat().spelling()
+    })
+    .is_some()
+    {
+        return Err(DeclarationError::Doubled {
+            seat: Seat::Aggregate,
+        });
     }
-    for group in groups {
-        for row in group.rows() {
-            if !taken.insert(row.lens().spelling()) {
-                return Err(DeclarationError::Doubled { seat: Seat::Lens });
-            }
-        }
+    let seats = groups
+        .iter()
+        .map(|group| group.seat().spelling())
+        .collect::<Vec<_>>();
+    let lenses = groups
+        .iter()
+        .flat_map(|group| group.rows().iter())
+        .map(|row| row.lens().spelling())
+        .collect::<Vec<_>>();
+    let shadows_seat = lenses
+        .iter()
+        .any(|lens| seats.iter().any(|seat| seat == lens));
+    if shadows_seat || first_duplicate_position(&lenses, |left, right| left == right).is_some() {
+        return Err(DeclarationError::Doubled { seat: Seat::Lens });
     }
     Ok(())
 }

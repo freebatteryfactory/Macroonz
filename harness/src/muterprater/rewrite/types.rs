@@ -93,67 +93,35 @@ pub enum RewriteAdmission {
 // The artifact-mutation seed roster.
 // ---------------------------------------------------------------------------
 
-/// One deliberate damage the artifact-mutation mode inflicts on a lawful rendered artifact.
-///
-/// Each arm is a lie a damaged rendering tells about the declaration it claims to project, and every one of them is this harness's own — a producer that writes its own exam is rehearsed only against the defects it already imagined.
-/// The roster is seed material rather than a lane: the surgery that realizes one is authored where the anchors are, so a damage is cut against the anchors a generator emits rather than against spellings a hand restated beside them.
-///
-/// # Nonclaims
-///
-/// It says nothing about which reader catches a damage.
-/// That ownership belongs to the readers that exist ([`crate::oracle`]) and is stated there, against a seat that can hold it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ArtifactMutation {
-    /// The emitted members are written in reverse of the order the declaration states.
-    OrderPermuted,
-    /// Every emitted member is written under the first member's key, so members the declaration keeps distinct share one identity.
-    IdentityRecycled,
-    /// One planned output is deleted from the artifact.
-    PlannedOutputOmitted,
-    /// An output nobody planned is appended.
-    UnplannedOutputAdded,
-    /// The implementation targets a different type than the one declared.
-    ImplTargetAltered,
-    /// The declared body shape is changed.
-    ShapeAltered,
-    /// A planned output is emitted twice.
-    OutputDuplicated,
-    /// The trait path names a contract the declaration did not realize.
-    TraitPathWrong,
-    /// A decoy carrying the anchored bytes is planted in a comment while the real constant is damaged.
-    DecoyInComment,
-    /// One planned member constant is emitted twice inside one implementation.
-    ImplMemberDuplicated,
-    /// A member nobody planned is added inside one implementation.
-    ImplMemberUnexpected,
-    /// A declared value is carried through a constructor the declaration did not name.
-    ConstructorPathAltered,
-    /// The implementation is written under a posture the declaration did not name.
-    ImplPostureAltered,
-    /// An attribute that decides something is added to an implementation.
-    MeaningBearingAttributeAdded,
-    /// The artifact stops being well-formed Rust.
-    MalformedRust,
+macro_rules! declare_artifact_mutations {
+    ($( $(#[$variant_doc:meta])* $variant:ident => $description:literal, )+) => {
+        /// One deliberate damage the artifact-mutation mode inflicts on a lawful rendered artifact.
+        ///
+        /// Each arm is a lie a damaged rendering tells about the declaration it claims to project, and every one of them is this harness's own — a producer that writes its own exam is rehearsed only against the defects it already imagined.
+        /// The roster is seed material rather than a lane: the surgery that realizes one is authored where the anchors are, so a damage is cut against the anchors a generator emits rather than against spellings a hand restated beside them.
+        ///
+        /// # Nonclaims
+        ///
+        /// It says nothing about which reader catches a damage.
+        /// That ownership belongs to the readers that exist ([`crate::oracle`]) and is stated there, against a seat that can hold it.
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        pub enum ArtifactMutation {
+            $(
+                $(#[$variant_doc])*
+                $variant,
+            )+
+        }
+
+        /// The artifact-mutation roster, in the order the depot bank states it.
+        ///
+        /// A declared table rather than a derived enum traversal, so a plan reads the damages in one authored order.
+        /// A slice rather than a sized array: a consumer whose artifacts break in ways this table does not name declares its own slice, and nothing here closes the width.
+        pub const ARTIFACT_MUTATIONS: &[ArtifactMutation] = &[
+            $(
+                ArtifactMutation::$variant,
+            )+
+        ];
+    };
 }
 
-/// The artifact-mutation roster, in the order this home states it.
-///
-/// A declared table rather than a derived one, so a plan reads the damages in an order written down once here.
-/// A slice rather than a sized array: a consumer whose artifacts break in ways this table does not name declares its own slice, and nothing here closes the width.
-pub const ARTIFACT_MUTATIONS: &[ArtifactMutation] = &[
-    ArtifactMutation::OrderPermuted,
-    ArtifactMutation::IdentityRecycled,
-    ArtifactMutation::PlannedOutputOmitted,
-    ArtifactMutation::UnplannedOutputAdded,
-    ArtifactMutation::ImplTargetAltered,
-    ArtifactMutation::ShapeAltered,
-    ArtifactMutation::OutputDuplicated,
-    ArtifactMutation::TraitPathWrong,
-    ArtifactMutation::DecoyInComment,
-    ArtifactMutation::ImplMemberDuplicated,
-    ArtifactMutation::ImplMemberUnexpected,
-    ArtifactMutation::ConstructorPathAltered,
-    ArtifactMutation::ImplPostureAltered,
-    ArtifactMutation::MeaningBearingAttributeAdded,
-    ArtifactMutation::MalformedRust,
-];
+crate::depot::artifact_mutation_bank!(declare_artifact_mutations);

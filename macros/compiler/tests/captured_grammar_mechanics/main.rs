@@ -7,7 +7,7 @@ use core::{cell::Cell, convert::Infallible};
 use macroonz_compiler::{
     CaptureBuildRefusal, CaptureBuilder, CaptureCursor, CaptureExpectation, CaptureReadIssue,
     CaptureReadRefusal, CapturedAtom, CapturedDelimiter, CapturedInput, CapturedSpacing,
-    SpanHandle, TextCapture, TextReadRefusal,
+    SpanHandle, TextCapture, TextLexicalCause, TextReadCause, TextReadRefusal,
 };
 
 #[derive(Debug)]
@@ -270,6 +270,27 @@ fn raw_identifiers_lifetimes_and_nested_groups_remain_visible() -> Result<(), Te
     assert_eq!(inner, "Inner");
     nested.finish()?;
     root.finish()?;
+    Ok(())
+}
+
+/// Raw lifetimes retain their form and apply the raw-identifier exclusion roster.
+#[test]
+fn raw_lifetimes_keep_their_distinct_name_law() -> Result<(), TestError> {
+    let raw = TextCapture::read("'r#kind")?;
+    let mut raw_cursor = raw.input().cursor();
+    raw_cursor.punctuation('\'', CapturedSpacing::Joint)?;
+    let (raw_name, raw_spelling) = raw_cursor.identifier()?;
+    assert_eq!(raw_name.raw_identifier(), Some("kind"));
+    assert_eq!(raw_spelling, "kind");
+    raw_cursor.finish()?;
+
+    assert_eq!(
+        TextCapture::read("'r#self"),
+        Err(TextReadRefusal {
+            cause: TextReadCause::Lexical(TextLexicalCause::InvalidIdentifier),
+            at: 0,
+        })
+    );
     Ok(())
 }
 

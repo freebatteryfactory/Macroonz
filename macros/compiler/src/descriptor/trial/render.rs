@@ -19,6 +19,7 @@ use crate::bounded::Overflow;
 use crate::descriptor::vocabulary::{self, HarnessName, HarnessWord};
 use crate::descriptor::{Emitter, Name};
 use crate::kind::Kind;
+use crate::stamp::{Visibility, declared_reach_tokens};
 use crate::token::{
     GeneratedDelimiter, GeneratedToken, bound_local, comma, group, metavariable, method_call,
     roster, text_pair,
@@ -144,8 +145,7 @@ pub fn row_schema_identity() -> Result<Vec<GeneratedToken>, Overflow> {
 /// The lens is a Rust identifier by construction and the seat's name is one of three declared words, so the composition is an identifier too — and two distinct lenses compose two distinct metavariables, which is what lets one matcher name every row's three seats without a register of what it has already spelled.
 #[must_use]
 pub fn attachment_metavariable(lens: &str, seat: HarnessWord) -> String {
-    let seat = seat.spelling();
-    format!("{lens}_{seat}")
+    crate::descriptor::emitting::row_metavariable(lens, seat)
 }
 
 /// One row's executable attachment: the two locals the row already parsed, the two revision commitments the consumption target declared, and the callable it named.
@@ -457,15 +457,9 @@ pub fn stamped_module(payload: &Trials, emitter: Emitter) -> Result<Vec<Generate
     for seated in payload.groups() {
         body.extend(suite_group(seated, emitter)?);
     }
-    let mut tokens = vec![
-        GeneratedToken::word("pub"),
-        group(
-            GeneratedDelimiter::Parenthesis,
-            vec![GeneratedToken::word("crate")],
-        )?,
-        GeneratedToken::word("mod"),
-        GeneratedToken::word(payload.module().spelling()),
-    ];
+    let mut tokens = declared_reach_tokens(Visibility::Crate)?;
+    tokens.push(GeneratedToken::word("mod"));
+    tokens.push(GeneratedToken::word(payload.module().spelling()));
     tokens.extend(named_clause(payload.table())?);
     tokens.push(group(GeneratedDelimiter::Brace, body)?);
     Ok(tokens)

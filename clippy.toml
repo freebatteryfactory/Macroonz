@@ -1,4 +1,4 @@
-msrv = "1.98.0"
+msrv = "1.98.1"
 too-many-lines-threshold = 100
 excessive-nesting-threshold = 4
 max-struct-bools = 0

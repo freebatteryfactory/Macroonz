@@ -5,6 +5,8 @@
 mod behavior;
 mod items;
 mod traits;
+#[path = "../support/mod.rs"]
+mod support;
 
 use macroonz_compiler::token::{
     keyed_assignment_items as home_assignment_items,

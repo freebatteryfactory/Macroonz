@@ -31,6 +31,9 @@
 use super::{
     Address, Declaration, FactMapping, FamilySlug, MutationCaptureError, Permission, Policy,
 };
+use crate::descriptor::clause::{
+    Clause, assigned, declaration_clauses, identifier, named_reference, named_value,
+};
 use crate::descriptor::{
     CaptureCause, DeclarationError, Grammar, ModuleName, Name, SupportName, TypeName,
 };
@@ -60,9 +63,6 @@ const MAP: &str = "map";
 /// The word one permission opens with.
 const PERMIT: &str = "permit";
 
-/// The road every namespaced reference in this grammar is spelled by.
-const NAMED: &str = "named";
-
 /// The clause keys this grammar declares.
 const DECLARABLE: [&str; 6] = [MODULE, REFUSAL, SUPPORT, FAMILY, POINT, FACT];
 
@@ -76,38 +76,40 @@ pub fn captured(
     at: SpanHandle,
     grammar: Grammar,
 ) -> Result<Declaration, MutationCaptureError> {
-    let clauses = clauses(grammar, body)?;
+    let clauses = declaration_clauses(grammar, body, &DECLARABLE, nested_clause, refused)?;
     let address = Address {
-        module: ModuleName::declared(identifier(grammar, &clauses, MODULE, at)?)
+        module: ModuleName::declared(identifier(grammar, &clauses, MODULE, at, refused)?)
             .map_err(|refusal| carried(grammar, refusal, at))?,
         support: optional_support(grammar, &clauses)?,
-        refusal: TypeName::declared(identifier(grammar, &clauses, REFUSAL, at)?)
+        refusal: TypeName::declared(identifier(grammar, &clauses, REFUSAL, at, refused)?)
             .map_err(|refusal| carried(grammar, refusal, at))?,
     };
-    let family = named_reference(grammar, &clauses, FAMILY, at)?;
-    let point = named_reference(grammar, &clauses, POINT, at)?;
-    let fact = named_reference(grammar, &clauses, FACT, at)?;
+    let family = named_reference(grammar, &clauses, FAMILY, at, refused, carried)?;
+    let point = named_reference(grammar, &clauses, POINT, at, refused, carried)?;
+    let fact = named_reference(grammar, &clauses, FACT, at, refused, carried)?;
 
     let mut mappings: Vec<FactMapping> = Vec::new();
     let mut permissions: Vec<Permission> = Vec::new();
     for clause in &clauses {
-        match *clause {
-            Clause::Mapping {
-                fact: ref mapped,
-                ref claim,
+        let Some(nested) = clause.nested_value() else {
+            continue;
+        };
+        match nested {
+            NestedClause::Mapping {
+                fact: mapped,
+                claim,
             } => mappings.push(FactMapping {
                 fact: mapped.clone(),
                 claim: claim.clone(),
             }),
-            Clause::Permission {
-                ref claim,
-                ref families,
+            NestedClause::Permission {
+                claim,
+                families,
                 at: site,
             } => permissions.push(
                 Permission::permitted(claim.clone(), families.clone())
-                    .map_err(|refusal| carried(grammar, refusal, site))?,
+                    .map_err(|refusal| carried(grammar, refusal, *site))?,
             ),
-            Clause::Assigned { .. } => {}
         }
     }
     let policy = Policy::declared(family, mappings, permissions)
@@ -129,17 +131,8 @@ const fn carried(
     MutationCaptureError::vocabulary_refused(grammar, refusal, at)
 }
 
-/// One clause of a mutation declaration's body, as the split read it.
-enum Clause<'trees> {
-    /// `<key> = <value tokens>`.
-    Assigned {
-        /// The key the clause names.
-        key: &'trees str,
-        /// The tokens the value is spelled from.
-        value: Vec<&'trees CapturedTokenTree>,
-        /// The token the key sits at.
-        at: SpanHandle,
-    },
+/// One mutation-owned nested clause.
+enum NestedClause {
     /// `map named(…) = named(…)`.
     Mapping {
         /// The owner fact pressure is applied to.
@@ -158,90 +151,32 @@ enum Clause<'trees> {
     },
 }
 
-/// Cut one declaration body into its comma-separated clauses.
-fn clauses<'trees>(
+/// Read one mutation-owned nested clause where the group states one.
+fn nested_clause(
     grammar: Grammar,
-    body: &[&'trees CapturedTokenTree],
-) -> Result<Vec<Clause<'trees>>, MutationCaptureError> {
-    let mut read: Vec<Clause<'trees>> = Vec::new();
-    let mut group: Vec<&CapturedTokenTree> = Vec::new();
-    for tree in body {
-        if tree.punct() == Some(',') {
-            if group.is_empty() {
-                return Err(refused(
-                    grammar,
-                    CaptureCause::SeparatorDangling,
-                    tree.span(),
-                ));
-            }
-            read.push(clause(grammar, &group)?);
-            group.clear();
-        } else {
-            group.push(tree);
-        }
-    }
-    if !group.is_empty() {
-        read.push(clause(grammar, &group)?);
-    }
-    distinct(grammar, &read)?;
-    Ok(read)
-}
-
-/// Read one comma-separated group as the clause its opening word declares.
-fn clause<'trees>(
-    grammar: Grammar,
-    group: &[&'trees CapturedTokenTree],
-) -> Result<Clause<'trees>, MutationCaptureError> {
+    group: &[&CapturedTokenTree],
+) -> Result<Option<NestedClause>, MutationCaptureError> {
     let Some((head, rest)) = group.split_first() else {
-        return Err(refused(
-            grammar,
-            CaptureCause::ClauseUnread,
-            SpanHandle::at(0),
-        ));
+        return Ok(None);
     };
     match head.word() {
-        Some(MAP) => mapping(grammar, rest, head.span()),
-        Some(PERMIT) => permission(grammar, rest, head.span()),
-        Some(key) if DECLARABLE.contains(&key) => assignment(grammar, key, rest, head.span()),
-        Some(_) => Err(refused(
+        Some(MAP) => mapping(grammar, rest, head.span()).map(Some),
+        Some(PERMIT) => permission(grammar, rest, head.span()).map(Some),
+        Some(key) if !DECLARABLE.contains(&key) => Err(refused(
             grammar,
             CaptureCause::ClauseUndeclared,
             head.span(),
         )),
-        None => Err(refused(grammar, CaptureCause::ClauseUnread, head.span())),
+        Some(_) | None => Ok(None),
     }
-}
-
-/// Read one `<key> = <value>` assignment.
-fn assignment<'trees>(
-    grammar: Grammar,
-    key: &'trees str,
-    rest: &[&'trees CapturedTokenTree],
-    at: SpanHandle,
-) -> Result<Clause<'trees>, MutationCaptureError> {
-    let Some((assigned_by, value)) = rest.split_first() else {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, at));
-    };
-    if assigned_by.punct() != Some('=') || value.is_empty() {
-        return Err(refused(
-            grammar,
-            CaptureCause::ClauseUnread,
-            assigned_by.span(),
-        ));
-    }
-    Ok(Clause::Assigned {
-        key,
-        value: value.to_vec(),
-        at,
-    })
 }
 
 /// Read one `map named(…) = named(…)` clause off the trees after its opening word.
-fn mapping<'trees>(
+fn mapping(
     grammar: Grammar,
     rest: &[&CapturedTokenTree],
     at: SpanHandle,
-) -> Result<Clause<'trees>, MutationCaptureError> {
+) -> Result<NestedClause, MutationCaptureError> {
     let [
         fact_word,
         fact_arguments,
@@ -259,18 +194,30 @@ fn mapping<'trees>(
             assigned_by.span(),
         ));
     }
-    Ok(Clause::Mapping {
-        fact: named_value(grammar, fact_word, fact_arguments)?,
-        claim: named_value(grammar, claim_word, claim_arguments)?,
+    Ok(NestedClause::Mapping {
+        fact: named_value(
+            grammar,
+            &[*fact_word, *fact_arguments],
+            at,
+            refused,
+            carried,
+        )?,
+        claim: named_value(
+            grammar,
+            &[*claim_word, *claim_arguments],
+            at,
+            refused,
+            carried,
+        )?,
     })
 }
 
 /// Read one `permit named(…) = [<slug>, …]` clause off the trees after its opening word.
-fn permission<'trees>(
+fn permission(
     grammar: Grammar,
     rest: &[&CapturedTokenTree],
     at: SpanHandle,
-) -> Result<Clause<'trees>, MutationCaptureError> {
+) -> Result<NestedClause, MutationCaptureError> {
     let [word, arguments, assigned_by, bracketed] = rest else {
         return Err(refused(grammar, CaptureCause::PermissionUnread, at));
     };
@@ -281,7 +228,7 @@ fn permission<'trees>(
             assigned_by.span(),
         ));
     }
-    let claim = named_value(grammar, word, arguments)?;
+    let claim = named_value(grammar, &[*word, *arguments], at, refused, carried)?;
     let Some((CapturedDelimiter::Bracket, inner)) = bracketed.group() else {
         return Err(refused(
             grammar,
@@ -302,7 +249,7 @@ fn permission<'trees>(
     if let Some(last) = trailing_family(grammar, &group)? {
         families.push(last);
     }
-    Ok(Clause::Permission {
+    Ok(NestedClause::Permission {
         claim,
         families,
         at,
@@ -354,60 +301,10 @@ fn family(grammar: Grammar, tree: &CapturedTokenTree) -> Result<FamilySlug, Muta
     FamilySlug::declared(slug).map_err(|refusal| carried(grammar, refusal, tree.span()))
 }
 
-/// Refuse where one assigned clause key is stated twice.
-///
-/// Mappings and permissions are not checked here: one owner fact mapped twice and two permissions over one claim are facts about the whole POLICY, stated once where the policy is built.
-fn distinct(grammar: Grammar, clauses: &[Clause<'_>]) -> Result<(), MutationCaptureError> {
-    for (position, clause) in clauses.iter().enumerate() {
-        let Clause::Assigned { key, at, .. } = *clause else {
-            continue;
-        };
-        let earlier = clauses.iter().take(position).any(|other| match *other {
-            Clause::Assigned { key: seen, .. } => seen == key,
-            Clause::Mapping { .. } | Clause::Permission { .. } => false,
-        });
-        if earlier {
-            return Err(refused(grammar, CaptureCause::ClauseDoubled, at));
-        }
-    }
-    Ok(())
-}
-
-/// The value tokens one assigned clause carries, and the token its key sits at.
-fn assigned<'trees, 'clauses>(
-    clauses: &'clauses [Clause<'trees>],
-    key: &str,
-) -> Option<(&'clauses [&'trees CapturedTokenTree], SpanHandle)> {
-    clauses.iter().find_map(|clause| match *clause {
-        Clause::Assigned {
-            key: named,
-            ref value,
-            at,
-        } if named == key => Some((value.as_slice(), at)),
-        Clause::Assigned { .. } | Clause::Mapping { .. } | Clause::Permission { .. } => None,
-    })
-}
-
-/// One identifier a clause assigns.
-fn identifier<'trees>(
-    grammar: Grammar,
-    clauses: &[Clause<'trees>],
-    key: &str,
-    at: SpanHandle,
-) -> Result<&'trees str, MutationCaptureError> {
-    let (value, clause) =
-        assigned(clauses, key).ok_or_else(|| refused(grammar, CaptureCause::ClauseAbsent, at))?;
-    let [only] = value else {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, clause));
-    };
-    only.word()
-        .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, only.span()))
-}
-
 /// The exported support address, where this declaration owns one.
 fn optional_support(
     grammar: Grammar,
-    clauses: &[Clause<'_>],
+    clauses: &[Clause<'_, NestedClause>],
 ) -> Result<Option<SupportName>, MutationCaptureError> {
     let Some((value, at)) = assigned(clauses, SUPPORT) else {
         return Ok(None);
@@ -421,60 +318,4 @@ fn optional_support(
     SupportName::declared(spelling)
         .map(Some)
         .map_err(|refusal| carried(grammar, refusal, only.span()))
-}
-
-/// One `named(<namespace>, <stem>)` reference a clause assigns.
-fn named_reference(
-    grammar: Grammar,
-    clauses: &[Clause<'_>],
-    key: &str,
-    at: SpanHandle,
-) -> Result<Name, MutationCaptureError> {
-    let (value, clause) =
-        assigned(clauses, key).ok_or_else(|| refused(grammar, CaptureCause::ClauseAbsent, at))?;
-    let [word, arguments] = value else {
-        return Err(refused(grammar, CaptureCause::ReferenceUnread, clause));
-    };
-    named_value(grammar, word, arguments)
-}
-
-/// One `named(<namespace>, <stem>)` reference, read off the word and the group that spell it.
-fn named_value(
-    grammar: Grammar,
-    word: &CapturedTokenTree,
-    arguments: &CapturedTokenTree,
-) -> Result<Name, MutationCaptureError> {
-    if word.word() != Some(NAMED) {
-        return Err(refused(grammar, CaptureCause::ReferenceUnread, word.span()));
-    }
-    let Some((CapturedDelimiter::Parenthesis, inner)) = arguments.group() else {
-        return Err(refused(
-            grammar,
-            CaptureCause::ReferenceUnread,
-            arguments.span(),
-        ));
-    };
-    let parts: Vec<&CapturedTokenTree> = inner.iter().collect();
-    let [namespace, separator, stem] = parts.as_slice() else {
-        return Err(refused(
-            grammar,
-            CaptureCause::ReferenceUnread,
-            arguments.span(),
-        ));
-    };
-    if separator.punct() != Some(',') {
-        return Err(refused(
-            grammar,
-            CaptureCause::ReferenceUnread,
-            separator.span(),
-        ));
-    }
-    let (Some(owner), Some(spelling)) = (namespace.text(), stem.text()) else {
-        return Err(refused(
-            grammar,
-            CaptureCause::ReferenceUnread,
-            arguments.span(),
-        ));
-    };
-    Name::named(owner, spelling).map_err(|refusal| carried(grammar, refusal, arguments.span()))
 }

@@ -13,6 +13,7 @@ use super::{Alternative, Permission, Policy, Site, Surface};
 use crate::bounded::Overflow;
 use crate::descriptor::vocabulary::{self, HarnessName};
 use crate::descriptor::{Name, TypeName};
+use crate::stamp::{Visibility, declared_reach_tokens};
 use crate::token::{
     GeneratedDelimiter, GeneratedToken, and_all, bound_local, call, comma_many, constant, equality,
     function, group, method_call, method_chain, result_type, roster, text_pair,
@@ -92,24 +93,11 @@ pub fn generated_module(surface: &Surface) -> Result<Vec<GeneratedToken>, Overfl
     body.extend(lowering(surface)?);
     body.extend(production(site)?);
     body.extend(evaluation(site)?);
-    let mut tokens = visibility()?;
+    let mut tokens = declared_reach_tokens(Visibility::Crate)?;
     tokens.push(GeneratedToken::word("mod"));
     tokens.push(GeneratedToken::word(surface.address().module.spelling()));
     tokens.push(group(GeneratedDelimiter::Brace, body)?);
     Ok(tokens)
-}
-
-/// The `pub(crate)` every item of the rendered module wears.
-///
-/// The reach is exactly the consumption target: the module lands in a test binary, so crate visibility there reaches the roads a harness lowers and reaches nothing a consumer publishes.
-fn visibility() -> Result<Vec<GeneratedToken>, Overflow> {
-    Ok(vec![
-        GeneratedToken::word("pub"),
-        group(
-            GeneratedDelimiter::Parenthesis,
-            vec![GeneratedToken::word("crate")],
-        )?,
-    ])
 }
 
 /// The refusal type the module declares and every lowering road answers in.
@@ -162,7 +150,7 @@ fn refusal_type(refusal: &TypeName) -> Result<Vec<GeneratedToken>, Overflow> {
             ],
         )?,
     ];
-    tokens.extend(visibility()?);
+    tokens.extend(declared_reach_tokens(Visibility::Crate)?);
     tokens.push(GeneratedToken::word("enum"));
     tokens.push(GeneratedToken::word(refusal.spelling()));
     tokens.push(group(GeneratedDelimiter::Brace, arms)?);
@@ -199,7 +187,7 @@ fn candidate_orders(site: &Site) -> Result<Vec<GeneratedToken>, Overflow> {
     result.push(GeneratedToken::number(
         u64::try_from(site.alternatives().len()).unwrap_or(u64::MAX),
     ));
-    let mut tokens = visibility()?;
+    let mut tokens = declared_reach_tokens(Visibility::Crate)?;
     tokens.extend(function(
         CANDIDATES,
         Vec::new(),
@@ -506,7 +494,7 @@ fn lowering(surface: &Surface) -> Result<Vec<GeneratedToken>, Overflow> {
         "map_err",
         arm_path(refusal, LOWERING_ARM),
     )?);
-    let mut tokens = visibility()?;
+    let mut tokens = declared_reach_tokens(Visibility::Crate)?;
     tokens.extend(function(
         LOWERING,
         Vec::new(),
@@ -524,7 +512,7 @@ fn lowering(surface: &Surface) -> Result<Vec<GeneratedToken>, Overflow> {
 
 /// The road the unchanged declaration answers through.
 fn production(site: &Site) -> Result<Vec<GeneratedToken>, Overflow> {
-    let mut tokens = visibility()?;
+    let mut tokens = declared_reach_tokens(Visibility::Crate)?;
     tokens.extend(function(
         PRODUCTION,
         input_parameter()?,
@@ -571,7 +559,7 @@ fn evaluation(site: &Site) -> Result<Vec<GeneratedToken>, Overflow> {
         )?,
     )?);
 
-    let mut tokens = visibility()?;
+    let mut tokens = declared_reach_tokens(Visibility::Crate)?;
     tokens.push(GeneratedToken::word("fn"));
     tokens.push(GeneratedToken::word(EVALUATION));
     tokens.extend(surface_lifetime());

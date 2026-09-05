@@ -1,19 +1,18 @@
 //! Published stamp claims observed from outside: exact reach transport, opaque visibility refusal, standalone generated source, and deterministic output.
 
+#[path = "../support/mod.rs"]
+mod support;
+
+use crate::support::observe_rustc;
 use macroonz_compiler::stamp::{
     DECLARED_REACH, Fragment, Landing, OPAQUE_REACH_REFUSAL, Part, Pattern, PublicationGround,
-    PublishedStamp, Seat, Seating, Site, SiteRoot, Stamp, StampName, TRANSPORTED_REACH,
+    PublishedStamp, Seat, Seating, Site, SiteRoot, Stamp, StampError, StampName, TRANSPORTED_REACH,
     TransportedReach, Visibility, declared_reach, planned, transported_reach,
 };
 use macroonz_compiler::{
     CrateBinding, Destination, Door, GeneratedDelimiter, GeneratedToken, GeneratedTree, Kind,
     NoQuestions, OwnerIdentity, Producer, Request, Role, TextCapture, group, metavariable,
 };
-use std::path::PathBuf;
-use std::process::{Command, Output};
-use std::sync::atomic::{AtomicU32, Ordering};
-
-static SPECIMEN_ORDINAL: AtomicU32 = AtomicU32::new(0);
 
 /// The one publication seat the specimen plans.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -62,41 +61,6 @@ const ADDRESS: OwnerIdentity = OwnerIdentity {
     subject: "lane.published-stamp.address",
     bytes: [7; 32],
 };
-
-fn specimen_path(extension: &str) -> PathBuf {
-    let ordinal = SPECIMEN_ORDINAL.fetch_add(1, Ordering::SeqCst);
-    std::env::temp_dir().join(format!(
-        "macroonz_published_stamp_{}_{ordinal}{extension}",
-        std::process::id()
-    ))
-}
-
-fn compile(source: &str) -> Result<Output, String> {
-    let source_path = specimen_path(".rs");
-    let executable = specimen_path(std::env::consts::EXE_SUFFIX);
-    std::fs::write(&source_path, source).map_err(|error| error.to_string())?;
-    let compiled = Command::new("rustup")
-        .arg("run")
-        .arg("1.98.0")
-        .arg("rustc")
-        .arg(&source_path)
-        .arg("--edition=2024")
-        .arg("-o")
-        .arg(&executable)
-        .output()
-        .map_err(|error| error.to_string())?;
-    drop(std::fs::remove_file(&source_path));
-    if compiled.status.success() {
-        let executed = Command::new(&executable)
-            .output()
-            .map_err(|error| error.to_string())?;
-        drop(std::fs::remove_file(&executable));
-        if !executed.status.success() {
-            return Err(String::from_utf8_lossy(&executed.stderr).into_owned());
-        }
-    }
-    Ok(compiled)
-}
 
 fn punctuated_path(root: Vec<GeneratedToken>, tail: &str) -> Vec<GeneratedToken> {
     let mut tokens = root;
@@ -160,6 +124,40 @@ fn declared_stamp(site_order: &[Visibility]) -> Result<Stamp, String> {
         })
         .collect::<Result<Vec<_>, String>>()?;
     Stamp::declared(name, pattern, sites).map_err(|refusal| refusal.to_string())
+}
+
+/// Pattern and site namespaces refuse the first repeated spelling at its declared position.
+#[test]
+fn stamp_namespaces_refuse_the_first_repeated_spelling() -> Result<(), String> {
+    let first_seat = Seat::declared("name", Seating::One(Fragment::Identifier))
+        .map_err(|refusal| refusal.to_string())?;
+    let second_seat = Seat::declared("name", Seating::One(Fragment::Identifier))
+        .map_err(|refusal| refusal.to_string())?;
+    let doubled_pattern = Pattern::declared(
+        "Carries two declared seats.",
+        vec![Part::Seat(first_seat), Part::Seat(second_seat)],
+        pattern_body()?,
+    );
+    assert_eq!(doubled_pattern, Err(StampError::SeatNameDoubled { at: 1 }));
+
+    let pattern = declared_stamp(&[Visibility::Private])?.pattern().clone();
+    let root =
+        SiteRoot::spelled(vec!["crate".to_owned()]).map_err(|refusal| refusal.to_string())?;
+    let first = Site::declared(
+        "same",
+        root.clone(),
+        Visibility::Private,
+        vec![argument("first")?],
+    )
+    .map_err(|refusal| refusal.to_string())?;
+    let second = Site::declared("same", root, Visibility::Public, vec![argument("second")?])
+        .map_err(|refusal| refusal.to_string())?;
+    let name = StampName::declared("doubled_sites").map_err(|refusal| refusal.to_string())?;
+    assert_eq!(
+        Stamp::declared(name, pattern, vec![first, second]),
+        Err(StampError::SiteNameDoubled { at: 1 })
+    );
+    Ok(())
 }
 
 fn published(site_order: &[Visibility]) -> Result<PublishedStamp, String> {
@@ -316,7 +314,11 @@ fn generated_published_source_compiles_and_executes_in_a_scratch_crate() -> Resu
         artifact.record().manifest().collect::<Vec<_>>(),
         vec!["private", "module", "parent", "crate", "public"]
     );
-    let compiled = compile(&compiled_specimen_source(&artifact)?)?;
+    let compiled = observe_rustc(
+        "published-stamp",
+        &compiled_specimen_source(&artifact)?,
+        &[],
+    )?;
     if !compiled.status.success() {
         return Err(String::from_utf8_lossy(&compiled.stderr).into_owned());
     }
@@ -344,7 +346,7 @@ fn main() {{}}
 ",
         artifact.definition().inspected()
     );
-    let compiled = compile(&source)?;
+    let compiled = observe_rustc("published-stamp", &source, &[])?;
     assert!(!compiled.status.success(), "the opaque visibility compiled");
     let diagnostic = String::from_utf8_lossy(&compiled.stderr);
     assert!(diagnostic.contains(OPAQUE_REACH_REFUSAL), "{diagnostic}");

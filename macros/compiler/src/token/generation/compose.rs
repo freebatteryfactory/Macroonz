@@ -9,98 +9,6 @@
 use super::{GeneratedDelimiter, GeneratedToken};
 use crate::bounded::Overflow;
 
-/// Whether one spelling is a single Rust identifier a rendering is willing to write.
-///
-/// ASCII only, and `_` alone is refused because it is the wildcard pattern rather than a name.
-/// ONE alphabet, seated with the token home, for every spelling any home renders in identifier position — a path segment, an exported address, a stamped item's own name, a declared grammar's word.
-/// A second copy would agree with this one until one of them was edited, and the failure would surface in a consumer's build with no idea where the name came from; the homes that once each carried a copy now all read this seat.
-#[must_use]
-pub fn rendered_identifier(spelling: &str) -> bool {
-    let mut characters = spelling.chars();
-    let Some(head) = characters.next() else {
-        return false;
-    };
-    if !head.is_ascii_alphabetic() && head != '_' {
-        return false;
-    }
-    if spelling == "_" {
-        return false;
-    }
-    characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
-}
-
-/// Whether one spelling is a Rust keyword no rendered item can be named by.
-///
-/// The language's own roster — the strict and reserved keywords through edition 2024 — written down once beside the identifier alphabet, because it is the same law from the other side: an alphabet says which spellings CAN be a name, and this roster says which of those the language already took.
-/// A grammar that let a keyword through would refuse nowhere and hand the collision to the adopter's build, inside an expansion whose lints rustc has silenced.
-#[must_use]
-pub fn rust_keyword(spelling: &str) -> bool {
-    matches!(
-        spelling,
-        "abstract"
-            | "as"
-            | "async"
-            | "await"
-            | "become"
-            | "box"
-            | "break"
-            | "const"
-            | "continue"
-            | "crate"
-            | "do"
-            | "dyn"
-            | "else"
-            | "enum"
-            | "extern"
-            | "false"
-            | "final"
-            | "fn"
-            | "for"
-            | "gen"
-            | "if"
-            | "impl"
-            | "in"
-            | "let"
-            | "loop"
-            | "macro"
-            | "match"
-            | "mod"
-            | "move"
-            | "mut"
-            | "override"
-            | "priv"
-            | "pub"
-            | "ref"
-            | "return"
-            | "self"
-            | "Self"
-            | "static"
-            | "struct"
-            | "super"
-            | "trait"
-            | "true"
-            | "try"
-            | "type"
-            | "typeof"
-            | "unsafe"
-            | "unsized"
-            | "use"
-            | "virtual"
-            | "where"
-            | "while"
-            | "yield"
-    )
-}
-
-/// Whether one spelling can NAME a rendered item: a single identifier the language has not already taken.
-///
-/// The two seats above are the two halves of one law, and this is the law whole — the alphabet says which spellings can be a name, the keyword roster says which of those the language took, and an item name must clear both.
-/// The direct grammars keep reading the two halves separately, because an authored declaration deserves a refusal naming which half disagreed at which token; every constructor that mints a name or a path segment programmatically reads this one.
-#[must_use]
-pub fn rendered_name(spelling: &str) -> bool {
-    rendered_identifier(spelling) && !rust_keyword(spelling)
-}
-
 /// One delimited group.
 ///
 /// # Errors
@@ -358,4 +266,17 @@ pub fn roster(items: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, Overflo
     tokens.push(GeneratedToken::alone('!'));
     tokens.push(group(GeneratedDelimiter::Bracket, items)?);
     Ok(tokens)
+}
+
+/// One owned `Vec` value, using `Vec::new()` when empty and `Vec::from([members])` otherwise.
+///
+/// # Errors
+///
+/// Returns [`Overflow`] where either generated group outgrows the declared token magnitude.
+pub(crate) fn vector(members: Vec<Vec<GeneratedToken>>) -> Result<Vec<GeneratedToken>, Overflow> {
+    if members.is_empty() {
+        return call(absolute_path(&["std", "vec", "Vec", "new"]), Vec::new());
+    }
+    let array = group(GeneratedDelimiter::Bracket, comma_many(members))?;
+    call(absolute_path(&["std", "vec", "Vec", "from"]), vec![array])
 }

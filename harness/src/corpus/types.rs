@@ -2,7 +2,7 @@
 mod guard;
 
 use crate::descriptor::PopulationRef;
-use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use crate::identity::{DomainTag, IdentityProfileVersion};
 
 /// The body format this reader understands.
 pub const SEED_PACK_FORMAT_VERSION: u32 = 1;
@@ -27,12 +27,14 @@ pub enum SeedInputRefusal {
     Empty,
 }
 
-/// The content address of one complete pack body.
-///
-/// Only the writer and the reader mint one, and both derive it under [`SEED_PACK_TAG`].
-/// No road wraps the leading bytes of an untrusted envelope as an address.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct SeedPackAddress(ContentAddress);
+crate::identity::content_address_reference! {
+    /// The content address of one complete pack body.
+    ///
+    /// Only the writer and the reader mint one, and both derive it under [`SEED_PACK_TAG`].
+    /// No road wraps the leading bytes of an untrusted envelope as an address.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct SeedPackAddress;
+}
 
 /// One admitted pack: a population, its seeds in authored order, and the envelope carrying them.
 ///

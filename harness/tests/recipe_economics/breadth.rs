@@ -120,21 +120,21 @@ pub(super) fn observe_counts(source: &str) -> Result<[u64; 16], String> {
         test_carrier_bytes,
     ] = observe(source)?.counts();
     Ok([
-        u64::try_from(source_bytes).map_err(debug)?,
-        u64::try_from(vocabularies).map_err(debug)?,
-        u64::try_from(variants).map_err(debug)?,
-        u64::try_from(relations).map_err(debug)?,
-        u64::try_from(rows).map_err(debug)?,
-        u64::try_from(codecs).map_err(debug)?,
-        u64::try_from(codec_members).map_err(debug)?,
-        u64::try_from(selected_roles).map_err(debug)?,
-        u64::try_from(planned_units).map_err(debug)?,
-        u64::try_from(rendered_units).map_err(debug)?,
-        u64::try_from(explanation_answers).map_err(debug)?,
-        u64::try_from(generated_bytes).map_err(debug)?,
-        u64::try_from(recipe_bytes).map_err(debug)?,
-        u64::try_from(delivered_bytes).map_err(debug)?,
-        u64::try_from(test_carrier_bytes).map_err(debug)?,
+        u64::try_from(source_bytes).map_err(super::debug)?,
+        u64::try_from(vocabularies).map_err(super::debug)?,
+        u64::try_from(variants).map_err(super::debug)?,
+        u64::try_from(relations).map_err(super::debug)?,
+        u64::try_from(rows).map_err(super::debug)?,
+        u64::try_from(codecs).map_err(super::debug)?,
+        u64::try_from(codec_members).map_err(super::debug)?,
+        u64::try_from(selected_roles).map_err(super::debug)?,
+        u64::try_from(planned_units).map_err(super::debug)?,
+        u64::try_from(rendered_units).map_err(super::debug)?,
+        u64::try_from(explanation_answers).map_err(super::debug)?,
+        u64::try_from(generated_bytes).map_err(super::debug)?,
+        u64::try_from(recipe_bytes).map_err(super::debug)?,
+        u64::try_from(delivered_bytes).map_err(super::debug)?,
+        u64::try_from(test_carrier_bytes).map_err(super::debug)?,
         0,
     ])
 }
@@ -198,7 +198,7 @@ fn assert_constant(
 }
 
 fn observe(source: &str) -> Result<BakeMetrics, String> {
-    let capture = TextCapture::read(source).map_err(debug)?;
+    let capture = TextCapture::read(source).map_err(super::debug)?;
     let bake = macroonz_compiler::recipe::bake(capture.input(), HarnessPosture::Available, &DOOR)
         .map_err(|refusal| refusal.summary().to_owned())?;
     metrics(source, &bake)
@@ -450,7 +450,3 @@ pub mod complete_catalog {
     }
 }
 "#;
-
-fn debug(error: impl core::fmt::Debug) -> String {
-    format!("{error:?}")
-}

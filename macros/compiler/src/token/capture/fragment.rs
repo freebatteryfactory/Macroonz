@@ -3,7 +3,7 @@
 //! A fragment never copies or reparses source.
 //! It retains the captured tokens and producer span handles already owned by its source boundary, while canonical bytes continue to exclude producer-local coordinates.
 
-use super::{CaptureCursor, CapturedFragment, CapturedInput, CapturedTokenTree, SpanHandle};
+use super::{CapturedFragment, CapturedInput, CapturedTokenTree, SpanHandle};
 
 impl CapturedInput {
     /// Borrow this complete captured input as one exact fragment.
@@ -40,14 +40,6 @@ impl<'tokens> CapturedFragment<'tokens> {
     #[must_use]
     pub const fn tokens(self) -> &'tokens [CapturedTokenTree] {
         self.tokens
-    }
-
-    /// Open the generic mechanical cursor over this exact fragment.
-    #[must_use]
-    pub fn cursor(self) -> CaptureCursor<'tokens> {
-        let mut cursor = CaptureCursor::over(self.tokens);
-        cursor.end = self.end;
-        cursor
     }
 
     /// How many tokens this fragment carries at its current level.

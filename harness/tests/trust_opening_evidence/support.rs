@@ -35,15 +35,16 @@ use macroonz_harness::muterprater::{
     DiscoveryLoweringRefusal, DiscoveryRefusal, EvaluationBinding, EvaluationCall,
     EvaluationCallRefusal, EvaluationDirective, EvaluationFamilyRef, EvaluationObservation,
     EvaluationPair, EvaluationPairRefusal, EvaluationSurface, FamilyAttribution, GrammarStanding,
-    HumanAdmissionRefusal, IntendedRejection, InterpretedExecutionRefusal, InterpreterAvailability,
-    KillProposalRefusal, MissingTrustEvidence, MutationBackendInvocation, MutationIdentity,
-    MutationOutcome, MutationPermission, MutationPolicy, MutationReport, MutationSite,
-    MutationSourceRevision, MutationVerdict, MutationWitness, MutationWitnessRefusal,
-    NoMutationObservationRefusal, NoMutationParityReading, OperatorFamilyRef, OwedClaimRefusal,
-    OwnerClaimMapping, ParityQualificationRefusal, PermissionRefusal, PlanRefusal, PolicyRefusal,
-    ProductionBinding, ProofDeltaRefusal, ProofRefusal, ProposalRefusal, QualificationRefusal,
-    RewriteAdmission, SinkRefusal, SourceCoordinate, SpecimenMaterializerBinding,
-    SuitePressureRefusal, WrapReading, WrapRefusal, WrappedBackend,
+    HumanAdmissionRefusal, IntendedRejection, InterpretedExecutionRefusal, InterpretedTrust,
+    InterpreterAvailability, KillProposalRefusal, MissingTrustEvidence, MutationBackendInvocation,
+    MutationIdentity, MutationOutcome, MutationPermission, MutationPolicy, MutationReport,
+    MutationSite, MutationSourceRevision, MutationVerdict, MutationWitness, MutationWitnessRefusal,
+    NoMutationObservationRefusal, NoMutationParityQualification, NoMutationParityReading,
+    NoMutationParityStanding, OperatorFamilyRef, OwedClaimRefusal, OwnerClaimMapping,
+    ParityQualificationRefusal, PermissionRefusal, PlanRefusal, PolicyRefusal, ProductionBinding,
+    ProofDeltaRefusal, ProofRefusal, ProposalRefusal, QualificationRefusal, RewriteAdmission,
+    SinkRefusal, SourceCoordinate, SpecimenMaterializerBinding, SuitePressureRefusal, WrapReading,
+    WrapRefusal, WrappedBackend,
 };
 use macroonz_harness::properties::{Agreement, agreement};
 use macroonz_harness::report::{
@@ -57,14 +58,17 @@ use std::sync::atomic::{AtomicU32, Ordering};
 pub(super) const OWNER: &str = "harness.mutation.receiver";
 pub(super) const BACKEND_CONSOLE: &str =
     include_str!("current-compiled-pressure-artifact/cargo-mutants-27.0.0-console.txt");
-pub(super) const BACKEND_SOURCE: &[u8] =
-    include_bytes!("current-compiled-pressure-artifact/wrap.rs");
 pub(super) const CURRENT_BACKEND_SOURCE: &[u8] =
-    include_bytes!("../../src/muterprater/backend/wrap.rs");
+    include_bytes!("../../src/muterprater/backend/wrap/parse.rs");
+/// The harness-derived revision identity of the wrapped-backend source the current campaign ran against.
+///
+/// The `0.2.0` release receipt under `.durafx` records that source's Git blob, hash, and reconstruction road.
+pub(super) const CAMPAIGN_BACKEND_REVISION: [u8; 32] = [
+    65, 174, 110, 41, 237, 73, 162, 0, 130, 114, 221, 57, 38, 66, 223, 87, 93, 4, 182, 8, 198, 250,
+    248, 216, 89, 93, 186, 52, 112, 98, 166, 170,
+];
 pub(super) const HISTORICAL_BACKEND_CONSOLE: &str =
     include_str!("compiled-pressure-artifact/cargo-mutants-27.0.0-console.txt");
-pub(super) const HISTORICAL_BACKEND_SOURCE: &[u8] =
-    include_bytes!("compiled-pressure-artifact/wrap.rs");
 pub(super) const BACKEND_NO_KILL: &str = "Found 1 mutant to test\n\
     ok Unmutated baseline in 3.1s\n\
     missed src/subject/lane.rs:41:9: replace is_qualified -> bool with true in 4.0s";
@@ -76,7 +80,7 @@ pub(super) const BACKEND_COMMAND: &[&str] = &[
     "--package",
     "macroonz-harness",
     "--file",
-    "harness/src/muterprater/backend/wrap.rs",
+    "harness/src/muterprater/backend/wrap/parse.rs",
     "--re",
     "replace != with == in roster_count",
     "--test-tool",
@@ -103,7 +107,7 @@ pub(super) const HISTORICAL_BACKEND_COMMAND: &[&str] = &[
     "--caught",
     "--no-times",
 ];
-pub(super) const COMPILED_MUTANT_FILE: &str = "harness/src/muterprater/backend/wrap.rs";
+pub(super) const COMPILED_MUTANT_FILE: &str = "harness/src/muterprater/backend/wrap/parse.rs";
 pub(super) const HISTORICAL_COMPILED_MUTANT_FILE: &str = "harness/src/muterprater/wrap.rs";
 pub(super) const COMPILED_MUTANT_DAMAGE: &[u8] = b"replace != with == in roster_count";
 pub(super) const ORIGINAL_OPERATION: &[u8] = b"input != 0";
@@ -146,6 +150,7 @@ pub(super) enum MutationRoadFailure {
     MissingActiveSelection,
     MissingQualification(ParityQualificationRefusal),
     MissingTrust(MissingTrustEvidence),
+    CampaignSourceMoved,
     Proof(ProofRefusal),
     ReductionPlan(ReductionPlanRefusal),
     ReductionProbe(ReductionProbeRefusal),
@@ -502,7 +507,7 @@ pub(super) fn check_ref() -> Result<CheckRef, MutationRoadFailure> {
 }
 
 pub(super) fn invocation() -> Result<Invocation, MutationRoadFailure> {
-    let declared_toolchain = "1.98.0";
+    let declared_toolchain = "1.98.1";
     let version = Command::new("rustup")
         .arg("run")
         .arg(declared_toolchain)
@@ -729,9 +734,19 @@ pub(super) fn current_custody(
     )?)
 }
 
+/// The current wrapped-backend source, admitted only while it is the exact source the retained campaign ran against.
+pub(super) fn campaign_source() -> Result<MutationSourceRevision, MutationRoadFailure> {
+    let source = source_revision(CURRENT_BACKEND_SOURCE)?;
+    if source.revision().address().as_bytes() != &CAMPAIGN_BACKEND_REVISION {
+        return Err(MutationRoadFailure::CampaignSourceMoved);
+    }
+    Ok(source)
+}
+
 pub(super) fn compiled_suite_pressure() -> Result<CompiledSuitePressure, MutationRoadFailure> {
     let version = BackendVersion::stated(BACKEND_VERSION).map_err(|_| MutationRoadFailure::Name)?;
-    let manifest = compiled_artifact(BACKEND_CONSOLE, version.clone(), BACKEND_SOURCE)?;
+    campaign_source()?;
+    let manifest = compiled_artifact(BACKEND_CONSOLE, version.clone(), CURRENT_BACKEND_SOURCE)?;
     let qualification =
         AdapterQualification::of(manifest.reading(), GrammarStanding::Checked(version))?;
     let custody = current_custody(manifest, CURRENT_BACKEND_SOURCE)?;
@@ -774,6 +789,106 @@ pub(super) fn selection_for_operation(
     surface
         .select(point.identity(), alternative.identity())
         .map_err(|_| MutationRoadFailure::MissingActiveSelection)
+}
+
+/// The no-mutation parity standing one pair earned under one witness for one input.
+pub(super) type ParityStanding<'pair, 'input> =
+    NoMutationParityStanding<'pair, 'input, [u32; 3], CompiledRosterMeaning>;
+
+/// The qualification a parity standing earned, borrowed for as long as that standing lives.
+pub(super) type ParityQualification<'pair, 'input> =
+    NoMutationParityQualification<'pair, 'input, [u32; 3], CompiledRosterMeaning>;
+
+/// The exact compiled projection pressure one selection demonstrated over one qualification.
+pub(super) type Projection<'parity, 'pair, 'input> =
+    CompiledProjectionPressure<'parity, 'pair, 'input, [u32; 3], CompiledRosterMeaning>;
+
+/// The standard mutation witness: the comparison trial row bound to its declared check.
+pub(super) fn witness() -> Result<MutationWitness<CompiledRosterMeaning>, MutationRoadFailure> {
+    Ok(MutationWitness::bound(
+        trial_binding()?,
+        check_ref()?,
+        check,
+    )?)
+}
+
+/// Observe the no-mutation pass of one pair under one witness and qualify its parity reading.
+pub(super) fn qualified_no_mutation<'pair, 'input>(
+    pair: &'pair EvaluationPair<[u32; 3], CompiledRosterMeaning>,
+    witness: MutationWitness<CompiledRosterMeaning>,
+    input: &'input [u32; 3],
+) -> Result<ParityStanding<'pair, 'input>, MutationRoadFailure> {
+    Ok(qualify_no_mutation(observe_no_mutation(
+        pair,
+        witness,
+        input,
+        &invocation()?,
+    )?))
+}
+
+/// The qualification one standing earned, or the disagreement refusal the claim modules name for its absence.
+pub(super) fn qualification_of<'standing, 'pair, 'input>(
+    standing: &'standing ParityStanding<'pair, 'input>,
+) -> Result<&'standing ParityQualification<'pair, 'input>, MutationRoadFailure> {
+    standing
+        .qualification()
+        .ok_or(MutationRoadFailure::MissingQualification(
+            ParityQualificationRefusal::MeaningsDisagreed,
+        ))
+}
+
+/// Demonstrate one selected alternative through the standard materializer and the pinned compiled specimen host.
+pub(super) fn standard_projection<'parity, 'pair, 'input>(
+    surface: &EvaluationSurface,
+    qualification: &'parity ParityQualification<'pair, 'input>,
+    pair: &EvaluationPair<[u32; 3], CompiledRosterMeaning>,
+    selection: ActiveSelection,
+) -> Result<Projection<'parity, 'pair, 'input>, MutationRoadFailure> {
+    let materializer = SpecimenMaterializerBinding::bound(pair, SPECIMEN_MATERIALIZER);
+    Ok(demonstrate_compiled_projection(
+        surface,
+        qualification,
+        &materializer,
+        selection,
+        &invocation()?,
+        COMPILED_SPECIMEN_HOST,
+    )?)
+}
+
+/// The interpreted trust one availability reading opened, or the missing evidence it names.
+pub(super) fn opened_trust<'surface, 'suite, 'projection, 'parity, 'pair, 'input>(
+    availability: InterpreterAvailability<
+        'surface,
+        'suite,
+        'projection,
+        'parity,
+        'pair,
+        'input,
+        [u32; 3],
+        CompiledRosterMeaning,
+    >,
+) -> Result<
+    InterpretedTrust<
+        'surface,
+        'suite,
+        'projection,
+        'parity,
+        'pair,
+        'input,
+        [u32; 3],
+        CompiledRosterMeaning,
+    >,
+    MutationRoadFailure,
+> {
+    match availability {
+        InterpreterAvailability::Available(trust) => Ok(trust),
+        InterpreterAvailability::NoConformingSurface => Err(MutationRoadFailure::MissingTrust(
+            MissingTrustEvidence::CompiledProjectionPressure,
+        )),
+        InterpreterAvailability::TrustNotOpened { missing } => {
+            Err(MutationRoadFailure::MissingTrust(missing))
+        }
+    }
 }
 
 pub(super) fn assert_compiled_projection_custody(
@@ -863,17 +978,11 @@ pub(super) fn interpreted_kill() -> Result<MutationReport, MutationRoadFailure> 
     let family = family("comparison-family")?;
     let surface = surface_with(family, vec![b"input > 0", SELECTED_OPERATION])?;
     let pair = pair(family, &surface, evaluation_reads_resolved_payload_counted)?;
-    let witness = MutationWitness::bound(trial_binding()?, check_ref()?, check)?;
     let input = [1u32, 0, 0];
-    let reading = observe_no_mutation(&pair, witness, &input, &invocation()?)?;
+    let reading = observe_no_mutation(&pair, witness()?, &input, &invocation()?)?;
     assert_no_mutation_reading(&reading);
     let standing = qualify_no_mutation(reading);
-    let qualification =
-        standing
-            .qualification()
-            .ok_or(MutationRoadFailure::MissingQualification(
-                ParityQualificationRefusal::MeaningsDisagreed,
-            ))?;
+    let qualification = qualification_of(&standing)?;
     let suite = compiled_suite_pressure()?;
     assert_eq!(suite.kill().target().owning_claim(), Some(claim()?));
     assert_eq!(
@@ -884,7 +993,7 @@ pub(super) fn interpreted_kill() -> Result<MutationReport, MutationRoadFailure> 
         suite.kill().target().site(),
         MutationSite::Reported(coordinate)
             if coordinate.file() == COMPILED_MUTANT_FILE
-                && coordinate.line() == 351
+                && coordinate.line() == 68
                 && coordinate.column() == 13
     ));
     let selection = selection_for_operation(&surface, SELECTED_OPERATION)?;
@@ -894,29 +1003,11 @@ pub(super) fn interpreted_kill() -> Result<MutationReport, MutationRoadFailure> 
     };
     assert_eq!(point.admitted_alternatives().len(), 2usize);
     assert_ne!(selection.alternative(), sibling.alternative());
-    let materializer = SpecimenMaterializerBinding::bound(&pair, SPECIMEN_MATERIALIZER);
-    let projection = demonstrate_compiled_projection(
-        &surface,
-        qualification,
-        &materializer,
-        selection,
-        &invocation()?,
-        COMPILED_SPECIMEN_HOST,
-    )?;
+    let projection = standard_projection(&surface, qualification, &pair, selection)?;
     assert_compiled_projection_custody(&projection, &pair, selection);
     let availability = availability(Some(&surface), Some(&suite), Some(&projection));
     assert_eq!(admission(&availability), RewriteAdmission::Admitted);
-    let trust = match availability {
-        InterpreterAvailability::Available(trust) => trust,
-        InterpreterAvailability::NoConformingSurface => {
-            return Err(MutationRoadFailure::MissingTrust(
-                MissingTrustEvidence::CompiledProjectionPressure,
-            ));
-        }
-        InterpreterAvailability::TrustNotOpened { missing } => {
-            return Err(MutationRoadFailure::MissingTrust(missing));
-        }
-    };
+    let trust = opened_trust(availability)?;
     assert_eq!(trust.selection(), selection);
     CLAIM_MISMATCH_EVALUATION_CALLS.store(0, Ordering::SeqCst);
     INTERPRETED_CLOCK_CALLS.store(0, Ordering::SeqCst);

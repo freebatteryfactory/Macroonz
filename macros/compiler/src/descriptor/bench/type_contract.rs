@@ -4,13 +4,9 @@ use super::{
     BenchAnswer, BenchCaptureError, BenchQuestion, BenchRole, BenchTable, BenchmarkDeclaration,
     ContentionPosture,
 };
-use crate::bounded::Bounded;
 use crate::descriptor::Name;
 use crate::descriptor::vocabulary::HarnessName;
-use crate::diagnostic::{
-    BENCH_HELPER_FAMILY, Family, LineBody, Observed, Phase, REPAIR_LIMIT, RefusalClass, Refused,
-    Repair,
-};
+use crate::diagnostic::BENCH_HELPER_FAMILY;
 use crate::identity::{encode_bytes, encode_length};
 use crate::kind::{Answer, CanonicalContent, Destination, Kind, Question, Role};
 
@@ -150,40 +146,4 @@ impl BenchmarkDeclaration {
     }
 }
 
-impl Refused for BenchCaptureError {
-    const PHASE: Phase = Phase::Capture;
-    const FAMILY: Family = BENCH_HELPER_FAMILY;
-
-    fn class(&self) -> RefusalClass {
-        self.refusal().class()
-    }
-
-    fn first(&self) -> String {
-        self.refusal().first()
-    }
-
-    fn observed(&self) -> Observed {
-        self.refusal().classified()
-    }
-
-    fn body(&self) -> LineBody {
-        LineBody::SingleCause
-    }
-
-    fn related(&self) -> Vec<Vec<u8>> {
-        vec![self.refusal().canonical_bytes()]
-    }
-
-    fn repairs(&self) -> Bounded<Repair, REPAIR_LIMIT> {
-        self.refusal().repairs()
-    }
-}
-
-impl core::fmt::Display for BenchCaptureError {
-    fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let refusal = self.refusal();
-        write!(into, "{refusal}")
-    }
-}
-
-impl core::error::Error for BenchCaptureError {}
+crate::descriptor::impl_helper_capture_contract!(BenchCaptureError, BENCH_HELPER_FAMILY, canonical);

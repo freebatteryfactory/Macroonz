@@ -7,7 +7,7 @@ error[E0308]: mismatched types
   |                    arguments to this function are incorrect
   |
 note: associated function defined here
- --> src/descriptor/type_guard.rs
+ --> src/descriptor/guard_attachment.rs
   |
   |     pub const fn derived(evidence: DerivedRevision) -> Self {
   |                  ^^^^^^^

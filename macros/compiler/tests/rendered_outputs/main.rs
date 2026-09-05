@@ -11,7 +11,7 @@ use macroonz_compiler::{
     CrateBinding, Destination, Diagnostic, Expansion, GENERATED_TOKEN_LIMIT, GeneratedToken,
     GeneratedTree, Kind, LineBody, MEMBERSHIP_LIMIT, NoQuestions, Observed, Phase, Producer,
     RENDERED_BYTE_LIMIT, Refused, RenderError, RenderedProjection,
-    RenderedUnit as RootRenderedUnit, Request, Role, TextCapture,
+    RenderedUnit as RootRenderedUnit, Request, Role, TextCapture, encode_bytes,
 };
 
 /// The kind this lane renders under two declared seats.
@@ -100,26 +100,18 @@ fn lawful() -> Result<Expansion<RenderKind>, ()> {
         .map_err(|_diagnostic| ())
 }
 
-/// Length-prefix one byte string exactly as the identity framing specifies.
-fn framed(material: &[u8]) -> Vec<u8> {
-    let mut bytes = u64::try_from(material.len())
-        .unwrap_or(u64::MAX)
-        .to_be_bytes()
-        .to_vec();
-    bytes.extend_from_slice(material);
-    bytes
-}
-
-/// The independently written canonical encoding of one rendering refusal.
+/// The canonical encoding of one rendering refusal rebuilt from its slot and material.
 fn encoded_refusal(slot: u8, material: &[u8]) -> Vec<u8> {
     let mut bytes = vec![slot];
-    bytes.extend_from_slice(&framed(material));
+    encode_bytes(material, &mut bytes);
     bytes
 }
 
-/// The independently written material for a refusal that names one seat.
+/// The material for a refusal that names one seat.
 fn seat_material(role: &str) -> Vec<u8> {
-    framed(role.as_bytes())
+    let mut bytes = Vec::new();
+    encode_bytes(role.as_bytes(), &mut bytes);
+    bytes
 }
 
 /// The independently written material for a refusal carrying one seat and two counts.
@@ -295,7 +287,7 @@ fn every_render_magnitude_refuses_at_its_own_boundary() -> Result<(), ()> {
     Ok(())
 }
 
-/// The five refusal rows have stable discriminants and independently reproducible canonical bytes.
+/// The five refusal rows have stable discriminants and reproducible canonical fields.
 #[test]
 fn rendering_refusal_bytes_are_complete_and_row_separated() {
     let rows = [

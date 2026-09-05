@@ -1,11 +1,6 @@
 //! Bound semantic and generic reducers retain their exact path, preservation evidence, and replay ceiling.
 
-use macroonz_harness::clock::HarnessClock;
-use macroonz_harness::descriptor::{
-    Binding, CheckRef, ClaimRef, Classification, DerivedRevision, ExecutableAttachment,
-    ExecutionSuite, GeneratedSupportSchemaId, Origin, PopulationRef, Provenance, RevisionBinding,
-    Role, Row, SubjectRoute, Tag, TrialCoordinates, TrialKey,
-};
+use macroonz_harness::descriptor::{DerivedRevision, GeneratedSupportSchemaId, RevisionBinding};
 use macroonz_harness::generate::reduce::{capture_replay, reduce, shrink_verdict};
 use macroonz_harness::generate::types::{
     ByteReducerExecution, ByteReducerId, FingerprintPreservation, ProbeOutcome, ReductionBudget,
@@ -15,13 +10,17 @@ use macroonz_harness::generate::types::{
 };
 use macroonz_harness::identity::{ContentAddress, DomainTag, IdentityProfileVersion, encode_bytes};
 use macroonz_harness::report::{
-    ByteBudget, CaseBudget, FailureClass, FindingCause, FindingLocation, Fingerprint,
-    GenerationProfile, InvocationProfile, MinimizationProfile, REPLAY_CAPSULE_TAG, ReplayCapsule,
-    ReplayPosture, TargetBinding, TargetTriple, TimeBudget, ToolchainIdentity, TrialConclusion,
-    TrialFinding, TrialId, TrialProfile, TrialSite,
+    FailureClass, FindingCause, FindingLocation, Fingerprint, GenerationProfile,
+    MinimizationProfile, REPLAY_CAPSULE_TAG, ReplayCapsule, ReplayPosture, TrialConclusion,
+    TrialFinding, TrialReport, TrialSite,
 };
-use macroonz_harness::runner::{Invocation, TrialBinding, run_one};
+use macroonz_harness::runner::Invocation;
 use std::fmt;
+
+#[path = "../support/trial_fixture.rs"]
+mod trial_fixture;
+
+use trial_fixture::TrialFixture;
 
 const PRESERVED_CAUSE: FindingCause = FindingCause::named("harness", "preserved-failure");
 const MOVED_CAUSE: FindingCause = FindingCause::named("harness", "moved-failure");
@@ -81,19 +80,7 @@ impl From<ReductionRefusal> for ReductionRoadFailure {
 }
 
 fn trial_fingerprint(cause: FindingCause) -> Option<Fingerprint> {
-    let coordinates = TrialCoordinates::over(
-        ClaimRef::named("harness", "generic-byte-reduction").ok()?,
-        SubjectRoute::named("harness", "byte-input").ok()?,
-        CheckRef::named("harness", "fingerprint-preserved").ok()?,
-        PopulationRef::named("harness", "reduction-candidates").ok()?,
-    );
-    let key = TrialKey::over(coordinates);
-    let trial = TrialId::of_key(key, TrialProfile::Unprofiled);
-    Some(Fingerprint::over(
-        trial,
-        cause,
-        FailureClass::PropertyDisagreement,
-    ))
+    Some(trial_fixture()?.fingerprint(cause))
 }
 
 fn probe(input: &[u8]) -> ProbeOutcome {
@@ -127,63 +114,31 @@ fn revision_derived_from(material: &[u8]) -> RevisionBinding {
     RevisionBinding::derived(DerivedRevision::from_material(material))
 }
 
-fn trial_binding_with(call: fn(&Invocation) -> TrialConclusion) -> Option<TrialBinding> {
-    let subject = SubjectRoute::named("harness", "byte-input").ok()?;
-    let check = CheckRef::named("harness", "fingerprint-preserved").ok()?;
-    let row = Row::declared(
-        ClaimRef::named("harness", "generic-byte-reduction").ok()?,
-        ExecutionSuite::named("harness", "reduction").ok()?,
-        Classification::authored(
-            vec![Role::named("harness", "reduction").ok()?],
-            vec![Tag::named("harness", "outside-consumer").ok()?],
-        )
-        .ok()?,
-        subject,
-        check,
-        PopulationRef::named("harness", "reduction-candidates").ok()?,
-        Origin::HandWritten,
-    )
-    .ok()?;
-    let revision = revision_derived_from(b"trial");
-    Binding::bound(
-        row,
-        ExecutableAttachment::attached(subject, check, revision, revision, call),
-        Provenance::Unproduced,
-    )
-    .ok()
-}
-
-fn trial_binding() -> Option<TrialBinding> {
-    trial_binding_with(refused_trial)
-}
-
-fn invocation() -> Invocation {
-    Invocation::declared(
-        InvocationProfile::declared(
-            CaseBudget::declared(1),
-            ByteBudget::declared(64),
-            TimeBudget::declared(1_000_000),
-        ),
-        TargetBinding::bound(
-            TargetTriple::declared("x86_64-pc-windows-msvc"),
-            ToolchainIdentity::declared("1.98.0"),
-        ),
+fn trial_fixture() -> Option<TrialFixture> {
+    TrialFixture::named(
+        "generic-byte-reduction",
+        "reduction",
+        "reduction",
+        "outside-consumer",
+        "reduction-candidates",
         TrialSite::located(module_path!(), file!(), line!(), "reduction"),
-        HarnessClock::unavailable(),
+        trial_fixture::synthetic_target(),
     )
+}
+
+fn trial_report_with(call: fn(&Invocation) -> TrialConclusion) -> Option<TrialReport> {
+    trial_fixture()?.report(call, revision_derived_from(b"trial"))
 }
 
 fn probe_binding(revision: RevisionBinding) -> Option<ReductionProbeBinding> {
-    let trial = trial_binding()?;
-    let report = run_one(&trial, &invocation());
-    ReductionProbeBinding::bound(
-        &report,
+    trial_fixture()?.probe_binding(
+        refused_trial,
+        revision_derived_from(b"trial"),
         GenerationProfile::declared("reduction-input", 1),
         GeneratedSupportSchemaId::over(ContentAddress::derived(SCHEMA_TAG, b"schema")),
         revision,
         probe,
     )
-    .ok()
 }
 
 fn semantic_candidates(input: &[u8]) -> Result<SemanticCandidates, SemanticCandidateRefusal> {
@@ -469,10 +424,9 @@ fn plan_and_probe_bindings_refuse_the_first_unwarranted_claim() -> Result<(), Re
         Err(ReductionPlanRefusal::ZeroReductionBudget)
     ));
 
-    let Some(trial) = trial_binding_with(passed_trial) else {
+    let Some(report) = trial_report_with(passed_trial) else {
         return Err(ReductionRoadFailure::Fixture);
     };
-    let report = run_one(&trial, &invocation());
     assert!(matches!(
         ReductionProbeBinding::bound(
             &report,
@@ -483,6 +437,47 @@ fn plan_and_probe_bindings_refuse_the_first_unwarranted_claim() -> Result<(), Re
         ),
         Err(ReductionProbeRefusal::TrialPassed)
     ));
+    Ok(())
+}
+
+#[test]
+fn trial_and_probe_revisions_move_independently() -> Result<(), ReductionRoadFailure> {
+    let Some(fixture) = trial_fixture() else {
+        return Err(ReductionRoadFailure::Fixture);
+    };
+    let first_trial = revision_derived_from(b"first-trial");
+    let second_trial = revision_derived_from(b"second-trial");
+    let probe_revision = revision_derived_from(b"one-probe");
+    let generation = GenerationProfile::declared("revision-separation", 1);
+    let schema = GeneratedSupportSchemaId::over(ContentAddress::derived(SCHEMA_TAG, b"separation"));
+    let Some(first) = fixture.probe_binding(
+        refused_trial,
+        first_trial,
+        generation,
+        schema,
+        probe_revision,
+        probe,
+    ) else {
+        return Err(ReductionRoadFailure::Fixture);
+    };
+    let Some(second) = fixture.probe_binding(
+        refused_trial,
+        second_trial,
+        generation,
+        schema,
+        probe_revision,
+        probe,
+    ) else {
+        return Err(ReductionRoadFailure::Fixture);
+    };
+
+    assert_eq!(first.revision(), probe_revision);
+    assert_eq!(second.revision(), probe_revision);
+    assert_ne!(
+        first.standing().key().revisions(),
+        second.standing().key().revisions()
+    );
+    assert_eq!(first.preserved(), second.preserved());
     Ok(())
 }
 

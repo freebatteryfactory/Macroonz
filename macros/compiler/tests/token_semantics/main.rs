@@ -1,25 +1,95 @@
 //! The token seam's public paths, canonical bytes, and readable projection observed from outside its crate.
+//! The keyword-name claim at the foot of this lane asks every programmatic name constructor to read the roster this lane pins.
 //!
-//! The receipts below are rebuilt without the compiler's framing helpers, so a moved slot, delimiter, spacing row, framing boundary, or producer coordinate changes the observation.
+//! The receipts below rebuild every token slot, delimiter, spacing row, and producer coordinate while using the public framing contract.
 //! The generated projection is fixed beside the byte receipt because the projection and the identity bytes are different contracts and neither substitutes for the other.
 
 use core::convert::Infallible;
 use macroonz_compiler::token::{
-    CaptureBuildRefusal as HomeCaptureBuildRefusal, CaptureBuilder as HomeCaptureBuilder,
-    CapturedAtom, CapturedDelimiter, CapturedInput, GeneratedDelimiter, GeneratedLiteral,
-    GeneratedToken as HomeGeneratedToken, GeneratedTree as HomeGeneratedTree,
+    CaptureBound, CaptureBuildRefusal as HomeCaptureBuildRefusal,
+    CaptureBuilder as HomeCaptureBuilder, CapturedAtom, CapturedDelimiter, CapturedInput,
+    GeneratedDelimiter, GeneratedLiteral, GeneratedToken as HomeGeneratedToken,
+    GeneratedTree as HomeGeneratedTree, LiteralReadCause, TextLexicalCause, rust_keyword,
 };
-use macroonz_compiler::{CaptureBuildRefusal, CaptureBuilder, GeneratedToken, GeneratedTree};
+use macroonz_compiler::{
+    CaptureBuildRefusal, CaptureBuilder, GeneratedToken, GeneratedTree, encode_bytes,
+};
 
-/// Append one independently framed variable-width token payload.
-fn framed(slot: u8, material: &[u8], into: &mut Vec<u8>) {
+/// Append one independently stated token slot and its publicly framed payload.
+fn token_bytes(slot: u8, material: &[u8], into: &mut Vec<u8>) {
     into.push(slot);
-    into.extend_from_slice(
-        &u64::try_from(material.len())
-            .unwrap_or(u64::MAX)
-            .to_be_bytes(),
+    encode_bytes(material, into);
+}
+
+/// The complete edition-2024 keyword roster and neighbouring ordinary names are classified at the public token boundary.
+#[test]
+fn rust_keywords_are_one_exact_language_roster() {
+    let keywords = [
+        "abstract", "as", "async", "await", "become", "box", "break", "const", "continue", "crate",
+        "do", "dyn", "else", "enum", "extern", "false", "final", "fn", "for", "gen", "if", "impl",
+        "in", "let", "loop", "macro", "match", "mod", "move", "mut", "override", "priv", "pub",
+        "ref", "return", "self", "Self", "static", "struct", "super", "trait", "true", "try",
+        "type", "typeof", "unsafe", "unsized", "use", "virtual", "where", "while", "yield",
+    ];
+    assert!(keywords.into_iter().all(rust_keyword));
+    assert!(
+        [
+            "",
+            "_",
+            "State",
+            "async_task",
+            "selfish",
+            "yielded",
+            "r#type"
+        ]
+        .into_iter()
+        .all(|spelling| !rust_keyword(spelling))
     );
-    into.extend_from_slice(material);
+}
+
+/// The three public capture vocabularies retain every row, order, and declared name.
+#[test]
+fn capture_vocabulary_names_are_exact() {
+    let lexical = [
+        (
+            TextLexicalCause::BlockCommentNotTerminated,
+            "block-comment-not-terminated",
+        ),
+        (TextLexicalCause::InvalidIdentifier, "invalid-identifier"),
+        (TextLexicalCause::UnknownPrefix, "unknown-prefix"),
+        (
+            TextLexicalCause::UnknownLifetimePrefix,
+            "unknown-lifetime-prefix",
+        ),
+        (
+            TextLexicalCause::GuardedStringPrefix,
+            "guarded-string-prefix",
+        ),
+        (TextLexicalCause::MalformedLiteral, "malformed-literal"),
+        (
+            TextLexicalCause::LifetimeStartsWithNumber,
+            "lifetime-starts-with-number",
+        ),
+        (TextLexicalCause::Frontmatter, "frontmatter"),
+        (TextLexicalCause::UnknownToken, "unknown-token"),
+    ];
+    let bounds = [
+        (CaptureBound::Depth, "depth"),
+        (CaptureBound::Level, "level"),
+        (CaptureBound::Tree, "tree"),
+        (CaptureBound::Work, "work"),
+    ];
+    let literals = [
+        (LiteralReadCause::NotAKnownForm, "not-a-known-form"),
+        (LiteralReadCause::NotReadable, "not-readable"),
+    ];
+
+    assert_eq!(TextLexicalCause::ALL, lexical.map(|(row, _name)| row));
+    assert_eq!(CaptureBound::ALL, bounds.map(|(row, _name)| row));
+    assert_eq!(LiteralReadCause::ALL, literals.map(|(row, _name)| row));
+    assert!(lexical.into_iter().all(|(row, name)| row.name() == name));
+    assert!(bounds.into_iter().all(|(row, name)| row.name() == name));
+    assert!(literals.into_iter().all(|(row, name)| row.name() == name));
 }
 
 /// One capture carrying every payload slot and every captured delimiter slot.
@@ -103,20 +173,20 @@ fn empty_group(
 /// The independently rebuilt bytes for [`captured`].
 fn captured_receipt() -> Vec<u8> {
     let mut bytes = Vec::new();
-    framed(1, b"w", &mut bytes);
-    framed(2, b":", &mut bytes);
-    framed(3, b"t", &mut bytes);
-    framed(4, b"01", &mut bytes);
+    token_bytes(1, b"w", &mut bytes);
+    token_bytes(2, b":", &mut bytes);
+    token_bytes(3, b"t", &mut bytes);
+    token_bytes(4, b"01", &mut bytes);
     for delimiter in 0u8..=3u8 {
         bytes.extend_from_slice(&[5, delimiter]);
         bytes.extend_from_slice(&0u64.to_be_bytes());
     }
-    framed(6, &[0, 0xff], &mut bytes);
-    framed(7, "é".as_bytes(), &mut bytes);
+    token_bytes(6, &[0, 0xff], &mut bytes);
+    token_bytes(7, "é".as_bytes(), &mut bytes);
     bytes.extend_from_slice(&[8, 0xff]);
-    framed(9, b"c", &mut bytes);
-    framed(10, b"type", &mut bytes);
-    framed(11, b"+", &mut bytes);
+    token_bytes(9, b"c", &mut bytes);
+    token_bytes(10, b"type", &mut bytes);
+    token_bytes(11, b"+", &mut bytes);
     bytes
 }
 
@@ -149,32 +219,32 @@ fn generated() -> Option<GeneratedTree> {
 /// The independently rebuilt bytes for [`generated`].
 fn generated_receipt() -> Vec<u8> {
     let mut bytes = Vec::new();
-    framed(1, b"word", &mut bytes);
+    token_bytes(1, b"word", &mut bytes);
     bytes.extend_from_slice(&[2, 0]);
     bytes.extend_from_slice(&1u64.to_be_bytes());
     bytes.push(b':');
     bytes.extend_from_slice(&[2, 1]);
     bytes.extend_from_slice(&1u64.to_be_bytes());
     bytes.push(b':');
-    framed(3, b"a\"\\", &mut bytes);
+    token_bytes(3, b"a\"\\", &mut bytes);
     for delimiter in 0u8..=2u8 {
         bytes.extend_from_slice(&[4, delimiter]);
         bytes.extend_from_slice(&0u64.to_be_bytes());
     }
     bytes.extend_from_slice(&[4, 3]);
     bytes.extend_from_slice(&1u64.to_be_bytes());
-    framed(1, b"inside", &mut bytes);
-    framed(5, &[0, 0xff], &mut bytes);
+    token_bytes(1, b"inside", &mut bytes);
+    token_bytes(5, &[0, 0xff], &mut bytes);
     bytes.push(6);
     bytes.extend_from_slice(&0x0102_0304_0506_0708u64.to_be_bytes());
-    framed(7, b"type", &mut bytes);
+    token_bytes(7, b"type", &mut bytes);
     bytes.push(8);
-    framed(0, b"0xFFu8", &mut bytes);
+    token_bytes(0, b"0xFFu8", &mut bytes);
     bytes.push(8);
-    framed(1, "é".as_bytes(), &mut bytes);
+    token_bytes(1, "é".as_bytes(), &mut bytes);
     bytes.extend_from_slice(&[8, 2, 0xff]);
     bytes.push(8);
-    framed(3, b"ab", &mut bytes);
+    token_bytes(3, b"ab", &mut bytes);
     bytes
 }
 
@@ -228,4 +298,68 @@ fn generated_slots_and_readable_spelling_are_exact() -> Result<(), ()> {
         r#"word :: "a\"\\" ( ) { } [ ] inside b"\x00\xFF" 72623859790382856 r#type 0xFFu8 '\u{e9}' b'\xFF' c"ab" "#
     );
     Ok(())
+}
+
+/// A keyword cannot name a rendered item: every programmatic name constructor reads the composed law, not the alphabet alone.
+///
+/// Paths read position-aware the way the language does: the stamp site root admits `crate`, `self`, or a leading run of `super` at the root, the codec path types its qualifier as the rooting — so every later segment is an item name the keyword roster refuses.
+#[test]
+fn a_keyword_cannot_name_a_rendered_item() {
+    assert!(macroonz_compiler::descriptor::ModuleName::declared("type").is_err());
+    assert!(macroonz_compiler::descriptor::SupportName::declared("mod").is_err());
+    assert!(macroonz_compiler::descriptor::TypeName::declared("gen").is_err());
+    assert!(macroonz_compiler::descriptor::FunctionName::declared("fn").is_err());
+    assert!(macroonz_compiler::descriptor::ModuleName::declared("lawful_name").is_ok());
+    assert!(macroonz_compiler::stamp::StampName::declared("type").is_err());
+    assert!(macroonz_compiler::support::SupportName::declared("loop").is_err());
+    assert!(macroonz_compiler::codec::ModuleSpelling::spelled("type").is_err());
+    assert!(macroonz_compiler::stamp::SiteRoot::spelled(vec!["crate".to_owned()]).is_ok());
+    assert!(
+        macroonz_compiler::stamp::SiteRoot::spelled(vec!["crate".to_owned(), "type".to_owned()])
+            .is_err()
+    );
+    assert!(
+        macroonz_compiler::stamp::SiteRoot::spelled(vec![
+            "super".to_owned(),
+            "super".to_owned(),
+            "stamps".to_owned(),
+        ])
+        .is_ok()
+    );
+    assert!(
+        macroonz_compiler::stamp::SiteRoot::spelled(vec!["stamps".to_owned(), "self".to_owned()])
+            .is_err()
+    );
+    assert!(
+        macroonz_compiler::codec::CodecTypePath::spelled(
+            macroonz_compiler::codec::PathRooting::ParentScoped,
+            vec!["Thing".to_owned()],
+        )
+        .is_ok()
+    );
+    assert!(
+        macroonz_compiler::codec::CodecTypePath::spelled(
+            macroonz_compiler::codec::PathRooting::InScope,
+            vec!["self".to_owned(), "Thing".to_owned()],
+        )
+        .is_err()
+    );
+}
+
+/// Every programmatic item-name constructor reads the same Rust identifier alphabet.
+///
+/// A leading digit is outside that alphabet, while a leading underscore followed by a name character is lawful; the pair catches a guard that accidentally reverses underscore admission.
+#[test]
+fn programmatic_item_names_share_one_identifier_alphabet() {
+    for invalid in ["7thing", "thing-name"] {
+        assert!(macroonz_compiler::descriptor::ModuleName::declared(invalid).is_err());
+        assert!(macroonz_compiler::stamp::StampName::declared(invalid).is_err());
+        assert!(macroonz_compiler::codec::ModuleSpelling::spelled(invalid).is_err());
+    }
+
+    for lawful in ["Thing", "_thing", "thing_7"] {
+        assert!(macroonz_compiler::descriptor::ModuleName::declared(lawful).is_ok());
+        assert!(macroonz_compiler::stamp::StampName::declared(lawful).is_ok());
+        assert!(macroonz_compiler::codec::ModuleSpelling::spelled(lawful).is_ok());
+    }
 }

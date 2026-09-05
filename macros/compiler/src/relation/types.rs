@@ -3,7 +3,7 @@
 //! Declarations only.
 //! Every road that reaches a private field lives in `type_guard.rs` or `questions.rs`, this file's own children.
 
-use crate::bounded::{Bounded, ForeignRosterReference, KeyedRoster, NonEmpty};
+use crate::bounded::{Bounded, DuplicateKey, ForeignRosterReference, KeyedRoster, NonEmpty};
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -55,6 +55,28 @@ crate::roster! {
         Authored = "authored",
         /// Left-roster position, then right-roster position, with authored order breaking equal-pair ties.
         Canonical = "canonical",
+    }
+}
+
+crate::roster! {
+    /// Which structural question one recipe relation may answer.
+    pub(crate) enum RelationQuestion {
+        /// Whether the relation has any row.
+        Empty = "empty",
+        /// Whether an endpoint pair occurs more than once.
+        Repetition = "repetition",
+        /// Whether each endpoint roster is open or closed.
+        Membership = "membership",
+        /// Whether each endpoint roster is completely covered.
+        Completeness = "completeness",
+        /// Whether every possible endpoint pair occurs.
+        Density = "density",
+        /// What a generated operation does when no row applies.
+        Absence = "absence",
+        /// Whether a same-roster row may relate one member to itself.
+        SelfRelation = "self_relation",
+        /// Whether a same-roster directed cycle remains lawful.
+        Cycle = "cycle",
     }
 }
 
@@ -262,12 +284,9 @@ struct ReferencedRosterRow<'rosters, Left, LeftKey, Right, RightKey, Payload> {
 }
 
 /// One repeated relation pair and every authored position at which it occurred.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct RepeatedRelationPair<const N: usize> {
-    left_position: usize,
-    right_position: usize,
-    first: usize,
-    repeated: NonEmpty<usize, N>,
+    duplicate: DuplicateKey<RelationPair, N>,
 }
 
 /// Every distinct relation pair that occurred more than once.
@@ -296,6 +315,12 @@ struct ResolvedRosterMember<'roster, Member, Key> {
 
 struct CanonicalRelationPosition {
     authored: usize,
+    left: usize,
+    right: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct RelationPair {
     left: usize,
     right: usize,
 }

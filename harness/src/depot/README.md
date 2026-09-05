@@ -2,11 +2,11 @@
 
 Some harness facts are authored rather than observed.
 
-This home is the navigation boundary for three independent kinds of those facts.
-The operator-family bank states which generic mutation damages the harness can name, the type-separation bank states directional confusions its own vocabulary must resist, and the capsule home states what a replay-bearing human admission hands to caller-owned storage.
+This home is the navigation boundary for those facts.
+The operator-family bank states which generic mutation damages the harness can name, the artifact-mutation bank states which deliberate damages it can seed, the producer-field bank states the mutation-discovery and benchmark vocabularies, the type-separation bank states directional confusions its own vocabulary must resist, and the capsule home states what a replay-bearing human admission hands to caller-owned storage.
 
-The three compose only through their consumers.
-Mutation pressure resolves and plans against the operator-family bank, a compiler refusal is the evidence for a type-separation challenge, and human admission alone assembles a replay entry before asking the caller's sink to store it.
+The banks and capsule seam compose only through their consumers.
+Mutation pressure resolves and plans against authored damage banks, descriptor schema identity reads the producer fields, a compiler refusal is the evidence for a type-separation challenge, and human admission alone assembles a replay entry before asking the caller's sink to store it.
 Reading a bank runs nothing, and storing an entry grants no authority to admit it.
 
 ## Authority ceiling

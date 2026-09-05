@@ -7,6 +7,24 @@ use super::types::{
 use crate::identity::encode_bytes;
 use core::fmt;
 
+/// One row's position in its roster, or the roster's length where the roster does not carry it.
+pub(super) fn slot_in<T: Copy + Eq>(roster: &[T], row: T) -> u16 {
+    let position = roster
+        .iter()
+        .position(|other| *other == row)
+        .unwrap_or(roster.len());
+    u16::try_from(position).unwrap_or(u16::MAX)
+}
+
+/// Find one roster row by the name its declaration assigned it.
+pub(crate) fn roster_row<Row: Copy>(
+    roster: &[Row],
+    name: fn(Row) -> &'static str,
+    sought: &str,
+) -> Option<Row> {
+    roster.iter().copied().find(|row| name(*row) == sought)
+}
+
 impl CanonicalContent for () {
     fn encode_content_into(&self, _into: &mut Vec<u8>) {}
 }

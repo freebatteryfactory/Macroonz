@@ -3,22 +3,22 @@
 use super::{
     ARTIFACT_CONTENT_TAG, ActiveSelection, ArtifactContent, ArtifactContentId, CheckRef,
     CompiledProjectionPressure, CompiledSpecimenObservation, CompiledSpecimenObservationMismatch,
-    CompiledSpecimenRequest, CompiledSpecimenRole, CompiledSpecimenStanding, ContentAddress,
+    CompiledSpecimenRequest, CompiledSpecimenRole, CompiledSpecimenStanding,
     EvaluationPairStanding, ExecutionKey, MutationReport, NoMutationParityQualification,
     SpecimenMaterializerBinding, SpecimenMaterializerCall, TrialReport,
 };
+use crate::identity::ContentAddress;
 use crate::muterprater::EvaluationPair;
 impl ArtifactContentId {
     /// Derive the identity of exact compiler-source bytes.
     pub(in crate::muterprater) fn derived(bytes: &[u8]) -> Self {
         Self(ContentAddress::derived(ARTIFACT_CONTENT_TAG, bytes))
     }
+}
 
+crate::identity::content_address_reference! {
     /// The underlying content address.
-    #[must_use]
-    pub const fn address(self) -> ContentAddress {
-        self.0
-    }
+    value ArtifactContentId;
 }
 
 impl ArtifactContent {

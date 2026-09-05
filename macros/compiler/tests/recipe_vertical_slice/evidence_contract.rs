@@ -1,13 +1,14 @@
 //! Descriptor-native evidence, feature posture, identity, and custom-projector claims.
 
+use super::support::{bake_under, bake_with, refusal, refusal_under};
 use super::{
-    CALLER_OWNED_TRIAL_RECIPE, COMPANION_RECIPE, CallerOwnedTrials, DOOR, EVIDENCE_RECIPE,
+    CALLER_OWNED_TRIAL_RECIPE, COMPANION_RECIPE, CallerOwnedTrials, EVIDENCE_RECIPE,
     TARGET_UNAVAILABLE_RECIPE, bake, emitted_bytes, refusal_summary,
 };
+use macroonz_compiler::GeneratedTree;
 use macroonz_compiler::recipe::{
     HarnessPosture, ProjectionDisposition, ProjectorReplacement, RecipeRole,
 };
-use macroonz_compiler::{GeneratedTree, TextCapture};
 
 #[test]
 fn descriptor_native_evidence_uses_the_recipe_account_and_existing_carrier_roads() -> Result<(), ()>
@@ -93,10 +94,7 @@ fn evidence_movement_moves_the_existing_recipe_identity_chain() -> Result<(), ()
 
 #[test]
 fn target_unavailability_and_feature_unavailability_remain_distinct() -> Result<(), ()> {
-    let available = TextCapture::read(TARGET_UNAVAILABLE_RECIPE).map_err(|_| ())?;
-    let target_unavailable =
-        macroonz_compiler::recipe::bake(available.input(), HarnessPosture::Available, &DOOR)
-            .map_err(|_| ())?;
+    let target_unavailable = bake(TARGET_UNAVAILABLE_RECIPE)?;
     assert_eq!(
         target_unavailable
             .projection()
@@ -106,10 +104,7 @@ fn target_unavailability_and_feature_unavailability_remain_distinct() -> Result<
         ProjectionDisposition::TargetUnavailable
     );
 
-    let unavailable = TextCapture::read(TARGET_UNAVAILABLE_RECIPE).map_err(|_| ())?;
-    let feature_unavailable =
-        macroonz_compiler::recipe::bake(unavailable.input(), HarnessPosture::Unavailable, &DOOR)
-            .map_err(|_| ())?;
+    let feature_unavailable = bake_under(TARGET_UNAVAILABLE_RECIPE, HarnessPosture::Unavailable)?;
     assert_eq!(
         feature_unavailable
             .projection()
@@ -123,10 +118,7 @@ fn target_unavailability_and_feature_unavailability_remain_distinct() -> Result<
 
 #[test]
 fn generated_evidence_refuses_without_the_harness_before_any_projector_runs() -> Result<(), ()> {
-    let read = TextCapture::read(EVIDENCE_RECIPE).map_err(|_| ())?;
-    let refusal = macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Unavailable, &DOOR)
-        .err()
-        .ok_or(())?;
+    let refusal = refusal_under(EVIDENCE_RECIPE, HarnessPosture::Unavailable)?;
     assert!(
         refusal
             .summary()
@@ -159,23 +151,16 @@ fn property_is_not_a_recipe_projection_alias() -> Result<(), ()> {
 #[test]
 fn a_caller_owned_evidence_projector_uses_the_common_sink_without_standard_privilege()
 -> Result<(), ()> {
-    let read = TextCapture::read(CALLER_OWNED_TRIAL_RECIPE).map_err(|_| ())?;
-    let standard_refusal =
-        macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
-            .err()
-            .ok_or(())?;
+    let standard_refusal = refusal(CALLER_OWNED_TRIAL_RECIPE)?;
     assert_eq!(standard_refusal.phase(), macroonz_compiler::Phase::Capture);
 
-    let custom = macroonz_compiler::recipe::bake_with(
-        read.input(),
-        HarnessPosture::Available,
-        &DOOR,
+    let custom = bake_with(
+        CALLER_OWNED_TRIAL_RECIPE,
         &[ProjectorReplacement::for_role(
             RecipeRole::Trials,
             &CallerOwnedTrials,
         )],
-    )
-    .map_err(|_| ())?;
+    )?;
     let text = custom
         .projection()
         .emit()

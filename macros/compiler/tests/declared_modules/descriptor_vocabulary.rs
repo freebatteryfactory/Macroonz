@@ -1,0 +1,147 @@
+//! The exact published descriptor vocabulary spellings.
+
+use macroonz_compiler::descriptor::vocabulary::{HarnessName, HarnessWord};
+
+const HARNESS_NAME_CASES: &[(HarnessName, &str)] = &[
+    (HarnessName::Descriptor, "descriptor"),
+    (HarnessName::Muterprater, "muterprater"),
+    (HarnessName::Discover, "discover"),
+    (HarnessName::Bench, "bench"),
+    (HarnessName::BenchTableStamp, "bench_table"),
+    (HarnessName::Named, "named"),
+    (HarnessName::Declared, "declared"),
+    (HarnessName::Authored, "authored"),
+    (HarnessName::Emitted, "emitted"),
+    (HarnessName::Attached, "attached"),
+    (HarnessName::Bound, "bound"),
+    (HarnessName::Published, "published"),
+    (HarnessName::Identity, "identity"),
+    (HarnessName::Encoded, "encoded"),
+    (HarnessName::Stated, "stated"),
+    (HarnessName::Discovered, "discovered"),
+    (HarnessName::Observed, "observed"),
+    (HarnessName::OfSlug, "of_slug"),
+    (HarnessName::LowerDiscoveries, "lower_discoveries"),
+    (HarnessName::Point, "point"),
+    (HarnessName::NameRoad, "name"),
+    (HarnessName::NamespaceRoad, "namespace"),
+    (HarnessName::StemRoad, "stem"),
+    (HarnessName::Written, "written"),
+    (HarnessName::Alternative, "alternative"),
+    (HarnessName::Family, "family"),
+    (HarnessName::Slug, "slug"),
+    (HarnessName::Operation, "operation"),
+    (HarnessName::Selection, "selection"),
+    (HarnessName::Resolved, "resolved"),
+    (HarnessName::Schema, "GeneratedSupportSchema"),
+    (HarnessName::TableRefusal, "TrialTableRefusal"),
+    (HarnessName::ClaimRef, "ClaimRef"),
+    (HarnessName::ExecutionSuite, "ExecutionSuite"),
+    (HarnessName::RoleRef, "Role"),
+    (HarnessName::TagRef, "Tag"),
+    (HarnessName::Classification, "Classification"),
+    (HarnessName::SubjectRoute, "SubjectRoute"),
+    (HarnessName::CheckRef, "CheckRef"),
+    (HarnessName::PopulationRef, "PopulationRef"),
+    (HarnessName::DoorRef, "DoorRef"),
+    (HarnessName::ProjectionRef, "ProjectionRef"),
+    (HarnessName::ProducerFacts, "ProducerFacts"),
+    (HarnessName::Origin, "Origin"),
+    (HarnessName::RowType, "Row"),
+    (HarnessName::Attachment, "ExecutableAttachment"),
+    (HarnessName::ProvenanceType, "Provenance"),
+    (HarnessName::ProducerName, "ProducerName"),
+    (HarnessName::BindingType, "Binding"),
+    (HarnessName::BenchRow, "BenchRow"),
+    (HarnessName::BenchReferences, "BenchReferences"),
+    (HarnessName::BenchMeasurement, "BenchMeasurement"),
+    (HarnessName::InputSizeAxis, "InputSizeAxis"),
+    (HarnessName::BenchAttachment, "BenchAttachment"),
+    (HarnessName::WorkloadRef, "WorkloadRef"),
+    (HarnessName::PreflightRef, "PreflightRef"),
+    (HarnessName::PlantedWorseRef, "PlantedWorseRef"),
+    (HarnessName::ComplexityClaimRef, "ComplexityClaimRef"),
+    (HarnessName::WorkObservationRef, "WorkObservationRef"),
+    (HarnessName::ContentionPosture, "ContentionPosture"),
+    (HarnessName::WorkFormula, "WorkFormula"),
+    (HarnessName::DeclaredBudgets, "DeclaredBudgets"),
+    (HarnessName::BenchBinding, "BenchBinding"),
+    (HarnessName::BenchReport, "BenchReport"),
+    (HarnessName::NameRefusal, "NameRefusal"),
+    (HarnessName::PermissionRefusal, "PermissionRefusal"),
+    (HarnessName::PolicyRefusal, "PolicyRefusal"),
+    (HarnessName::DiscoveryRefusal, "DiscoveryRefusal"),
+    (
+        HarnessName::DiscoveryLoweringRefusal,
+        "DiscoveryLoweringRefusal",
+    ),
+    (HarnessName::EvaluationFamilyRef, "EvaluationFamilyRef"),
+    (HarnessName::OperatorFamilyRef, "OperatorFamilyRef"),
+    (HarnessName::MutationPermission, "MutationPermission"),
+    (HarnessName::MutationPolicy, "MutationPolicy"),
+    (
+        HarnessName::MutationSurfaceLowering,
+        "MutationSurfaceLowering",
+    ),
+    (HarnessName::MutationPointRef, "MutationPointRef"),
+    (HarnessName::ActivationSite, "ActivationSite"),
+    (HarnessName::OwnerClaimMapping, "OwnerClaimMapping"),
+    (
+        HarnessName::AlternativeDeclaration,
+        "AlternativeDeclaration",
+    ),
+    (
+        HarnessName::DiscoveredMutationSite,
+        "DiscoveredMutationSite",
+    ),
+    (HarnessName::EvaluationDirective, "EvaluationDirective"),
+    (HarnessName::EvaluationObservation, "EvaluationObservation"),
+    (HarnessName::EvaluationCallRefusal, "EvaluationCallRefusal"),
+    (HarnessName::SchemaNotDeclared, "SchemaNotDeclared"),
+    (HarnessName::SchemaNotEncoded, "SchemaNotEncoded"),
+    (HarnessName::Generated, "Generated"),
+    (HarnessName::ProducedProvenance, "Produced"),
+    (HarnessName::Mapped, "Mapped"),
+    (HarnessName::OwnerUnmapped, "OwnerUnmapped"),
+    (
+        HarnessName::ActiveSelectionNotImplemented,
+        "ActiveSelectionNotImplemented",
+    ),
+    (HarnessName::NoDeclaredContention, "NoDeclaredContention"),
+];
+
+#[test]
+fn every_published_harness_name_keeps_its_exact_spelling() {
+    for &(name, spelling) in HARNESS_NAME_CASES {
+        assert_eq!(name.spelling(), spelling);
+    }
+}
+
+#[test]
+fn every_published_harness_word_keeps_its_exact_spelling() {
+    let cases = [
+        (HarnessWord::Provenance, "provenance"),
+        (HarnessWord::Produced, "produced"),
+        (HarnessWord::Against, "against"),
+        (HarnessWord::Invocation, "invocation"),
+        (HarnessWord::Target, "target"),
+        (HarnessWord::Clock, "clock"),
+        (HarnessWord::Suite, "suite"),
+        (HarnessWord::Row, "row"),
+        (HarnessWord::Bindings, "bindings"),
+        (HarnessWord::Reporter, "reporter"),
+        (HarnessWord::Measured, "measured"),
+        (HarnessWord::PlantedWorse, "planted_worse"),
+        (HarnessWord::Judge, "judge"),
+        (HarnessWord::Preflight, "preflight"),
+        (HarnessWord::SubjectRevision, "subject_revision"),
+        (HarnessWord::CheckRevision, "check_revision"),
+        (HarnessWord::Call, "call"),
+        (HarnessWord::Producer, "producer"),
+        (HarnessWord::Schema, "schema"),
+    ];
+
+    for (word, spelling) in cases {
+        assert_eq!(word.spelling(), spelling);
+    }
+}

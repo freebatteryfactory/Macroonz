@@ -2,6 +2,7 @@
 //!
 //! Every claim below is asked through the road a proc host takes — `descriptor::door` — with nothing reached around it.
 //! The positive lanes establish that each road's carrier really composes what its reading produced, and each refusal lane reverses one clause of that, so a road that stopped reading or stopped refusing is caught from this side of the wall.
+//! The support home's two refusal rosters, which these roads produce, are observed in the `support_refusals` module rather than beside the roads.
 
 use macroonz_compiler::descriptor::bench::BENCH_HELPER_POSITION;
 use macroonz_compiler::descriptor::door;
@@ -9,12 +10,9 @@ use macroonz_compiler::descriptor::mutation::MUTATION_HELPER_POSITION;
 use macroonz_compiler::descriptor::trial::TRIAL_HELPER_POSITION;
 use macroonz_compiler::descriptor::{Emitter, Grammar};
 use macroonz_compiler::request;
-use macroonz_compiler::support::{
-    ASSEMBLY_FACT, DeclarationError as SupportDeclarationError, ShellError, SupportCarrier,
-};
+use macroonz_compiler::support::SupportCarrier;
 use macroonz_compiler::{
-    CrateBinding, Diagnostic, Door, Expansion, LineBody, Observed, Overflow, PartitionCargo, Phase,
-    Producer, RefusalClass, Refused, SHELL_FAMILY, SUPPORT_DECLARATION_FAMILY, TextCapture,
+    CrateBinding, Diagnostic, Door, Expansion, PartitionCargo, Phase, Producer, TextCapture,
 };
 
 /// The one value that says who is asking.
@@ -56,58 +54,14 @@ const BENCH_EMITTER: Emitter = Emitter {
     door: "bench",
 };
 
-/// One lawful trial declaration body.
-const TRIAL_BODY: &str = r#"
-    support = greet_support,
-    module = greet_trials,
-    table = named("lane", "greet-table"),
-    suite checks = named("lane", "unit") {
-        greet_answers {
-            claim = named("lane", "greet-answers"),
-            subject = named("lane", "greet"),
-            check = named("lane", "exact"),
-            population = named("lane", "smalls"),
-        },
-    },
-"#;
+#[path = "../support/attribute_specimens.rs"]
+mod attribute_specimens;
+mod support_refusals;
 
-/// One lawful mutation declaration body.
-const MUTATION_BODY: &str = r#"
-    module = pressed,
-    refusal = PressRefusal,
-    support = press_support,
-    family = named("lane", "refusals"),
-    point = named("lane", "press-point"),
-    fact = named("lane", "cause-order"),
-    map named("lane", "cause-order") = named("lane", "order-held"),
-    permit named("lane", "order-held") = ["declared-order-permutation"],
-"#;
-
-/// The item a mutation declaration sits on: three variants, so two adjacent transpositions exist.
-const MUTATION_ITEM: &str = "pub enum Cause { First, Second, Third }";
+use attribute_specimens::{BENCH_BODY, MUTATION_BODY, MUTATION_ITEM, TRIAL_BODY};
 
 /// The semantic item the trial and bench helpers exercise.
 const DECLARATION_ITEM: &str = "pub struct Declaration;";
-
-/// One lawful bench declaration body.
-const BENCH_BODY: &str = r#"
-    support = pace_support,
-    table_function = pace_table,
-    table = named("lane", "pace-table"),
-    reporter = pace_reporter,
-    encode_pace {
-        workload = named("lane", "encode"),
-        preflight = named("lane", "encode-correct"),
-        planted_worse = named("lane", "encode-worse"),
-        complexity = named("lane", "linear"),
-        axis = [2, 4, 8],
-        samples = 16,
-        warmups = 4,
-        ratio_numerator = 3,
-        ratio_denominator = 1,
-        observe = [named("lane", "bytes-touched")],
-    },
-"#;
 
 /// The trial road walked over one source, or nothing where the lane's own source did not capture.
 fn trials(source: &str) -> Option<Result<Expansion<SupportCarrier>, Diagnostic>> {
@@ -451,6 +405,22 @@ fn a_mutation_body_without_a_support_address_refuses() -> Result<(), ()> {
     Ok(())
 }
 
+/// An unknown mutation key refuses as undeclared before its following tokens can imply another clause shape.
+#[test]
+fn mutation_unknown_keys_keep_their_declared_precedence() -> Result<(), ()> {
+    let body = MUTATION_BODY.replacen("module = pressed", "mystery pressed", 1);
+    let refusal = mutations(&body, MUTATION_ITEM).ok_or(())?.err().ok_or(())?;
+    assert_eq!(refusal.phase(), Phase::Capture);
+    assert!(
+        refusal
+            .summary()
+            .contains("a clause is not one the grammar declares"),
+        "{}",
+        refusal.summary()
+    );
+    Ok(())
+}
+
 /// A bench declaration becomes one carrier writing the bench form: stamped table, opaque reporter.
 #[test]
 fn a_bench_declaration_becomes_one_carrier_writing_the_bench_form() -> Result<(), ()> {
@@ -568,6 +538,111 @@ fn benchmark_budget_width_and_observation_roster_are_closed() -> Result<(), ()> 
     Ok(())
 }
 
+/// Benchmark axis and lens namespaces refuse repeated identities before rendering.
+#[test]
+fn benchmark_namespaces_refuse_repeated_identities() -> Result<(), ()> {
+    let doubled_axis = BENCH_BODY.replacen("axis = [2, 4, 8],", "axis = [2, 4, 2],", 1);
+    let doubled_lens = BENCH_BODY.replacen(
+        "    encode_pace {",
+        "    encode_pace {\n        workload = named(\"lane\", \"other\"),\n        preflight = named(\"lane\", \"other-correct\"),\n        planted_worse = named(\"lane\", \"other-worse\"),\n        complexity = named(\"lane\", \"linear\"),\n        axis = [2, 4],\n        samples = 8,\n        warmups = 2,\n        ratio_numerator = 2,\n        ratio_denominator = 1,\n        observe = [named(\"lane\", \"other-bytes\")],\n    },\n    encode_pace {",
+        1,
+    );
+    for (source, cause) in [
+        (
+            &doubled_axis,
+            "one axis-size of the declaration is stated twice",
+        ),
+        (&doubled_lens, "one lens of the declaration is stated twice"),
+    ] {
+        let refusal = bench(source).ok_or(())?.err().ok_or(())?;
+        assert_eq!(refusal.phase(), Phase::Capture);
+        assert!(refusal.summary().contains(cause), "{}", refusal.summary());
+    }
+    Ok(())
+}
+
+/// Mutation policy namespaces refuse repeated families, facts, and claims.
+#[test]
+fn mutation_policy_namespaces_refuse_repeated_identities() -> Result<(), ()> {
+    let doubled_family = MUTATION_BODY.replacen(
+        "[\"declared-order-permutation\"]",
+        "[\"declared-order-permutation\", \"declared-order-permutation\"]",
+        1,
+    );
+    let doubled_fact = MUTATION_BODY.replacen(
+        "map named(\"lane\", \"cause-order\") = named(\"lane\", \"order-held\"),",
+        "map named(\"lane\", \"cause-order\") = named(\"lane\", \"order-held\"),\n    map named(\"lane\", \"cause-order\") = named(\"lane\", \"other\"),",
+        1,
+    );
+    let doubled_claim = MUTATION_BODY.replacen(
+        "permit named(\"lane\", \"order-held\") = [\"declared-order-permutation\"],",
+        "permit named(\"lane\", \"order-held\") = [\"declared-order-permutation\"],\n    permit named(\"lane\", \"order-held\") = [\"other-family\"],",
+        1,
+    );
+    for (source, cause) in [
+        (
+            &doubled_family,
+            "one operator-family of the declaration is stated twice",
+        ),
+        (
+            &doubled_fact,
+            "one fact-mapping of the declaration is stated twice",
+        ),
+        (
+            &doubled_claim,
+            "one permission of the declaration is stated twice",
+        ),
+    ] {
+        let refusal = mutations(source, MUTATION_ITEM)
+            .ok_or(())?
+            .err()
+            .ok_or(())?;
+        assert_eq!(refusal.phase(), Phase::Capture);
+        assert!(refusal.summary().contains(cause), "{}", refusal.summary());
+    }
+    Ok(())
+}
+
+/// Trial label and generated namespaces refuse repeated identities and cross-seat shadows.
+#[test]
+fn trial_namespaces_refuse_repeated_identities() -> Result<(), ()> {
+    let doubled_role = TRIAL_BODY.replacen(
+        "claim = named(\"lane\", \"greet-answers\"),",
+        "claim = named(\"lane\", \"greet-answers\"),\n            roles = [named(\"lane\", \"reader\"), named(\"lane\", \"reader\")],",
+        1,
+    );
+    let doubled_tag = TRIAL_BODY.replacen(
+        "claim = named(\"lane\", \"greet-answers\"),",
+        "claim = named(\"lane\", \"greet-answers\"),\n            tags = [named(\"lane\", \"fast\"), named(\"lane\", \"fast\")],",
+        1,
+    );
+    let doubled_aggregate = format!(
+        "{TRIAL_BODY}\n    suite checks = named(\"lane\", \"other-suite\") {{\n        other_answers {{\n            claim = named(\"lane\", \"other-answers\"),\n            subject = named(\"lane\", \"other\"),\n            check = named(\"lane\", \"exact\"),\n            population = named(\"lane\", \"smalls\"),\n        }},\n    }},"
+    );
+    let doubled_lens = format!(
+        "{TRIAL_BODY}\n    suite other = named(\"lane\", \"other-suite\") {{\n        greet_answers {{\n            claim = named(\"lane\", \"other-answers\"),\n            subject = named(\"lane\", \"other\"),\n            check = named(\"lane\", \"exact\"),\n            population = named(\"lane\", \"smalls\"),\n        }},\n    }},"
+    );
+    let shadowed_lens = TRIAL_BODY.replacen("        greet_answers {", "        checks {", 1);
+    for (source, cause) in [
+        (&doubled_role, "one role of the declaration is stated twice"),
+        (&doubled_tag, "one tag of the declaration is stated twice"),
+        (
+            &doubled_aggregate,
+            "one aggregate of the declaration is stated twice",
+        ),
+        (&doubled_lens, "one lens of the declaration is stated twice"),
+        (
+            &shadowed_lens,
+            "one lens of the declaration is stated twice",
+        ),
+    ] {
+        let refusal = trials(source).ok_or(())?.err().ok_or(())?;
+        assert_eq!(refusal.phase(), Phase::Capture);
+        assert!(refusal.summary().contains(cause), "{}", refusal.summary());
+    }
+    Ok(())
+}
+
 /// A bench axis of one point is not a curve, and the road refuses the row rather than reading a growth class off a point.
 #[test]
 fn a_bench_axis_of_one_point_refuses() -> Result<(), ()> {
@@ -591,6 +666,32 @@ fn a_bench_axis_of_one_point_refuses() -> Result<(), ()> {
     "#;
     let refusal = bench(body).ok_or(())?.err().ok_or(())?;
     assert_eq!(refusal.phase(), Phase::Capture);
+    Ok(())
+}
+
+/// Attribute assignments require one equals sign before a non-empty value in every descriptor grammar.
+#[test]
+fn attribute_assignments_require_the_complete_shared_shape() -> Result<(), ()> {
+    let trial = TRIAL_BODY.replacen("support = greet_support", "support : greet_support", 1);
+    let mutation = MUTATION_BODY.replacen("module = pressed", "module : pressed", 1);
+    let benchmark = BENCH_BODY.replacen("reporter = pace_reporter", "reporter : pace_reporter", 1);
+    for refusal in [
+        trials(&trial).ok_or(())?.err().ok_or(())?,
+        mutations(&mutation, MUTATION_ITEM)
+            .ok_or(())?
+            .err()
+            .ok_or(())?,
+        bench(&benchmark).ok_or(())?.err().ok_or(())?,
+    ] {
+        assert_eq!(refusal.phase(), Phase::Capture);
+        assert!(
+            refusal
+                .summary()
+                .contains("a clause is not one key and one value"),
+            "{}",
+            refusal.summary()
+        );
+    }
     Ok(())
 }
 
@@ -715,152 +816,5 @@ fn two_declarations_mint_two_exported_names() -> Result<(), ()> {
     let first_name = name(&first_text).ok_or(())?;
     let second_name = name(&second_text).ok_or(())?;
     assert_ne!(first_name, second_name);
-    Ok(())
-}
-
-/// Appends this lane's independent eight-byte length frame.
-fn framed(material: &[u8], into: &mut Vec<u8>) {
-    into.extend_from_slice(
-        &u64::try_from(material.len())
-            .unwrap_or(u64::MAX)
-            .to_be_bytes(),
-    );
-    into.extend_from_slice(material);
-}
-
-/// Claim: every support-declaration refusal has one stable slot, one canonical byte, and the typed diagnostic posture declared by the support home.
-/// Subject: the public support `DeclarationError` roster and its `Refused` implementation.
-/// Population: all five refusal variants.
-/// Hostile control: the expected slot and observation are restated independently for every row, so two variants sharing either disagrees.
-/// Denominator: the complete public support-declaration refusal roster.
-/// Evidence ceiling: these payload-free rows establish their own bytes and diagnostic facts, not a later composed diagnostic identity.
-#[test]
-fn every_support_declaration_refusal_keeps_its_public_contract() {
-    let cases = [
-        (
-            SupportDeclarationError::EmptyNamespace,
-            0,
-            Observed::SeatAbsent,
-            "a name states no owner",
-        ),
-        (
-            SupportDeclarationError::EmptyStem,
-            1,
-            Observed::SeatAbsent,
-            "a name states no spelling",
-        ),
-        (
-            SupportDeclarationError::SpellingNotAnIdentifier,
-            2,
-            Observed::ContractDisagreement,
-            "a rendered spelling is not one Rust identifier",
-        ),
-        (
-            SupportDeclarationError::PathSegmentsAbsent,
-            3,
-            Observed::SeatAbsent,
-            "a rendered path names no segment past the crate it is rooted at",
-        ),
-        (
-            SupportDeclarationError::PathSegmentsUnbounded,
-            4,
-            Observed::BoundExceeded,
-            "a rendered path carries more segments than the declared magnitude",
-        ),
-    ];
-    for (refusal, slot, observed, first) in cases {
-        assert_eq!(refusal.slot(), slot);
-        assert_eq!(refusal.canonical_bytes(), vec![slot]);
-        let mut appended = vec![u8::MAX];
-        refusal.encode_into(&mut appended);
-        assert_eq!(appended, vec![u8::MAX, slot]);
-        assert_eq!(refusal.to_string(), first);
-        assert_eq!(refusal.class(), RefusalClass::CarrierNotDeclared);
-        assert_eq!(refusal.first(), first);
-        assert_eq!(refusal.observed(), observed);
-        assert_eq!(refusal.body(), LineBody::SingleCause);
-        assert!(refusal.related().is_empty());
-        assert!(refusal.repairs().is_empty());
-    }
-    assert_eq!(<SupportDeclarationError as Refused>::PHASE, Phase::Capture);
-    assert_eq!(
-        <SupportDeclarationError as Refused>::FAMILY,
-        SUPPORT_DECLARATION_FAMILY
-    );
-}
-
-/// Claim: both shell-refusal rows keep their typed causality and complete canonical payloads at the public boundary.
-/// Subject: `ShellError` construction, encoding, display, and `Refused` projection.
-/// Population: the declaration-identity mismatch and generated-tree overflow rows.
-/// Hostile control: two independently captured declarations supply distinct identity payloads, while the overflow row carries distinct bound and observed counts.
-/// Denominator: the complete public `ShellError` roster, including its `Overflow` conversion.
-/// Evidence ceiling: this observes the refusal values directly and does not manufacture an invalid `SupportAssembly` through private seats.
-#[test]
-fn every_shell_refusal_keeps_its_public_contract() -> Result<(), ()> {
-    let stated_capture = TextCapture::read("pub struct Stated;").map_err(|_| ())?;
-    let planned_capture = TextCapture::read("pub struct Planned;").map_err(|_| ())?;
-    let stated = request::committed(stated_capture.input());
-    let planned = request::committed(planned_capture.input());
-    let mismatch = ShellError::NotOneDeclaration { stated, planned };
-    let mut mismatch_bytes = vec![0];
-    framed(stated.as_bytes(), &mut mismatch_bytes);
-    framed(planned.as_bytes(), &mut mismatch_bytes);
-    assert_eq!(mismatch.slot(), 0);
-    assert_eq!(mismatch.canonical_bytes(), mismatch_bytes);
-    let mut mismatch_appended = vec![u8::MAX];
-    mismatch.encode_into(&mut mismatch_appended);
-    let mut expected_mismatch_appended = vec![u8::MAX];
-    expected_mismatch_appended.extend_from_slice(&mismatch_bytes);
-    assert_eq!(mismatch_appended, expected_mismatch_appended);
-    assert_eq!(mismatch.class(), RefusalClass::CarrierNotAssembled);
-    assert_eq!(mismatch.observed(), Observed::IdentityDisagreement);
-    assert_eq!(mismatch.body(), LineBody::SingleCause);
-    assert!(mismatch.related().is_empty());
-    assert!(mismatch.to_string().contains("other than the one"));
-    let mismatch_repairs = mismatch.repairs();
-    assert_eq!(mismatch_repairs.len(), 1);
-    assert_eq!(
-        mismatch_repairs
-            .as_slice()
-            .first()
-            .map(|repair| repair.declared_by),
-        Some(ASSEMBLY_FACT)
-    );
-
-    let overflow = Overflow {
-        capacity: 16,
-        offered: 19,
-    };
-    let unbounded = ShellError::from(overflow);
-    assert_eq!(
-        unbounded,
-        ShellError::TreeUnbounded {
-            bound: 16,
-            observed: 19,
-        }
-    );
-    let mut unbounded_bytes = vec![1];
-    unbounded_bytes.extend_from_slice(&16_u64.to_be_bytes());
-    unbounded_bytes.extend_from_slice(&19_u64.to_be_bytes());
-    assert_eq!(unbounded.slot(), 1);
-    assert_eq!(unbounded.canonical_bytes(), unbounded_bytes);
-    let mut unbounded_appended = vec![u8::MAX];
-    unbounded.encode_into(&mut unbounded_appended);
-    let mut expected_unbounded_appended = vec![u8::MAX];
-    expected_unbounded_appended.extend_from_slice(&unbounded_bytes);
-    assert_eq!(unbounded_appended, expected_unbounded_appended);
-    assert_eq!(unbounded.class(), RefusalClass::MagnitudeNotHeld);
-    assert_eq!(unbounded.observed(), Observed::BoundExceeded);
-    assert_eq!(unbounded.body(), LineBody::SingleCause);
-    assert!(unbounded.related().is_empty());
-    assert!(unbounded.repairs().is_empty());
-    assert!(
-        unbounded
-            .to_string()
-            .contains("19 offered where 16 are declared")
-    );
-
-    assert_eq!(<ShellError as Refused>::PHASE, Phase::Assembly);
-    assert_eq!(<ShellError as Refused>::FAMILY, SHELL_FAMILY);
     Ok(())
 }

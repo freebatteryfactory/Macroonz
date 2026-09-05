@@ -3,16 +3,15 @@
 use crate::depot::capsules::{ReplayCapsuleEntry, ReplayDepotRefusal, StoredReplayEntryRef};
 use crate::descriptor::{
     AdmissionGround, CheckRef, ClaimRef, Classification, ExecutionSuite, MutationPointRef,
-    Namespace, Origin, PopulationRef, ProposalId, ReplayBearingGround, Row, RowRefusal,
-    StagedTableRefusal, SubjectRoute, SynthesisFacts, TablePosture,
+    PopulationRef, ProposalId, ReplayBearingGround, Row, RowRefusal, StagedTableRefusal,
+    SubjectRoute,
 };
 use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use crate::muterprater::{
-    ActivationDisposition, DemonstratedRejection, MutationReport, MutationTarget, MutationVerdict,
+    ActivationDisposition, DemonstratedRejection, MutationTarget, MutationVerdict,
 };
 use crate::report::{
-    ClaimExercise, ExecutionKey, Fingerprint, ReplayCapsule, RunAttempt, RunReport,
-    TrialConclusion, TrialId, TrialReport, encode_bytes,
+    ClaimExercise, ExecutionKey, Fingerprint, ReplayCapsule, RunReport, TrialId, TrialReport,
 };
 #[path = "type_guard.rs"]
 mod guard;

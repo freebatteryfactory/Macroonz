@@ -8,10 +8,12 @@ use super::{
     TranscriptSourceClaim,
 };
 use crate::descriptor::NamespacedName;
-use crate::identity::ContentAddress;
+use crate::identity::{BodyReader as IdentityBodyReader, addressed_body};
 use crate::network::simulation::{
     Link, LinkDiscipline, LinkFault, NetworkSchedule, NodeRef, SendOrdinal, Tick, Topology,
 };
+
+type BodyReader<'body> = IdentityBodyReader<'body, TranscriptRefusal>;
 
 /// Read one live-recorded transcript envelope for the topology the caller expects.
 ///
@@ -55,7 +57,13 @@ fn read_as(
     source: TranscriptSourceClaim,
     encoded: &[u8],
 ) -> Result<TranscriptPack, TranscriptRefusal> {
-    let (address, body) = addressed_body(encoded)?;
+    let (address, body) = addressed_body(
+        encoded,
+        TRANSCRIPT_TAG,
+        TranscriptAddress::derived,
+        TranscriptRefusal::Truncated,
+        |derived| TranscriptRefusal::AddressMismatch { derived },
+    )?;
     let (material, entries) = read_body(expected, schedule, source, body)?;
     lawful_entries(expected, &entries)?;
     Ok(TranscriptPack::assembled(
@@ -67,21 +75,6 @@ fn read_as(
     ))
 }
 
-/// Split the envelope at its address claim and keep the body only if the body derives that claim.
-fn addressed_body(encoded: &[u8]) -> Result<(TranscriptAddress, &[u8]), TranscriptRefusal> {
-    let width = ContentAddress::derived(TRANSCRIPT_TAG, &[])
-        .as_bytes()
-        .len();
-    let Some((claimed, body)) = encoded.split_at_checked(width) else {
-        return Err(TranscriptRefusal::Truncated);
-    };
-    let address = TranscriptAddress::derived(ContentAddress::derived(TRANSCRIPT_TAG, body));
-    if claimed != address.address().as_bytes() {
-        return Err(TranscriptRefusal::AddressMismatch { derived: address });
-    }
-    Ok((address, body))
-}
-
 /// Read every member the body declares under the source-specific public road.
 fn read_body(
     expected: &Topology,
@@ -89,7 +82,9 @@ fn read_body(
     expected_source: TranscriptSourceClaim,
     body: &[u8],
 ) -> Result<(TranscriptMaterial, Vec<TranscriptEntry>), TranscriptRefusal> {
-    let mut reader = BodyReader::over(body);
+    let mut reader = BodyReader::over(body, TranscriptRefusal::Truncated, |declared| {
+        TranscriptRefusal::LengthOutsidePlatform { declared }
+    });
     let found = reader.u32()?;
     if found != TRANSCRIPT_FORMAT_VERSION {
         return Err(TranscriptRefusal::UnsupportedFormat { found });
@@ -338,63 +333,4 @@ fn read_link(
 fn spells(node: NodeRef, namespace: &[u8], stem: &[u8]) -> bool {
     let name = node.name();
     name.namespace().written().as_bytes() == namespace && name.stem().written().as_bytes() == stem
-}
-
-/// A cursor over one body, which never indexes and never trusts a declared width.
-struct BodyReader<'body> {
-    body: &'body [u8],
-    at: usize,
-}
-
-impl<'body> BodyReader<'body> {
-    /// Open at the first body byte.
-    const fn over(body: &'body [u8]) -> Self {
-        Self { body, at: 0 }
-    }
-
-    /// Read one fixed-width 32-bit integer.
-    fn u32(&mut self) -> Result<u32, TranscriptRefusal> {
-        self.fixed::<4>().map(u32::from_be_bytes)
-    }
-
-    /// Read one fixed-width 64-bit integer.
-    fn u64(&mut self) -> Result<u64, TranscriptRefusal> {
-        self.fixed::<8>().map(u64::from_be_bytes)
-    }
-
-    /// Read one declared count, refused where the platform cannot index it.
-    fn count(&mut self) -> Result<usize, TranscriptRefusal> {
-        let declared = self.u64()?;
-        usize::try_from(declared)
-            .map_err(|_beyond_platform| TranscriptRefusal::LengthOutsidePlatform { declared })
-    }
-
-    /// Read one length-prefixed byte string.
-    fn bytes(&mut self) -> Result<&'body [u8], TranscriptRefusal> {
-        let length = self.count()?;
-        self.take(length)
-    }
-
-    /// Read one fixed-width byte array.
-    fn fixed<const WIDTH: usize>(&mut self) -> Result<[u8; WIDTH], TranscriptRefusal> {
-        let bytes = self.take(WIDTH)?;
-        <[u8; WIDTH]>::try_from(bytes).map_err(|_unexpected_width| TranscriptRefusal::Truncated)
-    }
-
-    /// Advance over exactly this many bytes, or refuse the envelope as truncated.
-    fn take(&mut self, width: usize) -> Result<&'body [u8], TranscriptRefusal> {
-        let Some(end) = self.at.checked_add(width) else {
-            return Err(TranscriptRefusal::Truncated);
-        };
-        let Some(bytes) = self.body.get(self.at..end) else {
-            return Err(TranscriptRefusal::Truncated);
-        };
-        self.at = end;
-        Ok(bytes)
-    }
-
-    /// How many bytes are still unread.
-    const fn remaining(&self) -> usize {
-        self.body.len().saturating_sub(self.at)
-    }
 }

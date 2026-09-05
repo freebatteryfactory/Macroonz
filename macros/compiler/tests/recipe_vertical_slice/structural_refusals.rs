@@ -1,8 +1,7 @@
 //! Structural collisions and malformed behavior refused before projection.
 
-use super::{COMPLETE_RECIPE, DOOR, EVIDENCE_RECIPE, bake, refusal_summary};
-use macroonz_compiler::TextCapture;
-use macroonz_compiler::recipe::HarnessPosture;
+use super::support::refusal;
+use super::{COMPLETE_RECIPE, EVIDENCE_RECIPE, bake, refusal_summary};
 
 #[test]
 fn every_direct_type_namespace_collision_refuses_before_projection() -> Result<(), ()> {
@@ -43,11 +42,7 @@ pub mod door {{
 }}
 "
         );
-        let read = TextCapture::read(&source).map_err(|_| ())?;
-        let refusal =
-            macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
-                .err()
-                .ok_or(())?;
+        let refusal = refusal(&source)?;
         assert!(refusal.summary().contains("generated recipe name `baked`"));
     }
     Ok(())

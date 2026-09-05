@@ -4,7 +4,7 @@
 mod guard;
 
 use crate::descriptor::{EncodeRefusal, NamespacedName};
-use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use crate::identity::{DomainTag, IdentityProfileVersion};
 use std::num::NonZeroU32;
 
 /// The derivation domain and starting position of the benchmark-row identity family.
@@ -107,9 +107,11 @@ pub enum WorkFormulaRefusal {
     Empty,
 }
 
-/// The identity derived from one complete row declaration.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct BenchRowKey(ContentAddress);
+crate::identity::content_address_reference! {
+    /// The identity derived from one complete row declaration.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+    pub struct BenchRowKey;
+}
 
 /// The four names one row joins.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -141,6 +143,6 @@ pub struct BenchRow {
 #[must_use = "a refusal is the reason a benchmark row was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BenchRowRefusal {
-    /// The row's canonical preimage outgrew the width the encoding declares.
+    /// The row's canonical preimage outgrew the public width checked before shared identity framing, an unreachable compatibility ceiling on supported targets.
     Encoding(EncodeRefusal),
 }

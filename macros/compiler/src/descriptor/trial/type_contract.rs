@@ -3,12 +3,8 @@
 use super::{
     Row, SuiteGroup, TrialAnswer, TrialCaptureError, TrialQuestion, TrialRole, TrialTable, Trials,
 };
-use crate::bounded::Bounded;
 use crate::descriptor::Name;
-use crate::diagnostic::{
-    FIRST_HELPER_FAMILY, Family, LineBody, Observed, Phase, REPAIR_LIMIT, RefusalClass, Refused,
-    Repair,
-};
+use crate::diagnostic::FIRST_HELPER_FAMILY;
 use crate::identity::{encode_bytes, encode_length};
 use crate::kind::{Answer, CanonicalContent, Destination, Kind, Question, Role};
 
@@ -125,40 +121,4 @@ impl Answer for TrialAnswer {
     }
 }
 
-impl Refused for TrialCaptureError {
-    const PHASE: Phase = Phase::Capture;
-    const FAMILY: Family = FIRST_HELPER_FAMILY;
-
-    fn class(&self) -> RefusalClass {
-        self.refusal().class()
-    }
-
-    fn first(&self) -> String {
-        self.refusal().first()
-    }
-
-    fn observed(&self) -> Observed {
-        self.refusal().classified()
-    }
-
-    fn body(&self) -> LineBody {
-        LineBody::SingleCause
-    }
-
-    fn related(&self) -> Vec<Vec<u8>> {
-        vec![self.refusal().canonical_bytes()]
-    }
-
-    fn repairs(&self) -> Bounded<Repair, REPAIR_LIMIT> {
-        self.refusal().repairs()
-    }
-}
-
-impl core::fmt::Display for TrialCaptureError {
-    fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let refusal = self.refusal();
-        write!(into, "{refusal}")
-    }
-}
-
-impl core::error::Error for TrialCaptureError {}
+crate::descriptor::impl_helper_capture_contract!(TrialCaptureError, FIRST_HELPER_FAMILY, canonical);

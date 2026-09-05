@@ -1,6 +1,6 @@
 //! Every public type of the fuzz home, declared and nothing else.
 //!
-//! Construction and reading live in this module's own child `type_guard.rs`.
+//! Construction and reading live in this module's own child `type_guard.rs`, with one stated exception: the ready preflight keeps its seats open to this home, because the preflight road is the one road that establishes readiness and assembles the value from the compiler facts it read.
 
 use crate::descriptor::{NamespacedName, PopulationRef, RevisionBinding};
 use crate::report::{ByteBudget, CaseBudget, TargetBinding};
@@ -10,8 +10,11 @@ use std::path::PathBuf;
 #[path = "type_guard.rs"]
 mod guard;
 
+/// One path after the fuzz declaration boundary has refused emptiness and relativity.
+struct AbsolutePath(PathBuf);
+
 /// The stable product toolchain whose coverage format this home qualifies.
-pub const RUSTC_COVERAGE_TOOLCHAIN: &str = "1.98.0";
+pub const RUSTC_COVERAGE_TOOLCHAIN: &str = "1.98.1";
 
 /// One logical source root and its physical checkout seat.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -243,7 +246,7 @@ pub enum CoveragePoint {
 /// One canonical set of covered source points from a single candidate execution.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CoverageObservation {
-    pub(super) points: Vec<CoveragePoint>,
+    points: Vec<CoveragePoint>,
 }
 
 /// Why an LCOV coverage export was not admitted.
@@ -297,12 +300,12 @@ pub enum CoverageReadRefusal {
 /// The campaign's accumulated coverage frontier and retained interesting inputs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CoverageCorpus {
-    pub(super) standing: CoverageStanding,
-    pub(super) attempted_cases: u32,
-    pub(super) attempted_input_bytes: u64,
-    pub(super) observed: BTreeSet<CoveragePoint>,
-    pub(super) interesting: Vec<InterestingBytes>,
-    pub(super) retained_bytes: u64,
+    standing: CoverageStanding,
+    attempted_cases: u32,
+    attempted_input_bytes: u64,
+    observed: BTreeSet<CoveragePoint>,
+    interesting: Vec<InterestingBytes>,
+    retained_bytes: u64,
 }
 
 /// What became of one candidate at the coverage frontier.

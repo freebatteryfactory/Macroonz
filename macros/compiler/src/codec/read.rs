@@ -1,12 +1,12 @@
 //! The generated road that reads one declared shape back from its canonical bytes.
 
+use super::bank::rendering_contract;
 use super::spell::{
     CANDIDATE_BINDING, CARRIED_BINDING, CHOSEN_BINDING, COLLECTED_BINDING, ELECTED_BINDING,
     LENGTH_BINDING, MATERIAL_BINDING, PRESENT_BINDING, REMAINING_BINDING, WIDTH_BINDING, absent,
     associated, byte_sink, byte_slice, byte_width, empty_vector, framing_width, generics, mapped,
     member_refusal, qualified, reassigned, road_spelling, sole_refusal, statement, type_path,
 };
-use super::type_contract::rendering_contract;
 use super::types::ReadRoad;
 use super::{AssemblyPosture, Cardinality, CodecMember, CodecShape, DecodeRefusal};
 use crate::bounded::Overflow;

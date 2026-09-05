@@ -1,0 +1,15 @@
+error[E0061]: this function takes 2 arguments but 1 argument was supplied
+  --> tests/compile_refusals/host/host-emission-without-span-custody-is-the-old-contract.rs:15:20
+   |
+15 |     let _emitted = emit(&EmptyEmission);
+   |                    ^^^^---------------- argument #2 of type `&Spans` is missing
+   |
+note: function defined here
+  --> src/host/emit.rs
+   |
+   | pub fn emit(
+   |        ^^^^
+help: provide the argument
+   |
+15 |     let _emitted = emit(&EmptyEmission, /* &Spans */);
+   |                                       ++++++++++++++

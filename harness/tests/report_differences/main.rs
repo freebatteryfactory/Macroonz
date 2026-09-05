@@ -9,8 +9,9 @@ use macroonz_harness::descriptor::{
 use macroonz_harness::report::{
     Baseline, ByteBudget, CaseBudget, CensusDirection, EmptySelectionReason, FailureClass,
     FindingCause, FindingLocation, HostTrialRecord, InvocationProfile, NoBaselineReason,
-    NotComparedReason, ReportComparison, ReportDiff, RunAttempt, RunReport, TargetBinding,
-    TargetTriple, TimeBudget, ToolchainIdentity, TrialConclusion, TrialFinding, TrialSite,
+    NotComparedReason, OutcomeClass, ReportComparison, ReportDiff, RunAttempt, RunReport,
+    TargetBinding, TargetTriple, TimeBudget, ToolchainIdentity, TrialConclusion, TrialFinding,
+    TrialSite,
 };
 use macroonz_harness::runner::{
     Invocation, SeatFailure, SeatRefusal, Selection, SelectionPlan, TrialBinding, TrialTable,
@@ -194,7 +195,15 @@ fn execution_standing_changes_are_not_flattened() -> Result<(), LaneFailure> {
     assert_eq!(target.after().target().spelling(), "target-b");
     assert_eq!(target.before().toolchain().spelling(), "rustc-1.98.0");
     assert_eq!(target.after().toolchain().spelling(), "rustc-1.99.0");
-    assert_eq!(diff.execution().flips().len(), 1usize);
+    let [flip] = diff.execution().flips() else {
+        return Err(LaneFailure::Missing("conclusion flip"));
+    };
+    assert_eq!(flip.trial(), baseline_trial);
+    assert_eq!(flip.before(), OutcomeClass::Passed);
+    assert_eq!(
+        flip.after(),
+        OutcomeClass::Refused(FailureClass::RefusedByCheck)
+    );
     Ok(())
 }
 
@@ -275,9 +284,11 @@ fn empty_selection_does_not_hide_run_standing() -> Result<(), LaneFailure> {
 /// Membership and authored-row movement remain visible beside the added execution-standing axes.
 #[test]
 fn membership_and_row_revision_axes_still_bite() -> Result<(), LaneFailure> {
+    let shared = binding("shared-trial", "row-v1", b"shared", b"check")?;
+    let shared_trial = trial_identity(shared.row());
     let baseline_world = world(vec![
         binding("removed-trial", "stable-row", b"removed", b"check")?,
-        binding("shared-trial", "row-v1", b"shared", b"check")?,
+        shared,
     ])?;
     let current_world = world(vec![
         binding("shared-trial", "row-v2", b"shared", b"check")?,
@@ -293,6 +304,7 @@ fn membership_and_row_revision_axes_still_bite() -> Result<(), LaneFailure> {
     let [revision] = diff.population().revised() else {
         return Err(LaneFailure::Missing("row revision change"));
     };
+    assert_eq!(revision.trial(), shared_trial);
     assert_ne!(revision.before(), revision.after());
     assert!(diff.execution().revisions().is_empty());
     assert!(diff.execution().flips().is_empty());

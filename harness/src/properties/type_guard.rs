@@ -11,35 +11,14 @@ use super::{
     SharedSubstrate, SubstrateRef, SubstrateRefusal, SubstrateRoster, TemporalClaim,
     TemporalDemand, TemporalDriveReading, TemporalDriveStanding, TransitionContract,
 };
-use crate::descriptor::{NameRefusal, NamespacedName};
+use crate::descriptor::namespaced_reference;
 use crate::generate::GeneratedSequences;
 use crate::report::{FindingCause, TrialConclusion};
 use std::collections::BTreeSet;
 
 // Parity.
 
-impl SubstrateRef {
-    /// This substrate, parsed from the owner that declares it and the spelling it carries.
-    ///
-    /// # Errors
-    ///
-    /// Refuses an empty namespace, then an empty stem.
-    pub fn named(namespace: &'static str, stem: &'static str) -> Result<Self, NameRefusal> {
-        NamespacedName::named(namespace, stem).map(Self)
-    }
-
-    /// This substrate, over a name already parsed.
-    #[must_use]
-    pub const fn over(name: NamespacedName) -> Self {
-        Self(name)
-    }
-
-    /// The namespaced name this substrate carries.
-    #[must_use]
-    pub const fn name(self) -> NamespacedName {
-        self.0
-    }
-}
+namespaced_reference!(SubstrateRef);
 
 impl SubstrateRoster {
     /// The substrates two roads both stand on.

@@ -7,5 +7,10 @@ pub mod operator_families;
 pub mod swap_pairs;
 pub mod types;
 
+pub(crate) use artifact_mutation::artifact_mutation_bank;
+pub(crate) use producer_field::generated_support_field_banks;
+
+mod artifact_mutation;
 mod operator_family;
+mod producer_field;
 mod type_separation;

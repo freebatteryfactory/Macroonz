@@ -1,5 +1,7 @@
 //! Root recipe behavior observed through package-shaped journeys and the proc-carrier contract.
 
+#[path = "recipe_facade_crossing/archive_delivery.rs"]
+mod archive_delivery;
 #[path = "recipe_facade_crossing/carrier_contract.rs"]
 mod carrier_contract;
 #[path = "recipe_facade_crossing/generic_recipe.rs"]
@@ -14,5 +16,9 @@ mod historical_subjects;
 mod negative_space;
 #[path = "recipe_facade_crossing/renamed_facade.rs"]
 mod renamed_facade;
+#[path = "recipe_facade_crossing/span_custody.rs"]
+mod span_custody;
 #[path = "recipe_facade_crossing/support.rs"]
 mod support;
+#[path = "support/scratch.rs"]
+mod scratch;

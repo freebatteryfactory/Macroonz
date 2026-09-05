@@ -1,4 +1,6 @@
 //! Deterministic disposable scratch custody and shell-free Cargo invocation.
+//!
+//! Standalone challenge locks are seeded from the repository and reconciled with Cargo's workspace-only update before locked compilation.
 
 use super::render::RenderedSource;
 use macroonz_harness::report::{
@@ -118,9 +120,20 @@ impl Scratch {
 
     pub(crate) fn generate_lockfile(&self) -> Result<HostFacts, HostFailure> {
         let host = self.host_facts()?;
+        fs::copy(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../Cargo.lock"),
+            self.root.join("Cargo.lock"),
+        )
+        .map_err(|error| {
+            infrastructure(
+                InfrastructureFault::BackendInitializationFailed,
+                &format!("could not seed the challenge dependency lock: {error}"),
+            )
+        })?;
         let output = Command::new("cargo")
-            .arg("+1.98.0")
-            .arg("generate-lockfile")
+            .arg("+1.98.1")
+            .arg("update")
+            .arg("--workspace")
             .arg("--manifest-path")
             .arg(&self.manifest)
             .arg("--offline")
@@ -144,7 +157,7 @@ impl Scratch {
 
     pub(crate) fn check(&self, bin_name: &str, host: &HostFacts) -> Result<Output, HostFailure> {
         Command::new("cargo")
-            .arg("+1.98.0")
+            .arg("+1.98.1")
             .arg("check")
             .arg("--manifest-path")
             .arg(&self.manifest)
@@ -173,10 +186,10 @@ impl Scratch {
     fn host_facts(&self) -> Result<HostFacts, HostFailure> {
         let cargo = self.tool_output(
             "cargo",
-            &["+1.98.0", "--version", "--verbose"],
+            &["+1.98.1", "--version", "--verbose"],
             "Cargo toolchain preflight",
         )?;
-        let rustc = self.tool_output("rustc", &["+1.98.0", "-vV"], "rustc toolchain preflight")?;
+        let rustc = self.tool_output("rustc", &["+1.98.1", "-vV"], "rustc toolchain preflight")?;
         let cargo = tool_text(&cargo, "Cargo toolchain preflight")?;
         let rustc = tool_text(&rustc, "rustc toolchain preflight")?;
         let cargo_identity = identity_line(cargo, "Cargo toolchain preflight")?;
@@ -185,9 +198,9 @@ impl Scratch {
         let rustc_release = required_field(rustc, "release: ", "rustc release")?;
         let cargo_host = required_field(cargo, "host: ", "Cargo host")?;
         let rustc_host = required_field(rustc, "host: ", "rustc host")?;
-        if cargo_release != "1.98.0" || rustc_release != "1.98.0" {
+        if cargo_release != "1.98.1" || rustc_release != "1.98.1" {
             return Err(unavailable(&format!(
-                "required Cargo and rustc release 1.98.0, observed Cargo {cargo_release} and rustc {rustc_release}"
+                "required Cargo and rustc release 1.98.1, observed Cargo {cargo_release} and rustc {rustc_release}"
             )));
         }
         if cargo_host != rustc_host {

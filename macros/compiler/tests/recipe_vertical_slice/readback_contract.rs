@@ -1,18 +1,18 @@
 //! Stable recipe readback observed through public and caller-owned projection roads.
 
-use super::support::CODEC_RECIPE;
-use super::{COMPANION_RECIPE, COMPLETE_RECIPE, DOOR, EVIDENCE_RECIPE, bake};
+use super::support::{CODEC_RECIPE, bake_under, bake_with};
+use super::{COMPANION_RECIPE, COMPLETE_RECIPE, EVIDENCE_RECIPE, bake};
 #[cfg(feature = "host")]
 use macroonz_compiler::host::Emittable;
 use macroonz_compiler::recipe::{
     HarnessPosture, LoweringSource, ProjectionDisposition, ProjectionError, ProjectionOffered,
     ProjectionRequest, ProjectionSink, ProjectorReplacement, RecipeProjector,
-    RecipeRelationPayload, RecipeRole, RecipeView,
+    RecipeRelationPayload, RecipeRelationPayloadKind, RecipeRole, RecipeView,
 };
 use macroonz_compiler::{
     AbsencePosture, CompletenessPosture, CyclePosture, DensityPosture, Destination, EmptyPosture,
     GeneratedToken, GeneratedTree, MembershipPosture, RenderError, RepetitionPosture, Role,
-    SelfRelationPosture, TextCapture, unit_struct,
+    SelfRelationPosture, unit_struct,
 };
 
 const POSTURE_RECIPE: &str = r"
@@ -184,6 +184,10 @@ fn public_recipe_names_are_exact_and_stable() {
     assert_eq!(LoweringSource::Preset.name(), "preset");
     assert_eq!(LoweringSource::Configuration.name(), "configuration");
     assert_eq!(LoweringSource::ExactRust.name(), "exact-rust");
+    assert_eq!(RecipeRelationPayloadKind::Unlabeled.name(), "unlabeled");
+    assert_eq!(RecipeRelationPayloadKind::Path.name(), "path");
+    assert_eq!(RecipeRelationPayloadKind::ExactRust.name(), "exact-rust");
+    assert_eq!(RecipeRelationPayloadKind::Transition.name(), "transition");
     assert_eq!(ProjectionDisposition::Generated.name(), "generated");
     assert_eq!(ProjectionDisposition::NotRequested.name(), "not-requested");
     assert_eq!(
@@ -315,25 +319,19 @@ fn generated_roles_retain_their_declared_root_and_baked_placement_order() -> Res
 
 #[test]
 fn caller_owned_projection_reads_every_declared_relation_requirement() -> Result<(), ()> {
-    let read = TextCapture::read(POSTURE_RECIPE).map_err(|_| ())?;
-    macroonz_compiler::recipe::bake_with(
-        read.input(),
-        HarnessPosture::Available,
-        &DOOR,
+    bake_with(
+        POSTURE_RECIPE,
         &[ProjectorReplacement::for_role(
             RecipeRole::RelationTables,
             &ReadbackProjector,
         )],
     )
     .map(|_| ())
-    .map_err(|_| ())
 }
 
 #[test]
 fn unavailable_harness_roles_keep_their_exact_public_dispositions() -> Result<(), ()> {
-    let read = TextCapture::read(COMPANION_RECIPE).map_err(|_| ())?;
-    let baked = macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Unavailable, &DOOR)
-        .map_err(|_| ())?;
+    let baked = bake_under(COMPANION_RECIPE, HarnessPosture::Unavailable)?;
     let recipe = baked.projection().plan().content();
     let expected_dispositions = [
         ProjectionDisposition::Generated,

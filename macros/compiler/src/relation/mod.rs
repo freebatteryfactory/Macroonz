@@ -3,6 +3,7 @@
 mod type_contract;
 mod types;
 
+pub(crate) use types::RelationQuestion;
 pub use types::{
     AbsencePosture, CompletenessPosture, CompletenessStanding, CyclePosture, CycleStanding,
     DensityPosture, DensityStanding, EmptyPosture, KeyedRosterRelation, KeyedRosterRows,

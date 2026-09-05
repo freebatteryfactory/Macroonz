@@ -1,16 +1,12 @@
 //! Codec claims observed from outside: the public bill, canonical preimages, and generated Rust compiled and executed through the pinned toolchain.
 
+use crate::support::observe_rustc;
 use macroonz_compiler::codec::{
     AssemblyPosture, Cardinality, CodecAssembly, CodecContent, CodecDirection, CodecIssue,
     CodecMember, CodecMemberShape, CodecPlacement, CodecShape, CodecTypePath, MEMBER_CONTRACT,
     MemberContract, ModuleSpelling, PathRooting, codec_surface,
 };
-use macroonz_compiler::{Bounded, CanonicalContent};
-use std::path::PathBuf;
-use std::process::Command;
-use std::sync::atomic::{AtomicU32, Ordering};
-
-static SPECIMEN_ORDINAL: AtomicU32 = AtomicU32::new(0);
+use macroonz_compiler::{Bounded, CanonicalContent, encode_bytes};
 
 fn in_scope(spelling: &str) -> Result<CodecTypePath, String> {
     CodecTypePath::spelled(PathRooting::InScope, vec![spelling.to_owned()])
@@ -79,18 +75,12 @@ fn codec_content(direction: CodecDirection) -> Result<CodecContent, String> {
     })
 }
 
-fn frame(material: &[u8], into: &mut Vec<u8>) {
-    let length = u64::try_from(material.len()).unwrap_or(u64::MAX);
-    into.extend_from_slice(&length.to_be_bytes());
-    into.extend_from_slice(material);
-}
-
 fn independent_path(rooting: &str, segments: &[&str], into: &mut Vec<u8>) {
-    frame(rooting.as_bytes(), into);
+    encode_bytes(rooting.as_bytes(), into);
     let count = u64::try_from(segments.len()).unwrap_or(u64::MAX);
     into.extend_from_slice(&count.to_be_bytes());
     for segment in segments {
-        frame(segment.as_bytes(), into);
+        encode_bytes(segment.as_bytes(), into);
     }
 }
 
@@ -102,18 +92,18 @@ fn independent_member(
     into: &mut Vec<u8>,
 ) {
     let mut member = Vec::new();
-    frame(spelling.as_bytes(), &mut member);
+    encode_bytes(spelling.as_bytes(), &mut member);
     independent_path("in-scope", &[held_as], &mut member);
-    frame(shape.as_bytes(), &mut member);
-    frame(cardinality.as_bytes(), &mut member);
-    frame(&member, into);
+    encode_bytes(shape.as_bytes(), &mut member);
+    encode_bytes(cardinality.as_bytes(), &mut member);
+    encode_bytes(&member, into);
 }
 
 fn independent_content_bytes() -> Vec<u8> {
     let mut bytes = Vec::new();
     independent_path("in-scope", &["Demo"], &mut bytes);
-    frame(b"DemoRefusal", &mut bytes);
-    frame(b"assembled", &mut bytes);
+    encode_bytes(b"DemoRefusal", &mut bytes);
+    encode_bytes(b"assembled", &mut bytes);
     bytes.push(1);
     independent_path("in-scope", &["AssemblyRefusal"], &mut bytes);
     bytes.extend_from_slice(&5_u64.to_be_bytes());
@@ -122,7 +112,7 @@ fn independent_content_bytes() -> Vec<u8> {
     independent_member("label", "String", "text", "optional", &mut bytes);
     independent_member("modes", "Choice", "closed-choice", "repeated", &mut bytes);
     independent_member("child", "Nested", "nested", "required", &mut bytes);
-    frame(b"round-trip", &mut bytes);
+    encode_bytes(b"round-trip", &mut bytes);
     bytes.push(0);
     bytes.push(0);
     bytes.push(0);
@@ -190,7 +180,7 @@ fn every_member_contract_row_reaches_the_generated_surface() -> Result<(), Strin
 ///
 /// Population: one content value carrying all five wire shapes, all three cardinalities, checked assembly, and both roads.
 /// Reversal: changing only the direction changes the preimage.
-/// Denominator: every field of `CodecContent`, its shape, its assembly, and every member row is re-encoded without calling the compiler's framing helpers.
+/// Denominator: every field of `CodecContent`, its shape, its assembly, and every member row is re-encoded from its public values.
 /// Evidence ceiling: this fixes the preimage bytes for this representative content and does not claim collision resistance or every possible owner identity and assumption roster.
 #[test]
 fn codec_content_bytes_match_an_independent_preimage() -> Result<(), String> {
@@ -207,26 +197,35 @@ fn codec_content_bytes_match_an_independent_preimage() -> Result<(), String> {
 
 fn issue_material(spelling: &str) -> Vec<u8> {
     let mut material = Vec::new();
-    frame(spelling.as_bytes(), &mut material);
+    encode_bytes(spelling.as_bytes(), &mut material);
     material
 }
 
 fn issue_bytes(slot: u8, material: &[u8]) -> Vec<u8> {
     let mut bytes = vec![slot];
-    frame(material, &mut bytes);
+    encode_bytes(material, &mut bytes);
     bytes
+}
+
+fn require_compiled_specimen(source: &str) -> Result<(), String> {
+    let output = observe_rustc("codec", source, &[])?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).into_owned())
+    }
 }
 
 /// Claim: every diagnostic issue row commits to its stable slot and complete typed payload.
 ///
 /// Population: all 13 `CodecIssue` rows.
 /// Hostile controls: two spelling-bearing rows carrying the same spelling remain separated by their slots, and changing one spelling changes its bytes.
-/// Denominator: the expected bytes use an independent u64 big-endian framing helper and no codec issue encoder.
+/// Denominator: the expected bytes use the public frame and no codec issue encoder.
 /// Evidence ceiling: this establishes codec issue material, not the diagnostic home's later family and subject derivation.
 #[test]
 fn every_codec_issue_matches_its_independent_bytes() {
     let mut shadowed = issue_material("material");
-    frame(b"material", &mut shadowed);
+    encode_bytes(b"material", &mut shadowed);
     let mut path_bound = Vec::new();
     path_bound.extend_from_slice(&8_u64.to_be_bytes());
     path_bound.extend_from_slice(&9_u64.to_be_bytes());
@@ -363,42 +362,6 @@ fn a_codec_path_renders_under_its_typed_rooting() -> Result<(), String> {
     Ok(())
 }
 
-fn specimen_path(extension: &str) -> PathBuf {
-    let ordinal = SPECIMEN_ORDINAL.fetch_add(1, Ordering::SeqCst);
-    std::env::temp_dir().join(format!(
-        "macroonz_codec_specimen_{}_{ordinal}{extension}",
-        std::process::id()
-    ))
-}
-
-fn compile_and_run(source: &str) -> Result<(), String> {
-    let source_path = specimen_path(".rs");
-    let executable = specimen_path(std::env::consts::EXE_SUFFIX);
-    std::fs::write(&source_path, source).map_err(|error| error.to_string())?;
-    let compiled = Command::new("rustup")
-        .arg("run")
-        .arg("1.98.0")
-        .arg("rustc")
-        .arg(&source_path)
-        .arg("--edition=2024")
-        .arg("-o")
-        .arg(&executable)
-        .output()
-        .map_err(|error| error.to_string())?;
-    drop(std::fs::remove_file(&source_path));
-    if !compiled.status.success() {
-        return Err(String::from_utf8_lossy(&compiled.stderr).into_owned());
-    }
-    let executed = Command::new(&executable)
-        .output()
-        .map_err(|error| error.to_string())?;
-    drop(std::fs::remove_file(&executable));
-    if !executed.status.success() {
-        return Err(String::from_utf8_lossy(&executed.stderr).into_owned());
-    }
-    Ok(())
-}
-
 const SPECIMEN_DECLARATIONS: &str = r"
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct EvenBytes(Vec<u8>);
@@ -470,11 +433,6 @@ impl Demo {
 ";
 
 const SPECIMEN_ASSERTIONS: &str = r#"
-fn framed(material: &[u8], into: &mut Vec<u8>) {
-    into.extend_from_slice(&u64::try_from(material.len()).unwrap_or(u64::MAX).to_be_bytes());
-    into.extend_from_slice(material);
-}
-
 fn main() {
     let value = Demo {
         count: 513,
@@ -485,14 +443,14 @@ fn main() {
     };
     let mut encoded = Vec::new();
     value.encode_canonical(&mut encoded);
-    let mut expected = Vec::new();
-    expected.extend_from_slice(&513_u64.to_be_bytes());
-    framed(&[3, 4], &mut expected);
-    expected.push(u8::from(true));
-    framed(b"hi", &mut expected);
-    expected.extend_from_slice(&2_u64.to_be_bytes());
-    expected.extend_from_slice(&[0, 1]);
-    framed(&[7], &mut expected);
+    let expected = vec![
+        0, 0, 0, 0, 0, 0, 2, 1,
+        0, 0, 0, 0, 0, 0, 0, 2, 3, 4,
+        1,
+        0, 0, 0, 0, 0, 0, 0, 2, 104, 105,
+        0, 0, 0, 0, 0, 0, 0, 2, 0, 1,
+        0, 0, 0, 0, 0, 0, 0, 1, 7,
+    ];
     assert_eq!(encoded, expected);
     assert_eq!(Demo::decode_canonical(&encoded), Ok(value.clone()));
 
@@ -584,7 +542,7 @@ fn generated_codec_rust_compiles_executes_and_refuses_hostile_bytes() -> Result<
     let mut source = String::from(SPECIMEN_DECLARATIONS);
     source.push_str(&surface);
     source.push_str(SPECIMEN_ASSERTIONS);
-    compile_and_run(&source)
+    require_compiled_specimen(&source)
 }
 
 /// Claim: published-module placement wraps the complete codec surface in one public module that imports its parent scope and remains executable.
@@ -616,5 +574,5 @@ fn published_module_placement_compiles_and_executes_from_its_parent_scope() -> R
     source.push_str(&surface);
     source.push_str("use demo_codec::DemoRefusal;");
     source.push_str(SPECIMEN_ASSERTIONS);
-    compile_and_run(&source)
+    require_compiled_specimen(&source)
 }

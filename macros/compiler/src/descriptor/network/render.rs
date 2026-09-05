@@ -6,9 +6,10 @@ use super::{DisciplineRow, FaultRow, LinkRow, NetworkDeclaration, ScheduleRow};
 use crate::bounded::Overflow;
 use crate::descriptor::DirectBinding;
 use crate::descriptor::emitting::{
-    absolute_path, derive_attribute, direct_path, doc_attribute, fallible_return, from_impl,
+    derive_attribute, direct_path, doc_attribute, fallible_return, from_impl, owned_direct_path,
 };
-use crate::token::{GeneratedDelimiter, GeneratedToken};
+use crate::descriptor::fault::NETWORK_FAULT_ARMS;
+use crate::token::{GeneratedDelimiter, GeneratedToken, absolute_path, vector};
 
 /// The names the generated module writes beside the authored ones, which no schedule may take.
 ///
@@ -20,30 +21,6 @@ const TOPOLOGY_ROAD: &str = "topology";
 
 /// The generated fault enum's name.
 const FAULT_ENUM: &str = "Fault";
-
-/// The fault enum's arms: the arm, the refusal it carries, and its stated doc.
-const FAULT_ARMS: [(&str, [&str; 2], &str); 4] = [
-    (
-        "Name",
-        ["descriptor", "NameRefusal"],
-        "A declared name was refused by the name vocabulary.",
-    ),
-    (
-        "Topology",
-        ["network", "TopologyRefusal"],
-        "The declared topology was refused by its own guard.",
-    ),
-    (
-        "Span",
-        ["network", "TickSpanRefusal"],
-        "A declared delay span was refused by its own guard.",
-    ),
-    (
-        "Schedule",
-        ["network", "NetworkScheduleRefusal"],
-        "A declared schedule was refused by its own guard.",
-    ),
-];
 
 /// The declaration-site tokens one network payload renders to.
 ///
@@ -80,8 +57,8 @@ fn fault_enum(harness: &DirectBinding, into: &mut Vec<GeneratedToken>) -> Result
     into.push(GeneratedToken::word("enum"));
     into.push(GeneratedToken::word(FAULT_ENUM));
     let mut arms = Vec::new();
-    for (arm, path, doc) in &FAULT_ARMS {
-        doc_attribute(doc, &mut arms)?;
+    for (arm, path, documentation) in &NETWORK_FAULT_ARMS {
+        doc_attribute(documentation, &mut arms)?;
         arms.push(GeneratedToken::word(arm));
         let mut carried = Vec::new();
         direct_path(harness, path, &mut carried);
@@ -92,8 +69,8 @@ fn fault_enum(harness: &DirectBinding, into: &mut Vec<GeneratedToken>) -> Result
         arms.push(GeneratedToken::alone(','));
     }
     into.push(GeneratedToken::group(GeneratedDelimiter::Brace, arms)?);
-    for (arm, path, _doc) in &FAULT_ARMS {
-        from_impl(harness_path(harness, path), FAULT_ENUM, arm, into)?;
+    for (arm, path, _documentation) in &NETWORK_FAULT_ARMS {
+        from_impl(owned_direct_path(harness, path), FAULT_ENUM, arm, into)?;
     }
     Ok(())
 }
@@ -147,34 +124,6 @@ fn link_expr(
     Ok(())
 }
 
-/// One `::std::vec::Vec::from([<members>])` expression, or `::std::vec::Vec::new()` where nothing is listed.
-fn vec_expr(
-    members: Vec<Vec<GeneratedToken>>,
-    into: &mut Vec<GeneratedToken>,
-) -> Result<(), Overflow> {
-    if members.is_empty() {
-        absolute_path(&["std", "vec", "Vec", "new"], into);
-        into.push(GeneratedToken::group(
-            GeneratedDelimiter::Parenthesis,
-            Vec::new(),
-        )?);
-        return Ok(());
-    }
-    absolute_path(&["std", "vec", "Vec", "from"], into);
-    let mut listed = Vec::new();
-    for (position, member) in members.into_iter().enumerate() {
-        if position > 0 {
-            listed.push(GeneratedToken::alone(','));
-        }
-        listed.extend(member);
-    }
-    into.push(GeneratedToken::group(
-        GeneratedDelimiter::Parenthesis,
-        vec![GeneratedToken::group(GeneratedDelimiter::Bracket, listed)?],
-    )?);
-    Ok(())
-}
-
 /// The generated `topology()` function.
 fn topology_fn(
     declaration: &NetworkDeclaration,
@@ -196,7 +145,7 @@ fn topology_fn(
     );
     fallible_return(ok_seat, FAULT_ENUM, into);
     let mut body = Vec::new();
-    absolute_path(&["core", "result", "Result", "Ok"], &mut body);
+    body.extend(absolute_path(&["core", "result", "Result", "Ok"]));
     let mut inner = Vec::new();
     direct_path(
         declaration.harness(),
@@ -226,9 +175,9 @@ fn topology_fn(
         links.push(expression);
     }
     let mut seats = Vec::new();
-    vec_expr(nodes, &mut seats)?;
+    seats.extend(vector(nodes)?);
     seats.push(GeneratedToken::alone(','));
-    vec_expr(links, &mut seats)?;
+    seats.extend(vector(links)?);
     inner.push(GeneratedToken::group(
         GeneratedDelimiter::Parenthesis,
         seats,
@@ -267,7 +216,7 @@ fn schedule_fn(
     );
     fallible_return(ok_seat, FAULT_ENUM, into);
     let mut body = Vec::new();
-    absolute_path(&["core", "result", "Result", "Ok"], &mut body);
+    body.extend(absolute_path(&["core", "result", "Result", "Ok"]));
     let mut inner = Vec::new();
     direct_path(
         declaration.harness(),
@@ -301,7 +250,7 @@ fn schedule_fn(
         )?;
         disciplines.push(expression);
     }
-    vec_expr(disciplines, &mut seats)?;
+    seats.extend(vector(disciplines)?);
     inner.push(GeneratedToken::group(
         GeneratedDelimiter::Parenthesis,
         seats,
@@ -332,7 +281,7 @@ fn discipline_expr(
         fault_expr(harness, fault, &mut expression)?;
         faults.push(expression);
     }
-    vec_expr(faults, &mut seats)?;
+    seats.extend(vector(faults)?);
     into.push(GeneratedToken::group(
         GeneratedDelimiter::Parenthesis,
         seats,
@@ -411,11 +360,4 @@ fn tick_expr(
         vec![GeneratedToken::number(ordinal)],
     )?);
     Ok(())
-}
-
-/// One owned generated path at the direct harness binding.
-fn harness_path(harness: &DirectBinding, destination: &[&str]) -> Vec<GeneratedToken> {
-    let mut tokens = Vec::new();
-    direct_path(harness, destination, &mut tokens);
-    tokens
 }

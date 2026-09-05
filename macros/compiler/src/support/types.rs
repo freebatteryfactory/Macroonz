@@ -3,7 +3,7 @@ use crate::bounded::NonEmpty;
 #[path = "type_guard.rs"]
 mod guard;
 /// The maximum rendered path depth after its crate root.
-pub const PATH_SEGMENT_LIMIT: usize = 8;
+pub const PATH_SEGMENT_LIMIT: usize = crate::token::RENDERED_PATH_SEGMENT_LIMIT;
 /// A generated-support schema identity.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SchemaId([u8; 32]);

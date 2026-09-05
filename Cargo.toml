@@ -8,7 +8,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-include = ["src/**", "tests/**", "examples/**", "skills/**", "assets/**", "AGENTS.md", "CONTRIBUTING.md", "SECURITY.md", "Cargo.toml", "README.md", "LICENSE-*"]
+include = ["/src/**", "/tests/**", "/examples/**", "/skills/**", "/assets/**", "/AGENTS.md", "/CONTRIBUTING.md", "/SECURITY.md", "/Cargo.toml", "/README.md", "/LICENSE-*"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -28,7 +28,7 @@ exclude = [
 [workspace.package]
 version = "0.2.0"
 edition = "2024"
-rust-version = "1.98.0"
+rust-version = "1.98.1"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/freebatteryfactory/Macroonz"
 

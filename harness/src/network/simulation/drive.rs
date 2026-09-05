@@ -3,8 +3,8 @@
 //! Determinism is structural: fault precedence decides a send, and due tick plus scheduling sequence decides delivery order.
 
 use super::{
-    Action, Delivery, DeliveryCopy, InFlight, Link, LinkFault, SendFate, SendOrdinal, SendReceipt,
-    SendRefusal, Shaping, SimNet, Tick,
+    Action, Delivery, DeliveryCopy, InFlight, Link, LinkFault, NetworkCensusSeat, SendFate,
+    SendOrdinal, SendReceipt, SendRefusal, Shaping, SimNet, Tick,
 };
 use std::mem;
 
@@ -27,7 +27,7 @@ impl<Payload: Clone> SimNet<Payload> {
         let count = self.placed.entry(link).or_insert(0u32);
         let ordinal = SendOrdinal::at(*count);
         *count = count.saturating_add(1u32);
-        self.census.sends = self.census.sends.saturating_add(1u64);
+        self.census.increment(NetworkCensusSeat::Sends, 1u64);
         let shaping = shaped(
             self.schedule
                 .discipline_of(link)
@@ -37,8 +37,8 @@ impl<Payload: Clone> SimNet<Payload> {
         );
         let (delay, copies) = match shaping {
             Shaping::TakenByPartition => {
-                self.census.dropped_by_partition =
-                    self.census.dropped_by_partition.saturating_add(1u64);
+                self.census
+                    .increment(NetworkCensusSeat::DroppedByPartition, 1u64);
                 return Ok(SendReceipt {
                     link,
                     ordinal,
@@ -46,8 +46,8 @@ impl<Payload: Clone> SimNet<Payload> {
                 });
             }
             Shaping::TakenByDiscipline => {
-                self.census.dropped_by_discipline =
-                    self.census.dropped_by_discipline.saturating_add(1u64);
+                self.census
+                    .increment(NetworkCensusSeat::DroppedByDiscipline, 1u64);
                 return Ok(SendReceipt {
                     link,
                     ordinal,
@@ -73,8 +73,8 @@ impl<Payload: Clone> SimNet<Payload> {
                 copy,
             });
             self.sequence = self.sequence.saturating_add(1u64);
-            self.census.scheduled_deliveries =
-                self.census.scheduled_deliveries.saturating_add(1u64);
+            self.census
+                .increment(NetworkCensusSeat::ScheduledDeliveries, 1u64);
         }
         Ok(SendReceipt {
             link,
@@ -96,10 +96,10 @@ impl<Payload: Clone> SimNet<Payload> {
             .partition(|flight| flight.due <= now);
         self.in_flight = waiting;
         due.sort_unstable_by_key(|flight| (flight.due, flight.sequence));
-        self.census.delivered = self
-            .census
-            .delivered
-            .saturating_add(u64::try_from(due.len()).unwrap_or(u64::MAX));
+        self.census.increment(
+            NetworkCensusSeat::Delivered,
+            u64::try_from(due.len()).unwrap_or(u64::MAX),
+        );
         let delivered: Vec<_> = due
             .into_iter()
             .map(|flight| {

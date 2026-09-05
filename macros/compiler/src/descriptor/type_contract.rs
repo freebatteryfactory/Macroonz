@@ -282,6 +282,61 @@ impl core::fmt::Display for HelperRefusal {
 
 impl core::error::Error for HelperRefusal {}
 
+macro_rules! impl_helper_capture_contract {
+    ($error:ty, $family:path, $related:ident) => {
+        impl $crate::diagnostic::Refused for $error {
+            const PHASE: $crate::diagnostic::Phase = $crate::diagnostic::Phase::Capture;
+            const FAMILY: $crate::diagnostic::Family = $family;
+
+            fn class(&self) -> $crate::diagnostic::RefusalClass {
+                self.refusal().class()
+            }
+
+            fn first(&self) -> String {
+                self.refusal().first()
+            }
+
+            fn observed(&self) -> $crate::diagnostic::Observed {
+                self.refusal().classified()
+            }
+
+            fn body(&self) -> $crate::diagnostic::LineBody {
+                $crate::diagnostic::LineBody::SingleCause
+            }
+
+            fn related(&self) -> Vec<Vec<u8>> {
+                $crate::descriptor::impl_helper_capture_contract!(@related self, $related)
+            }
+
+            fn repairs(
+                &self,
+            ) -> $crate::bounded::Bounded<
+                $crate::diagnostic::Repair,
+                { $crate::diagnostic::REPAIR_LIMIT },
+            > {
+                self.refusal().repairs()
+            }
+        }
+
+        impl core::fmt::Display for $error {
+            fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                let refusal = self.refusal();
+                write!(into, "{refusal}")
+            }
+        }
+
+        impl core::error::Error for $error {}
+    };
+    (@related $error:ident, canonical) => {
+        vec![$error.refusal().canonical_bytes()]
+    };
+    (@related $error:ident, none) => {
+        Vec::new()
+    };
+}
+
+pub(crate) use impl_helper_capture_contract;
+
 impl CompositionIssue {
     /// This issue's position in its own roster, appended and never renumbered.
     #[must_use]

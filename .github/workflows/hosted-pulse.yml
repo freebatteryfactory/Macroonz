@@ -13,6 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  CARGO_BUILD_JOBS: "1"
   CARGO_INCREMENTAL: "0"
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: "1"
@@ -36,10 +37,10 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git/db
-          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.0-${{ hashFiles('Cargo.lock') }}
+          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.1-${{ hashFiles('Cargo.lock') }}
 
       - name: Install the declared Rust toolchain
-        run: rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy --component rust-src --component llvm-tools-preview --target wasm32-unknown-unknown
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy --component rust-src --component llvm-tools-preview --target wasm32-unknown-unknown
 
       - name: Install declared qualification tools
         uses: taiki-e/install-action@5b4d68e2e660441203ab128a23676f1e4faf1532 # v2.86.3
@@ -50,45 +51,269 @@ jobs:
       - name: Record host and tool identities
         run: |
           uname -a
-          rustc +1.98.0 --version --verbose
-          cargo +1.98.0 --version --verbose
+          rustc +1.98.1 --version --verbose
+          cargo +1.98.1 --version --verbose
           cargo nextest --version
           cargo deny --version
+          git --version
+          tar --version
 
       - name: Fetch the locked dependency graph
         run: |
-          cargo +1.98.0 fetch --locked
+          cargo +1.98.1 fetch --locked
           echo "CARGO_NET_OFFLINE=true" >> "$GITHUB_ENV"
 
       - name: Check formatting
-        run: cargo +1.98.0 fmt --all -- --check
+        run: cargo +1.98.1 fmt --all -- --check
 
       - name: Check every target and feature
-        run: cargo +1.98.0 check --workspace --all-targets --all-features --locked
+        run: cargo +1.98.1 check --workspace --all-targets --all-features --locked
 
       - name: Run the strict lint wall
-        run: cargo +1.98.0 clippy --workspace --all-targets --all-features --locked -- -D warnings
+        run: cargo +1.98.1 clippy --workspace --all-targets --all-features --locked -- -D warnings
 
       - name: Run the complete external test wall
-        run: cargo +1.98.0 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast
+        run: cargo +1.98.1 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast --no-tests fail
+
+      - &compiler-core
+        name: Check the compiler core posture
+        run: cargo +1.98.1 check -p macroonz-compiler --all-targets --no-default-features --locked
+
+      - &compiler-host
+        name: Check the compiler host posture
+        run: cargo +1.98.1 check -p macroonz-compiler --all-targets --no-default-features --features host --locked
+
+      - &proc-host
+        name: Check the proc-host posture
+        run: cargo +1.98.1 check -p macroonz-macros --all-targets --locked
+
+      - &harness-core
+        name: Check the harness core posture
+        run: cargo +1.98.1 check -p macroonz-harness --all-targets --no-default-features --locked
+
+      - &harness-preemption
+        name: Check the harness preemption posture
+        run: cargo +1.98.1 check -p macroonz-harness --all-targets --no-default-features --features preemption --locked
+
+      - &facade-diet
+        name: Check the facade diet posture
+        run: cargo +1.98.1 check -p macroonz --all-targets --no-default-features --locked
+
+      - &facade-harness
+        name: Check the facade harness-only posture
+        run: cargo +1.98.1 check -p macroonz --all-targets --no-default-features --features harness --locked
+
+      - &facade-preemption
+        name: Check the facade preemption posture
+        run: cargo +1.98.1 check -p macroonz --all-targets --no-default-features --features preemption --locked
+
+      - &facade-full
+        name: Check the facade full posture
+        run: cargo +1.98.1 check -p macroonz --all-targets --all-features --locked
+
+      - &diet-owner
+        name: Run the no-harness facade owner control
+        run: cargo +1.98.1 nextest run -j1 -p macroonz --no-default-features --test facade_surface --locked --no-tests fail
+
+      - &diet-recipe
+        name: Run the no-harness recipe entrance control
+        run: cargo +1.98.1 nextest run -j1 -p macroonz --no-default-features --test recipe_no_harness_surface --locked --no-tests fail
+
+      - &diet-carrier
+        name: Run the no-harness mechanical carrier control
+        run: cargo +1.98.1 nextest run -j1 -p macroonz --no-default-features --test recipe_carrier_hostile --locked --no-tests fail
+
+      - &maximal-recipe
+        name: Run the maximal recipe campaign
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-compiler --test recipe_vertical_slice --all-features --locked --run-ignored only --no-tests fail -E 'test(=maximal_recipe::the_catalog_bearing_maximal_load_fits_the_derived_render_envelope_with_pinned_headroom)'
+
+      - &interleave-exhaustive
+        name: Run the exhaustive interleave campaign
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --test interleave_exploration --all-features --locked --run-ignored only --no-tests fail -E 'test(=a_long_exhaustive_campaign_walks_every_counted_schedule)'
+
+      - &interleave-sampled
+        name: Run the sampled interleave campaign
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --test interleave_exploration --all-features --locked --run-ignored only --no-tests fail -E 'test(=a_long_sampled_campaign_repeats_without_claiming_the_space)'
+
+      - &network-long
+        name: Run the network transcript campaign
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --test network_transcript --all-features --locked --run-ignored only --no-tests fail -E 'test(=custody::a_long_network_campaign_reproduces_and_exhausts_exactly)'
+
+      - &preemption-long
+        name: Run the preemption campaign
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --test preemption_exploration --all-features --locked --run-ignored only --no-tests fail -E 'test(=supported::the_longer_fused_counter_holds_over_its_bounded_space)'
+
+      - &archive-source
+        name: Refuse tracked-source changes before packaging
+        run: git diff --exit-code HEAD --
+
+      - &archive-delivery
+        name: Run extracted package delivery
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-macros --test recipe_facade_crossing --locked --run-ignored only --no-tests fail --success-output final -E 'test(=archive_delivery::the_four_archives_resolve_and_execute_without_checkout_fallback)'
 
       - name: Run documentation examples
-        run: cargo +1.98.0 test -j1 --doc --workspace --all-features --locked
+        run: cargo +1.98.1 test -j1 --doc --workspace --all-features --locked
 
       - name: Check dependency policy
         run: cargo deny --workspace check
 
       - name: Build warnings-denied documentation
-        run: cargo +1.98.0 doc --workspace --all-features --no-deps --locked
+        run: cargo +1.98.1 doc --workspace --all-features --no-deps --locked
 
       - name: Check the all-feature Wasm posture
-        run: cargo +1.98.0 check --workspace --all-features --target wasm32-unknown-unknown --locked
+        run: cargo +1.98.1 check --workspace --all-features --target wasm32-unknown-unknown --locked
 
       - name: Run the stable-rustc coverage crossing
-        run: cargo +1.98.0 run -j1 --example rustc_coverage --features harness --locked
+        run: cargo +1.98.1 run -j1 --example rustc_coverage --features harness --locked
 
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --
+
+      - &stage-reports
+        name: Stage only bounded diagnostic reports
+        id: reports
+        if: always()
+        shell: pwsh
+        env:
+          REPORT_JOB: ${{ github.job }}
+          REPORT_STATUS: ${{ job.status }}
+          REPORT_SOURCE: ${{ github.sha }}
+          REPORT_RUN: ${{ github.run_id }}
+          REPORT_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+          $repository = [IO.Path]::GetFullPath($env:GITHUB_WORKSPACE)
+          $target = if ($env:CARGO_TARGET_DIR) { [IO.Path]::GetFullPath($env:CARGO_TARGET_DIR) } else { "$repository/target" }
+          $paths = [Collections.Generic.List[string]]::new()
+          switch -Exact ($env:REPORT_JOB) {
+              { $_ -in @('linux-x64','unix-crossings','windows-x64') } { $paths.Add("$repository/target/nextest/ci/junit.xml") }
+              'recipe-grammar' { $paths.Add("$target/grammar.log") }
+              'source-coverage' {
+                  $paths.Add("$repository/target/nextest/ci/junit.xml")
+                  foreach ($name in @('library-summary.json','library.lcov','tracked-sources.txt','mapped-sources.txt','unowned-mappings.txt','unmapped-sources.txt')) { $paths.Add("$target/$name") }
+              }
+              'mutation-campaign' {
+                  $root = "$repository/target/qualification/mutation"
+                  foreach ($name in @('compiler.txt','proc.txt','equivalent.txt','planned.txt','accounted.txt','declared.txt','duplicates.txt','executed.txt')) { $paths.Add("$root/$name") }
+                  foreach ($family in @('recipe','token','descriptor','shared','spans')) {
+                      foreach ($name in @('selected.txt','input/expected.tsv','input/console.txt','input/command.txt','input/version.txt','input/target.txt','input/toolchain.txt','input/sources.txt','report/mutants.out/outcomes.json')) { $paths.Add("$root/$family/$name") }
+                  }
+              }
+              'execution-economics' {
+                  if ($env:ECONOMICS_SUBJECT -cnotin @('compiler','runtime')) { throw 'Unknown report subject' }
+                  $root = "$repository/target/qualification/$env:ECONOMICS_SUBJECT-economics"
+                  $report = "$target/tmp/$env:ECONOMICS_SUBJECT-economics"
+                  foreach ($name in @('artifacts.jsonl','artifacts-baseline.jsonl','baseline-inputs.txt','comparison-context.txt','comparison-summary.csv','comparison/order.csv','timing.stderr')) { $paths.Add("$root/$name") }
+                  foreach ($round in 0..3) {
+                      foreach ($side in @('baseline','candidate')) {
+                          foreach ($extension in @('log','stderr')) { $paths.Add("$root/comparison/$round-$side.$extension") }
+                      }
+                  }
+                  foreach ($name in @('context.txt','timing.log')) { $paths.Add("$report/$name") }
+                  if ($env:ECONOMICS_SUBJECT -ceq 'compiler') {
+                      foreach ($name in @('memory-order.csv','memory-summary.csv')) { $paths.Add("$root/$name") }
+                      foreach ($name in @('context.txt','timing.log')) { $paths.Add("$report/baseline/$name") }
+                      $names = [Collections.Generic.List[string]]::new()
+                      foreach ($round in 0..3) {
+                          foreach ($bytes in @(0,16777216,67108864)) { $names.Add("allocation-$round-$bytes") }
+                          foreach ($pair in @('density-4','density-16','density-64','codec-width-1','codec-width-8','codec-width-32','late-duplicate-8','late-duplicate-32','late-duplicate-127','near-limit-62','near-limit-63','near-limit-64')) {
+                              $names.Add("compiler-$round-$pair")
+                              foreach ($extension in @('time','stdout','stderr','status')) { $paths.Add("$report/baseline/memory/compiler-$round-$pair.$extension") }
+                          }
+                      }
+                      foreach ($name in @('missing-release','failed-child','deadline')) { $names.Add($name) }
+                      foreach ($name in $names) {
+                          foreach ($extension in @('time','stdout','stderr','status')) { $paths.Add("$report/memory/$name.$extension") }
+                      }
+                  }
+              }
+              'adopter-economics' {
+                  $root = "$repository/target/qualification/adopter-economics"
+                  $paths.Add("$root/native/control-build.json")
+                  foreach ($side in @('baseline','candidate')) {
+                      foreach ($name in @('workspace-graph','adopter-lock','adopter-graph')) { $paths.Add("$root/$side/native/$name.json") }
+                      foreach ($round in 0..2) {
+                          foreach ($phase in @('cold','warm','edited','edited-warm')) {
+                              foreach ($kind in @('build','consumer')) { $paths.Add("$root/$side/native/$round-$phase-$kind.json") }
+                          }
+                          foreach ($kind in @('wrong-model','clean')) { $paths.Add("$root/$side/native/$round-$kind.json") }
+                      }
+                      foreach ($name in @('context.txt','builds.log')) { $paths.Add("$target/tmp/adopter-economics/$side/$name") }
+                  }
+                  foreach ($name in @('build-order.csv','comparison-summary.csv')) { $paths.Add("$root/$name") }
+              }
+              default { throw 'Unknown report job' }
+          }
+          $fileLimit = 16MB
+          $totalLimit = 96MB
+          if ($paths.Count -gt 512) { throw 'Report roster exceeds its file bound' }
+          $destination = Join-Path $env:RUNNER_TEMP 'macroonz-diagnostic-reports'
+          if (Test-Path -LiteralPath $destination) { throw 'Report staging must be fresh' }
+          New-Item -ItemType Directory -Path $destination | Out-Null
+          $rows = [Collections.Generic.List[object]]::new()
+          $uploads = [Collections.Generic.List[string]]::new()
+          $total = 0L
+          $failed = $false
+          foreach ($path in $paths) {
+              $relative = [IO.Path]::GetRelativePath($repository, [IO.Path]::GetFullPath($path)).Replace('\','/')
+              $row = [ordered]@{ path = $relative; disposition = 'missing'; bytes = 0; sha256 = $null }
+              try {
+                  if (-not $relative.StartsWith('target/', [StringComparison]::Ordinal) -or $relative.Split('/') -contains '..') { throw 'Report escaped the declared target' }
+                  $cursor = $repository
+                  foreach ($part in $relative.Split('/')) {
+                      $cursor = Join-Path $cursor $part
+                      if (Test-Path -LiteralPath $cursor) {
+                          if ((Get-Item -Force -LiteralPath $cursor).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Linked report path refused' }
+                      }
+                  }
+                  if (Test-Path -LiteralPath $path) {
+                      $item = Get-Item -Force -LiteralPath $path
+                      if ($item.PSIsContainer) { throw 'Report directory refused' }
+                      if ($item.Length -gt $fileLimit -or $item.Length -gt $totalLimit - $total) { throw 'Report byte bound exceeded' }
+                      $stream = [IO.File]::Open($path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+                      try {
+                          if ($stream.Length -gt $fileLimit -or $stream.Length -gt $totalLimit - $total) { throw 'Report grew beyond its byte bound' }
+                          $bytes = [byte[]]::new([int]$stream.Length)
+                          $stream.ReadExactly($bytes)
+                          if ($stream.ReadByte() -ne -1) { throw 'Report changed while reading' }
+                      } finally { $stream.Dispose() }
+                      $text = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
+                      if ($text.Contains([char]0)) { throw 'Binary report refused' }
+                      $output = Join-Path $destination (('{0:D3}-' -f $rows.Count) + [IO.Path]::GetFileName($path))
+                      [IO.File]::WriteAllBytes($output, $bytes)
+                      $uploads.Add($output)
+                      $row.disposition = 'retained'
+                      $row.bytes = $bytes.Length
+                      $row.sha256 = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes))
+                      $total += $bytes.Length
+                  } elseif ($env:REPORT_STATUS -ceq 'success') { throw 'Required successful-run report missing' }
+              } catch {
+                  $failed = $true
+                  $row.disposition = "refused: $($_.Exception.Message)"
+                  Write-Warning "$relative : $($row.disposition)"
+              }
+              $rows.Add([pscustomobject]$row)
+          }
+          $manifest = Join-Path $destination 'manifest.json'
+          [ordered]@{ source = $env:REPORT_SOURCE; run = $env:REPORT_RUN; attempt = $env:REPORT_ATTEMPT; job = $env:REPORT_JOB; prior_status = $env:REPORT_STATUS; file_limit = $fileLimit; total_limit = $totalLimit; retained_bytes = $total; reports = @($rows) } |
+              ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $manifest -Encoding utf8NoBOM
+          if ((Get-Item -LiteralPath $manifest).Length -gt 1MB) { throw 'Report manifest exceeds its bound' }
+          $uploads.Add($manifest)
+          @('paths<<MACROONZ_REPORT_PATHS', $uploads, 'MACROONZ_REPORT_PATHS') | Add-Content -LiteralPath $env:GITHUB_OUTPUT -Encoding utf8NoBOM
+          if ($failed) { throw 'Report custody refused one or more files; admissible reports remain uploadable' }
+
+      - &upload-reports
+        name: Retain bounded reports for seven days
+        if: always() && steps.reports.outputs.paths != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: reports-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ strategy.job-index }}-${{ github.run_attempt }}
+          path: ${{ steps.reports.outputs.paths }}
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
+          overwrite: false
 
   unix-crossings:
     name: ${{ matrix.lane }} host crossing
@@ -115,10 +340,10 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git/db
-          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.0-${{ hashFiles('Cargo.lock') }}
+          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.1-${{ hashFiles('Cargo.lock') }}
 
       - name: Install the declared Rust toolchain
-        run: rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy --component rust-src --component llvm-tools-preview --target wasm32-unknown-unknown
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy --component rust-src --component llvm-tools-preview --target wasm32-unknown-unknown
 
       - name: Install the declared test runner
         uses: taiki-e/install-action@5b4d68e2e660441203ab128a23676f1e4faf1532 # v2.86.3
@@ -129,32 +354,57 @@ jobs:
       - name: Record host and tool identities
         run: |
           uname -a
-          rustc +1.98.0 --version --verbose
-          cargo +1.98.0 --version --verbose
+          rustc +1.98.1 --version --verbose
+          cargo +1.98.1 --version --verbose
           cargo nextest --version
+          git --version
+          tar --version
 
       - name: Fetch the locked dependency graph
         run: |
-          cargo +1.98.0 fetch --locked
+          cargo +1.98.1 fetch --locked
           echo "CARGO_NET_OFFLINE=true" >> "$GITHUB_ENV"
 
       - name: Check every target and feature
-        run: cargo +1.98.0 check --workspace --all-targets --all-features --locked
+        run: cargo +1.98.1 check --workspace --all-targets --all-features --locked
 
       - name: Run the strict lint wall
-        run: cargo +1.98.0 clippy --workspace --all-targets --all-features --locked -- -D warnings
+        run: cargo +1.98.1 clippy --workspace --all-targets --all-features --locked -- -D warnings
 
       - name: Run the complete external test wall
-        run: cargo +1.98.0 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast
+        run: cargo +1.98.1 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast --no-tests fail
+
+      - *compiler-core
+      - *compiler-host
+      - *proc-host
+      - *harness-core
+      - *harness-preemption
+      - *facade-diet
+      - *facade-harness
+      - *facade-preemption
+      - *facade-full
+      - *diet-owner
+      - *diet-recipe
+      - *diet-carrier
+      - *maximal-recipe
+      - *interleave-exhaustive
+      - *interleave-sampled
+      - *network-long
+      - *preemption-long
+      - *archive-source
+      - *archive-delivery
 
       - name: Run documentation examples
-        run: cargo +1.98.0 test -j1 --doc --workspace --all-features --locked
+        run: cargo +1.98.1 test -j1 --doc --workspace --all-features --locked
 
       - name: Run the stable-rustc coverage crossing
-        run: cargo +1.98.0 run -j1 --example rustc_coverage --features harness --locked
+        run: cargo +1.98.1 run -j1 --example rustc_coverage --features harness --locked
 
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --
+
+      - *stage-reports
+      - *upload-reports
 
   windows-x64:
     name: Windows x64 host crossing
@@ -173,10 +423,10 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git/db
-          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.0-${{ hashFiles('Cargo.lock') }}
+          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.1-${{ hashFiles('Cargo.lock') }}
 
       - name: Install the declared Rust toolchain
-        run: rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy --component rust-src --component llvm-tools-preview --target wasm32-unknown-unknown
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy --component rust-src --component llvm-tools-preview --target wasm32-unknown-unknown
 
       - name: Install the declared test runner
         uses: taiki-e/install-action@5b4d68e2e660441203ab128a23676f1e4faf1532 # v2.86.3
@@ -188,30 +438,1236 @@ jobs:
         shell: pwsh
         run: |
           Get-ComputerInfo | Select-Object WindowsProductName, WindowsVersion, OsArchitecture
-          rustc +1.98.0 --version --verbose
-          cargo +1.98.0 --version --verbose
+          rustc +1.98.1 --version --verbose
+          cargo +1.98.1 --version --verbose
           cargo nextest --version
+          git --version
+          tar --version
 
       - name: Fetch the locked dependency graph
         shell: pwsh
         run: |
-          cargo +1.98.0 fetch --locked
+          cargo +1.98.1 fetch --locked
           Add-Content -LiteralPath $env:GITHUB_ENV -Value 'CARGO_NET_OFFLINE=true'
 
       - name: Check every target and feature
-        run: cargo +1.98.0 check --workspace --all-targets --all-features --locked
+        run: cargo +1.98.1 check --workspace --all-targets --all-features --locked
 
       - name: Run the strict lint wall
-        run: cargo +1.98.0 clippy --workspace --all-targets --all-features --locked -- -D warnings
+        run: cargo +1.98.1 clippy --workspace --all-targets --all-features --locked -- -D warnings
 
       - name: Run the complete external test wall
-        run: cargo +1.98.0 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast
+        run: cargo +1.98.1 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast --no-tests fail
+
+      - *compiler-core
+      - *compiler-host
+      - *proc-host
+      - *harness-core
+      - *harness-preemption
+      - *facade-diet
+      - *facade-harness
+      - *facade-preemption
+      - *facade-full
+      - *diet-owner
+      - *diet-recipe
+      - *diet-carrier
+      - *maximal-recipe
+      - *interleave-exhaustive
+      - *interleave-sampled
+      - *network-long
+      - *preemption-long
+      - *archive-source
+      - *archive-delivery
 
       - name: Run documentation examples
-        run: cargo +1.98.0 test -j1 --doc --workspace --all-features --locked
+        run: cargo +1.98.1 test -j1 --doc --workspace --all-features --locked
 
       - name: Run the stable-rustc coverage crossing
-        run: cargo +1.98.0 run -j1 --example rustc_coverage --features harness --locked
+        run: cargo +1.98.1 run -j1 --example rustc_coverage --features harness --locked
 
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --
+
+      - *stage-reports
+      - *upload-reports
+
+  recipe-grammar:
+    name: Linux x64 recipe grammar campaign
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target/qualification/recipe-grammar-runner
+
+    steps:
+      - name: Check out the declared revision
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Restore declared Cargo registry material
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git/db
+          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.1-${{ hashFiles('Cargo.lock') }}
+
+      - name: Install the declared Rust toolchain
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy --component rust-src --component llvm-tools-preview --target wasm32-unknown-unknown
+
+      - name: Install the declared test runner
+        uses: taiki-e/install-action@5b4d68e2e660441203ab128a23676f1e4faf1532 # v2.86.3
+        with:
+          tool: cargo-nextest@0.9.132
+          fallback: none
+
+      - name: Record host and tool identities
+        run: |
+          uname -a
+          rustc +1.98.1 --version --verbose
+          cargo +1.98.1 --version --verbose
+          cargo nextest --version
+          git --version
+
+      - name: Fetch the locked dependency graph
+        run: |
+          cargo +1.98.1 fetch --locked
+          echo "CARGO_NET_OFFLINE=true" >> "$GITHUB_ENV"
+
+      - name: Qualify the fuzz and reduction instruments
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --all-features --test fuzz_compose --test reduction_instrument --locked --no-fail-fast --no-tests fail
+
+      - name: Run the coverage-guided recipe grammar campaign
+        run: |
+          mkdir -p "$CARGO_TARGET_DIR"
+          cargo +1.98.1 nextest run -j1 -p macroonz-harness --all-features --test fuzz_compose --locked --run-ignored only --no-tests fail --success-output final \
+            -E 'test(=recipe_grammar::the_recipe_grammar_uses_coverage_feedback_corpus_reduction_and_replay)' 2>&1 | tee "$CARGO_TARGET_DIR/grammar.log"
+
+      - name: Refuse tracked-tree mutation
+        run: git diff --exit-code HEAD --
+
+      - *stage-reports
+      - *upload-reports
+
+  mutation-campaign:
+    name: Linux x64 changed-source mutation
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 300
+    defaults:
+      run:
+        shell: bash
+    env:
+      MUTATION_ROOT: ${{ github.workspace }}/target/qualification/mutation
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target/qualification/mutation-reader
+      MUTATION_BASELINE: 90bd660190fbeae8f7088d8e55f53c0c0dc8fcee
+      RUSTUP_TOOLCHAIN: "1.98.1"
+
+    steps:
+      - name: Check out the declared revision and its comparison history
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Restore declared Cargo registry material
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git/db
+          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.1-${{ hashFiles('Cargo.lock') }}
+
+      - name: Install the declared Rust toolchain
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy --component rust-src --component llvm-tools-preview --target wasm32-unknown-unknown
+
+      - name: Install declared mutation tools
+        uses: taiki-e/install-action@5b4d68e2e660441203ab128a23676f1e4faf1532 # v2.86.3
+        with:
+          tool: cargo-nextest@0.9.132,cargo-mutants@27.0.0
+          fallback: none
+
+      - name: Record host and tool identities
+        run: |
+          uname -a
+          rustc +1.98.1 --version --verbose
+          cargo +1.98.1 --version --verbose
+          cargo nextest --version
+          cargo mutants --version
+          git --version
+          bash --version
+          df -h "$GITHUB_WORKSPACE"
+
+      - name: Fetch the locked dependency graph
+        run: |
+          cargo +1.98.1 fetch --locked
+          echo "CARGO_NET_OFFLINE=true" >> "$GITHUB_ENV"
+
+      - name: Verify child toolchain custody outside the checkout
+        run: |
+          expected="$(rustup which --toolchain "$RUSTUP_TOOLCHAIN" rustc)"
+          probe="$(mktemp -d "$RUNNER_TEMP/macroonz-toolchain-XXXXXX")"
+          (
+            cd "$probe"
+            test "$(rustup which rustc)" = "$expected"
+            rustc --version --verbose
+            cargo --version --verbose
+          )
+          rmdir -- "$probe"
+
+      - name: Qualify the current-campaign receiver
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --all-features --test trust_opening_evidence --locked --no-tests fail
+
+      - name: Qualify the exact proc-span selection
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-macros --all-features --test recipe_facade_crossing --locked --no-tests fail -E 'test(=span_custody::real_proc_tokens_preserve_recipe_spans_and_normalization)'
+
+      - name: Declare the complete changed-source denominator
+        run: |
+          git diff --exit-code HEAD --
+          git merge-base --is-ancestor "$MUTATION_BASELINE" HEAD
+          mkdir -p "$MUTATION_ROOT"
+          git rev-parse HEAD HEAD^{tree}
+          git diff --find-renames=100% --binary --output="$MUTATION_ROOT/source.patch" "$MUTATION_BASELINE"..HEAD --
+          selection=(--in-diff "$MUTATION_ROOT/source.patch" --colors never --line-col true)
+          cargo +1.98.1 mutants --manifest-path macros/compiler/Cargo.toml "${selection[@]}" --list > "$MUTATION_ROOT/compiler.txt"
+          cargo +1.98.1 mutants --manifest-path macros/proc/Cargo.toml "${selection[@]}" --list > "$MUTATION_ROOT/proc.txt"
+          test -s "$MUTATION_ROOT/compiler.txt"
+          if test -s "$MUTATION_ROOT/proc.txt"; then
+            printf 'Proc source acquired mutation candidates requiring an explicit owning test selection:\n' >&2
+            cat "$MUTATION_ROOT/proc.txt" >&2
+            exit 1
+          fi
+          printf 'Proc source has no tool-generated candidates; real proc witnesses remain separately required.\n'
+          test "$(git rev-parse HEAD:macros/compiler/src/recipe/issue/type_contract.rs)" = 2fc3070bdb774170fecfd0ad96cdd9256ff450d8
+          test "$(git rev-parse HEAD:macros/compiler/src/token/capture/text/type_contract.rs)" = 80e5062fd7de16abcd567f539aa97a5b64ae88da
+          printf '%s\n' \
+            'macros/compiler/src/recipe/issue/type_contract.rs:598:9: replace <impl Refused for RecipeError>::related -> Vec<Vec<u8>> with vec![]' \
+            "macros/compiler/src/token/capture/text/type_contract.rs:112:9: replace <impl Refused for IntrinsicTextRead<'_>>::related -> Vec<Vec<u8>> with vec![]" \
+            > "$MUTATION_ROOT/equivalent.txt"
+          while IFS= read -r variant; do
+            test "$(grep -Fxc -- "$variant" "$MUTATION_ROOT/compiler.txt")" = 1
+          done < "$MUTATION_ROOT/equivalent.txt"
+          printf 'Reviewed source-bound equivalences, not assertion catches:\n'
+          cat "$MUTATION_ROOT/equivalent.txt"
+          sha256sum "$MUTATION_ROOT/source.patch" "$MUTATION_ROOT/compiler.txt" "$MUTATION_ROOT/equivalent.txt"
+
+      - name: Execute and reconcile every declared mutation family
+        run: |
+          observer_target="$CARGO_TARGET_DIR"
+          cargo_executable="$(rustup which --toolchain 1.98.1 cargo)"
+          common=(--manifest-path macros/compiler/Cargo.toml --in-diff "$MUTATION_ROOT/source.patch"
+            --copy-target false --jobs 1 --jobserver-tasks 1 --cap-lints false
+            --baseline run --timeout 300 --build-timeout 300 --leak-dirs
+            --all-features --caught --unviable --no-times --colors never --line-col true --annotations none
+            -C --locked -C --offline)
+          equivalent='(RecipeError|IntrinsicTextRead).*::related.*with vec!\[\]$'
+          spans='(Recipe::module_body_at|RecipeRelationRow::effect_binding_at).*with None$'
+          : > "$MUTATION_ROOT/planned.txt"
+          for family in recipe token descriptor shared spans; do
+            filters=()
+            tests=()
+            trailing=(--test-threads=1)
+            case "$family" in
+              recipe)
+                filters=(--file 'macros/compiler/src/recipe/**' --exclude-re "$equivalent" --exclude-re "$spans")
+                tests=(recipe_vertical_slice recipe_grammar_adversary authored_rust_items)
+                ;;
+              token)
+                filters=(--file 'macros/compiler/src/token/**' --exclude-re "$equivalent")
+                tests=(token_semantics captured_grammar_mechanics captured_literal_forms token_normalization
+                  host_capture_identity structural_token_projection authored_rust_items published_stamps
+                  independent_identity_transcripts recipe_vertical_slice refusal_line_grammar declared_magnitudes)
+                ;;
+              descriptor)
+                filters=(--file 'macros/compiler/src/descriptor/**')
+                tests=(attribute_carrier_roads declared_modules descriptor_content_receipts shadow_faces
+                  recipe_vertical_slice refusal_line_grammar compile_refusals)
+                ;;
+              shared)
+                filters=(--file 'macros/compiler/src/**' --exclude 'macros/compiler/src/recipe/**'
+                  --exclude 'macros/compiler/src/token/**' --exclude 'macros/compiler/src/descriptor/**')
+                tests=(bounded_collections kind_accounting planned_output_sets rendered_outputs
+                  independent_identity_transcripts diagnostic_related_sets content_bound_identities
+                  proved_closures bound_expansions covered_explanations published_stamps declared_modules
+                  descriptor_content_receipts structural_token_projection refusal_line_grammar
+                  declared_magnitudes compile_refusals recipe_vertical_slice)
+                ;;
+              spans)
+                filters=(--file 'macros/compiler/src/recipe/**' --re "$spans"
+                  -C --test=recipe_facade_crossing -C --package=macroonz-macros)
+                trailing=(span_custody::real_proc_tokens_preserve_recipe_spans_and_normalization --exact --nocapture --test-threads=1)
+                ;;
+            esac
+            root="$MUTATION_ROOT/$family"
+            test ! -e "$root"
+            mkdir -p "$root/input/recorded" "$root/scratch"
+            export CARGO_TARGET_DIR="$root/build" TMPDIR="$root/scratch" TMP="$root/scratch" TEMP="$root/scratch"
+            command=("$cargo_executable" mutants "${common[@]}" "${filters[@]}" --output "$root/report")
+            "${command[@]}" --list > "$root/selected.txt"
+            test -s "$root/selected.txt"
+            : > "$root/input/expected.tsv"
+            while IFS=: read -r file line column damage; do
+              printf '%s\t%s\t%s\t%s\n' "$file" "$line" "$column" "${damage# }" >> "$root/input/expected.tsv"
+            done < "$root/selected.txt"
+            cut -f1 "$root/input/expected.tsv" | LC_ALL=C sort -u > "$root/input/sources.txt"
+            while IFS= read -r file; do
+              git ls-files --error-unmatch -- "$file" > /dev/null
+              mkdir -p "$root/input/recorded/$(dirname "$file")"
+              cp -- "$file" "$root/input/recorded/$file"
+              cmp -- "$file" "$root/input/recorded/$file"
+            done < "$root/input/sources.txt"
+            command+=(--)
+            for test_target in "${tests[@]}"; do command+=(--test "$test_target"); done
+            command+=(-- "${trailing[@]}")
+            printf '%s\n' "${command[@]}" > "$root/input/command.txt"
+            printf '%s\n' 27.0.0 > "$root/input/version.txt"
+            rustc +1.98.1 -vV | sed -n 's/^host: //p' > "$root/input/target.txt"
+            rustc +1.98.1 --version > "$root/input/toolchain.txt"
+            cat "$root/selected.txt" >> "$MUTATION_ROOT/planned.txt"
+          done
+          cat "$MUTATION_ROOT/planned.txt" "$MUTATION_ROOT/equivalent.txt" | LC_ALL=C sort > "$MUTATION_ROOT/accounted.txt"
+          LC_ALL=C sort "$MUTATION_ROOT/compiler.txt" > "$MUTATION_ROOT/declared.txt"
+          uniq -d "$MUTATION_ROOT/accounted.txt" > "$MUTATION_ROOT/duplicates.txt"
+          test ! -s "$MUTATION_ROOT/duplicates.txt"
+          cmp "$MUTATION_ROOT/declared.txt" "$MUTATION_ROOT/accounted.txt"
+          : > "$MUTATION_ROOT/executed.txt"
+          for family in recipe token descriptor shared spans; do
+            root="$MUTATION_ROOT/$family"
+            export CARGO_TARGET_DIR="$root/build" TMPDIR="$root/scratch" TMP="$root/scratch" TEMP="$root/scratch"
+            mapfile -t command < "$root/input/command.txt"
+            status=0
+            "${command[@]}" 2>&1 | tee "$root/input/console.txt" || status=$?
+            mapfile -t copies < <(find "$root/scratch" -mindepth 1 -maxdepth 1 -type d -name 'cargo-mutants-*')
+            test "${#copies[@]}" = 1
+            while IFS= read -r file; do
+              cmp -- "$file" "$root/input/recorded/$file"
+              cmp -- "${copies[0]}/$file" "$root/input/recorded/$file"
+            done < "$root/input/sources.txt"
+            sha256sum "$root/input/console.txt" "$root/input/command.txt" "$root/selected.txt" "$root/report/mutants.out/outcomes.json"
+            mkdir -p "$observer_target/tmp/mutation-campaign"
+            cp -R "$root/input/." "$observer_target/tmp/mutation-campaign/"
+            CARGO_TARGET_DIR="$observer_target" cargo +1.98.1 nextest run -j1 -p macroonz-harness --all-features \
+              --test trust_opening_evidence --locked --run-ignored only --no-tests fail --success-output final \
+              -E 'test(=campaign_input::a_completed_backend_campaign_matches_its_declared_roster_and_current_sources)'
+            test "$status" = 0
+            cat "$root/selected.txt" >> "$MUTATION_ROOT/executed.txt"
+            case "$CARGO_TARGET_DIR" in
+              "$GITHUB_WORKSPACE/target/qualification/mutation/"*/build) cargo +1.98.1 clean --target-dir "$CARGO_TARGET_DIR" ;;
+              *) printf 'Unexpected cleanup target\n' >&2; exit 1 ;;
+            esac
+          done
+          cmp "$MUTATION_ROOT/planned.txt" "$MUTATION_ROOT/executed.txt"
+          wc -l "$MUTATION_ROOT/executed.txt" "$MUTATION_ROOT/equivalent.txt" "$MUTATION_ROOT/accounted.txt"
+          git diff --exit-code HEAD --
+
+      - *stage-reports
+      - *upload-reports
+
+  execution-economics:
+    name: Linux x64 ${{ matrix.subject }} execution observations
+    strategy:
+      fail-fast: false
+      matrix:
+        subject: [compiler, runtime]
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      ECONOMICS_SUBJECT: ${{ matrix.subject }}
+      ECONOMICS_ROOT: ${{ github.workspace }}/target/qualification/${{ matrix.subject }}-economics
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target/qualification/${{ matrix.subject }}-economics/observer
+      ECONOMICS_BASELINE: a6a5b0c84634240980d6a31143ebeb3440da3bf8
+      ECONOMICS_QUALIFIED_SOURCE: 5baca339824708ae932da02cb283efc5c9633acf
+
+    steps:
+      - name: Check out the declared comparison history
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Restore declared Cargo registry material
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git/db
+          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.1-${{ hashFiles('Cargo.lock') }}
+
+      - name: Install the declared Rust toolchain
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy
+
+      - name: Install the declared test runner
+        uses: taiki-e/install-action@5b4d68e2e660441203ab128a23676f1e4faf1532 # v2.86.3
+        with:
+          tool: cargo-nextest@0.9.132
+          fallback: none
+
+      - name: Record actual host and instrument identities
+        run: |
+          uname -a
+          lscpu
+          cat /proc/meminfo
+          for resource in /sys/fs/cgroup/cpu.max /sys/fs/cgroup/memory.max; do
+            if test -r "$resource"; then printf '%s: ' "$resource"; cat "$resource"; fi
+          done
+          printf 'Runner OS=%s architecture=%s image=%s image-version=%s\n' \
+            "$RUNNER_OS" "$RUNNER_ARCH" "${ImageOS:-unreported}" "${ImageVersion:-unreported}"
+          rustc +1.98.1 --version --verbose
+          cargo +1.98.1 --version --verbose
+          cargo nextest --version
+          timeout --version
+          df -h "$GITHUB_WORKSPACE"
+
+      - name: Fetch the locked dependency graph
+        run: |
+          cargo +1.98.1 fetch --locked
+          echo "CARGO_NET_OFFLINE=true" >> "$GITHUB_ENV"
+
+      - name: Qualify structural work and the native report reader
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --test recipe_economics --locked --no-tests fail
+
+      - name: Build the declared optimized libraries and external subject
+        run: |
+          git diff --exit-code HEAD --
+          mkdir -p "$ECONOMICS_ROOT"
+          git merge-base --is-ancestor "$ECONOMICS_QUALIFIED_SOURCE" "$ECONOMICS_BASELINE"
+          git merge-base --is-ancestor "$ECONOMICS_BASELINE" HEAD
+          inputs=(src macros/compiler/src macros/proc/src harness/src Cargo.toml macros/compiler/Cargo.toml
+            macros/proc/Cargo.toml harness/Cargo.toml Cargo.lock rust-toolchain.toml .cargo/config.toml)
+          git diff --exit-code "$ECONOMICS_QUALIFIED_SOURCE" "$ECONOMICS_BASELINE" -- "${inputs[@]}"
+          for input in "${inputs[@]}"; do
+            printf '%s %s\n' "$(git rev-parse "$ECONOMICS_BASELINE:$input")" "$input"
+          done > "$ECONOMICS_ROOT/baseline-inputs.txt"
+          baseline="$ECONOMICS_ROOT/baseline-source"
+          test ! -e "$baseline"
+          if git ls-tree -r "$ECONOMICS_BASELINE" | grep '^120000 ' > /dev/null; then
+            printf 'Baseline source contains a forbidden link\n' >&2; exit 1
+          fi
+          mkdir -p "$baseline"
+          git archive --format=tar "$ECONOMICS_BASELINE" | tar -xf - -C "$baseline"
+          cmp Cargo.lock "$baseline/Cargo.lock"
+          cmp rust-toolchain.toml "$baseline/rust-toolchain.toml"
+          subject=harness/tests/recipe_economics/host
+          case "$ECONOMICS_SUBJECT" in
+            compiler) entry=compiler-axes; packages=(-p macroonz-compiler -p macroonz-harness) ;;
+            runtime) entry=runtime-pilot; packages=(-p macroonz -p macroonz-harness) ;;
+            *) printf 'Unknown economics subject\n' >&2; exit 1 ;;
+          esac
+          rustfmt +1.98.1 --edition 2024 --check "$subject/$entry.rs"
+          export PILOT_TARGET="$(rustc +1.98.1 -vV | sed -n 's/^host: //p')"
+          export PILOT_TOOLCHAIN="$(rustc +1.98.1 --version)"
+          test -n "$PILOT_TARGET"
+          mkdir -p "$CARGO_TARGET_DIR/tmp/$ECONOMICS_SUBJECT-economics"
+          build_subject() {
+            local source="$1" revision="$2" suffix="$3"
+            local build="$ECONOMICS_ROOT/libraries$suffix" library binding
+            test ! -e "$build"
+            CARGO_TARGET_DIR="$build" timeout --kill-after=5s 600s cargo +1.98.1 build \
+              --manifest-path "$source/Cargo.toml" "${packages[@]}" --all-features --lib --release \
+              --locked --offline --message-format=json > "$ECONOMICS_ROOT/artifacts$suffix.jsonl"
+            test "$(grep -Fxc '{"reason":"build-finished","success":true}' "$ECONOMICS_ROOT/artifacts$suffix.jsonl")" = 1
+            local harness="$build/release/libmacroonz_harness.rlib"
+            test -f "$harness"
+            case "$ECONOMICS_SUBJECT" in
+              compiler) library="$build/release/libmacroonz_compiler.rlib"; binding=macroonz_compiler ;;
+              runtime) library="$build/release/libmacroonz.rlib"; binding=macroonz ;;
+            esac
+            test -f "$library"
+            PILOT_SOURCE="$revision" timeout --kill-after=5s 120s rustc +1.98.1 --edition=2024 -D warnings \
+              -C opt-level=3 -C overflow-checks=yes --extern "$binding=$library" \
+              --extern "macroonz_harness=$harness" -L "dependency=$build/release/deps" \
+              "$subject/$entry.rs" -o "$ECONOMICS_ROOT/subject$suffix"
+          }
+          build_subject "$GITHUB_WORKSPACE" "$GITHUB_SHA" ''
+          build_subject "$baseline" "$ECONOMICS_BASELINE" '-baseline'
+          printf '%s\n' "$GITHUB_SHA" "$PILOT_TARGET" "$PILOT_TOOLCHAIN" > "$CARGO_TARGET_DIR/tmp/$ECONOMICS_SUBJECT-economics/context.txt"
+          printf '%s\n' "$ECONOMICS_BASELINE" "$GITHUB_SHA" "$PILOT_TARGET" "$PILOT_TOOLCHAIN" > "$ECONOMICS_ROOT/comparison-context.txt"
+          sha256sum Cargo.lock "$subject/$entry.rs" "$subject/measurement.rs" \
+            "$subject/resident.rs" "$subject/runtime-shapes.rs" \
+            "$ECONOMICS_ROOT/subject" "$ECONOMICS_ROOT/subject-baseline" \
+            "$ECONOMICS_ROOT/artifacts.jsonl" "$ECONOMICS_ROOT/artifacts-baseline.jsonl"
+
+      - name: Compare alternating baseline and candidate execution populations
+        run: |
+          comparison="$ECONOMICS_ROOT/comparison"
+          test ! -e "$comparison"
+          mkdir -p "$comparison"
+          report_root="$CARGO_TARGET_DIR/tmp/$ECONOMICS_SUBJECT-economics"
+          target="$(rustc +1.98.1 -vV | sed -n 's/^host: //p')"
+          toolchain="$(rustc +1.98.1 --version)"
+          for round in 0 1 2 3; do
+            order=(baseline candidate)
+            if (( round % 2 )); then order=(candidate baseline); fi
+            for side in "${order[@]}"; do
+              case "$side" in
+                baseline) binary="$ECONOMICS_ROOT/subject-baseline"; source="$ECONOMICS_BASELINE" ;;
+                candidate) binary="$ECONOMICS_ROOT/subject"; source="$GITHUB_SHA" ;;
+              esac
+              status=0
+              (ulimit -f 4096; timeout --kill-after=5s 180s "$binary" \
+                > "$comparison/$round-$side.log" 2> "$comparison/$round-$side.stderr") || status=$?
+              printf '%s,%s,%s,%s\n' "$round" "$side" "$source" "$status" >> "$comparison/order.csv"
+              cat "$comparison/$round-$side.stderr"
+              if test "$status" != 0; then cat "$comparison/$round-$side.log"; exit "$status"; fi
+              test ! -s "$comparison/$round-$side.stderr"
+              printf '%s\n' "$source" "$target" "$toolchain" > "$report_root/context.txt"
+              cp "$comparison/$round-$side.log" "$report_root/timing.log"
+              cargo +1.98.1 nextest run -j1 -p macroonz-harness --test recipe_economics --locked \
+                --run-ignored only --no-tests fail --success-output final \
+                -E "test(=bench_driver::host_report::native_${ECONOMICS_SUBJECT}_samples_match_the_declared_context_and_population)"
+            done
+          done
+          printf '%s\n' "$GITHUB_SHA" "$target" "$toolchain" > "$report_root/context.txt"
+          cp "$comparison/3-candidate.log" "$report_root/timing.log"
+
+      - name: Report source comparison variability without timing thresholds
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+          $context = @(Get-Content -LiteralPath "$env:ECONOMICS_ROOT/comparison-context.txt")
+          if ($context.Count -ne 4 -or $context[0] -cne $env:ECONOMICS_BASELINE -or $context[1] -cne $env:GITHUB_SHA -or $context[0] -ceq $context[1]) { throw 'Comparison context moved' }
+          $order = @(Get-Content -LiteralPath "$env:ECONOMICS_ROOT/comparison/order.csv")
+          $expected = @(foreach ($round in 0..3) {
+              $sides = if ($round % 2 -eq 0) { @('baseline','candidate') } else { @('candidate','baseline') }
+              foreach ($side in $sides) {
+                  $revision = if ($side -ceq 'baseline') { $context[0] } else { $context[1] }
+                  "$round,$side,$revision,0"
+              }
+          })
+          if (($order -join "`n") -cne ($expected -join "`n")) { throw 'Comparison order or completion moved' }
+          $populations = @{}
+          foreach ($side in @('baseline','candidate')) {
+              $cells = [Collections.Generic.SortedDictionary[string,Collections.Generic.List[ulong]]]::new([StringComparer]::Ordinal)
+              foreach ($round in 0..3) {
+                  $path = "$env:ECONOMICS_ROOT/comparison/$round-$side.log"
+                  if ((Get-Item -LiteralPath $path).Length -gt 4MB) { throw 'Comparison report exceeds its input bound' }
+                  foreach ($line in [IO.File]::ReadLines($path)) {
+                      if (-not $line.StartsWith('sample,', [StringComparison]::Ordinal)) { continue }
+                      $fields = $line.Split(',')
+                      if ($fields.Count -ne 7 -or $fields[6] -cnotmatch '^[0-9]+$') { throw 'Invalid duration record' }
+                      $duration = [ulong]::Parse($fields[6], [Globalization.CultureInfo]::InvariantCulture)
+                      if ($duration -eq 0) { throw 'Unmeasured duration' }
+                      $key = "$($fields[1]),$($fields[3]),$($fields[4])"
+                      if (-not $cells.ContainsKey($key)) { $cells.Add($key, [Collections.Generic.List[ulong]]::new()) }
+                      $cells[$key].Add($duration)
+                  }
+              }
+              if ($cells.Count -eq 0) { throw 'Empty comparison population' }
+              foreach ($values in $cells.Values) {
+                  if ($values.Count -ne 80) { throw 'Comparison cell population moved' }
+                  $values.Sort()
+              }
+              $populations[$side] = $cells
+          }
+          if (($populations.baseline.Keys -join "`n") -cne ($populations.candidate.Keys -join "`n")) { throw 'Comparison cell rosters disagree' }
+          $rows = @("baseline=$($context[0]);candidate=$($context[1]);target=$($context[2]);toolchain=$($context[3]);no samples trimmed;report-only",
+              'family,role,input,baseline-min-ns,baseline-median-ns,baseline-max-ns,candidate-min-ns,candidate-median-ns,candidate-max-ns,candidate-over-baseline-median')
+          foreach ($key in $populations.baseline.Keys) {
+              $left = $populations.baseline[$key]
+              $right = $populations.candidate[$key]
+              $leftMedian = ([double]$left[39] + [double]$left[40]) / 2
+              $rightMedian = ([double]$right[39] + [double]$right[40]) / 2
+              $values = @($left[0],$leftMedian,$left[79],$right[0],$rightMedian,$right[79],($rightMedian / $leftMedian))
+              $formatted = @($values | ForEach-Object { $_.ToString([Globalization.CultureInfo]::InvariantCulture) })
+              $rows += "$key,$($formatted -join ',')"
+          }
+          $rows | Set-Content -LiteralPath "$env:ECONOMICS_ROOT/comparison-summary.csv" -Encoding utf8NoBOM
+          $rows
+
+      - name: Observe and reconcile every declared execution sample
+        run: |
+          report="$CARGO_TARGET_DIR/tmp/$ECONOMICS_SUBJECT-economics/timing.log"
+          status=0
+          (ulimit -f 4096; timeout --kill-after=5s 180s "$ECONOMICS_ROOT/subject" \
+            > "$report" 2> "$ECONOMICS_ROOT/timing.stderr") || status=$?
+          cat "$ECONOMICS_ROOT/timing.stderr"
+          if test "$status" != 0; then cat "$report"; exit "$status"; fi
+          test ! -s "$ECONOMICS_ROOT/timing.stderr"
+          sha256sum "$report"
+          cargo +1.98.1 nextest run -j1 -p macroonz-harness --test recipe_economics --locked \
+            --run-ignored only --no-tests fail --success-output final \
+            -E "test(=bench_driver::host_report::native_${ECONOMICS_SUBJECT}_samples_match_the_declared_context_and_population)"
+
+      - name: Observe bounded compiler process memory with allocation controls
+        if: matrix.subject == 'compiler'
+        run: |
+          test -x /usr/bin/time
+          /usr/bin/time --version
+          sha256sum /usr/bin/time
+          subject=harness/tests/recipe_economics/host
+          rustfmt +1.98.1 --edition 2024 --check "$subject/memory-control.rs"
+          timeout --kill-after=5s 120s rustc +1.98.1 --edition=2024 -D warnings \
+            -C opt-level=3 -C overflow-checks=yes "$subject/memory-control.rs" -o "$ECONOMICS_ROOT/memory-control"
+          sha256sum "$subject/memory-control.rs" "$subject/resident.rs" "$ECONOMICS_ROOT/memory-control"
+          report_root="$CARGO_TARGET_DIR/tmp/compiler-economics"
+          memory="$report_root/memory"
+          test ! -e "$memory"
+          test ! -e "$report_root/baseline"
+          mkdir -p "$memory" "$report_root/baseline/memory"
+          { printf '%s\n' "$ECONOMICS_BASELINE"; tail -n +2 "$report_root/context.txt"; } > "$report_root/baseline/context.txt"
+          cp "$ECONOMICS_ROOT/comparison/3-baseline.log" "$report_root/baseline/timing.log"
+          observe_memory() {
+            local name="$1" deadline="$2" release="$3" status=0
+            shift 3
+            (ulimit -f 4096; printf '%s' "$release" | timeout --kill-after=2s "$deadline" \
+              /usr/bin/time -f 'peak-kib=%M status=%x' -o "$memory/$name.time" \
+              "$@" > "$memory/$name.stdout" 2> "$memory/$name.stderr") || status=$?
+            printf '%s\n' "$status" > "$memory/$name.status"
+            return "$status"
+          }
+          for round in 0 1 2 3; do
+            memory="$report_root/memory"
+            allocations=(0 16777216 67108864)
+            cases=(density:4 density:16 density:64 codec-width:1 codec-width:8 codec-width:32
+              late-duplicate:8 late-duplicate:32 late-duplicate:127 near-limit:62 near-limit:63 near-limit:64)
+            if (( round % 2 )); then
+              allocations=(67108864 16777216 0)
+              reversed=()
+              for (( index=${#cases[@]}-1; index>=0; index-- )); do reversed+=("${cases[index]}"); done
+              cases=("${reversed[@]}")
+            fi
+            for bytes in "${allocations[@]}"; do
+              observe_memory "allocation-$round-$bytes" 10s $'release\n' "$ECONOMICS_ROOT/memory-control" "$bytes" hold-for-observer
+            done
+            for pair in "${cases[@]}"; do
+              family="${pair%:*}"; size="${pair#*:}"
+              sides=(baseline candidate)
+              if (( round % 2 )); then sides=(candidate baseline); fi
+              for side in "${sides[@]}"; do
+                case "$side" in
+                  baseline) memory="$report_root/baseline/memory"; binary="$ECONOMICS_ROOT/subject-baseline"; source="$ECONOMICS_BASELINE" ;;
+                  candidate) memory="$report_root/memory"; binary="$ECONOMICS_ROOT/subject"; source="$GITHUB_SHA" ;;
+                esac
+                status=0
+                observe_memory "compiler-$round-$family-$size" 10s $'release\n' "$binary" memory "$family" "$size" || status=$?
+                printf '%s,%s,%s,%s,%s,%s\n' "$round" "$family" "$size" "$side" "$source" "$status" >> "$ECONOMICS_ROOT/memory-order.csv"
+                test "$status" = 0
+              done
+            done
+          done
+          memory="$report_root/memory"
+          status=0
+          observe_memory missing-release 10s '' "$ECONOMICS_ROOT/subject" memory density 4 || status=$?
+          test "$status" = 1
+          grep -F 'observer did not supply the exact release token and EOF' "$memory/missing-release.stderr"
+          status=0
+          observe_memory failed-child 10s $'release\n' "$ECONOMICS_ROOT/memory-control" lifecycle fail || status=$?
+          test "$status" = 1
+          grep -F 'deliberate lifecycle failure' "$memory/failed-child.stderr"
+          status=0
+          observe_memory deadline 0.1s '' "$ECONOMICS_ROOT/memory-control" lifecycle stall-ready || status=$?
+          test "$status" = 124
+          printf 'Native memory negative controls: missing release=1, failed child=1, deadline=124\n'
+          cargo +1.98.1 nextest run -j1 -p macroonz-harness --test recipe_economics --locked \
+            --run-ignored only --no-tests fail --success-output final \
+            -E 'test(=bench_driver::host_report::memory::native_memory_reports_require_completed_children_and_all_declared_observations)'
+
+      - name: Report paired compiler memory without efficiency thresholds
+        if: matrix.subject == 'compiler'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+          $context = @(Get-Content -LiteralPath "$env:ECONOMICS_ROOT/comparison-context.txt")
+          if ($context.Count -ne 4 -or $context[0] -cne $env:ECONOMICS_BASELINE -or $context[1] -cne $env:GITHUB_SHA -or $context[0] -ceq $context[1]) { throw 'Memory comparison context moved' }
+          $timing = Get-Content -LiteralPath "$env:ECONOMICS_ROOT/comparison-summary.csv" | Select-Object -Skip 1 | ConvertFrom-Csv
+          $pairs = @(foreach ($row in $timing) {
+              if (-not $row.family.StartsWith('compiler-', [StringComparison]::Ordinal)) { throw 'Foreign memory family' }
+              "$($row.family.Substring(9)),$($row.input)"
+          }) | Sort-Object -Unique
+          $pairs = @($pairs)
+          $order = @(Get-Content -LiteralPath "$env:ECONOMICS_ROOT/memory-order.csv")
+          if ($pairs.Count -eq 0 -or $order.Count -ne $pairs.Count * 8) { throw 'Incomplete memory comparison order' }
+          $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+          for ($index = 0; $index -lt $order.Count; $index++) {
+              $fields = $order[$index].Split(',')
+              if ($fields.Count -ne 6) { throw 'Malformed memory order record' }
+              $round = [int][Math]::Floor($index / ($pairs.Count * 2))
+              $side = if (($round + $index) % 2 -eq 0) { 'baseline' } else { 'candidate' }
+              $revision = if ($side -ceq 'baseline') { $context[0] } else { $context[1] }
+              $pair = "$($fields[1]),$($fields[2])"
+              if ($fields[0] -cne "$round" -or $fields[3] -cne $side -or $fields[4] -cne $revision -or $fields[5] -cne '0' -or $pair -cnotin $pairs -or -not $seen.Add("$round,$pair,$side")) { throw 'Missing, repeated, reordered or unsuccessful memory observation' }
+              if ($index % 2 -eq 1 -and $pair -cne $previousPair) { throw 'Memory pair was separated' }
+              $previousPair = $pair
+          }
+          $report = "$env:CARGO_TARGET_DIR/tmp/compiler-economics"
+          $rows = @("baseline=$($context[0]);candidate=$($context[1]);target=$($context[2]);toolchain=$($context[3]);scope=child-process-maximum-rss;unit=KiB;report-only",
+              'family,input,baseline-min,baseline-median,baseline-max,candidate-min,candidate-median,candidate-max,candidate-over-baseline-median')
+          foreach ($pair in $pairs) {
+              $parts = $pair.Split(',')
+              $populations = @{}
+              foreach ($side in @('baseline','candidate')) {
+                  $directory = if ($side -ceq 'baseline') { "$report/baseline/memory" } else { "$report/memory" }
+                  $values = [Collections.Generic.List[ulong]]::new()
+                  foreach ($round in 0..3) {
+                      $native = Get-Content -LiteralPath "$directory/compiler-$round-$($parts[0])-$($parts[1]).time" -Raw
+                      if ($native -cnotmatch '\Apeak-kib=([0-9]+) status=0\n\z') { throw 'Invalid native memory record' }
+                      $peak = [ulong]::Parse($Matches[1], [Globalization.CultureInfo]::InvariantCulture)
+                      if ($peak -eq 0) { throw 'Unavailable native memory' }
+                      $values.Add($peak)
+                  }
+                  $values.Sort()
+                  $populations[$side] = $values
+              }
+              $left = $populations.baseline; $right = $populations.candidate
+              $leftMedian = ([double]$left[1] + [double]$left[2]) / 2
+              $rightMedian = ([double]$right[1] + [double]$right[2]) / 2
+              $values = @($left[0],$leftMedian,$left[3],$right[0],$rightMedian,$right[3],($rightMedian / $leftMedian))
+              $rows += "$pair,$((@($values | ForEach-Object { $_.ToString([Globalization.CultureInfo]::InvariantCulture) })) -join ',')"
+          }
+          $rows | Set-Content -LiteralPath "$env:ECONOMICS_ROOT/memory-summary.csv" -Encoding utf8NoBOM
+          $rows
+
+      - name: Refuse tracked-tree mutation
+        run: git diff --exit-code HEAD --
+
+      - *stage-reports
+      - *upload-reports
+
+  adopter-economics:
+    name: Windows x64 adopter build observations
+    runs-on: windows-2025
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      ECONOMICS_BASELINE: a6a5b0c84634240980d6a31143ebeb3440da3bf8
+      ECONOMICS_QUALIFIED_SOURCE: 5baca339824708ae932da02cb283efc5c9633acf
+      ECONOMICS_ROOT: ${{ github.workspace }}/target/qualification/adopter-economics
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target/qualification/adopter-economics/observer
+
+    steps:
+      - name: Check out the declared revision
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Restore declared Cargo registry material
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git/db
+          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.1-${{ hashFiles('Cargo.lock') }}
+
+      - name: Install the declared Rust toolchain
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy
+
+      - name: Install the declared test runner
+        uses: taiki-e/install-action@5b4d68e2e660441203ab128a23676f1e4faf1532 # v2.86.3
+        with:
+          tool: cargo-nextest@0.9.132
+          fallback: none
+
+      - name: Record actual build host and tool identities
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          Get-CimInstance Win32_Processor | Select-Object Name,NumberOfCores,NumberOfLogicalProcessors | Format-List
+          Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,OSArchitecture,TotalVisibleMemorySize,FreePhysicalMemory | Format-List
+          $PSVersionTable | Format-List
+          "Runtime=$([Environment]::Version) stopwatch-frequency=$([Diagnostics.Stopwatch]::Frequency)"
+          "Runner OS=$env:RUNNER_OS architecture=$env:RUNNER_ARCH image=$env:ImageOS image-version=$env:ImageVersion"
+          rustc +1.98.1 --version --verbose
+          cargo +1.98.1 --version --verbose
+          cargo nextest --version
+          foreach ($toolName in @('cargo','rustc')) {
+              $toolPath = rustup which --toolchain 1.98.1 $toolName
+              Get-FileHash -LiteralPath $toolPath | Format-List
+          }
+          Get-PSDrive -PSProvider FileSystem | Select-Object Name,Used,Free
+
+      - name: Fetch the locked dependency graph
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          cargo +1.98.1 fetch --locked
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value 'CARGO_NET_OFFLINE=true'
+
+      - name: Qualify the economics report readers
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --test recipe_economics --all-features --locked --no-tests fail
+
+      - name: Observe bounded alternating adopter builds
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+          $PSNativeCommandUseErrorActionPreference = $true
+          function Invoke-BoundedObservation {
+              param(
+                  [Parameter(Mandatory)][Diagnostics.ProcessStartInfo]$Start,
+                  [ValidateRange(1, 300000)][int]$DeadlineMs,
+                  [ValidateRange(1, 16777216)][int]$StreamCharacters,
+                  [ValidateRange(1, 5000)][int]$DrainMs = 5000
+              )
+              $Start.UseShellExecute = $false
+              $Start.CreateNoWindow = $true
+              $Start.WindowStyle = [Diagnostics.ProcessWindowStyle]::Hidden
+              $Start.RedirectStandardOutput = $true
+              $Start.RedirectStandardError = $true
+              $child = [Diagnostics.Process]::new()
+              $child.StartInfo = $Start
+              $clock = [Diagnostics.Stopwatch]::new()
+              $drain = [Diagnostics.Stopwatch]::new()
+              $started = $false
+              $refusal = $null
+              $detail = $null
+              $exitCode = $null
+              $childId = $null
+              $terminated = $false
+              $streams = @()
+              try {
+                  $clock.Start()
+                  try { $started = $child.Start() }
+                  catch { $detail = $_.Exception.Message; throw 'process-start' }
+                  if (-not $started) { throw 'process-start' }
+                  $childId = $child.Id
+                  foreach ($entry in @(@('stdout', $child.StandardOutput), @('stderr', $child.StandardError))) {
+                      $buffer = [char[]]::new(16384)
+                      $streams += [pscustomobject]@{
+                          name = $entry[0]
+                          reader = $entry[1]
+                          buffer = $buffer
+                          text = [Text.StringBuilder]::new()
+                          pending = $entry[1].ReadAsync($buffer, 0, $buffer.Length)
+                          eof = $false
+                      }
+                  }
+                  while ($true) {
+                      $progress = $false
+                      if ($child.HasExited -and $clock.IsRunning) {
+                          $clock.Stop()
+                          $exitCode = $child.ExitCode
+                          $drain.Start()
+                      }
+                      if ($clock.IsRunning -and $clock.ElapsedMilliseconds -ge $DeadlineMs) {
+                          throw 'process-deadline'
+                      }
+                      foreach ($stream in $streams) {
+                          if ($stream.eof -or -not $stream.pending.IsCompleted) { continue }
+                          $progress = $true
+                          try { $read = $stream.pending.GetAwaiter().GetResult() }
+                          catch { $detail = $_.Exception.Message; throw "stream-read:$($stream.name)" }
+                          if ($read -eq 0) { $stream.eof = $true; continue }
+                          if ($read -gt $StreamCharacters - $stream.text.Length) {
+                              throw "stream-bound:$($stream.name)"
+                          }
+                          [void]$stream.text.Append($stream.buffer, 0, $read)
+                          $stream.pending = $stream.reader.ReadAsync($stream.buffer, 0, $stream.buffer.Length)
+                      }
+                      if (-not $clock.IsRunning -and @($streams | Where-Object { -not $_.eof }).Count -eq 0) { break }
+                      if ($drain.IsRunning -and $drain.ElapsedMilliseconds -ge $DrainMs) { throw 'stream-deadline' }
+                      if (-not $progress) { [Threading.Thread]::Sleep(1) }
+                  }
+              }
+              catch { $refusal = $_.Exception.Message }
+              finally {
+                  $clock.Stop()
+                  if ($started) {
+                      try {
+                          if (-not $child.HasExited) { $child.Kill($true) }
+                          $terminated = $child.WaitForExit(5000)
+                          if (-not $terminated) { $refusal = 'process-cleanup' }
+                      }
+                      catch { $detail = $_.Exception.Message; $refusal = 'process-cleanup' }
+                  }
+                  foreach ($stream in $streams) { $stream.reader.Dispose() }
+                  $child.Dispose()
+              }
+              $captured = @{ stdout = ''; stderr = '' }
+              foreach ($stream in $streams) { $captured[$stream.name] = $stream.text.ToString() }
+              [pscustomobject]@{
+                  refusal = $refusal
+                  detail = $detail
+                  exit_code = $exitCode
+                  child_id = $childId
+                  child_terminated = $terminated
+                  elapsed_ticks = $clock.ElapsedTicks
+                  stopwatch_frequency = [Diagnostics.Stopwatch]::Frequency
+                  stdout = $captured.stdout
+                  stderr = $captured.stderr
+              }
+          }
+          function Start-Observation([string]$Executable, [string[]]$Arguments) {
+              $start = [Diagnostics.ProcessStartInfo]::new()
+              $start.FileName = $Executable
+              $start.WorkingDirectory = $env:GITHUB_WORKSPACE
+              foreach ($argument in $Arguments) { $start.ArgumentList.Add($argument) }
+              $start.Environment['CARGO_BUILD_JOBS'] = '1'
+              $start.Environment['CARGO_INCREMENTAL'] = '1'
+              $start.Environment['CARGO_NET_OFFLINE'] = 'true'
+              $start.Environment['CARGO_TARGET_DIR'] = $build
+              $start.Environment['RUSTFLAGS'] = '-Dwarnings'
+              $start
+          }
+          function Required-Observation([string]$Name, [Diagnostics.ProcessStartInfo]$Start, [int]$Deadline, [int]$Limit) {
+              $result = Invoke-BoundedObservation -Start $Start -DeadlineMs $Deadline -StreamCharacters $Limit
+              $result | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath "$native/$Name.json" -Encoding utf8NoBOM
+              if ($null -ne $result.refusal -or $result.exit_code -ne 0 -or -not $result.child_terminated) {
+                  Write-Host $result.stdout
+                  Write-Host $result.stderr
+                  throw "$Name refused: $($result.refusal); exit=$($result.exit_code); detail=$($result.detail)"
+              }
+              $result
+          }
+          $repository = [IO.Path]::GetFullPath($env:GITHUB_WORKSPACE)
+          $root = [IO.Path]::GetFullPath($env:ECONOMICS_ROOT)
+          if ([IO.Path]::GetDirectoryName($root) -ne [IO.Path]::GetFullPath("$repository/target/qualification")) { throw 'Unexpected observation root' }
+          $native = "$root/native"
+          $build = [IO.Path]::GetFullPath("$root/build")
+          if ((Test-Path -LiteralPath $native) -or (Test-Path -LiteralPath $build)) { throw 'Observation storage is not fresh' }
+          New-Item -ItemType Directory -Path $native | Out-Null
+          $cargo = (Get-Command cargo.exe).Source
+          $rustc = (Get-Command rustc.exe).Source
+          $control = "$root/build-control.exe"
+          $controlSource = "$repository/harness/tests/recipe_economics/host/build-control.rs"
+          $compile = Start-Observation $rustc @('+1.98.1','--edition=2024','-Dwarnings','-C','opt-level=1','-C','overflow-checks=yes',$controlSource,'-o',$control)
+          $null = Required-Observation 'control-build' $compile 120000 1048576
+          Get-FileHash -LiteralPath $controlSource,$control,$cargo,$rustc | Format-List
+          foreach ($stream in @('stdout','stderr')) {
+              foreach ($size in @(0,1023,1024,1025)) {
+                  $r = Invoke-BoundedObservation -Start (Start-Observation $control @($stream,[string]$size)) -DeadlineMs 5000 -StreamCharacters 1024
+                  if ($size -le 1024) {
+                      if ($null -ne $r.refusal -or $r.exit_code -ne 0 -or $r.$stream.Length -ne $size) { throw "Invalid passing boundary $stream/$size" }
+                  } elseif ($r.refusal -cne "stream-bound:$stream") { throw "Missing output-bound refusal $stream/$size" }
+                  if (-not $r.child_terminated) { throw 'Control child was not reaped' }
+                  Write-Host "control=$stream size=$size refusal=$($r.refusal) exit=$($r.exit_code)"
+              }
+          }
+          $r = Invoke-BoundedObservation -Start (Start-Observation $control @('both','65536')) -DeadlineMs 5000 -StreamCharacters 65536
+          if ($null -ne $r.refusal -or $r.exit_code -ne 0 -or $r.stdout.Length -ne 65536 -or $r.stderr.Length -ne 65536 -or -not $r.child_terminated) { throw 'Concurrent stream control failed' }
+          $r = Invoke-BoundedObservation -Start (Start-Observation $control @('stall','30000')) -DeadlineMs 100 -StreamCharacters 1024
+          if ($r.refusal -cne 'process-deadline' -or -not $r.child_terminated) { throw 'Process deadline control failed' }
+          $r = Invoke-BoundedObservation -Start (Start-Observation $control @('fail','0')) -DeadlineMs 5000 -StreamCharacters 1024
+          if ($null -ne $r.refusal -or $r.exit_code -eq 0 -or -not $r.stderr.Contains('declared child failure') -or -not $r.child_terminated) { throw 'Nonzero child control failed' }
+          if (Test-Path -LiteralPath "$root/absent.exe") { throw 'Missing-program control is present' }
+          $r = Invoke-BoundedObservation -Start (Start-Observation "$root/absent.exe" @()) -DeadlineMs 5000 -StreamCharacters 1024
+          if ($r.refusal -cne 'process-start' -or $null -ne $r.child_id -or $r.child_terminated) { throw 'Missing-program control failed' }
+          $r = Invoke-BoundedObservation -Start (Start-Observation $control @('inherit','1500')) -DeadlineMs 5000 -StreamCharacters 1024 -DrainMs 100
+          if ($r.refusal -cne 'stream-deadline' -or -not $r.child_terminated) { throw 'Inherited stream control failed' }
+          $descendant = [regex]::Match($r.stdout, 'descendant=(\d+)')
+          if (-not $descendant.Success) { throw 'Missing declared descendant' }
+          $nested = Get-Process -Id ([int]$descendant.Groups[1].Value) -ErrorAction SilentlyContinue
+          if ($null -ne $nested -and -not $nested.WaitForExit(5000)) { throw 'Bounded descendant did not exit' }
+          Write-Host 'All thirteen bounded-process controls passed; no universal descendant-containment claim.'
+          function Prepare-Adopter([string]$sourceRoot, [string]$revision, [string]$side) {
+              $root = "$env:ECONOMICS_ROOT/$side"
+              $native = "$root/native"
+              New-Item -ItemType Directory -Path $native,"$root/adopter/src" | Out-Null
+              $dependencyPath = ConvertTo-Json -InputObject $sourceRoot.Replace('\','/') -Compress
+              $manifest = "$root/adopter/Cargo.toml"
+              @('[package]','name = "macroonz-build-observation"','version = "0.0.0"','edition = "2024"','publish = false',
+                '[dependencies]',"macroonz = { path = $dependencyPath }",'[workspace]',
+                '[profile.dev]','incremental = true','overflow-checks = true') |
+                  Set-Content -LiteralPath $manifest -Encoding utf8NoBOM
+              $rootLock = (Get-FileHash -LiteralPath "$sourceRoot/Cargo.lock").Hash
+              Copy-Item -LiteralPath "$sourceRoot/Cargo.lock" -Destination "$root/adopter/Cargo.lock"
+              $authored = Get-Content -LiteralPath "$repository/harness/tests/recipe_economics/host/build-adopter.rs" -Raw
+              $before = '(Closed, OpenDoor) => Open with(crate::record_effect);'
+              $after = '(Closed, OpenDoor) => Closed with(crate::record_effect);'
+              if ([regex]::Matches($authored, [regex]::Escape($before)).Count -ne 1) { throw 'The single declared edit seat moved' }
+              [IO.File]::WriteAllText("$root/adopter/src/main.rs", $authored, [Text.UTF8Encoding]::new($false))
+              $initial = Start-Observation $cargo @('+1.98.1','metadata','--manifest-path',"$sourceRoot/Cargo.toml",'--locked','--offline','--format-version','1')
+              $baseline = (Required-Observation 'workspace-graph' $initial 300000 16777216).stdout | ConvertFrom-Json
+              $update = Start-Observation $cargo @('+1.98.1','update','--workspace','--manifest-path',$manifest,'--offline')
+              $null = Required-Observation 'adopter-lock' $update 300000 16777216
+              $metadata = Start-Observation $cargo @('+1.98.1','metadata','--manifest-path',$manifest,'--locked','--offline','--format-version','1')
+              $resolved = (Required-Observation 'adopter-graph' $metadata 300000 16777216).stdout | ConvertFrom-Json
+              foreach ($package in $resolved.packages) {
+                  if ($null -ne $package.source -and $package.id -cnotin $baseline.packages.id) { throw "External dependency identity drift: $($package.id)" }
+              }
+              $expectedPackages = @{
+                  macroonz = "$sourceRoot/Cargo.toml"
+                  'macroonz-compiler' = "$sourceRoot/macros/compiler/Cargo.toml"
+                  'macroonz-macros' = "$sourceRoot/macros/proc/Cargo.toml"
+                  'macroonz-harness' = "$sourceRoot/harness/Cargo.toml"
+              }
+              foreach ($package in $resolved.packages) {
+                  if ($null -eq $package.source -and -not $expectedPackages.ContainsKey($package.name) -and $package.name -cne 'macroonz-build-observation') { throw "Unexpected path package: $($package.name)" }
+              }
+              foreach ($entry in $expectedPackages.GetEnumerator()) {
+                  $located = @($resolved.packages | Where-Object name -CEQ $entry.Key)
+                  if ($located.Count -ne 1 -or [IO.Path]::GetFullPath($located[0].manifest_path) -ne [IO.Path]::GetFullPath($entry.Value)) { throw "Adopter package location drift: $($entry.Key)" }
+              }
+              $lock = (Get-FileHash -LiteralPath "$root/adopter/Cargo.lock").Hash
+              $reportRoot = "$env:CARGO_TARGET_DIR/tmp/adopter-economics/$side"
+              New-Item -ItemType Directory -Path $reportRoot | Out-Null
+              $tool = rustc +1.98.1 --version
+              $target = (rustc +1.98.1 -vV | Select-String '^host: ').ToString().Substring(6)
+              @($revision,$target,$tool) | Set-Content -LiteralPath "$reportRoot/context.txt" -Encoding utf8NoBOM
+              @("adopter-build,$revision,$target,$tool",'interval,cargo-start-to-observed-exit;excludes-drain-edit-cleanup-json-consumer') |
+                  Set-Content -LiteralPath "$reportRoot/builds.log" -Encoding utf8NoBOM
+              [pscustomobject]@{ root=$root; native=$native; manifest=$manifest; sourceRoot=$sourceRoot; revision=$revision; side=$side; rootLock=$rootLock; lock=$lock; reportRoot=$reportRoot; authored=$authored; before=$before; after=$after }
+          }
+          $baselineSource = "$root/baseline-source"
+          if (Test-Path -LiteralPath $baselineSource) { throw 'Baseline source storage is not fresh' }
+          if ((git rev-parse HEAD) -cne $env:GITHUB_SHA) { throw 'Candidate source moved' }
+          git diff --exit-code HEAD --
+          git merge-base --is-ancestor $env:ECONOMICS_QUALIFIED_SOURCE $env:ECONOMICS_BASELINE
+          git merge-base --is-ancestor $env:ECONOMICS_BASELINE HEAD
+          $inputs = @('src','macros/compiler/src','macros/proc/src','harness/src','Cargo.toml','macros/compiler/Cargo.toml','macros/proc/Cargo.toml','harness/Cargo.toml','Cargo.lock','rust-toolchain.toml','.cargo/config.toml')
+          git diff --exit-code $env:ECONOMICS_QUALIFIED_SOURCE $env:ECONOMICS_BASELINE -- @inputs
+          if (@(git ls-tree -r $env:ECONOMICS_BASELINE | Select-String '^120000 ').Count -ne 0) { throw 'Baseline carries a symbolic link' }
+          New-Item -ItemType Directory -Path $baselineSource | Out-Null
+          git archive --format=tar --output="$root/baseline-source.tar" $env:ECONOMICS_BASELINE
+          tar -xf "$root/baseline-source.tar" -C $baselineSource
+          $populations = @{
+              baseline = Prepare-Adopter $baselineSource $env:ECONOMICS_BASELINE 'baseline'
+              candidate = Prepare-Adopter $repository $env:GITHUB_SHA 'candidate'
+          }
+          "round,side,source,status" | Set-Content -LiteralPath "$env:ECONOMICS_ROOT/build-order.csv" -Encoding utf8NoBOM
+          foreach ($round in 0..2) {
+              $order = if ($round % 2 -eq 0) { @('baseline','candidate') } else { @('candidate','baseline') }
+              foreach ($side in $order) {
+                  $population = $populations[$side]
+                  $root = $population.root
+                  $native = $population.native
+                  $manifest = $population.manifest
+                  $build = [IO.Path]::GetFullPath("$root/build")
+                  $reportRoot = $population.reportRoot
+                  $lock = $population.lock
+                  $authored = $population.authored
+                  $before = $population.before
+                  $after = $population.after
+                  if (Test-Path -LiteralPath $build) { throw 'Cold Cargo target was not absent' }
+                  foreach ($phase in @('cold','warm','edited','edited-warm')) {
+                      $edited = $phase -in @('edited','edited-warm')
+                      $open = ($round -eq 1) -eq $edited
+                      $expected = if ($open) { 'open' } else { 'closed' }
+                      $text = if ($open) { $authored } else { $authored.Replace($before,$after) }
+                      if ($phase -in @('cold','edited')) {
+                          [IO.File]::WriteAllText("$root/adopter/src/main.rs", $text, [Text.UTF8Encoding]::new($false))
+                      } elseif (-not (Test-Path -LiteralPath $build)) { throw 'Warm build lost its preceding target' }
+                      $start = Start-Observation $cargo @('+1.98.1','build','--manifest-path',$manifest,'--locked','--offline','--jobs','1','--message-format=json')
+                      $result = Required-Observation "$round-$phase-build" $start 300000 16777216
+                      Write-Host $result.stderr
+                      $messages = @($result.stdout -split '\r?\n' | Where-Object { $_.Trim().Length -gt 0 } | ConvertFrom-Json)
+                      $finished = @($messages | Where-Object reason -CEQ 'build-finished')
+                      $artifacts = @($messages | Where-Object reason -CEQ 'compiler-artifact')
+                      $fresh = @($artifacts | Where-Object fresh -EQ $true)
+                      $rebuilt = @($artifacts | Where-Object fresh -EQ $false)
+                      $executable = @($artifacts | Where-Object { $_.target.name -ceq 'macroonz-build-observation' -and $null -ne $_.executable })
+                      if ($finished.Count -ne 1 -or -not $finished[0].success -or $executable.Count -ne 1 -or $artifacts.Count -eq 0) { throw 'Incomplete Cargo artifact population' }
+                      $consumer = Required-Observation "$round-$phase-consumer" (Start-Observation $executable[0].executable @($expected)) 10000 4096
+                      $expectedOutput = "adopter-domain=2 expected-target=$expected effects=1"
+                      if ($consumer.stderr.Length -ne 0 -or $consumer.stdout.TrimEnd([char]13,[char]10) -cne $expectedOutput) { throw 'Independent consumer refused' }
+                      if ($phase -eq 'edited') {
+                          $wrong = if ($open) { 'closed' } else { 'open' }
+                          $negative = Invoke-BoundedObservation -Start (Start-Observation $executable[0].executable @($wrong)) -DeadlineMs 10000 -StreamCharacters 4096
+                          $negative | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath "$native/$round-wrong-model.json" -Encoding utf8NoBOM
+                          if ($null -ne $negative.refusal -or $negative.exit_code -ne 101 -or -not $negative.child_terminated -or -not $negative.stderr.Contains('assertion')) { throw 'Wrong model did not produce the expected assertion refusal' }
+                      }
+                      if ((Get-FileHash -LiteralPath "$root/adopter/Cargo.lock").Hash -cne $lock -or (Get-FileHash -LiteralPath "$($population.sourceRoot)/Cargo.lock").Hash -cne $population.rootLock) { throw 'Locked graph changed during observation' }
+                      $sourceHash = (Get-FileHash -LiteralPath "$root/adopter/src/main.rs").Hash
+                      $executableHash = (Get-FileHash -LiteralPath $executable[0].executable).Hash
+                      $fields = @('build',$round,$phase,$result.elapsed_ticks,$result.stopwatch_frequency,$artifacts.Count,$fresh.Count,$rebuilt.Count,$executable[0].fresh.ToString().ToLowerInvariant(),$sourceHash,$executableHash,$lock,'build=0','consumer=0',$expectedOutput)
+                      $line = $fields -join ','
+                      $line | Add-Content -LiteralPath "$reportRoot/builds.log" -Encoding utf8NoBOM
+                      Write-Host $line
+                  }
+                  $clean = Start-Observation $cargo @('+1.98.1','clean','--target-dir',$build)
+                  $cleaned = Required-Observation "$round-clean" $clean 300000 1048576
+                  Write-Host $cleaned.stderr
+                  if (Test-Path -LiteralPath $build) { throw 'Cargo left the cold target present' }
+                  "$round,$side,$($population.revision),0" | Add-Content -LiteralPath "$env:ECONOMICS_ROOT/build-order.csv" -Encoding utf8NoBOM
+                  Get-FileHash -LiteralPath "$reportRoot/builds.log","$reportRoot/context.txt",$manifest,"$root/adopter/Cargo.lock" | Format-List
+              }
+          }
+          git diff --exit-code HEAD --
+
+      - name: Reconcile the complete native build population
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --test recipe_economics --all-features --locked --run-ignored only --no-tests fail --success-output final -E 'test(=bench_driver::host_report::build::native_build_samples_preserve_phases_source_freshness_and_independent_consumers)'
+
+      - name: Report observed build variability without a performance threshold
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+          $order = @(Import-Csv -LiteralPath "$env:ECONOMICS_ROOT/build-order.csv")
+          if ($order.Count -ne 6) { throw 'Incomplete paired build order' }
+          $position = 0
+          foreach ($round in 0..2) {
+              $sides = if ($round % 2 -eq 0) { @('baseline','candidate') } else { @('candidate','baseline') }
+              foreach ($side in $sides) {
+                  $source = if ($side -ceq 'baseline') { $env:ECONOMICS_BASELINE } else { $env:GITHUB_SHA }
+                  $entry = $order[$position++]
+                  if ($entry.round -cne [string]$round -or $entry.side -cne $side -or $entry.source -cne $source -or $entry.status -cne '0') { throw 'Paired build order or completion moved' }
+                  $context = @(Get-Content -LiteralPath "$env:CARGO_TARGET_DIR/tmp/adopter-economics/$side/context.txt")
+                  if ($context.Count -ne 3 -or $context[0] -cne $source -or $source -ceq '') { throw 'Build revision context moved' }
+              }
+          }
+          if ($env:ECONOMICS_BASELINE -ceq $env:GITHUB_SHA) { throw 'Build sources are identical' }
+          $summary = @(foreach ($phase in @('cold','warm','edited','edited-warm')) {
+              $populations = @{}
+              foreach ($side in @('baseline','candidate')) {
+                  $seconds = @(foreach ($round in 0..2) {
+                      $native = Get-Content -LiteralPath "$env:ECONOMICS_ROOT/$side/native/$round-$phase-build.json" -Raw | ConvertFrom-Json
+                      if ($null -ne $native.refusal -or $native.exit_code -ne 0 -or -not $native.child_terminated -or $native.elapsed_ticks -le 0 -or $native.stopwatch_frequency -le 0) { throw 'Native timing is unavailable' }
+                      $elapsed = [double]$native.elapsed_ticks / [double]$native.stopwatch_frequency
+                      if (-not [double]::IsFinite($elapsed) -or $elapsed -le 0) { throw 'Native elapsed time is not finite and positive' }
+                      $elapsed
+                  })
+                  $ordered = @($seconds | Sort-Object)
+                  if ($ordered.Count -ne 3) { throw 'Build timing population changed' }
+                  $populations[$side] = $ordered
+              }
+              [pscustomobject]@{
+                  phase=$phase
+                  baseline_min_seconds=$populations.baseline[0]; baseline_median_seconds=$populations.baseline[1]; baseline_max_seconds=$populations.baseline[2]
+                  candidate_min_seconds=$populations.candidate[0]; candidate_median_seconds=$populations.candidate[1]; candidate_max_seconds=$populations.candidate[2]
+                  median_ratio=$populations.candidate[1]/$populations.baseline[1]
+              }
+          })
+          $summary | Export-Csv -LiteralPath "$env:ECONOMICS_ROOT/comparison-summary.csv" -NoTypeInformation
+          $summary | Format-List
+          'All three paired cycles retained; no timing threshold or statistical-significance claim.'
+
+      - name: Refuse tracked-tree mutation
+        run: git diff --exit-code HEAD --
+
+
+      - *stage-reports
+      - *upload-reports
+
+  source-coverage:
+    name: Linux x64 source coverage
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target/qualification/source-coverage
+      CARGO_LLVM_COV_TARGET_DIR: ${{ github.workspace }}/target/qualification/source-coverage
+
+    steps:
+      - name: Check out the declared revision
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Restore declared Cargo registry material
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git/db
+          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.1-${{ hashFiles('Cargo.lock') }}
+
+      - name: Install the declared Rust toolchain
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy --component rust-src --component llvm-tools-preview --target wasm32-unknown-unknown
+
+      - name: Install declared coverage tools
+        uses: taiki-e/install-action@5b4d68e2e660441203ab128a23676f1e4faf1532 # v2.86.3
+        with:
+          tool: cargo-nextest@0.9.132,cargo-llvm-cov@0.9.0
+          fallback: none
+
+      - name: Record host and tool identities
+        run: |
+          uname -a
+          rustc +1.98.1 --version --verbose
+          cargo +1.98.1 --version --verbose
+          cargo nextest --version
+          cargo llvm-cov --version
+
+      - name: Fetch the locked dependency graph
+        run: |
+          cargo +1.98.1 fetch --locked
+          echo "CARGO_NET_OFFLINE=true" >> "$GITHUB_ENV"
+
+      - name: Configure host-only instrumentation without source variation
+        run: |
+          coverage_environment="$(cargo +1.98.1 llvm-cov show-env --sh --no-cfg-coverage --coverage-host-only)"
+          eval "$coverage_environment"
+          test -n "${RUSTC_WRAPPER:?}"
+          test -n "${LLVM_PROFILE_FILE:?}"
+          while IFS= read -r entry; do
+            case "$entry" in
+              LLVM_PROFILE_FILE=*|RUSTC_WRAPPER=*|__CARGO_LLVM_COV_*=*|CARGO_LLVM_COV*=*)
+                printf '%s\n' "$entry" >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(env)
+
+      - name: Instrument the ordinary all-feature population
+        run: cargo +1.98.1 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast --no-tests fail
+
+      - name: Instrument the compiler without its proc-host feature
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-compiler --no-default-features --locked --no-fail-fast --no-tests fail
+
+      - name: Instrument the harness without preemption
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --no-default-features --locked --no-fail-fast --no-tests fail
+
+      - name: Instrument the facade with harness but without preemption
+        run: cargo +1.98.1 nextest run -j1 -p macroonz --no-default-features --features harness --locked --no-fail-fast --no-tests fail
+
+      - *diet-owner
+      - *diet-recipe
+      - *diet-carrier
+      - *maximal-recipe
+      - *interleave-exhaustive
+      - *interleave-sampled
+      - *network-long
+      - *preemption-long
+
+      - name: Report the declared library packages and source homes
+        run: |
+          report=(cargo +1.98.1 llvm-cov report
+            -p macroonz -p macroonz-compiler -p macroonz-macros -p macroonz-harness
+            --coverage-host-only --locked --offline
+            --ignore-filename-regex '(^|[/\\])(tests|examples|target)[/\\]')
+          "${report[@]}"
+          "${report[@]}" --summary-only --json --output-path "$CARGO_TARGET_DIR/library-summary.json"
+          LLVM_COV_FLAGS=-show-directory-coverage "${report[@]}" --html --output-dir "$CARGO_TARGET_DIR/report"
+          "${report[@]}" --summary-only --lcov --output-path "$CARGO_TARGET_DIR/library.lcov"
+
+      - name: Reconcile mapped and tracked library sources
+        run: |
+          git ls-files -- ':(glob)src/**/*.rs' ':(glob)macros/compiler/src/**/*.rs' ':(glob)macros/proc/src/**/*.rs' ':(glob)harness/src/**/*.rs' |
+            LC_ALL=C sort -u > "$CARGO_TARGET_DIR/tracked-sources.txt"
+          while IFS= read -r entry; do
+            case "$entry" in
+              "SF:$GITHUB_WORKSPACE/"*) printf '%s\n' "${entry#"SF:$GITHUB_WORKSPACE/"}" ;;
+              SF:*) printf 'Unexpected mapped source: %s\n' "$entry" >&2; exit 1 ;;
+            esac
+          done < "$CARGO_TARGET_DIR/library.lcov" |
+            LC_ALL=C sort -u > "$CARGO_TARGET_DIR/mapped-sources.txt"
+          test -s "$CARGO_TARGET_DIR/tracked-sources.txt"
+          test -s "$CARGO_TARGET_DIR/mapped-sources.txt"
+          for source_root in src/ macros/compiler/src/ macros/proc/src/ harness/src/; do
+            if ! grep -q "^$source_root" "$CARGO_TARGET_DIR/mapped-sources.txt"; then
+              printf 'No executable mapping for required package source root: %s\n' "$source_root" >&2
+              exit 1
+            fi
+            if ! awk -v prefix="$GITHUB_WORKSPACE/$source_root" '
+              /^SF:/ { inside = index(substr($0, 4), prefix) == 1 }
+              inside && /^LF:/ { found += substr($0, 4) }
+              inside && /^LH:/ { hit += substr($0, 4) }
+              END { exit !(found > 0 && hit > 0 && hit <= found) }
+            ' "$CARGO_TARGET_DIR/library.lcov"; then
+              printf 'No coherent executed-line observation for required package source root: %s\n' "$source_root" >&2
+              exit 1
+            fi
+          done
+          LC_ALL=C comm -13 "$CARGO_TARGET_DIR/tracked-sources.txt" "$CARGO_TARGET_DIR/mapped-sources.txt" > "$CARGO_TARGET_DIR/unowned-mappings.txt"
+          if test -s "$CARGO_TARGET_DIR/unowned-mappings.txt"; then
+            cat "$CARGO_TARGET_DIR/unowned-mappings.txt"
+            exit 1
+          fi
+          LC_ALL=C comm -23 "$CARGO_TARGET_DIR/tracked-sources.txt" "$CARGO_TARGET_DIR/mapped-sources.txt" > "$CARGO_TARGET_DIR/unmapped-sources.txt"
+          printf 'Tracked library sources without an executable mapping (not a coverage percentage):\n'
+          cat "$CARGO_TARGET_DIR/unmapped-sources.txt"
+          wc -l "$CARGO_TARGET_DIR/tracked-sources.txt" "$CARGO_TARGET_DIR/mapped-sources.txt" "$CARGO_TARGET_DIR/unmapped-sources.txt"
+
+      - name: Refuse tracked-tree mutation
+        run: git diff --exit-code HEAD --
+
+      - *stage-reports
+      - *upload-reports

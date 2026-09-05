@@ -1,31 +1,25 @@
 //! Final recipe work curves, qualified through the existing benchmark owner.
 
+mod bench_driver;
 mod breadth;
 mod breadth_bench;
 
 use macroonz_compiler::recipe::{HarnessPosture, RecipeBake, RecipeRole};
 use macroonz_compiler::{CanonicalContent, CrateBinding, Door, Producer, TextCapture};
 use macroonz_harness::bench::{
-    BenchAttachment, BenchBinding, BenchCall, BenchInvocation, BenchMeasurement, BenchOutcome,
-    BenchReferences, BenchRow, BenchStage, BenchTable, BenchTableName, ComplexityClaimRef,
-    ContentionPosture, DeclaredBudgets, InputSizeAxis, PlantedWorseRef, PreflightRef,
-    PreflightTrial, WorkConclusion, WorkFormula, WorkGapStanding, WorkJudgeBinding, WorkJudgment,
-    WorkJudgmentInput, WorkObservationRef, WorkRecorder, WorkRecordingRefusal, WorkloadRef,
-    bench_verdict, run_all,
+    BenchCall, BenchInvocation, BenchTable, ContentionPosture, WorkConclusion, WorkGapStanding,
+    WorkJudgment, WorkJudgmentInput, WorkRecorder, WorkRecordingRefusal, run_all,
 };
 use macroonz_harness::clock::HarnessClock;
-use macroonz_harness::descriptor::{
-    Binding, CheckRef, ClaimRef, Classification, ExecutableAttachment, ExecutionSuite, Origin,
-    PopulationRef, Provenance, RevisionBinding, Role, Row, SubjectRoute, Tag,
-};
-use macroonz_harness::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use macroonz_harness::identity::{DomainTag, IdentityProfileVersion};
 use macroonz_harness::report::{
-    ByteBudget, CaseBudget, FailureClass, FindingCause, FindingLocation, InvocationProfile,
-    TargetBinding, TargetTriple, TimeBudget, ToolchainIdentity, TrialConclusion, TrialFinding,
-    TrialSite,
+    ByteBudget, CaseBudget, FindingCause, InvocationProfile, TargetBinding, TargetTriple,
+    TimeBudget, ToolchainIdentity, TrialSite,
 };
-use macroonz_harness::runner::{Invocation, TrialBinding};
+use macroonz_harness::runner::Invocation;
 use std::sync::atomic::{AtomicU64, Ordering};
+
+use bench_driver::{Control, WorkFamily};
 
 const OWNER: &str = "harness.recipe-economics";
 const FORMULA: &[u8] =
@@ -64,12 +58,6 @@ enum Family {
 enum Shape {
     Sparse,
     Dense,
-}
-
-#[derive(Clone, Copy)]
-enum Control {
-    Repeated,
-    Identical,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -196,39 +184,7 @@ impl Metrics {
 fn final_recipe_work_is_typed_and_repeated_work_is_distinguished() -> Result<(), String> {
     let table = table(Control::Repeated)?;
     let report = run_all(&table, &invocation()).map_err(debug)?;
-    bench_verdict(&report).map_err(debug)?;
-    assert_eq!(report.readings().len(), 5);
-    for reading in report.readings() {
-        let BenchOutcome::Qualified {
-            measured,
-            planted_worse,
-            judgment,
-            ..
-        } = reading.outcome()
-        else {
-            return Err(format!(
-                "unexpected benchmark stage: {:?}",
-                reading.outcome().stage()
-            ));
-        };
-        assert!(judgment.qualifies());
-        assert_eq!(measured.points().len(), planted_worse.points().len());
-        for (measured_point, planted_point) in measured.points().iter().zip(planted_worse.points())
-        {
-            assert_eq!(measured_point.input_size(), planted_point.input_size());
-            assert_eq!(measured_point.counts().len(), planted_point.counts().len());
-            for (measured_count, planted_count) in
-                measured_point.counts().iter().zip(planted_point.counts())
-            {
-                assert_eq!(measured_count.observation(), planted_count.observation());
-                assert_eq!(
-                    measured_count.count().checked_mul(2),
-                    Some(planted_count.count())
-                );
-            }
-        }
-    }
-    Ok(())
+    bench_driver::assert_repeated(&report, 5, "unexpected benchmark stage")
 }
 
 #[test]
@@ -240,91 +196,39 @@ fn retained_recipe_coordinates_match_the_final_source() -> Result<(), String> {
 fn an_identical_control_is_refused_before_secondary_observation() -> Result<(), String> {
     let table = table(Control::Identical)?;
     let report = run_all(&table, &invocation()).map_err(debug)?;
-    let [reading] = report.readings() else {
-        return Err(String::from(
-            "the identical-control table did not retain one reading",
-        ));
-    };
-    assert_eq!(
-        reading.outcome().stage(),
-        BenchStage::PlantedWorseNotDistinguished
-    );
-    Ok(())
+    bench_driver::assert_identical(
+        &report,
+        "the identical-control table did not retain one reading",
+    )
 }
 
 fn table(control: Control) -> Result<BenchTable, String> {
-    let specs: Vec<(Family, BenchCall, BenchCall)> = match control {
-        Control::Identical => vec![(Family::Vocabulary, vocabulary, vocabulary)],
-        Control::Repeated => vec![
-            (Family::Vocabulary, vocabulary, vocabulary_worse),
-            (
-                Family::RelationDensity,
-                relation_density,
-                relation_density_worse,
-            ),
-            (Family::Signature, signature, signature_worse),
-            (
-                Family::ProjectionCount,
-                projection_count,
-                projection_count_worse,
-            ),
-            (
-                Family::InvocationCount,
-                invocation_count,
-                invocation_count_worse,
-            ),
-        ],
-    };
-    let bindings = specs
-        .into_iter()
-        .map(|(family, measured, worse)| binding(family, measured, worse))
-        .collect::<Result<Vec<_>, _>>()?;
-    BenchTable::authored(
-        BenchTableName::named(
-            OWNER,
-            match control {
-                Control::Repeated => "final-recipe-work",
-                Control::Identical => "identical-control",
-            },
-        )
-        .map_err(debug)?,
-        Provenance::Unproduced,
-        bindings,
-    )
-    .map_err(debug)
-}
-
-fn binding(family: Family, measured: BenchCall, worse: BenchCall) -> Result<BenchBinding, String> {
-    let stem = family.stem();
-    let workload = WorkloadRef::named(OWNER, stem).map_err(debug)?;
-    let preflight = PreflightRef::named(OWNER, family.preflight_stem()).map_err(debug)?;
-    let planted = PlantedWorseRef::named(OWNER, family.repeated_stem()).map_err(debug)?;
-    let complexity = ComplexityClaimRef::named(OWNER, family.complexity_stem()).map_err(debug)?;
-    let row = BenchRow::declared(
-        BenchReferences::declared(workload, preflight, planted, complexity),
-        BenchMeasurement::declared(
-            InputSizeAxis::declared(family.axes().to_vec()).map_err(debug)?,
-            DeclaredBudgets::declared(1, 0, 2, 1).map_err(debug)?,
-            ContentionPosture::NoDeclaredContention,
-            Some(WorkFormula::encoded(FORMULA.to_vec()).map_err(debug)?),
+    let first: (Family, BenchCall, BenchCall) = (Family::Vocabulary, vocabulary, vocabulary_worse);
+    let remaining: &[(Family, BenchCall, BenchCall)] = &[
+        (
+            Family::RelationDensity,
+            relation_density,
+            relation_density_worse,
         ),
+        (Family::Signature, signature, signature_worse),
+        (
+            Family::ProjectionCount,
+            projection_count,
+            projection_count_worse,
+        ),
+        (
+            Family::InvocationCount,
+            invocation_count,
+            invocation_count_worse,
+        ),
+    ];
+    bench_driver::table(
+        control,
+        "final-recipe-work",
+        "identical-control",
+        first,
+        remaining,
     )
-    .map_err(debug)?;
-    let attachment = BenchAttachment::attached(
-        workload,
-        measured,
-        planted,
-        worse,
-        WorkJudgeBinding::bound(complexity, judge),
-        observations()?,
-    )
-    .map_err(debug)?;
-    let preflight = PreflightTrial::bound(
-        preflight,
-        trial_binding(family, preflight_call)?,
-        preflight_invocation(),
-    );
-    BenchBinding::bound(row, attachment, preflight).map_err(debug)
 }
 
 impl Family {
@@ -398,6 +302,66 @@ impl Family {
     }
 }
 
+impl WorkFamily for Family {
+    const CHECK: &'static str = "golden-coordinates";
+    const EXECUTION_SUITE: &'static str = "recipe-economics-preflight";
+    const POPULATION: &'static str = "retained-coordinate-table";
+    const PREFLIGHT_REFUSED: FindingCause = PREFLIGHT_REFUSED;
+    const REVISION_TAG: DomainTag = REVISION_TAG;
+    const TAG: &'static str = "final-recipe";
+
+    fn stem(self) -> &'static str {
+        Self::stem(self)
+    }
+
+    fn axes(self) -> &'static [u64] {
+        Self::axes(self)
+    }
+
+    fn preflight_stem(self) -> &'static str {
+        Self::preflight_stem(self)
+    }
+
+    fn repeated_stem(self) -> &'static str {
+        Self::repeated_stem(self)
+    }
+
+    fn complexity_stem(self) -> &'static str {
+        Self::complexity_stem(self)
+    }
+
+    fn claim_stem(self) -> &'static str {
+        Self::claim_stem(self)
+    }
+
+    fn counts(self, axis: u64) -> Vec<u64> {
+        let metrics = self
+            .coordinates()
+            .iter()
+            .find_map(|(candidate, metrics)| (*candidate == axis).then_some(*metrics))
+            .unwrap_or_else(Metrics::refused_axis);
+        metrics.counts().to_vec()
+    }
+
+    fn observation_names() -> &'static [&'static str] {
+        &[
+            "source-bytes",
+            "vocabulary-members",
+            "transition-rows",
+            "selected-projections",
+            "compiler-invocations",
+            "generated-bytes",
+            "canonical-bytes",
+            "delivered-bytes",
+            "axis-refusals",
+        ]
+    }
+
+    fn preflight() -> Result<(), String> {
+        preflight()
+    }
+}
+
 fn vocabulary(axis: u64, recorder: &mut WorkRecorder) -> Result<(), WorkRecordingRefusal> {
     record(Family::Vocabulary, axis, 1, recorder)
 }
@@ -453,19 +417,7 @@ fn record(
     repetitions: u64,
     recorder: &mut WorkRecorder,
 ) -> Result<(), WorkRecordingRefusal> {
-    let metrics = family
-        .coordinates()
-        .iter()
-        .find_map(|(candidate, metrics)| (*candidate == axis).then_some(*metrics))
-        .unwrap_or_else(Metrics::refused_axis);
-    for _ in 0..repetitions {
-        for (name, count) in observation_names().into_iter().zip(metrics.counts()) {
-            let observation = WorkObservationRef::named(OWNER, name)
-                .map_err(WorkRecordingRefusal::ObservationName)?;
-            recorder.record(observation, count)?;
-        }
-    }
-    Ok(())
+    bench_driver::record(family, axis, repetitions, recorder)
 }
 
 fn judge(input: &WorkJudgmentInput<'_>) -> WorkJudgment {
@@ -515,19 +467,6 @@ fn judge(input: &WorkJudgmentInput<'_>) -> WorkJudgment {
             WorkGapStanding::NotDistinguished(GAP_REFUSED)
         },
     )
-}
-
-fn preflight_call(_: &Invocation) -> TrialConclusion {
-    if preflight().is_ok() {
-        TrialConclusion::Passed
-    } else {
-        TrialConclusion::Refused(TrialFinding::established(
-            FailureClass::RefusedByCheck,
-            PREFLIGHT_REFUSED,
-            FindingLocation::at(file!(), line!()),
-            None,
-        ))
-    }
 }
 
 fn preflight() -> Result<(), String> {
@@ -754,27 +693,6 @@ fn push_indexed(source: &mut String, prefix: char, index: usize, suffix: &str) {
     source.push_str(suffix);
 }
 
-fn observation_names() -> [&'static str; 9] {
-    [
-        "source-bytes",
-        "vocabulary-members",
-        "transition-rows",
-        "selected-projections",
-        "compiler-invocations",
-        "generated-bytes",
-        "canonical-bytes",
-        "delivered-bytes",
-        "axis-refusals",
-    ]
-}
-
-fn observations() -> Result<Vec<WorkObservationRef>, String> {
-    observation_names()
-        .into_iter()
-        .map(|name| WorkObservationRef::named(OWNER, name).map_err(debug))
-        .collect()
-}
-
 fn target() -> TargetBinding {
     TargetBinding::bound(
         TargetTriple::declared("x86_64-pc-windows-msvc"),
@@ -806,37 +724,6 @@ fn preflight_invocation() -> Invocation {
         ),
         HarnessClock::unavailable(),
     )
-}
-
-fn trial_binding(
-    family: Family,
-    call: fn(&Invocation) -> TrialConclusion,
-) -> Result<TrialBinding, String> {
-    let stem = family.stem();
-    let subject = SubjectRoute::named(OWNER, stem).map_err(debug)?;
-    let check = CheckRef::named(OWNER, "golden-coordinates").map_err(debug)?;
-    let row = Row::declared(
-        ClaimRef::named(OWNER, family.claim_stem()).map_err(debug)?,
-        ExecutionSuite::named(OWNER, "recipe-economics-preflight").map_err(debug)?,
-        Classification::authored(
-            vec![Role::named(OWNER, "benchmark").map_err(debug)?],
-            vec![Tag::named(OWNER, "final-recipe").map_err(debug)?],
-        )
-        .map_err(debug)?,
-        subject,
-        check,
-        PopulationRef::named(OWNER, "retained-coordinate-table").map_err(debug)?,
-        Origin::HandWritten,
-    )
-    .map_err(debug)?;
-    let revision =
-        RevisionBinding::declared(ContentAddress::derived(REVISION_TAG, stem.as_bytes()));
-    Binding::bound(
-        row,
-        ExecutableAttachment::attached(subject, check, revision, revision, call),
-        Provenance::Unproduced,
-    )
-    .map_err(debug)
 }
 
 fn debug(error: impl core::fmt::Debug) -> String {

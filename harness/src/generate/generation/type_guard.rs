@@ -7,9 +7,9 @@ use super::super::{draw, encode};
 use super::{
     ByteDraw, ByteSource, ByteSourceAddress, CaseIndex, CaseWidth, CaseWidthRefusal,
     CommandSequence, GENERATION_DISPOSITION_SEATS, GENERATION_SOURCE_TAG, GeneratedSequences,
-    GenerationCensus, GenerationDisposition, GenerationHalt, GenerationPlan, GenerationPlanRefusal,
-    InputOrigin, RejectionAllowance, RootSeed, SOURCE_CHUNK_BYTES, SizeProgression, StreamCursor,
-    StreamCursorRefusal,
+    GenerationCensus, GenerationCensusSeat, GenerationDisposition, GenerationHalt, GenerationPlan,
+    GenerationPlanRefusal, InputOrigin, RejectionAllowance, RootSeed, SOURCE_CHUNK_BYTES,
+    SizeProgression, StreamCursor, StreamCursorRefusal,
 };
 use crate::descriptor::PopulationRef;
 use crate::identity::ContentAddress;
@@ -20,14 +20,23 @@ use std::num::NonZeroU32;
 
 macro_rules! implement_generation_census {
     ($($(#[$variant_meta:meta])* $variant:ident => $seat:ident),+ $(,)?) => {
+        crate::census::implement_census! {
+            impl GenerationCensus {
+                count: u32,
+                zero: 0u32,
+                seat: GenerationCensusSeat,
+                context { population: PopulationRef, }
+                array counts [GENERATION_DISPOSITION_SEATS] {
+                    $( $variant => $seat, )+
+                }
+            }
+        }
+
         impl GenerationCensus {
             /// An accounting opened over one population, with every seat at zero.
             #[must_use]
             pub const fn over(population: PopulationRef) -> Self {
-                Self {
-                    population,
-                    counts: [0; GENERATION_DISPOSITION_SEATS],
-                }
+                Self::empty(population)
             }
 
             /// The population this accounting stands over.
@@ -40,21 +49,19 @@ macro_rules! implement_generation_census {
             ///
             /// Saturating rather than wrapping: a count that rolled over would read as a smaller denominator than the one that was reached.
             pub fn count(&mut self, disposition: GenerationDisposition) {
-                let [$($seat),+] = &mut self.counts;
-                match disposition {
-                    $(GenerationDisposition::$variant => {
-                        *$seat = $seat.saturating_add(1);
-                    }),+
-                }
+                let seat = match disposition {
+                    $(GenerationDisposition::$variant => GenerationCensusSeat::$variant),+
+                };
+                self.increment(seat, 1u32);
             }
 
             /// How many cases fell under one disposition.
             #[must_use]
             pub const fn count_of(&self, disposition: GenerationDisposition) -> u32 {
-                let [$($seat),+] = &self.counts;
-                match disposition {
-                    $(GenerationDisposition::$variant => *$seat),+
-                }
+                let seat = match disposition {
+                    $(GenerationDisposition::$variant => GenerationCensusSeat::$variant),+
+                };
+                self.count_at(seat)
             }
 
             /// Every seat with its count, in the roster's declared order.
@@ -62,9 +69,11 @@ macro_rules! implement_generation_census {
             /// A renderer walks this rather than the seats it happens to know about, so a new disposition cannot be silently left out of a report.
             #[must_use]
             pub const fn entries(&self) -> [(GenerationDisposition, u32); GENERATION_DISPOSITION_SEATS] {
-                let [$($seat),+] = self.counts;
                 [$(
-                    (GenerationDisposition::$variant, $seat)
+                    (
+                        GenerationDisposition::$variant,
+                        self.count_at(GenerationCensusSeat::$variant),
+                    )
                 ),+]
             }
 
@@ -306,12 +315,11 @@ impl ByteSourceAddress {
     pub const fn over(address: ContentAddress) -> Self {
         Self(address)
     }
+}
 
+crate::identity::content_address_reference! {
     /// The content address this value carries.
-    #[must_use]
-    pub const fn address(self) -> ContentAddress {
-        self.0
-    }
+    value ByteSourceAddress;
 }
 
 impl StreamCursor {

@@ -466,20 +466,14 @@ fn a_record_uses_the_existing_codec_owner_through_the_facade() {
     ledger.encode_canonical(&mut bytes);
     let mut expected = Vec::new();
     expected.extend_from_slice(&513_u64.to_be_bytes());
-    frame(&[3, 4], &mut expected);
+    bakery::compiler::encode_bytes(&[3, 4], &mut expected);
     expected.push(u8::from(true));
-    frame(b"hi", &mut expected);
+    bakery::compiler::encode_bytes(b"hi", &mut expected);
     expected.extend_from_slice(&2_u64.to_be_bytes());
     expected.extend_from_slice(&[0, 1]);
-    frame(&[7], &mut expected);
+    bakery::compiler::encode_bytes(&[7], &mut expected);
     assert_eq!(bytes, expected);
     assert_eq!(Ledger::decode_canonical(&bytes), Ok(ledger));
-}
-
-fn frame(material: &[u8], into: &mut Vec<u8>) {
-    let length = u64::try_from(material.len()).unwrap_or(u64::MAX);
-    into.extend_from_slice(&length.to_be_bytes());
-    into.extend_from_slice(material);
 }
 
 #[test]

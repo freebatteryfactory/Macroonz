@@ -6,9 +6,11 @@
 
 use super::{BenchmarkDeclaration, Budgets, ContentionPosture, Row, WorkFormula};
 use crate::bounded::Overflow;
+use crate::descriptor::emitting::row_metavariable;
 use crate::descriptor::trial::{named_clause, table_schema_identity};
 use crate::descriptor::vocabulary::{self, HarnessName, HarnessWord};
 use crate::descriptor::{Emitter, Name};
+use crate::stamp::{Visibility, declared_reach_tokens};
 use crate::token::{
     GeneratedDelimiter, GeneratedToken, bound_local, call, comma, comma_many, constant,
     documentation, group, metavariable, method_chain, roster, text_pair,
@@ -131,13 +133,6 @@ pub fn observations(row: &Row) -> Result<Vec<GeneratedToken>, Overflow> {
         named.push(GeneratedToken::alone(','));
     }
     roster(named)
-}
-
-/// The target-owned expression one row receives under one declared seat.
-#[must_use]
-fn row_metavariable(lens: &str, seat: HarnessWord) -> String {
-    let seat = seat.spelling();
-    format!("{lens}_{seat}")
 }
 
 /// One row in the harness's exact declaration shape, over the four parsed reference locals.
@@ -301,7 +296,7 @@ pub fn bench_table(
     body.push(group(GeneratedDelimiter::Bracket, bindings)?);
     body.push(GeneratedToken::alone(','));
 
-    let mut tokens = crate_visibility()?;
+    let mut tokens = declared_reach_tokens(Visibility::Crate)?;
     tokens.push(GeneratedToken::word("fn"));
     tokens.push(GeneratedToken::word(payload.table_function().spelling()));
     tokens.extend(named_clause(payload.table())?);
@@ -354,7 +349,7 @@ pub fn reporter(payload: &BenchmarkDeclaration) -> Result<Vec<GeneratedToken>, O
     ]));
     report_type.push(group(GeneratedDelimiter::Parenthesis, borrowed)?);
 
-    let mut body = crate_visibility()?;
+    let mut body = declared_reach_tokens(Visibility::Crate)?;
     body.extend(constant(
         REPORT,
         report_type,
@@ -362,22 +357,11 @@ pub fn reporter(payload: &BenchmarkDeclaration) -> Result<Vec<GeneratedToken>, O
     ));
 
     let mut tokens = documentation(REPORTER_SENTENCE)?;
-    tokens.extend(crate_visibility()?);
+    tokens.extend(declared_reach_tokens(Visibility::Crate)?);
     tokens.push(GeneratedToken::word("mod"));
     tokens.push(GeneratedToken::word(payload.reporter().module().spelling()));
     tokens.push(group(GeneratedDelimiter::Brace, body)?);
     Ok(tokens)
-}
-
-/// The `pub(crate)` visibility used by both generated benchmark items.
-fn crate_visibility() -> Result<Vec<GeneratedToken>, Overflow> {
-    Ok(vec![
-        GeneratedToken::word("pub"),
-        group(
-            GeneratedDelimiter::Parenthesis,
-            vec![GeneratedToken::word("crate")],
-        )?,
-    ])
 }
 
 /// The report-reader module's product sentence.

@@ -18,7 +18,7 @@ pub const CODEC_MEMBER_LIMIT: usize = 64;
 /// Segments one rendered type path may carry.
 ///
 /// A path reaching deeper has stopped naming an item and started describing a tree, and the repair is a re-export at the address rather than a longer spelling at this end.
-pub const CODEC_PATH_SEGMENT_LIMIT: usize = 8;
+pub const CODEC_PATH_SEGMENT_LIMIT: usize = crate::token::RENDERED_PATH_SEGMENT_LIMIT;
 
 /// Issues one codec refusal carries before it begins counting the rest.
 ///

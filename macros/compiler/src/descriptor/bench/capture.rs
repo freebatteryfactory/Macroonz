@@ -48,10 +48,15 @@ use super::{
     BenchCaptureError, BenchmarkDeclaration, Budgets, ContentionPosture, Measurement, References,
     Reporter, Row, WorkFormula,
 };
+use crate::descriptor::clause::{
+    Clause, assigned, assignment_clauses, declaration_clauses, identifier, named_reference,
+    named_value, number,
+};
 use crate::descriptor::{
     CaptureCause, DeclarationError, FunctionName, Grammar, ModuleName, Name, SupportName,
 };
 use crate::token::{CapturedDelimiter, CapturedTokenTree, SpanHandle};
+use core::convert::Infallible;
 
 /// The clause naming the exported support name.
 const SUPPORT: &str = "support";
@@ -64,9 +69,6 @@ const TABLE: &str = "table";
 
 /// The clause naming the report-reader module.
 const REPORTER: &str = "reporter";
-
-/// The road every namespaced reference in this grammar is spelled by.
-const NAMED: &str = "named";
 
 /// The row clause naming what is measured.
 const WORKLOAD: &str = "workload";
@@ -131,24 +133,27 @@ pub fn captured(
     at: SpanHandle,
     grammar: Grammar,
 ) -> Result<BenchmarkDeclaration, BenchCaptureError> {
-    let clauses = declaration_clauses(grammar, body)?;
-    let support = SupportName::declared(identifier(grammar, &clauses, SUPPORT, at)?)
+    let clauses = declaration_clauses(
+        grammar,
+        body,
+        &DECLARABLE,
+        |_grammar, group| Ok(row_clause(group)),
+        refused,
+    )?;
+    let support = SupportName::declared(identifier(grammar, &clauses, SUPPORT, at, refused)?)
         .map_err(|refusal| carried(grammar, refusal, at))?;
-    let table_function = FunctionName::declared(identifier(grammar, &clauses, TABLE_FUNCTION, at)?)
-        .map_err(|refusal| carried(grammar, refusal, at))?;
-    let table = named_reference(grammar, &clauses, TABLE, at)?;
-    let reporter_module = ModuleName::declared(identifier(grammar, &clauses, REPORTER, at)?)
-        .map_err(|refusal| carried(grammar, refusal, at))?;
+    let table_function =
+        FunctionName::declared(identifier(grammar, &clauses, TABLE_FUNCTION, at, refused)?)
+            .map_err(|refusal| carried(grammar, refusal, at))?;
+    let table = named_reference(grammar, &clauses, TABLE, at, refused, carried)?;
+    let reporter_module =
+        ModuleName::declared(identifier(grammar, &clauses, REPORTER, at, refused)?)
+            .map_err(|refusal| carried(grammar, refusal, at))?;
 
     let mut rows: Vec<Row> = Vec::new();
     for clause in &clauses {
-        if let Clause::Row {
-            lens,
-            body: stated,
-            at: site,
-        } = clause
-        {
-            rows.push(row(grammar, lens, stated, *site)?);
+        if let Some(stated) = clause.nested_value() {
+            rows.push(row(grammar, stated.lens, &stated.body, stated.at)?);
         }
     }
     BenchmarkDeclaration::declared(
@@ -171,184 +176,30 @@ const fn carried(grammar: Grammar, refusal: DeclarationError, at: SpanHandle) ->
     BenchCaptureError::vocabulary_refused(grammar, refusal, at)
 }
 
-/// One clause of a bench declaration's body, as the split read it.
-///
-/// Two shapes rather than one, because the grammar has two: an assignment states one key and one value, and a row states a lens and a body of row clauses.
-enum Clause<'trees> {
-    /// `<key> = <value tokens>`.
-    Assigned {
-        /// The key the clause names.
-        key: &'trees str,
-        /// The tokens the value is spelled from.
-        value: Vec<&'trees CapturedTokenTree>,
-        /// The token the key sits at.
-        at: SpanHandle,
-    },
-    /// `<lens> { <row clauses> }`.
-    Row {
-        /// The lens the row is declared under.
-        lens: &'trees str,
-        /// The trees inside the row body.
-        body: Vec<&'trees CapturedTokenTree>,
-        /// The token the lens sits at.
-        at: SpanHandle,
-    },
+/// One bench-owned nested row clause.
+struct RowClause<'trees> {
+    lens: &'trees str,
+    body: Vec<&'trees CapturedTokenTree>,
+    at: SpanHandle,
 }
 
-/// Cut one declaration body into its comma-separated clauses, refusing a separator that separates nothing.
-///
-/// A trailing comma after the last clause is ordinary Rust and lawful; a leading or doubled comma makes an empty group this reader would otherwise silently drop, so it refuses at the comma's own token.
-fn declaration_clauses<'trees>(
-    grammar: Grammar,
-    body: &[&'trees CapturedTokenTree],
-) -> Result<Vec<Clause<'trees>>, BenchCaptureError> {
-    let mut clauses: Vec<Clause<'trees>> = Vec::new();
-    let mut group: Vec<&CapturedTokenTree> = Vec::new();
-    for tree in body {
-        if tree.punct() == Some(',') {
-            if group.is_empty() {
-                return Err(refused(
-                    grammar,
-                    CaptureCause::SeparatorDangling,
-                    tree.span(),
-                ));
-            }
-            close(grammar, &group, &mut clauses)?;
-            group.clear();
-        } else {
-            group.push(tree);
-        }
-    }
-    close(grammar, &group, &mut clauses)?;
-    distinct(grammar, &clauses)?;
-    Ok(clauses)
-}
-
-/// Close one of a declaration body's comma-separated groups.
-///
-/// An empty group is a trailing comma and is lawful; an empty group standing at a comma was refused before this road is reached.
-/// A group of one word and one brace body is a row; anything else is read as an assignment against the declaration level's keys.
-fn close<'trees>(
-    grammar: Grammar,
-    group: &[&'trees CapturedTokenTree],
-    clauses: &mut Vec<Clause<'trees>>,
-) -> Result<(), BenchCaptureError> {
-    let Some((head, rest)) = group.split_first() else {
-        return Ok(());
-    };
-    if let [body] = rest
+/// Read one bench-owned nested row where the group states one.
+fn row_clause<'trees>(group: &[&'trees CapturedTokenTree]) -> Option<RowClause<'trees>> {
+    if let [head, body] = group
         && let Some(lens) = head.word()
         && let Some((CapturedDelimiter::Brace, inner)) = body.group()
     {
-        clauses.push(Clause::Row {
+        return Some(RowClause {
             lens,
             body: inner.iter().collect(),
             at: head.span(),
         });
-        return Ok(());
     }
-    clauses.push(assignment(grammar, head, rest, &DECLARABLE)?);
-    Ok(())
-}
-
-/// Read one `<key> = <value>` assignment, admitted against the roster its own level declares.
-fn assignment<'trees>(
-    grammar: Grammar,
-    head: &'trees CapturedTokenTree,
-    rest: &[&'trees CapturedTokenTree],
-    declarable: &[&str],
-) -> Result<Clause<'trees>, BenchCaptureError> {
-    let opening = head.span();
-    let Some(key) = head.word() else {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, opening));
-    };
-    let Some((assigned_by, value)) = rest.split_first() else {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, opening));
-    };
-    if assigned_by.punct() != Some('=') || value.is_empty() {
-        return Err(refused(
-            grammar,
-            CaptureCause::ClauseUnread,
-            assigned_by.span(),
-        ));
-    }
-    if !declarable.contains(&key) {
-        return Err(refused(grammar, CaptureCause::ClauseUndeclared, opening));
-    }
-    Ok(Clause::Assigned {
-        key,
-        value: value.to_vec(),
-        at: opening,
-    })
-}
-
-/// Refuse where one clause key is stated twice.
-///
-/// Assigned clauses alone: two rows are two lenses, and the payload's own lens-namespace law is what tells one from another.
-fn distinct(grammar: Grammar, clauses: &[Clause<'_>]) -> Result<(), BenchCaptureError> {
-    for (position, clause) in clauses.iter().enumerate() {
-        let Clause::Assigned { key, at, .. } = clause else {
-            continue;
-        };
-        let earlier = clauses.iter().take(position).any(|other| match *other {
-            Clause::Assigned { key: seen, .. } => seen == *key,
-            Clause::Row { .. } => false,
-        });
-        if earlier {
-            return Err(refused(grammar, CaptureCause::ClauseDoubled, *at));
-        }
-    }
-    Ok(())
-}
-
-/// The value tokens one assigned clause carries, and the token its key sits at.
-fn assigned<'trees, 'clauses>(
-    clauses: &'clauses [Clause<'trees>],
-    key: &str,
-) -> Option<(&'clauses [&'trees CapturedTokenTree], SpanHandle)> {
-    clauses.iter().find_map(|clause| match *clause {
-        Clause::Assigned {
-            key: named,
-            ref value,
-            at,
-        } if named == key => Some((value.as_slice(), at)),
-        Clause::Assigned { .. } | Clause::Row { .. } => None,
-    })
-}
-
-/// One identifier a clause assigns.
-fn identifier<'trees>(
-    grammar: Grammar,
-    clauses: &[Clause<'trees>],
-    key: &str,
-    at: SpanHandle,
-) -> Result<&'trees str, BenchCaptureError> {
-    let (value, clause) =
-        assigned(clauses, key).ok_or_else(|| refused(grammar, CaptureCause::ClauseAbsent, at))?;
-    let [only] = value else {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, clause));
-    };
-    only.word()
-        .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, only.span()))
-}
-
-/// One unsuffixed decimal count a clause assigns.
-fn count<Number: core::str::FromStr>(
-    grammar: Grammar,
-    clauses: &[Clause<'_>],
-    key: &str,
-    at: SpanHandle,
-) -> Result<Number, BenchCaptureError> {
-    let (value, clause) =
-        assigned(clauses, key).ok_or_else(|| refused(grammar, CaptureCause::ClauseAbsent, at))?;
-    let [only] = value else {
-        return Err(refused(grammar, CaptureCause::ClauseUnread, clause));
-    };
-    number(grammar, only)
+    None
 }
 
 /// One unsuffixed decimal literal, read at the exact width of the seat it fills.
-fn number<Number: core::str::FromStr>(
+fn axis_number<Number: core::str::FromStr>(
     grammar: Grammar,
     tree: &CapturedTokenTree,
 ) -> Result<Number, BenchCaptureError> {
@@ -363,66 +214,10 @@ fn number<Number: core::str::FromStr>(
         .map_err(|_| refused(grammar, CaptureCause::NumberBeyondSeat, tree.span()))
 }
 
-/// One `named(<namespace>, <stem>)` reference a clause assigns.
-fn named_reference(
-    grammar: Grammar,
-    clauses: &[Clause<'_>],
-    key: &str,
-    at: SpanHandle,
-) -> Result<Name, BenchCaptureError> {
-    let (value, clause) =
-        assigned(clauses, key).ok_or_else(|| refused(grammar, CaptureCause::ClauseAbsent, at))?;
-    named_value(grammar, value, clause)
-}
-
-/// One `named(<namespace>, <stem>)` reference, read off the tokens that spell it.
-fn named_value(
-    grammar: Grammar,
-    value: &[&CapturedTokenTree],
-    at: SpanHandle,
-) -> Result<Name, BenchCaptureError> {
-    let [word, arguments] = value else {
-        return Err(refused(grammar, CaptureCause::ReferenceUnread, at));
-    };
-    if word.word() != Some(NAMED) {
-        return Err(refused(grammar, CaptureCause::ReferenceUnread, word.span()));
-    }
-    let Some((CapturedDelimiter::Parenthesis, inner)) = arguments.group() else {
-        return Err(refused(
-            grammar,
-            CaptureCause::ReferenceUnread,
-            arguments.span(),
-        ));
-    };
-    let parts: Vec<&CapturedTokenTree> = inner.iter().collect();
-    let [namespace, separator, stem] = parts.as_slice() else {
-        return Err(refused(
-            grammar,
-            CaptureCause::ReferenceUnread,
-            arguments.span(),
-        ));
-    };
-    if separator.punct() != Some(',') {
-        return Err(refused(
-            grammar,
-            CaptureCause::ReferenceUnread,
-            separator.span(),
-        ));
-    }
-    let (Some(owner), Some(spelling)) = (namespace.text(), stem.text()) else {
-        return Err(refused(
-            grammar,
-            CaptureCause::ReferenceUnread,
-            arguments.span(),
-        ));
-    };
-    Name::named(owner, spelling).map_err(|refusal| carried(grammar, refusal, arguments.span()))
-}
-
 /// The bracketed axis of input sizes a row states.
 fn axis(
     grammar: Grammar,
-    clauses: &[Clause<'_>],
+    clauses: &[Clause<'_, Infallible>],
     at: SpanHandle,
 ) -> Result<Vec<u64>, BenchCaptureError> {
     let (value, clause) =
@@ -449,7 +244,7 @@ fn axis(
                         tree.span(),
                     ));
                 }
-                [only] => sizes.push(number::<u64>(grammar, only)?),
+                [only] => sizes.push(axis_number::<u64>(grammar, only)?),
                 [first, ..] => {
                     return Err(refused(grammar, CaptureCause::RosterUnread, first.span()));
                 }
@@ -461,7 +256,7 @@ fn axis(
     }
     match group.as_slice() {
         [] => {}
-        [only] => sizes.push(number::<u64>(grammar, only)?),
+        [only] => sizes.push(axis_number::<u64>(grammar, only)?),
         [first, ..] => return Err(refused(grammar, CaptureCause::RosterUnread, first.span())),
     }
     Ok(sizes)
@@ -470,7 +265,7 @@ fn axis(
 /// The declared work formula, where the row states one.
 fn formula(
     grammar: Grammar,
-    clauses: &[Clause<'_>],
+    clauses: &[Clause<'_, Infallible>],
 ) -> Result<Option<WorkFormula>, BenchCaptureError> {
     let Some((value, at)) = assigned(clauses, FORMULA) else {
         return Ok(None);
@@ -489,7 +284,7 @@ fn formula(
 /// The required bracketed roster of work-observation references a row states.
 fn observations(
     grammar: Grammar,
-    clauses: &[Clause<'_>],
+    clauses: &[Clause<'_, Infallible>],
     at: SpanHandle,
 ) -> Result<Vec<Name>, BenchCaptureError> {
     let (value, at) = assigned(clauses, OBSERVE)
@@ -515,14 +310,26 @@ fn observations(
                     tree.span(),
                 ));
             }
-            observed.push(named_value(grammar, &group, bracketed.span())?);
+            observed.push(named_value(
+                grammar,
+                &group,
+                bracketed.span(),
+                refused,
+                carried,
+            )?);
             group.clear();
         } else {
             group.push(tree);
         }
     }
     if !group.is_empty() {
-        observed.push(named_value(grammar, &group, bracketed.span())?);
+        observed.push(named_value(
+            grammar,
+            &group,
+            bracketed.span(),
+            refused,
+            carried,
+        )?);
     }
     Ok(observed)
 }
@@ -535,20 +342,20 @@ fn row(
     at: SpanHandle,
 ) -> Result<Row, BenchCaptureError> {
     let named = FunctionName::declared(lens).map_err(|refusal| carried(grammar, refusal, at))?;
-    let clauses = row_clauses(grammar, body)?;
+    let clauses = assignment_clauses(grammar, body, &DECLARABLE_ROW, refused)?;
     let references = References {
-        workload: named_reference(grammar, &clauses, WORKLOAD, at)?,
-        correctness_preflight: named_reference(grammar, &clauses, PREFLIGHT, at)?,
-        planted_worse: named_reference(grammar, &clauses, PLANTED_WORSE, at)?,
-        complexity_claim: named_reference(grammar, &clauses, COMPLEXITY, at)?,
+        workload: named_reference(grammar, &clauses, WORKLOAD, at, refused, carried)?,
+        correctness_preflight: named_reference(grammar, &clauses, PREFLIGHT, at, refused, carried)?,
+        planted_worse: named_reference(grammar, &clauses, PLANTED_WORSE, at, refused, carried)?,
+        complexity_claim: named_reference(grammar, &clauses, COMPLEXITY, at, refused, carried)?,
     };
     let sizes = axis(grammar, &clauses, at)?;
     let measurement = Measurement {
         budgets: Budgets {
-            samples: count(grammar, &clauses, SAMPLES, at)?,
-            warmups: count(grammar, &clauses, WARMUPS, at)?,
-            ratio_numerator: count(grammar, &clauses, RATIO_NUMERATOR, at)?,
-            ratio_denominator: count(grammar, &clauses, RATIO_DENOMINATOR, at)?,
+            samples: number(grammar, &clauses, SAMPLES, at, refused)?,
+            warmups: number(grammar, &clauses, WARMUPS, at, refused)?,
+            ratio_numerator: number(grammar, &clauses, RATIO_NUMERATOR, at, refused)?,
+            ratio_denominator: number(grammar, &clauses, RATIO_DENOMINATOR, at, refused)?,
         },
         contention: ContentionPosture::NoDeclaredContention,
         work_formula: formula(grammar, &clauses)?,
@@ -561,35 +368,4 @@ fn row(
         observations(grammar, &clauses, at)?,
     )
     .map_err(|refusal| carried(grammar, refusal, at))
-}
-
-/// Cut one row body into its comma-separated assignments.
-///
-/// A row admits no nested row, so the walk reads assignments alone and a lens written inside a row reaches the undeclarable-clause cause with every other key this level does not admit.
-fn row_clauses<'trees>(
-    grammar: Grammar,
-    body: &[&'trees CapturedTokenTree],
-) -> Result<Vec<Clause<'trees>>, BenchCaptureError> {
-    let mut clauses: Vec<Clause<'trees>> = Vec::new();
-    let mut group: Vec<&CapturedTokenTree> = Vec::new();
-    for tree in body {
-        if tree.punct() == Some(',') {
-            let Some((head, rest)) = group.split_first() else {
-                return Err(refused(
-                    grammar,
-                    CaptureCause::SeparatorDangling,
-                    tree.span(),
-                ));
-            };
-            clauses.push(assignment(grammar, head, rest, &DECLARABLE_ROW)?);
-            group.clear();
-        } else {
-            group.push(tree);
-        }
-    }
-    if let Some((head, rest)) = group.split_first() {
-        clauses.push(assignment(grammar, head, rest, &DECLARABLE_ROW)?);
-    }
-    distinct(grammar, &clauses)?;
-    Ok(clauses)
 }

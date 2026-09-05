@@ -35,12 +35,11 @@ impl SeedPackAddress {
     pub(in crate::corpus) const fn derived(address: ContentAddress) -> Self {
         Self(address)
     }
+}
 
+crate::identity::content_address_reference! {
     /// The content address this pack address carries.
-    #[must_use]
-    pub const fn address(self) -> ContentAddress {
-        self.0
-    }
+    value SeedPackAddress;
 }
 
 impl SeedPack {

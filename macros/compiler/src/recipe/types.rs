@@ -1,26 +1,44 @@
 //! The informed recipe, its projection vocabulary, and the capability boundary shared by both execution hosts.
 
+use super::stamp::named_vocabulary;
 use crate::bounded::{Bounded, KeyedRoster};
 use crate::diagnostic::{Diagnostic, Family};
 use crate::expansion::Expansion;
 use crate::identity::OwnerFact;
 use crate::relation::{
     AbsencePosture, CompletenessPosture, CyclePosture, DensityPosture, EmptyPosture,
-    MembershipPosture, RepetitionPosture, SelfRelationPosture,
+    MembershipPosture, RelationQuestion, RepetitionPosture, SelfRelationPosture,
 };
 use crate::render::Output;
 use crate::request::Door;
 use crate::support::SupportName;
 use crate::token::{CapturedInput, GeneratedToken, GeneratedTree, SpanHandle};
 
-#[path = "account.rs"]
-mod account;
+#[path = "account/admit.rs"]
+mod admit;
 
-#[path = "relation_account.rs"]
-mod relation_account;
+#[path = "account/collisions.rs"]
+mod collisions;
+
+#[path = "account/contracts.rs"]
+mod contracts;
+
+#[path = "account/informed.rs"]
+mod informed;
+
+#[path = "account/relation.rs"]
+mod relation;
+
+#[path = "account/restore.rs"]
+mod restore;
+
+#[path = "account/settle.rs"]
+mod settle;
 
 #[path = "type_guard.rs"]
 mod guard;
+
+pub(super) use super::issue::{ExactFunctionIssue, ExactProjectionSeat, RecipeError, RecipeIssue};
 
 /// The maximum number of members in one recipe vocabulary.
 pub const VOCABULARY_LIMIT: usize = 64;
@@ -40,21 +58,10 @@ pub const RELATION_TABLE_LIMIT: usize = RELATION_LIMIT;
 pub const TRANSITION_LIMIT: usize = RELATION_ROW_LIMIT;
 
 /// The complete number of structural questions one relation posture may answer.
-pub const RELATION_QUESTION_LIMIT: usize = RELATION_QUESTION_NAMES.len();
+pub const RELATION_QUESTION_LIMIT: usize = RelationQuestion::ALL.len();
 
 /// The maximum number of codec declarations carried by one recipe.
 pub const CODEC_LIMIT: usize = 16;
-
-pub(super) const RELATION_QUESTION_NAMES: &[&str] = &[
-    "empty",
-    "repetition",
-    "membership",
-    "completeness",
-    "density",
-    "absence",
-    "self_relation",
-    "cycle",
-];
 
 /// The diagnostic family owned by the recipe declaration.
 pub(super) const RECIPE_FAMILY: Family = Family::declared("macroonz/recipe");
@@ -65,13 +72,14 @@ pub(super) const RECIPE_FACT: OwnerFact = OwnerFact {
     name: "one-informed-recipe-selects-and-delivers-every-requested-projection",
 };
 
-/// Whether the facade posture makes harness-owned evidence projections available.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum HarnessPosture {
-    /// The facade carries its optional harness owner.
-    Available,
-    /// The facade omits its optional harness owner.
-    Unavailable,
+named_vocabulary! {
+    /// Whether the facade posture makes harness-owned evidence projections available.
+    pub enum HarnessPosture {
+        /// The facade carries its optional harness owner.
+        Available = "available",
+        /// The facade omits its optional harness owner.
+        Unavailable = "unavailable",
+    }
 }
 
 /// One member read from an authored Rust enum.
@@ -127,18 +135,19 @@ pub enum RecipeTransitionEffect {
     },
 }
 
-/// Which one row-payload contract every row in one relation follows.
-#[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum RecipeRelationPayloadKind {
-    /// Relation rows carry endpoints only.
-    Unlabeled,
-    /// Relation rows carry ordinary caller-owned paths.
-    Path,
-    /// Relation rows carry exact caller-authored Rust material.
-    ExactRust,
-    /// Relation rows carry the target and effect required by transition lowering.
-    Transition,
+named_vocabulary! {
+    /// Which one row-payload contract every row in one relation follows.
+    #[non_exhaustive]
+    pub enum RecipeRelationPayloadKind {
+        /// Relation rows carry endpoints only.
+        Unlabeled = "unlabeled",
+        /// Relation rows carry ordinary caller-owned paths.
+        Path = "path",
+        /// Relation rows carry exact caller-authored Rust material.
+        ExactRust = "exact-rust",
+        /// Relation rows carry the target and effect required by transition lowering.
+        Transition = "transition",
+    }
 }
 
 /// One informed row in a caller-named binary relation.
@@ -342,16 +351,17 @@ pub(crate) trait EvidenceCompiler {
 /// The sealed marker whose sole implementation lives at the crate composition root.
 pub(crate) struct ConfiguredEvidence;
 
-/// Where one effective mechanical projection value came from.
-#[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum LoweringSource {
-    /// The projector's documented conventional spelling.
-    Preset,
-    /// A named recipe seat replaced the conventional spelling.
-    Configuration,
-    /// Exact caller-authored Rust replaced the conventional mechanical seat.
-    ExactRust,
+named_vocabulary! {
+    /// Where one effective mechanical projection value came from.
+    #[non_exhaustive]
+    pub enum LoweringSource {
+        /// The projector's documented conventional spelling.
+        Preset = "preset",
+        /// A named recipe seat replaced the conventional spelling.
+        Configuration = "configuration",
+        /// Exact caller-authored Rust replaced the conventional mechanical seat.
+        ExactRust = "exact-rust",
+    }
 }
 
 /// The effective mechanical configuration of one generated projection.
@@ -394,17 +404,18 @@ pub(super) enum ProjectionStanding {
     TargetUnavailable,
 }
 
-/// The public readback of what happened to one possible recipe projection.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ProjectionDisposition {
-    /// The role is selected and generated.
-    Generated,
-    /// The caller did not request the role.
-    NotRequested,
-    /// The facade feature posture does not carry the required harness owner.
-    FeatureUnavailable,
-    /// The caller declared that the target plane is unavailable.
-    TargetUnavailable,
+named_vocabulary! {
+    /// The public readback of what happened to one possible recipe projection.
+    pub enum ProjectionDisposition {
+        /// The role is selected and generated.
+        Generated = "generated",
+        /// The caller did not request the role.
+        NotRequested = "not-requested",
+        /// The facade feature posture does not carry the required harness owner.
+        FeatureUnavailable = "feature-unavailable",
+        /// The caller declared that the target plane is unavailable.
+        TargetUnavailable = "target-unavailable",
+    }
 }
 
 /// One informed recipe over caller-owned vocabularies, relations, and selected projections.
@@ -527,252 +538,6 @@ pub enum ProjectionError {
     Tokens(crate::bounded::Overflow),
     /// The existing output owner refused the offered unit.
     Render(crate::render::RenderError),
-}
-
-/// Why one recipe could not be informed or baked.
-#[must_use = "a recipe refusal states the exact structural or capability disagreement"]
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct RecipeError {
-    issue: RecipeIssue,
-    at: Option<SpanHandle>,
-}
-
-/// One recipe declaration or capability disagreement.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(super) enum RecipeIssue {
-    /// The wrapper input is not one inline Rust module.
-    InlineModuleRequired,
-    /// The module does not end with exactly one `bake!` declaration.
-    BakeRequiredLast,
-    /// The authored module already declares the generated child name.
-    GeneratedNameCollision {
-        /// The colliding name.
-        name: String,
-    },
-    /// A requested generated spelling is not one ordinary Rust identifier.
-    GeneratedNameNotIdentifier {
-        /// The refused spelling.
-        name: String,
-    },
-    /// A mechanical recipe clause was absent or malformed.
-    Grammar(crate::token::CaptureReadIssue),
-    /// One named vocabulary does not resolve to an authored enum in the module.
-    VocabularyNotFound {
-        /// The requested enum name.
-        name: String,
-    },
-    /// One named vocabulary resolves to an authored enum with no variants.
-    VocabularyEmpty {
-        /// The authored enum name.
-        name: String,
-    },
-    /// One selected vocabulary carries an enum variant shape the generic roster does not enumerate.
-    VariantNotUnit {
-        /// The enum name.
-        vocabulary: String,
-        /// The variant name.
-        variant: String,
-    },
-    /// One vocabulary carries a repeated member spelling.
-    DuplicateMember {
-        /// The enum name.
-        vocabulary: String,
-        /// The repeated member spelling.
-        member: String,
-    },
-    /// One vocabulary name was declared more than once in the recipe account.
-    DuplicateVocabulary {
-        /// The repeated vocabulary name.
-        name: String,
-    },
-    /// One transition names a member outside its declared vocabulary.
-    ForeignMember {
-        /// The vocabulary whose roster was crossed.
-        vocabulary: String,
-        /// The foreign member spelling.
-        member: String,
-    },
-    /// Two transitions occupy the same state-and-event seat.
-    DuplicateTransition {
-        /// The state member spelling.
-        state: String,
-        /// The event member spelling.
-        event: String,
-    },
-    /// Two rows occupy the same relation endpoint seat while repetition is refused.
-    DuplicateRelationRow {
-        /// The relation carrying the repeated endpoint pair.
-        relation: String,
-        /// The left endpoint member spelling.
-        left: String,
-        /// The right endpoint member spelling.
-        right: String,
-    },
-    /// One relation name was declared more than once in the recipe account.
-    DuplicateRelation {
-        /// The repeated relation name.
-        name: String,
-    },
-    /// One codec declaration name was stated more than once.
-    DuplicateCodec {
-        /// The repeated codec declaration name.
-        name: String,
-    },
-    /// One codec declaration was refused by the existing codec owner.
-    CodecDeclaration {
-        /// The caller-owned codec declaration name.
-        name: String,
-        /// The exact codec-owner refusal.
-        reason: String,
-    },
-    /// One codec owner does not name an authored record-shaped structure in the recipe module.
-    CodecOwnerNotRecord {
-        /// The caller-owned codec declaration name.
-        codec: String,
-        /// The owner spelling the declaration selected.
-        owner: String,
-    },
-    /// One posture block names no declared relation.
-    RelationNotFound {
-        /// The unavailable relation name.
-        name: String,
-    },
-    /// One relation posture block was declared more than once.
-    DuplicateRelationPosture {
-        /// The relation with repeated posture declarations.
-        relation: String,
-    },
-    /// One structural question was answered more than once for one relation.
-    DuplicateRelationQuestion {
-        /// The relation carrying the repeated answer.
-        relation: String,
-        /// The repeated structural question.
-        question: &'static str,
-    },
-    /// One caller-required structural answer disagrees with the computed relation answer.
-    RelationPostureMismatch {
-        /// The relation whose structural question disagreed.
-        relation: String,
-        /// The structural question that was settled.
-        question: &'static str,
-        /// The caller-required answer.
-        required: &'static str,
-        /// The independently computed answer.
-        observed: &'static str,
-    },
-    /// One same-roster structural question was asked of a cross-roster relation.
-    RelationPostureInapplicable {
-        /// The relation whose structural question has no lawful subject.
-        relation: String,
-        /// The same-roster structural question that was requested.
-        question: &'static str,
-    },
-    /// Rows in one relation disagree about which payload contract they carry.
-    RelationPayloadShapeMismatch {
-        /// The relation carrying mixed payload shapes.
-        relation: String,
-        /// The first row's payload contract.
-        expected: RecipeRelationPayloadKind,
-        /// The later row's disagreeing payload contract.
-        observed: RecipeRelationPayloadKind,
-    },
-    /// One projection was requested more than once.
-    DuplicateProjection {
-        /// The repeated role.
-        role: RecipeRole,
-    },
-    /// One relation was selected more than once inside the relation-table family.
-    DuplicateRelationTable {
-        /// The relation carrying the repeated table request.
-        relation: String,
-    },
-    /// One payload-bearing relation table omitted its exact result contract.
-    RelationTableExactRequired {
-        /// The relation whose payload type remains caller authority.
-        relation: String,
-    },
-    /// A transition payload was offered to the generic relation-table projector.
-    RelationTableTransitionUnsupported {
-        /// The transition relation that already has a dedicated dispatch projection.
-        relation: String,
-    },
-    /// The recipe selected no projection at all.
-    ProjectionRequired,
-    /// One selected projection requires another role that the recipe did not select.
-    ProjectionDependencyAbsent {
-        /// The role that cannot operate alone.
-        role: RecipeRole,
-        /// The role it requires.
-        required: RecipeRole,
-    },
-    /// One selected projection has no structural subject it can lawfully consume.
-    ProjectionSubjectRequired {
-        /// The projection without a subject.
-        role: RecipeRole,
-        /// The structural subject family the projection requires.
-        expected: &'static str,
-    },
-    /// Sparse dispatch cannot infer what an allowed absent row means.
-    AllowedAbsenceNeedsFallback,
-    /// A harness-owned role was requested from a facade posture without the harness.
-    HarnessUnavailable {
-        /// The unavailable role.
-        role: RecipeRole,
-    },
-    /// Evidence cargo was requested without an exported support address.
-    SupportAddressRequired,
-    /// A support address was declared while no evidence cargo was requested.
-    SupportAddressUnneeded,
-    /// A caller-owned projector was offered for a role the recipe did not select.
-    ReplacementUnplanned {
-        /// The unselected role.
-        role: RecipeRole,
-    },
-    /// More than one caller-owned projector was offered for the same selected role.
-    DuplicateReplacement {
-        /// The role with more than one caller-owned projector.
-        role: RecipeRole,
-    },
-    /// One bake offered more caller-owned projectors than the complete role vocabulary can hold.
-    ReplacementRosterUnbounded {
-        /// The number of caller-owned projectors offered.
-        observed: usize,
-    },
-    /// Exact captured Rust could not be preserved as generated tokens.
-    FragmentNotGenerated,
-    /// Exact dispatch braces did not contain one semicolon-terminated function signature.
-    ExactDispatchFunctionRequired,
-    /// Exact dispatch supplied a caller-authored body that would bypass row accounting.
-    ExactDispatchBodyRefused,
-    /// Exact dispatch did not declare exactly two parameters.
-    ExactDispatchParameterCount {
-        /// The number of parameter rows supplied.
-        observed: usize,
-    },
-    /// One exact dispatch parameter did not use a simple identifier binding.
-    ExactDispatchParameterBinding {
-        /// The one-based parameter position.
-        position: usize,
-    },
-    /// One exact dispatch selector did not name a simple parameter binding in its signature.
-    ExactDispatchBindingAbsent {
-        /// The selector spelling absent from the exact signature.
-        binding: String,
-    },
-    /// Exact relation-table braces did not contain one semicolon-terminated function signature.
-    ExactRelationTableFunctionRequired,
-    /// Exact relation-table syntax supplied a body that would bypass row accounting.
-    ExactRelationTableBodyRefused,
-    /// Exact relation-table syntax did not declare exactly two parameters.
-    ExactRelationTableParameterCount {
-        /// The number of parameter rows supplied.
-        observed: usize,
-    },
-    /// One exact relation-table parameter did not use a simple identifier binding.
-    ExactRelationTableParameterBinding {
-        /// The one-based parameter position.
-        position: usize,
-    },
 }
 
 /// The complete baked result: selected recipe projections plus the sealed declaration-site emission.

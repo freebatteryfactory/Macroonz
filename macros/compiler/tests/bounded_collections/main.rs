@@ -26,7 +26,7 @@ static SCRATCH_ORDINAL: AtomicU32 = AtomicU32::new(0);
 
 fn scratch_path() -> PathBuf {
     let ordinal = SCRATCH_ORDINAL.fetch_add(1, Ordering::SeqCst);
-    std::env::temp_dir().join(format!(
+    PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!(
         "macroonz_bounded_refusal_{}_{ordinal}",
         std::process::id()
     ))
@@ -34,6 +34,16 @@ fn scratch_path() -> PathBuf {
 
 fn compiled(source: &str) -> Result<Output, String> {
     let scratch = scratch_path();
+    let observed = compiled_in(&scratch, source);
+    let cleaned = std::fs::remove_dir_all(&scratch).map_err(|error| error.to_string());
+    match (observed, cleaned) {
+        (result, Ok(())) => result,
+        (Ok(_), Err(cleanup)) => Err(format!("bounded-refusal cleanup failed: {cleanup}")),
+        (Err(refusal), Err(cleanup)) => Err(format!("{refusal}\ncleanup also failed: {cleanup}")),
+    }
+}
+
+fn compiled_in(scratch: &std::path::Path, source: &str) -> Result<Output, String> {
     let source_dir = scratch.join("src");
     std::fs::create_dir_all(&source_dir).map_err(|error| error.to_string())?;
     let dependency = env!("CARGO_MANIFEST_DIR").replace('\\', "/");
@@ -42,19 +52,54 @@ fn compiled(source: &str) -> Result<Output, String> {
     );
     std::fs::write(scratch.join("Cargo.toml"), manifest).map_err(|error| error.to_string())?;
     std::fs::write(source_dir.join("main.rs"), source).map_err(|error| error.to_string())?;
-    let output = Command::new("rustup")
+    let located = Command::new("cargo")
+        .args([
+            "+1.98.1",
+            "locate-project",
+            "--workspace",
+            "--message-format",
+            "plain",
+            "--manifest-path",
+        ])
+        .arg(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml"))
+        .output()
+        .map_err(|error| error.to_string())?;
+    if !located.status.success() {
+        return Err(String::from_utf8_lossy(&located.stderr).into_owned());
+    }
+    let workspace_manifest =
+        String::from_utf8(located.stdout).map_err(|error| error.to_string())?;
+    let workspace = std::path::Path::new(workspace_manifest.trim())
+        .parent()
+        .ok_or_else(|| "Cargo's declared workspace manifest has no parent".to_owned())?;
+    std::fs::copy(workspace.join("Cargo.lock"), scratch.join("Cargo.lock"))
+        .map_err(|error| error.to_string())?;
+    let locked = Command::new("cargo")
+        .args([
+            "+1.98.1",
+            "update",
+            "--workspace",
+            "--offline",
+            "--manifest-path",
+        ])
+        .arg(scratch.join("Cargo.toml"))
+        .output()
+        .map_err(|error| error.to_string())?;
+    if !locked.status.success() {
+        return Err(String::from_utf8_lossy(&locked.stderr).into_owned());
+    }
+    Command::new("rustup")
         .arg("run")
-        .arg("1.98.0")
+        .arg("1.98.1")
         .arg("cargo")
         .arg("build")
+        .arg("--locked")
         .arg("--offline")
         .arg("--manifest-path")
         .arg(scratch.join("Cargo.toml"))
         .env("CARGO_TARGET_DIR", scratch.join("target"))
         .output()
-        .map_err(|error| error.to_string());
-    drop(std::fs::remove_dir_all(&scratch));
-    output
+        .map_err(|error| error.to_string())
 }
 
 fn build_refuses(source: &str, sentence: &str) -> Result<(), String> {

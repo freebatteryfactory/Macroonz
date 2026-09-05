@@ -1,22 +1,14 @@
-//! Shared token-writing helpers for the declaration renders that emit direct Rust.
+//! Destination-aware token-writing helpers for the declaration renders that emit direct Rust.
 //!
-//! One seat per spelling: the absolute path, the doc attribute, the derive attribute, and the `From` impl are each written here and nowhere else, so two renders cannot drift apart on how a generated item is spelled.
+//! Generic Rust spelling belongs to the token home; these operations supply descriptor destinations and compose that vocabulary without reproducing it.
 
 use crate::bounded::Overflow;
 use crate::descriptor::DirectBinding;
+use crate::descriptor::vocabulary::HarnessWord;
 use crate::token::{
-    GeneratedDelimiter, GeneratedToken, associated_function, function_signature, implementation,
-    typed_parameter,
+    GeneratedDelimiter, GeneratedToken, absolute_path, associated_function, attribute, comma_many,
+    documentation, function_signature, group, implementation, result_type, typed_parameter,
 };
-
-/// Append one absolute path: `::seg::seg…`.
-pub(crate) fn absolute_path(segments: &[&str], into: &mut Vec<GeneratedToken>) {
-    for segment in segments {
-        into.push(GeneratedToken::joint(':'));
-        into.push(GeneratedToken::alone(':'));
-        into.push(GeneratedToken::word(segment));
-    }
-}
 
 /// Append one direct dependency path and the destination segments after it.
 pub(crate) fn direct_path(
@@ -24,17 +16,31 @@ pub(crate) fn direct_path(
     destination: &[&str],
     into: &mut Vec<GeneratedToken>,
 ) {
-    let mut segments = binding.segments().iter().map(String::as_str);
-    if let Some(root) = segments.next() {
-        into.push(GeneratedToken::joint(':'));
-        into.push(GeneratedToken::alone(':'));
-        into.push(GeneratedToken::word(root));
-    }
-    for segment in segments.chain(destination.iter().copied()) {
-        into.push(GeneratedToken::joint(':'));
-        into.push(GeneratedToken::alone(':'));
-        into.push(GeneratedToken::word(segment));
-    }
+    let segments = binding
+        .segments()
+        .iter()
+        .map(String::as_str)
+        .chain(destination.iter().copied())
+        .collect::<Vec<_>>();
+    into.extend(absolute_path(&segments));
+}
+
+/// Return one owned direct dependency path under its declared binding.
+#[must_use]
+pub(crate) fn owned_direct_path(
+    binding: &DirectBinding,
+    destination: &[&str],
+) -> Vec<GeneratedToken> {
+    let mut tokens = Vec::new();
+    direct_path(binding, destination, &mut tokens);
+    tokens
+}
+
+/// Compose one row lens and one declared attachment seat into their matcher metavariable.
+#[must_use]
+pub(crate) fn row_metavariable(lens: &str, seat: HarnessWord) -> String {
+    let seat = seat.spelling();
+    format!("{lens}_{seat}")
 }
 
 /// Append one `#[doc = "<text>"]` attribute.
@@ -43,15 +49,7 @@ pub(crate) fn direct_path(
 ///
 /// Returns [`Overflow`] where a composed group carries more tokens than the declared magnitude admits.
 pub(crate) fn doc_attribute(text: &str, into: &mut Vec<GeneratedToken>) -> Result<(), Overflow> {
-    into.push(GeneratedToken::alone('#'));
-    into.push(GeneratedToken::group(
-        GeneratedDelimiter::Bracket,
-        vec![
-            GeneratedToken::word("doc"),
-            GeneratedToken::alone('='),
-            GeneratedToken::text(text),
-        ],
-    )?);
+    into.extend(documentation(text)?);
     Ok(())
 }
 
@@ -64,21 +62,16 @@ pub(crate) fn derive_attribute(
     traits: &[&str],
     into: &mut Vec<GeneratedToken>,
 ) -> Result<(), Overflow> {
-    let mut listed = Vec::new();
-    for (position, name) in traits.iter().enumerate() {
-        if position > 0 {
-            listed.push(GeneratedToken::alone(','));
-        }
-        listed.push(GeneratedToken::word(name));
-    }
-    into.push(GeneratedToken::alone('#'));
-    into.push(GeneratedToken::group(
-        GeneratedDelimiter::Bracket,
-        vec![
-            GeneratedToken::word("derive"),
-            GeneratedToken::group(GeneratedDelimiter::Parenthesis, listed)?,
-        ],
-    )?);
+    let listed = comma_many(
+        traits
+            .iter()
+            .map(|name| vec![GeneratedToken::word(name)])
+            .collect(),
+    );
+    into.extend(attribute(vec![
+        GeneratedToken::word("derive"),
+        group(GeneratedDelimiter::Parenthesis, listed)?,
+    ])?);
     Ok(())
 }
 
@@ -93,8 +86,7 @@ pub(crate) fn from_impl(
     arm: &str,
     into: &mut Vec<GeneratedToken>,
 ) -> Result<(), Overflow> {
-    let mut trait_path = Vec::new();
-    absolute_path(&["core", "convert", "From"], &mut trait_path);
+    let mut trait_path = absolute_path(&["core", "convert", "From"]);
     trait_path.push(GeneratedToken::alone('<'));
     trait_path.extend(source.iter().cloned());
     trait_path.push(GeneratedToken::alone('>'));
@@ -141,10 +133,5 @@ pub(crate) fn fallible_return(
 ) {
     into.push(GeneratedToken::joint('-'));
     into.push(GeneratedToken::alone('>'));
-    absolute_path(&["core", "result", "Result"], into);
-    into.push(GeneratedToken::alone('<'));
-    into.extend(ok_seat);
-    into.push(GeneratedToken::alone(','));
-    into.push(GeneratedToken::word(fault));
-    into.push(GeneratedToken::alone('>'));
+    into.extend(result_type(ok_seat, vec![GeneratedToken::word(fault)]));
 }

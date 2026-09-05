@@ -80,5 +80,6 @@ Every refusal carries its complete finding set and cites the descriptor meaning 
 ## Ownership
 
 The shared descriptor vocabulary owns author-spelled names, physical bindings, provider composition, and the refusal shapes common to these declarations.
+The shared fault bank owns the generated arms and harness refusal paths used by more than one direct descriptor projection.
 Each kind owns its own grammar, informed declaration, output shape, and rendering, while each door owns the complete crossing from captured input to one sealed expansion.
 The harness owns the constructor meanings these projections address, and the proc host owns only the compiler-facing act of carrying them.

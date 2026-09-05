@@ -4,7 +4,7 @@ error[E0624]: associated function `admitted` is private
 15 |       ReplayAdmission::admitted(proposal, ground, destination, replay)
    |                        ^^^^^^^^ private associated function
    |
-  ::: src/descriptor/type_guard.rs
+  ::: src/descriptor/guard_row.rs
    |
    | /     pub(crate) const fn admitted(
    | |         proposal: ProposalId,

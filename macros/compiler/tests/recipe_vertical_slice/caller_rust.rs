@@ -1,7 +1,8 @@
 //! Caller-owned ordinary Rust preserved through the recipe boundary.
 
+use super::support::bake_at;
 use macroonz_compiler::recipe::HarnessPosture;
-use macroonz_compiler::{CrateBinding, Door, Producer, TextCapture};
+use macroonz_compiler::{CrateBinding, Door, Producer};
 
 const DOOR: Door = Door::declared(
     "recipe-caller-rust-crossing",
@@ -41,9 +42,7 @@ pub mod boulangerie {
 
 #[test]
 fn lawful_unicode_identifiers_survive_recipe_capture_and_projection() -> Result<(), ()> {
-    let read = TextCapture::read(UNICODE_RECIPE).map_err(|_| ())?;
-    let baked = macroonz_compiler::recipe::bake(read.input(), HarnessPosture::Available, &DOOR)
-        .map_err(|_| ())?;
+    let baked = bake_at(UNICODE_RECIPE, HarnessPosture::Available, &DOOR)?;
     let emitted = baked
         .emit()
         .tokens()

@@ -1,5 +1,6 @@
 //! Conventional behavior shells compared with independent tokens and real Rust compilation.
 
+use crate::support::observe_rustc;
 use macroonz_compiler::{
     GeneratedDelimiter, GeneratedToken, GeneratedTree, attribute, bound_path, call, constant,
     consuming_receiver, decorated, enumeration, exclusive_receiver, function, function_item,
@@ -7,11 +8,6 @@ use macroonz_compiler::{
     pinned_receiver, result_type, shared_receiver, tuple_struct, typed_parameter, unit_struct,
     unit_variant,
 };
-use std::path::PathBuf;
-use std::process::Command;
-use std::sync::atomic::{AtomicU32, Ordering};
-
-static SPECIMEN_ORDINAL: AtomicU32 = AtomicU32::new(0);
 
 fn name(spelling: &str) -> GeneratedToken {
     GeneratedToken::word(spelling)
@@ -802,45 +798,6 @@ fn path_variant(kind: &str, variant: &str) -> Vec<GeneratedToken> {
     ]
 }
 
-fn specimen_path(extension: &str) -> PathBuf {
-    let ordinal = SPECIMEN_ORDINAL.fetch_add(1, Ordering::SeqCst);
-    PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!(
-        "macroonz_behavior_{}_{ordinal}{extension}",
-        std::process::id()
-    ))
-}
-
-fn compile(source: &str, extra: &[&str]) -> Result<std::process::Output, String> {
-    let source_path = specimen_path(".rs");
-    let executable = specimen_path(std::env::consts::EXE_SUFFIX);
-    std::fs::create_dir_all(env!("CARGO_TARGET_TMPDIR")).map_err(|error| error.to_string())?;
-    std::fs::write(&source_path, source).map_err(|error| error.to_string())?;
-    let mut command = Command::new("rustup");
-    command
-        .arg("run")
-        .arg("1.98.0")
-        .arg("rustc")
-        .arg(&source_path)
-        .arg("--edition=2024")
-        .arg("-o")
-        .arg(&executable);
-    command.args(extra);
-    let output = command.output().map_err(|error| error.to_string())?;
-    drop(std::fs::remove_file(&source_path));
-    if output.status.success() {
-        let executed = Command::new(&executable)
-            .output()
-            .map_err(|error| error.to_string())?;
-        drop(std::fs::remove_file(&executable));
-        if !executed.status.success() {
-            return Err(String::from_utf8_lossy(&executed.stderr).into_owned());
-        }
-    } else {
-        drop(std::fs::remove_file(&executable));
-    }
-    Ok(output)
-}
-
 const SUITE_ASSERTIONS: &str = r"
 fn external(value: u8) -> u8 { value.saturating_add(1) }
 
@@ -927,7 +884,7 @@ fn behavior_composers_emit_executable_rust_1_98() -> Result<(), String> {
             .inspected(),
     );
     source.push_str(SUITE_ASSERTIONS);
-    let output = compile(&source, &[])?;
+    let output = observe_rustc("behavior", &source, &[])?;
     if output.status.success() {
         Ok(())
     } else {
@@ -1045,7 +1002,7 @@ fn rustc_refuses_illegal_behavior_contracts() -> Result<(), String> {
             "E0133",
         ),
     ] {
-        let output = compile(source, arguments)?;
+        let output = observe_rustc("behavior", source, arguments)?;
         if output.status.success() {
             return Err(format!(
                 "hostile compilation unexpectedly succeeded for {anchor}"

@@ -5,7 +5,7 @@
 use macroonz_compiler::host::{CaptureError, Emittable, Spans, emit};
 use macroonz_compiler::{
     CaptureBound, CaptureBuildRefusal, CaptureBuilder, CapturedAtom, LiteralReadCause,
-    PartitionCargo, SpanHandle, TOKEN_PATH_DEPTH_LIMIT, TokenPath,
+    PartitionCargo, SpanHandle, TOKEN_PATH_DEPTH_LIMIT, TokenPath, encode_bytes,
 };
 
 /// One empty emission source used only to type-check the public host contract.
@@ -73,18 +73,10 @@ fn producer_refusal(
     }
 }
 
-/// Append one independently framed byte string.
-fn framed(material: &[u8], into: &mut Vec<u8>) -> Result<(), ()> {
-    let length = u64::try_from(material.len()).map_err(|_| ())?;
-    into.extend_from_slice(&length.to_be_bytes());
-    into.extend_from_slice(material);
-    Ok(())
-}
-
-/// Rebuild the accepted unread-refusal grammar without calling its encoder.
+/// Rebuild the accepted unread-refusal grammar from its fields and the public framing contract.
 fn unread_receipt(path: &TokenPath) -> Result<Vec<u8>, ()> {
     let mut bytes = vec![1];
-    framed(LiteralReadCause::NotReadable.name().as_bytes(), &mut bytes)?;
+    encode_bytes(LiteralReadCause::NotReadable.name().as_bytes(), &mut bytes);
     let count = u64::try_from(path.steps().len()).map_err(|_| ())?;
     bytes.extend_from_slice(&count.to_be_bytes());
     for step in path.steps() {

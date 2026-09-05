@@ -21,8 +21,11 @@ use macroonz_compiler::{
     CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound,
     CaptureBuildRefusal, CaptureBuilder, CapturedAtom, CapturedDelimiter, CapturedInput,
     CapturedTokenTree, CoordinateRole, TEXT_SOURCE_BYTE_LIMIT, TOKEN_PATH_DEPTH_LIMIT, TextCapture,
-    TextReadCause, TextReadRefusal, TokenPath,
+    TextLexicalCause, TextReadCause, TextReadRefusal, TokenPath,
 };
+
+#[path = "../support/captured_tokens.rs"]
+mod captured_tokens;
 
 /// An ordinary declaration, small enough that no magnitude is anywhere near it.
 ///
@@ -56,21 +59,10 @@ fn flat(tokens: usize) -> String {
 
 /// Every route in one captured input, from the root inward, in reading order.
 fn routes(input: &CapturedInput) -> Vec<Vec<u32>> {
-    let mut found = Vec::new();
-    for tree in input.trees() {
-        collect_routes(tree, &mut found);
-    }
-    found
-}
-
-/// Every route at and below one captured token.
-fn collect_routes(tree: &CapturedTokenTree, into: &mut Vec<Vec<u32>>) {
-    into.push(tree.path().steps().to_vec());
-    if let Some((_, inner)) = tree.group() {
-        for held in inner {
-            collect_routes(held, into);
-        }
-    }
+    captured_tokens::flattened(input.trees())
+        .into_iter()
+        .map(|tree| tree.path().steps().to_vec())
+        .collect()
 }
 
 /// The exact root, group, and nested-token shape authored by the builder specimen.
@@ -228,6 +220,13 @@ fn malformed_text_shapes_refuse_at_their_established_bytes() {
             "\"\\q\"",
             TextReadRefusal {
                 cause: TextReadCause::NotEscapeFree,
+                at: 0,
+            },
+        ),
+        (
+            r#"b"é""#,
+            TextReadRefusal {
+                cause: TextReadCause::Lexical(TextLexicalCause::MalformedLiteral),
                 at: 0,
             },
         ),

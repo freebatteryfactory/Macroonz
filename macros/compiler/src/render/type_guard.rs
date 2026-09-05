@@ -6,10 +6,15 @@
 use super::{Output, RENDERED_BYTE_LIMIT, RenderError, RenderedProjection, RenderedUnit};
 use crate::bounded::{NonEmpty, NonEmptyError};
 use crate::identity::{self, Identity, OwnerIdentity, Profile, Transcript};
-use crate::kind::{Destination, Kind, Role};
+use crate::kind::{Destination, JoinOrder, Kind, Role, rows_to, rows_under};
 use crate::origin::OriginTrail;
 use crate::plan::{DigestContract, MEMBERSHIP_LIMIT, Plan, PlannedMember, PlannedOutput};
 use crate::token::GeneratedTree;
+
+/// The role one rendered unit stands under.
+fn rendered_role<R: Role>(unit: &RenderedUnit<R>) -> R {
+    unit.role()
+}
 
 impl<R: Role> RenderedUnit<R> {
     /// Materialize one planned member out of the tree a renderer produced.
@@ -193,14 +198,14 @@ impl<R: Role> RenderedProjection<R> {
 
     /// The unit rendered under one seat, where one was.
     pub fn under(&self, role: R) -> Option<&RenderedUnit<R>> {
-        self.units().iter().find(|unit| unit.role() == role)
+        self.units_under(role).next()
     }
 
     /// Every unit rendered under one seat, in rendering order.
     ///
     /// The road a set comparison walks: comparing two renderings by their first unit per seat would agree about two renderings that differ in their second, which is exactly what a doubled seat produces.
     pub fn units_under(&self, role: R) -> impl Iterator<Item = &RenderedUnit<R>> {
-        self.units().iter().filter(move |unit| unit.role() == role)
+        rows_under(self.units(), role, rendered_role::<R>)
     }
 
     /// How many units were rendered under one seat.
@@ -218,11 +223,12 @@ impl<R: Role> RenderedProjection<R> {
     /// Roster order and never rendering order: the roster is declared and a renderer's own sequencing is not, so what a join writes is stable under a renderer that happened to produce its units in another order.
     /// Every unit standing under a seat is yielded rather than the first, because a rendering that doubled a seat is one the proof refuses and a reading that quietly dropped the second unit would hide the doubling from anybody looking here instead.
     pub fn units_to(&self, destination: Destination) -> impl Iterator<Item = &RenderedUnit<R>> {
-        R::ALL
-            .iter()
-            .copied()
-            .filter(move |role| role.destination() == destination)
-            .flat_map(move |role| self.units_under(role))
+        rows_to(
+            self.units(),
+            destination,
+            JoinOrder::Roster(R::ALL),
+            rendered_role::<R>,
+        )
     }
 
     /// How many units this rendering materialized into one delivery.
