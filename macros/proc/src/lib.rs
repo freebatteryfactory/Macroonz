@@ -1,6 +1,6 @@
 //! The thin proc-macro carrier for the root recipe entrance, item-preserving attributes, and direct declarations.
 //!
-//! Every grammar an entry here reads is the compiler's `descriptor` home's, every road from a reading to the tokens a declaration site receives is the compiler's, and the walk between them is the descriptor home's own `door` road.
+//! Recipe grammar and projection belong to the compiler's `recipe` home; the other entries use the compiler's `descriptor` home and its `door` road.
 //! What this crate adds is exactly what a proc host owns: token conversion, span custody, one compiler call, diagnostic placement, and emission — plus the facts of its own act, declared once beside each entry.
 //! Built-in recipe projections may cross this host, while an arbitrary downstream projection algorithm uses the same compiler contract from a caller-owned compiler or proc host.
 //!
