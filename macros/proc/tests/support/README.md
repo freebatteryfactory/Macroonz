@@ -9,3 +9,4 @@ Subsequent compilation is locked and offline; an offline cache alone is not depe
 Each lane keeps its own manifests, producer and consumer sources, expected outcomes, and assertions, and supplies its own label to the scratch owner.
 
 `capture-observer/` is a separate Rust-required fixture package that observes span custody from inside a real proc host, not a shared module of this crate set.
+The recipe-facade integration lane runs its unchanged source and external tests in exclusive scratch, with only its compiler dependency path rebound to the source under observation and its lock reconciled through the shared owner.
