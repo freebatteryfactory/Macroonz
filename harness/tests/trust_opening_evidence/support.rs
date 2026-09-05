@@ -507,7 +507,7 @@ pub(super) fn check_ref() -> Result<CheckRef, MutationRoadFailure> {
 }
 
 pub(super) fn invocation() -> Result<Invocation, MutationRoadFailure> {
-    let declared_toolchain = "1.98.0";
+    let declared_toolchain = "1.98.1";
     let version = Command::new("rustup")
         .arg("run")
         .arg(declared_toolchain)
