@@ -3,7 +3,8 @@
 ## Standing
 
 - This page is the single receipt for the Macroonz `0.2.0` release plane.
-- Current registry standing: all four `0.2.0` packages are published and independently checksum-verified; documentation delivery and the authorized tag/Release operations are being completed separately below.
+- Current delivery standing: all four `0.2.0` packages are published and independently checksum-verified, documentation is live, the registry-only adopter passed, and the qualified-source tag and GitHub Release are public.
+- Final human acceptance remains the owner's separate judgment.
 - No `0.2.0` package has been published, no `v0.2.0` tag exists, and no GitHub Release exists at the time this page was opened.
 - The first section below records local shape-lot custody that tests cannot retain; every later section appends only after its own local qualification, hosted, registry, tag, release, or acceptance authority exists.
 
@@ -314,3 +315,15 @@ The adopter's generated lockfile SHA-256 is `0DB750E8009FDED94157BC82A608DD986C0
 This fresh consumer resolution selected newer compatible transitive dependencies, including cc 1.4.5, find-msvc-tools 0.1.12, cpufeatures 0.3.1 and smallvec 1.16.0; it is a separate delivered-adopter observation, not a relabeling of the release wall's committed graph.
 After registry fetch, locked offline execution passed the unchanged facade recipe example and the unchanged pure compile-contract comparison example.
 Those sources are reconstructible as `git show ebd4a58:examples/recipe.rs` and `git show ebd4a58:examples/compile_contract.rs`; the former observes relation lookup, typestate, codec round-trip and configured/exact dispatch, while the latter observes the harness oracle without claiming to run rustc itself.
+
+## Documentation and release delivery
+
+The version-specific docs.rs root pages for all four packages returned HTTP 200 after their queued builds completed on 2026-09-05.
+The compiler's `host` module, harness's `preemption` module, and facade's public `macro.recipe.html` page separately returned HTTP 200.
+These are documentation-delivery observations, not universal link or editor qualification.
+
+Annotated tag `v0.2.0`, object `b1f87292ba64580d27ff595656e955d3db49dde7`, was pushed and independently checked through the remote to peel to `ebd4a5804a227d264693e7ae5ffcc7630328ae84`.
+It names the exact hosted-qualified and registry-embedded source, not the merge or a later receipt-only successor.
+The public [Macroonz 0.2.0 release](https://github.com/freebatteryfactory/Macroonz/releases/tag/v0.2.0), GitHub release ID `383334994`, was published at `2026-09-05T18:24:21Z` as neither draft nor prerelease.
+Its release notes retain the four intentional compatibility movements, Rust 1.98.1 minimum, product capabilities and measured qualification ceilings.
+These authorized delivery operations do not substitute for final human acceptance or authorize automatic planning-packet archival.
