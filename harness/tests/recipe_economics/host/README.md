@@ -1,12 +1,14 @@
 # External economics subject
 
-This material exercises the public compiler through the public harness benchmark receiver in a separately launched native process.
+This material exercises the public compiler and generated Rust through the public harness benchmark receiver in separately launched native processes.
 It is a canonical test subject, not a product module, benchmark backend, or another Cargo package.
 The manual qualification host compiles it against explicitly selected optimized library artifacts and supplies source, compiler and target identities.
 No product library reads the host clock or launches this process.
 
 `compiler-axes.rs` owns compiler workloads, independent structural expectations and declared work judgments.
 Each measured call constructs and compiles its input again and consumes the resulting Rust or exact refusal.
+`runtime-pilot.rs` owns generated dispatch, relation-table and codec consumers; `runtime-shapes.rs` supplies growing recipe structures and independent arithmetic/byte expectations.
+Its call-count and structure-width axes remain separate, and its timed codec interval includes allocation and drop rather than claiming isolated codec instructions.
 `measurement.rs` binds those declarations to the existing receiver and supplies an external monotonic clock.
 Identical work must fail the planted-worse gate; doubled actual execution must satisfy the declared work distinction before timing begins.
 `resident.rs` holds the consumed bytes until the external observer supplies the exact release token and EOF.

@@ -1,4 +1,4 @@
-//! Exact sample-population custody for the separately executed compiler economics subject.
+//! Exact sample-population custody for separately executed compiler and runtime subjects.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::{Read, Write};
@@ -14,6 +14,44 @@ const ROLES: [&str; 3] = ["single-a", "single-b", "double-execution"];
 const INTERVAL: &str =
     "input-construction+capture+bake+canonical-output-or-exact-refusal+drop+recording";
 
+#[derive(Clone, Copy)]
+enum Subject {
+    Compiler,
+    Runtime,
+}
+
+impl Subject {
+    const fn families(self) -> &'static [(&'static str, [u64; 3])] {
+        match self {
+            Self::Compiler => &FAMILIES,
+            Self::Runtime => &[
+                ("runtime-dispatch", [256, 1024, 4096]),
+                ("runtime-relation", [256, 1024, 4096]),
+                ("runtime-codec", [256, 1024, 4096]),
+                ("runtime-growing-dispatch", [2, 8, 16]),
+                ("runtime-growing-relation", [2, 8, 16]),
+                ("runtime-growing-codec", [1, 8, 32]),
+            ],
+        }
+    }
+
+    const fn interval(self) -> &'static str {
+        match self {
+            Self::Compiler => INTERVAL,
+            Self::Runtime => {
+                "input-selection+generated-execution+consume+batch-recording;codec-includes-Vec-allocation-and-drop"
+            }
+        }
+    }
+
+    const fn preflight_material(self) -> usize {
+        match self {
+            Self::Compiler => 12,
+            Self::Runtime => 0,
+        }
+    }
+}
+
 fn number(text: &str) -> Result<u64, String> {
     if text.is_empty() || !text.bytes().all(|byte| byte.is_ascii_digit()) {
         return Err("sample coordinate is not an unsigned decimal".to_owned());
@@ -21,15 +59,16 @@ fn number(text: &str) -> Result<u64, String> {
     text.parse::<u64>().map_err(|error| error.to_string())
 }
 
-fn family_size(family: &str, size: u64) -> Result<(), String> {
-    FAMILIES
+fn family_size(subject: Subject, family: &str, size: u64) -> Result<(), String> {
+    subject
+        .families()
         .iter()
         .any(|(name, sizes)| *name == family && sizes.contains(&size))
         .then_some(())
-        .ok_or_else(|| "undeclared compiler family or input size".to_owned())
+        .ok_or_else(|| "undeclared economics family or input size".to_owned())
 }
 
-fn reconcile(text: &str, context: &[&str; 3]) -> Result<(), String> {
+fn reconcile(text: &str, context: &[&str; 3], subject: Subject) -> Result<(), String> {
     if context
         .iter()
         .any(|part| part.is_empty() || part.contains([',', '\n', '\r']))
@@ -37,6 +76,7 @@ fn reconcile(text: &str, context: &[&str; 3]) -> Result<(), String> {
         return Err("missing or malformed declared context".to_owned());
     }
     let [source, target, toolchain] = context;
+    let interval = subject.interval();
     let mut headers = BTreeSet::new();
     let mut samples = BTreeSet::new();
     let mut preflight = BTreeMap::new();
@@ -45,18 +85,18 @@ fn reconcile(text: &str, context: &[&str; 3]) -> Result<(), String> {
         match fields.as_slice() {
             ["pilot", family, ..] => {
                 let expected = format!(
-                    "pilot,{family},source={source},target={target},toolchain={toolchain},profile=release,interval={INTERVAL}"
+                    "pilot,{family},source={source},target={target},toolchain={toolchain},profile=release,interval={interval}"
                 );
                 if line != expected
-                    || !FAMILIES.iter().any(|(name, _)| name == family)
+                    || !subject.families().iter().any(|(name, _)| name == family)
                     || !headers.insert(*family)
                 {
-                    return Err("moved or repeated compiler report context".to_owned());
+                    return Err("moved or repeated economics report context".to_owned());
                 }
             }
             ["preflight", family, size, input, output] => {
                 let size = number(size)?;
-                family_size(family, size)?;
+                family_size(subject, family, size)?;
                 let input = input
                     .strip_prefix("input-bytes=")
                     .ok_or("missing input size")?;
@@ -76,7 +116,7 @@ fn reconcile(text: &str, context: &[&str; 3]) -> Result<(), String> {
             }
             ["sample", family, round, role, size, ordinal, elapsed] => {
                 let (round, size, ordinal) = (number(round)?, number(size)?, number(ordinal)?);
-                family_size(family, size)?;
+                family_size(subject, family, size)?;
                 if round >= 4
                     || ordinal >= 5
                     || !ROLES.contains(role)
@@ -86,11 +126,14 @@ fn reconcile(text: &str, context: &[&str; 3]) -> Result<(), String> {
                     return Err("missing, repeated or undeclared timing coordinate".to_owned());
                 }
             }
-            _ => return Err("unrecognized compiler observation record".to_owned()),
+            _ => return Err("unrecognized economics observation record".to_owned()),
         }
     }
-    if headers.len() != 4 || preflight.len() != 12 || samples.len() != 720 {
-        return Err("incomplete compiler observation population".to_owned());
+    if headers.len() != subject.families().len()
+        || preflight.len() != subject.preflight_material()
+        || Some(samples.len()) != subject.families().len().checked_mul(180)
+    {
+        return Err("incomplete economics observation population".to_owned());
     }
     Ok(())
 }
@@ -106,7 +149,7 @@ fn read_input(reader: impl Read) -> Result<String, String> {
         .read_to_end(&mut bytes)
         .map_err(|error| error.to_string())?;
     if u64::try_from(bytes.len()).map_err(|error| error.to_string())? > REPORT_LIMIT {
-        return Err("compiler report exceeds its byte bound".to_owned());
+        return Err("economics report exceeds its byte bound".to_owned());
     }
     String::from_utf8(bytes).map_err(|error| error.to_string())
 }
@@ -114,29 +157,42 @@ fn read_input(reader: impl Read) -> Result<String, String> {
 #[test]
 #[ignore = "requires an explicitly executed native compiler economics report"]
 fn native_compiler_samples_match_the_declared_context_and_population() -> Result<(), String> {
-    let root = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("compiler-economics");
+    native_report("compiler-economics", Subject::Compiler)
+}
+
+#[test]
+#[ignore = "requires an explicitly executed native generated-runtime economics report"]
+fn native_runtime_samples_match_the_declared_context_and_population() -> Result<(), String> {
+    native_report("runtime-economics", Subject::Runtime)
+}
+
+fn native_report(directory: &str, subject: Subject) -> Result<(), String> {
+    let root = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join(directory);
     let declared = read_bounded(&root.join("context.txt"))?;
     let context = declared.lines().collect::<Vec<_>>();
     let [source, target, toolchain] = context.as_slice() else {
-        return Err("native compiler context must have three declared fields".to_owned());
+        return Err("native economics context must have three declared fields".to_owned());
     };
     let report = read_bounded(&root.join("timing.log"))?;
-    reconcile(&report, &[*source, *target, *toolchain])?;
+    reconcile(&report, &[*source, *target, *toolchain], subject)?;
     writeln!(std::io::stdout().lock(), "{report}").map_err(|error| error.to_string())?;
     Ok(())
 }
 
-fn complete_report() -> String {
+fn complete_report(subject: Subject) -> String {
     let mut lines = Vec::new();
-    for (family, sizes) in FAMILIES {
+    let interval = subject.interval();
+    for (family, sizes) in subject.families() {
         lines.push(format!(
-            "pilot,{family},source=source,target=target,toolchain=toolchain,profile=release,interval={INTERVAL}"
+            "pilot,{family},source=source,target=target,toolchain=toolchain,profile=release,interval={interval}"
         ));
         for size in sizes {
-            lines.push(format!(
-                "preflight,{family},{size},input-bytes=1,consumed-output-bytes=1"
-            ));
-            append_samples(&mut lines, family, size);
+            if subject.preflight_material() > 0 {
+                lines.push(format!(
+                    "preflight,{family},{size},input-bytes=1,consumed-output-bytes=1"
+                ));
+            }
+            append_samples(&mut lines, family, *size);
         }
     }
     lines.join("\n")
@@ -168,8 +224,8 @@ fn native_report_input_keeps_its_byte_bound_and_refuses_invalid_encoding() -> Re
 #[test]
 fn native_report_refuses_missing_repeated_foreign_and_unmeasured_material() -> Result<(), String> {
     let context = &["source", "target", "toolchain"];
-    let report = complete_report();
-    reconcile(&report, context)?;
+    let report = complete_report(Subject::Compiler);
+    reconcile(&report, context, Subject::Compiler)?;
     let sample = "sample,compiler-density,0,single-a,4,0,1";
     let header = "pilot,compiler-density,source=source";
     for damaged in [
@@ -190,9 +246,49 @@ fn native_report_refuses_missing_repeated_foreign_and_unmeasured_material() -> R
         report.replace("consumed-output-bytes=1", "consumed-output-bytes=0"),
         format!("{report}\nunknown-record"),
     ] {
-        assert!(reconcile(&damaged, context).is_err());
+        assert!(reconcile(&damaged, context, Subject::Compiler).is_err());
     }
-    assert!(reconcile(&report, &["", "target", "toolchain"]).is_err());
+    assert!(reconcile(&report, &["", "target", "toolchain"], Subject::Compiler).is_err());
+    Ok(())
+}
+
+#[test]
+fn runtime_population_refuses_omitted_families_wrong_axes_and_foreign_intervals()
+-> Result<(), String> {
+    let context = &["source", "target", "toolchain"];
+    let report = complete_report(Subject::Runtime);
+    reconcile(&report, context, Subject::Runtime)?;
+    assert!(reconcile(&report, context, Subject::Compiler).is_err());
+    assert!(
+        reconcile(
+            &complete_report(Subject::Compiler),
+            context,
+            Subject::Runtime
+        )
+        .is_err()
+    );
+    let sample = "sample,runtime-growing-codec,0,single-a,32,0,1";
+    for damaged in [
+        String::new(),
+        without_record(&report, "pilot,runtime-growing-codec,"),
+        without_record(&report, sample),
+        format!("{report}\n{sample}"),
+        report.replace(sample, "sample,runtime-growing-codec,0,single-a,4096,0,1"),
+        report.replace(sample, "sample,runtime-growing-codec,0,single-a,32,0,0"),
+        report.replace(sample, "sample,runtime-growing-codec,0,single-a,32,0,NaN"),
+        report.replace(sample, "sample,runtime-growing-codec,4,single-a,32,0,1"),
+        report.replace(sample, "sample,runtime-growing-codec,0,single-a,32,5,1"),
+        report.replace(sample, "sample,runtime-growing-codec,0,unknown,32,0,1"),
+        report.replace(
+            sample,
+            "sample,runtime-growing-codec,0,single-a,32,0,18446744073709551616",
+        ),
+        report.replace("source=source", "source=other"),
+        report.replace(Subject::Runtime.interval(), INTERVAL),
+        format!("{report}\npreflight,runtime-codec,256,input-bytes=1,consumed-output-bytes=1"),
+    ] {
+        assert!(reconcile(&damaged, context, Subject::Runtime).is_err());
+    }
     Ok(())
 }
 

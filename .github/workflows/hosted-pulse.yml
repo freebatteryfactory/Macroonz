@@ -591,16 +591,21 @@ jobs:
           wc -l "$MUTATION_ROOT/executed.txt" "$MUTATION_ROOT/equivalent.txt" "$MUTATION_ROOT/accounted.txt"
           git diff --exit-code HEAD --
 
-  compiler-economics:
-    name: Linux x64 compiler execution observations
+  execution-economics:
+    name: Linux x64 ${{ matrix.subject }} execution observations
+    strategy:
+      fail-fast: false
+      matrix:
+        subject: [compiler, runtime]
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     defaults:
       run:
         shell: bash
     env:
-      ECONOMICS_ROOT: ${{ github.workspace }}/target/qualification/compiler-economics
-      CARGO_TARGET_DIR: ${{ github.workspace }}/target/qualification/compiler-economics/observer
+      ECONOMICS_SUBJECT: ${{ matrix.subject }}
+      ECONOMICS_ROOT: ${{ github.workspace }}/target/qualification/${{ matrix.subject }}-economics
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target/qualification/${{ matrix.subject }}-economics/observer
 
     steps:
       - name: Check out the declared revision
@@ -656,33 +661,42 @@ jobs:
           build="$ECONOMICS_ROOT/libraries"
           test ! -e "$build"
           subject=harness/tests/recipe_economics/host
-          rustfmt +1.98.1 --edition 2024 --check "$subject/compiler-axes.rs"
+          case "$ECONOMICS_SUBJECT" in
+            compiler) entry=compiler-axes; packages=(-p macroonz-compiler -p macroonz-harness) ;;
+            runtime) entry=runtime-pilot; packages=(-p macroonz -p macroonz-harness) ;;
+            *) printf 'Unknown economics subject\n' >&2; exit 1 ;;
+          esac
+          rustfmt +1.98.1 --edition 2024 --check "$subject/$entry.rs"
           CARGO_TARGET_DIR="$build" timeout --kill-after=5s 600s cargo +1.98.1 build \
-            -p macroonz-compiler -p macroonz-harness --all-features --lib --release \
+            "${packages[@]}" --all-features --lib --release \
             --locked --offline --message-format=json > "$ECONOMICS_ROOT/artifacts.jsonl"
           test "$(grep -Fxc '{"reason":"build-finished","success":true}' "$ECONOMICS_ROOT/artifacts.jsonl")" = 1
-          compiler="$build/release/libmacroonz_compiler.rlib"
           harness="$build/release/libmacroonz_harness.rlib"
-          test -f "$compiler"
           test -f "$harness"
+          case "$ECONOMICS_SUBJECT" in
+            compiler) library="$build/release/libmacroonz_compiler.rlib"; binding=macroonz_compiler ;;
+            runtime) library="$build/release/libmacroonz.rlib"; binding=macroonz ;;
+          esac
+          test -f "$library"
           export PILOT_SOURCE="$GITHUB_SHA"
           export PILOT_TARGET="$(rustc +1.98.1 -vV | sed -n 's/^host: //p')"
           export PILOT_TOOLCHAIN="$(rustc +1.98.1 --version)"
           test -n "$PILOT_TARGET"
-          mkdir -p "$CARGO_TARGET_DIR/tmp/compiler-economics"
-          printf '%s\n' "$PILOT_SOURCE" "$PILOT_TARGET" "$PILOT_TOOLCHAIN" > "$CARGO_TARGET_DIR/tmp/compiler-economics/context.txt"
+          mkdir -p "$CARGO_TARGET_DIR/tmp/$ECONOMICS_SUBJECT-economics"
+          printf '%s\n' "$PILOT_SOURCE" "$PILOT_TARGET" "$PILOT_TOOLCHAIN" > "$CARGO_TARGET_DIR/tmp/$ECONOMICS_SUBJECT-economics/context.txt"
           timeout --kill-after=5s 120s rustc +1.98.1 --edition=2024 -D warnings \
-            -C opt-level=3 -C overflow-checks=yes --extern "macroonz_compiler=$compiler" \
+            -C opt-level=3 -C overflow-checks=yes --extern "$binding=$library" \
             --extern "macroonz_harness=$harness" -L "dependency=$build/release/deps" \
-            "$subject/compiler-axes.rs" -o "$ECONOMICS_ROOT/compiler-axes"
-          sha256sum Cargo.lock "$subject/compiler-axes.rs" "$subject/measurement.rs" \
-            "$subject/resident.rs" "$ECONOMICS_ROOT/compiler-axes" "$ECONOMICS_ROOT/artifacts.jsonl"
+            "$subject/$entry.rs" -o "$ECONOMICS_ROOT/subject"
+          sha256sum Cargo.lock "$subject/$entry.rs" "$subject/measurement.rs" \
+            "$subject/resident.rs" "$subject/runtime-shapes.rs" \
+            "$ECONOMICS_ROOT/subject" "$ECONOMICS_ROOT/artifacts.jsonl"
 
-      - name: Observe and reconcile every compiler execution sample
+      - name: Observe and reconcile every declared execution sample
         run: |
-          report="$CARGO_TARGET_DIR/tmp/compiler-economics/timing.log"
+          report="$CARGO_TARGET_DIR/tmp/$ECONOMICS_SUBJECT-economics/timing.log"
           status=0
-          (ulimit -f 4096; timeout --kill-after=5s 180s "$ECONOMICS_ROOT/compiler-axes" \
+          (ulimit -f 4096; timeout --kill-after=5s 180s "$ECONOMICS_ROOT/subject" \
             > "$report" 2> "$ECONOMICS_ROOT/timing.stderr") || status=$?
           cat "$ECONOMICS_ROOT/timing.stderr"
           if test "$status" != 0; then cat "$report"; exit "$status"; fi
@@ -690,7 +704,7 @@ jobs:
           sha256sum "$report"
           cargo +1.98.1 nextest run -j1 -p macroonz-harness --test recipe_economics --locked \
             --run-ignored only --no-tests fail --success-output final \
-            -E 'test(=bench_driver::host_report::native_compiler_samples_match_the_declared_context_and_population)'
+            -E "test(=bench_driver::host_report::native_${ECONOMICS_SUBJECT}_samples_match_the_declared_context_and_population)"
 
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --
