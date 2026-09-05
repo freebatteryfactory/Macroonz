@@ -1,0 +1,13 @@
+error[E0432]: unresolved import `macroonz_compiler::host`
+ --> tests/compile_refusals/no-host/host-is-unavailable-without-its-feature.rs:3:24
+  |
+3 | use macroonz_compiler::host::Spans;
+  |                        ^^^^ could not find `host` in `macroonz_compiler`
+  |
+note: found an item that was configured out
+ --> src/lib.rs
+  |
+  | #[cfg(feature = "host")]
+  |       ---------------- the item is gated behind the `host` feature
+  | pub mod host;
+  |         ^^^^
