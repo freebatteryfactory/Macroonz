@@ -51,6 +51,25 @@ An absent mapping is neither zero nor complete coverage.
 Stable doctest execution, Wasm compilation, other host architectures, assertion sensitivity, and delivered-package behavior retain their separate observations; the source report establishes none of them by implication.
 No branch or MC/DC percentage is claimed without an actual supported denominator.
 
+## Recipe grammar search
+
+A separate Linux x64 job runs the existing fuzz and reduction integration claims before invoking the recipe grammar campaign by exact nonempty selection.
+The campaign compiles the tracked recipe subject against an independently instrumented compiler library in exclusive disposable storage.
+A wrapper-only negative control must execute successfully without establishing compiler grammar coverage; the positive campaign must observe that compiler source itself.
+Source revision, exact build commands, active toolchain, actual target, seeds, and resource ceilings are declared or reported before search.
+
+The harness's generation and neighboring-input roads supply bounded candidates, its coverage frontier selects retained parents, and its corpus pack and warm-start roads replay every retained seed.
+Malformed grammar is an ordinary refusal, not a crash.
+Repeatability failures, incomplete successful output, and unsuccessful subject execution fail the claim.
+A separately labeled deliberately wrong expectation supplies a reduction and exact-derived replay control even when the search finds no compiler defect.
+That planted disagreement is not reported as a product finding.
+
+Per-subject timeout supervision is qualified against a parked process, while the search and replay loop has its own timeout signal.
+Compiler and LLVM child-tool stalls remain bounded by the job timeout, not by a claimed per-tool cancellation mechanism.
+Deadline delivery remains subject to operating-system scheduling latency.
+Case, byte, export, coverage-point, and retained-corpus bounds belong to the declared campaign; reaching an execution ceiling cannot be reported as an unbounded search.
+Stable line-coverage guidance is neither edge-coverage fuzzing nor a proof that the grammar has no defects.
+
 ## Reproducibility and custody
 
 The workflow installs the repository's exact stable Rust toolchain and exact auxiliary tool versions.

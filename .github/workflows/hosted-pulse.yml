@@ -339,6 +339,61 @@ jobs:
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --
 
+  recipe-grammar:
+    name: Linux x64 recipe grammar campaign
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target/qualification/recipe-grammar-runner
+
+    steps:
+      - name: Check out the declared revision
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Restore declared Cargo registry material
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git/db
+          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.1-${{ hashFiles('Cargo.lock') }}
+
+      - name: Install the declared Rust toolchain
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy --component rust-src --component llvm-tools-preview --target wasm32-unknown-unknown
+
+      - name: Install the declared test runner
+        uses: taiki-e/install-action@5b4d68e2e660441203ab128a23676f1e4faf1532 # v2.86.3
+        with:
+          tool: cargo-nextest@0.9.132
+          fallback: none
+
+      - name: Record host and tool identities
+        run: |
+          uname -a
+          rustc +1.98.1 --version --verbose
+          cargo +1.98.1 --version --verbose
+          cargo nextest --version
+          git --version
+
+      - name: Fetch the locked dependency graph
+        run: |
+          cargo +1.98.1 fetch --locked
+          echo "CARGO_NET_OFFLINE=true" >> "$GITHUB_ENV"
+
+      - name: Qualify the fuzz and reduction instruments
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --all-features --test fuzz_compose --test reduction_instrument --locked --no-fail-fast --no-tests fail
+
+      - name: Run the coverage-guided recipe grammar campaign
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --all-features --test fuzz_compose --locked --run-ignored only --no-tests fail --success-output final -E 'test(=recipe_grammar::the_recipe_grammar_uses_coverage_feedback_corpus_reduction_and_replay)'
+
+      - name: Refuse tracked-tree mutation
+        run: git diff --exit-code HEAD --
+
   source-coverage:
     name: Linux x64 source coverage
     runs-on: blacksmith-4vcpu-ubuntu-2404

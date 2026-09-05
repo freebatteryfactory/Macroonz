@@ -132,6 +132,7 @@ pub(super) fn trial_fixture() -> Option<TrialFixture> {
         "compose",
         "fuzz-interesting",
         TrialSite::located(module_path!(), file!(), line!(), "fuzz-compose"),
+        super::trial_fixture::synthetic_target(),
     )
 }
 

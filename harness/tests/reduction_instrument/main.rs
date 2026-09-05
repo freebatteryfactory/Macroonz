@@ -122,6 +122,7 @@ fn trial_fixture() -> Option<TrialFixture> {
         "outside-consumer",
         "reduction-candidates",
         TrialSite::located(module_path!(), file!(), line!(), "reduction"),
+        trial_fixture::synthetic_target(),
     )
 }
 

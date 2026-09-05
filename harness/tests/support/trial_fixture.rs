@@ -14,10 +14,19 @@ use macroonz_harness::report::{
 };
 use macroonz_harness::runner::{Invocation, run_one};
 
+/// An inert target label for synthetic fixture observations, not a host measurement.
+pub(crate) fn synthetic_target() -> TargetBinding {
+    TargetBinding::bound(
+        TargetTriple::declared("x86_64-pc-windows-msvc"),
+        ToolchainIdentity::declared("1.98.0"),
+    )
+}
+
 /// One package-local trial whose semantic names and callable remain the caller's.
 pub(crate) struct TrialFixture {
     row: Row,
     site: TrialSite,
+    target: TargetBinding,
 }
 
 impl TrialFixture {
@@ -29,6 +38,7 @@ impl TrialFixture {
         tag: &'static str,
         population: &'static str,
         trial_site: TrialSite,
+        target: TargetBinding,
     ) -> Option<Self> {
         let subject = SubjectRoute::named("harness", "byte-input").ok()?;
         let check = CheckRef::named("harness", "fingerprint-preserved").ok()?;
@@ -49,6 +59,7 @@ impl TrialFixture {
         Some(Self {
             row,
             site: trial_site,
+            target,
         })
     }
 
@@ -99,10 +110,7 @@ impl TrialFixture {
                 ByteBudget::declared(64),
                 TimeBudget::declared(1_000_000),
             ),
-            TargetBinding::bound(
-                TargetTriple::declared("x86_64-pc-windows-msvc"),
-                ToolchainIdentity::declared("1.98.0"),
-            ),
+            self.target.clone(),
             self.site,
             HarnessClock::unavailable(),
         )
