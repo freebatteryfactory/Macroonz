@@ -211,10 +211,15 @@ jobs:
                   }
                   foreach ($name in @('context.txt','timing.log')) { $paths.Add("$report/$name") }
                   if ($env:ECONOMICS_SUBJECT -ceq 'compiler') {
+                      foreach ($name in @('memory-order.csv','memory-summary.csv')) { $paths.Add("$root/$name") }
+                      foreach ($name in @('context.txt','timing.log')) { $paths.Add("$report/baseline/$name") }
                       $names = [Collections.Generic.List[string]]::new()
                       foreach ($round in 0..3) {
                           foreach ($bytes in @(0,16777216,67108864)) { $names.Add("allocation-$round-$bytes") }
-                          foreach ($pair in @('density-4','density-16','density-64','codec-width-1','codec-width-8','codec-width-32','late-duplicate-8','late-duplicate-32','late-duplicate-127','near-limit-62','near-limit-63','near-limit-64')) { $names.Add("compiler-$round-$pair") }
+                          foreach ($pair in @('density-4','density-16','density-64','codec-width-1','codec-width-8','codec-width-32','late-duplicate-8','late-duplicate-32','late-duplicate-127','near-limit-62','near-limit-63','near-limit-64')) {
+                              $names.Add("compiler-$round-$pair")
+                              foreach ($extension in @('time','stdout','stderr','status')) { $paths.Add("$report/baseline/memory/compiler-$round-$pair.$extension") }
+                          }
                       }
                       foreach ($name in @('missing-release','failed-child','deadline')) { $names.Add($name) }
                       foreach ($name in $names) {
@@ -237,7 +242,7 @@ jobs:
           }
           $fileLimit = 16MB
           $totalLimit = 96MB
-          if ($paths.Count -gt 384) { throw 'Report roster exceeds its file bound' }
+          if ($paths.Count -gt 512) { throw 'Report roster exceeds its file bound' }
           $destination = Join-Path $env:RUNNER_TEMP 'macroonz-diagnostic-reports'
           if (Test-Path -LiteralPath $destination) { throw 'Report staging must be fresh' }
           New-Item -ItemType Directory -Path $destination | Out-Null
@@ -982,9 +987,13 @@ jobs:
           timeout --kill-after=5s 120s rustc +1.98.1 --edition=2024 -D warnings \
             -C opt-level=3 -C overflow-checks=yes "$subject/memory-control.rs" -o "$ECONOMICS_ROOT/memory-control"
           sha256sum "$subject/memory-control.rs" "$subject/resident.rs" "$ECONOMICS_ROOT/memory-control"
-          memory="$CARGO_TARGET_DIR/tmp/compiler-economics/memory"
+          report_root="$CARGO_TARGET_DIR/tmp/compiler-economics"
+          memory="$report_root/memory"
           test ! -e "$memory"
-          mkdir -p "$memory"
+          test ! -e "$report_root/baseline"
+          mkdir -p "$memory" "$report_root/baseline/memory"
+          { printf '%s\n' "$ECONOMICS_BASELINE"; tail -n +2 "$report_root/context.txt"; } > "$report_root/baseline/context.txt"
+          cp "$ECONOMICS_ROOT/comparison/3-baseline.log" "$report_root/baseline/timing.log"
           observe_memory() {
             local name="$1" deadline="$2" release="$3" status=0
             shift 3
@@ -995,6 +1004,7 @@ jobs:
             return "$status"
           }
           for round in 0 1 2 3; do
+            memory="$report_root/memory"
             allocations=(0 16777216 67108864)
             cases=(density:4 density:16 density:64 codec-width:1 codec-width:8 codec-width:32
               late-duplicate:8 late-duplicate:32 late-duplicate:127 near-limit:62 near-limit:63 near-limit:64)
@@ -1009,9 +1019,21 @@ jobs:
             done
             for pair in "${cases[@]}"; do
               family="${pair%:*}"; size="${pair#*:}"
-              observe_memory "compiler-$round-$family-$size" 10s $'release\n' "$ECONOMICS_ROOT/subject" memory "$family" "$size"
+              sides=(baseline candidate)
+              if (( round % 2 )); then sides=(candidate baseline); fi
+              for side in "${sides[@]}"; do
+                case "$side" in
+                  baseline) memory="$report_root/baseline/memory"; binary="$ECONOMICS_ROOT/subject-baseline"; source="$ECONOMICS_BASELINE" ;;
+                  candidate) memory="$report_root/memory"; binary="$ECONOMICS_ROOT/subject"; source="$GITHUB_SHA" ;;
+                esac
+                status=0
+                observe_memory "compiler-$round-$family-$size" 10s $'release\n' "$binary" memory "$family" "$size" || status=$?
+                printf '%s,%s,%s,%s,%s,%s\n' "$round" "$family" "$size" "$side" "$source" "$status" >> "$ECONOMICS_ROOT/memory-order.csv"
+                test "$status" = 0
+              done
             done
           done
+          memory="$report_root/memory"
           status=0
           observe_memory missing-release 10s '' "$ECONOMICS_ROOT/subject" memory density 4 || status=$?
           test "$status" = 1
@@ -1027,6 +1049,62 @@ jobs:
           cargo +1.98.1 nextest run -j1 -p macroonz-harness --test recipe_economics --locked \
             --run-ignored only --no-tests fail --success-output final \
             -E 'test(=bench_driver::host_report::memory::native_memory_reports_require_completed_children_and_all_declared_observations)'
+
+      - name: Report paired compiler memory without efficiency thresholds
+        if: matrix.subject == 'compiler'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+          $context = @(Get-Content -LiteralPath "$env:ECONOMICS_ROOT/comparison-context.txt")
+          if ($context.Count -ne 4 -or $context[0] -cne $env:ECONOMICS_BASELINE -or $context[1] -cne $env:GITHUB_SHA -or $context[0] -ceq $context[1]) { throw 'Memory comparison context moved' }
+          $timing = Get-Content -LiteralPath "$env:ECONOMICS_ROOT/comparison-summary.csv" | Select-Object -Skip 1 | ConvertFrom-Csv
+          $pairs = @(foreach ($row in $timing) {
+              if (-not $row.family.StartsWith('compiler-', [StringComparison]::Ordinal)) { throw 'Foreign memory family' }
+              "$($row.family.Substring(9)),$($row.input)"
+          }) | Sort-Object -Unique
+          $pairs = @($pairs)
+          $order = @(Get-Content -LiteralPath "$env:ECONOMICS_ROOT/memory-order.csv")
+          if ($pairs.Count -eq 0 -or $order.Count -ne $pairs.Count * 8) { throw 'Incomplete memory comparison order' }
+          $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+          for ($index = 0; $index -lt $order.Count; $index++) {
+              $fields = $order[$index].Split(',')
+              if ($fields.Count -ne 6) { throw 'Malformed memory order record' }
+              $round = [int][Math]::Floor($index / ($pairs.Count * 2))
+              $side = if (($round + $index) % 2 -eq 0) { 'baseline' } else { 'candidate' }
+              $revision = if ($side -ceq 'baseline') { $context[0] } else { $context[1] }
+              $pair = "$($fields[1]),$($fields[2])"
+              if ($fields[0] -cne "$round" -or $fields[3] -cne $side -or $fields[4] -cne $revision -or $fields[5] -cne '0' -or $pair -cnotin $pairs -or -not $seen.Add("$round,$pair,$side")) { throw 'Missing, repeated, reordered or unsuccessful memory observation' }
+              if ($index % 2 -eq 1 -and $pair -cne $previousPair) { throw 'Memory pair was separated' }
+              $previousPair = $pair
+          }
+          $report = "$env:CARGO_TARGET_DIR/tmp/compiler-economics"
+          $rows = @("baseline=$($context[0]);candidate=$($context[1]);target=$($context[2]);toolchain=$($context[3]);scope=child-process-maximum-rss;unit=KiB;report-only",
+              'family,input,baseline-min,baseline-median,baseline-max,candidate-min,candidate-median,candidate-max,candidate-over-baseline-median')
+          foreach ($pair in $pairs) {
+              $parts = $pair.Split(',')
+              $populations = @{}
+              foreach ($side in @('baseline','candidate')) {
+                  $directory = if ($side -ceq 'baseline') { "$report/baseline/memory" } else { "$report/memory" }
+                  $values = [Collections.Generic.List[ulong]]::new()
+                  foreach ($round in 0..3) {
+                      $native = Get-Content -LiteralPath "$directory/compiler-$round-$($parts[0])-$($parts[1]).time" -Raw
+                      if ($native -cnotmatch '\Apeak-kib=([0-9]+) status=0\n\z') { throw 'Invalid native memory record' }
+                      $peak = [ulong]::Parse($Matches[1], [Globalization.CultureInfo]::InvariantCulture)
+                      if ($peak -eq 0) { throw 'Unavailable native memory' }
+                      $values.Add($peak)
+                  }
+                  $values.Sort()
+                  $populations[$side] = $values
+              }
+              $left = $populations.baseline; $right = $populations.candidate
+              $leftMedian = ([double]$left[1] + [double]$left[2]) / 2
+              $rightMedian = ([double]$right[1] + [double]$right[2]) / 2
+              $values = @($left[0],$leftMedian,$left[3],$right[0],$rightMedian,$right[3],($rightMedian / $leftMedian))
+              $rows += "$pair,$((@($values | ForEach-Object { $_.ToString([Globalization.CultureInfo]::InvariantCulture) })) -join ',')"
+          }
+          $rows | Set-Content -LiteralPath "$env:ECONOMICS_ROOT/memory-summary.csv" -Encoding utf8NoBOM
+          $rows
 
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --

@@ -90,6 +90,27 @@ fn allocations(root: &Path, round: u64) -> Result<(), String> {
 fn native_memory_reports_require_completed_children_and_all_declared_observations()
 -> Result<(), String> {
     let root = Path::new(env!("CARGO_TARGET_TMPDIR")).join("compiler-economics");
+    for round in 0..4_u64 {
+        allocations(&root.join("memory"), round)?;
+    }
+    let candidate = compiler_population(&root)?;
+    let baseline = compiler_population(&root.join("baseline"))?;
+    if candidate == baseline {
+        return Err("memory comparison must name distinct source revisions".to_owned());
+    }
+    Ok(())
+}
+
+fn compiler_output(
+    [source, target, toolchain]: [&str; 3],
+    (family, size, bytes, checksum): (&str, u64, u64, u64),
+) -> String {
+    format!(
+        "memory-compiler source={source} target={target} toolchain={toolchain} family=compiler-{family} input={size} retained-bytes={bytes} consumed-checksum={checksum}\n"
+    )
+}
+
+fn compiler_population(root: &Path) -> Result<String, String> {
     let declared = read_bounded(&root.join("context.txt"))?;
     let context = declared.lines().collect::<Vec<_>>();
     let [source, target, toolchain] = context.as_slice() else {
@@ -100,21 +121,48 @@ fn native_memory_reports_require_completed_children_and_all_declared_observation
         &[*source, *target, *toolchain],
         super::Subject::Compiler,
     )?;
-    let root = root.join("memory");
+    writeln!(
+        std::io::stdout().lock(),
+        "memory-population source={source} target={target} toolchain={toolchain}"
+    )
+    .map_err(|error| error.to_string())?;
     for round in 0..4_u64 {
-        allocations(&root, round)?;
-        for (family, size, bytes, checksum) in OUTPUTS {
-            let expected = format!(
-                "memory-compiler family=compiler-{family} input={size} retained-bytes={bytes} consumed-checksum={checksum}\n"
-            );
+        for output @ (family, size, _, _) in OUTPUTS {
+            let expected = compiler_output([source, target, toolchain], output);
             observation(
-                &root,
+                &root.join("memory"),
                 &format!("compiler-{round}-{family}-{size}"),
                 &expected,
             )?;
         }
     }
-    Ok(())
+    Ok((*source).to_owned())
+}
+
+#[test]
+fn memory_output_custody_refuses_another_revision_target_or_compiler() {
+    let expected = "memory-compiler source=source target=target toolchain=toolchain family=compiler-density input=4 retained-bytes=2424 consumed-checksum=56533\n";
+    let output = ("density", 4, 2424, 56533);
+    assert_eq!(
+        compiler_output(["source", "target", "toolchain"], output),
+        expected
+    );
+    for context in [
+        ["other", "target", "toolchain"],
+        ["source", "other", "toolchain"],
+        ["source", "target", "other"],
+    ] {
+        assert!(
+            reading(
+                "peak-kib=4096 status=0\n",
+                &compiler_output(context, output),
+                "",
+                "0\n",
+                expected
+            )
+            .is_err()
+        );
+    }
 }
 
 #[test]

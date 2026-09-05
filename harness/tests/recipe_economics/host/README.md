@@ -13,6 +13,7 @@ Its call-count and structure-width axes remain separate, and its timed codec int
 Identical work must fail the planted-worse gate; doubled actual execution must satisfy the declared work distinction before timing begins.
 `resident.rs` holds the consumed bytes until the external observer supplies the exact release token and EOF.
 A readiness line without a successful process exit does not establish a completed observation.
+The compiler's memory output carries the declared source, target and toolchain alongside its consumed-byte vector, so matching output sizes cannot substitute for revision custody.
 `memory-control.rs` supplies the external allocation-sensitivity and failed-child/deadline controls; it measures no Macroonz behavior itself.
 `build-adopter.rs` supplies the independently consumed recipe for an external Cargo build observation.
 `build-control.rs` supplies output-bound, failed-child, timeout and inherited-stream controls for that observation's external process host.

@@ -129,6 +129,9 @@ The compiler sibling also records GNU time's child-process maximum resident set 
 Allocation controls touch and consume declared zero, medium and large buffers in alternating rounds; the instrument must distinguish their increasing resident sizes before the memory observation qualifies.
 Each compiler family/size process inspects its output or exact refusal and holds consumed material through the declared release protocol.
 The economics target requires every declared observation, positive native RSS, successful process status, empty stderr and the exact retained output length/checksum vector.
+Each compiler memory child also carries its compiled source, target, and toolchain context in that consumed-output record.
+Baseline and candidate use the same specimen in alternating per-input pairs, with complete revision-bound populations and a shared independently checked allocation-sensitivity control.
+The report exposes every process peak and per-input minimum, median, maximum, and ratio; no memory-efficiency threshold is inferred from the native resident-set measurement.
 Readiness alone cannot admit a result: missing release, failed-child and deadline controls preserve their nonzero exits.
 Memory includes startup, compiler execution, output inspection, release handling and exit; it is not compiler-only heap allocation, leak detection, simultaneous process-tree residency or a memory-efficiency verdict.
 The scalar vectors bind consumed output to these subjects; independent structural expectations remain with their correctness preflight.
@@ -181,7 +184,7 @@ The hosted observation becomes durable only when a compact receipt or promoted r
 ## Short-lived diagnostic reports
 
 Each job retains an explicit file roster through GitHub's pinned artifact action for seven days.
-The workflow's shared collector owns the exact paths and byte bounds: at most 384 named input files, 16 MiB per file, 96 MiB combined, plus a manifest bounded to 1 MiB.
+The workflow's shared collector owns the exact paths and byte bounds: at most 512 named input files, 16 MiB per file, 96 MiB combined, plus a manifest bounded to 1 MiB.
 Only existing named report files are read; no recursive directory or wildcard upload selects material.
 The collector rejects paths outside the declared target, linked path components, directories, invalid UTF-8, binary NULs, and oversized files rather than truncating them.
 Every retained file has its original length and SHA-256 in the manifest, alongside source, run, attempt, job, and the job's preceding status.

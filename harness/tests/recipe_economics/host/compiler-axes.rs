@@ -418,7 +418,10 @@ fn main() -> Result<(), String> {
         let material = compile(family, black_box(size), true)?;
         let checksum = resident::checksum(&material)?;
         println!(
-            "memory-compiler family={} input={size} retained-bytes={} consumed-checksum={checksum}",
+            "memory-compiler source={} target={} toolchain={} family={} input={size} retained-bytes={} consumed-checksum={checksum}",
+            env!("PILOT_SOURCE"),
+            env!("PILOT_TARGET"),
+            env!("PILOT_TOOLCHAIN"),
             family.owner(),
             material.len()
         );
