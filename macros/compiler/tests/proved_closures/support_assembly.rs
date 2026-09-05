@@ -1,5 +1,8 @@
 //! The support assembly observed through the closure lane's expansions: cargo proved under another declaration refuses the join, sources follow axis order, declared parentage leaves the canonical axis bytes unchanged, and promoted cargo cannot be reseated.
 
+#[path = "assembly_diagnostics.rs"]
+mod diagnostics;
+
 use super::{DECLARATION, DOOR, OTHER_DECLARATION, expansion, expansion_rendered, spelled};
 use macroonz_compiler::support::{
     AssemblyIssue, AxisCargo, CargoAxis, DeclaredCargo, DeferredCargo, EXPECTED_SCHEMA_ID,
