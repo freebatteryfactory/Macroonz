@@ -168,10 +168,26 @@ Archive tools are runner-provided and their versions are recorded.
 Development archive tests permit a dirty checkout; the hosted lane refuses tracked-source movement before assembly, while final release qualification separately requires a clean committed source and exact candidate hashes.
 The hosted observation becomes durable only when a compact receipt or promoted regression enters Git through ordinary review.
 
+## Short-lived diagnostic reports
+
+Each job retains an explicit file roster through GitHub's pinned artifact action for seven days.
+The workflow's shared collector owns the exact paths and byte bounds: at most 384 named input files, 16 MiB per file, 96 MiB combined, plus a manifest bounded to 1 MiB.
+Only existing named report files are read; no recursive directory or wildcard upload selects material.
+The collector rejects paths outside the declared target, linked path components, directories, invalid UTF-8, binary NULs, and oversized files rather than truncating them.
+Every retained file has its original length and SHA-256 in the manifest, alongside source, run, attempt, job, and the job's preceding status.
+Missing reports on failed or cancelled jobs remain explicitly missing, not successful empty observations; missing reports after otherwise successful qualification fail custody.
+Admissible reports remain uploadable when another report refuses, and neither collection nor upload suppresses the original job failure.
+Runner loss or a hard job timeout may prevent these final steps; retention is not a guarantee of reports from an unavailable host.
+
+The roster includes ordinary JUnit, grammar console output, mutation selections and native outcomes, library coverage summaries and source inventories, and native economics records.
+HTML source listings, source patches, copied source, package archives, binaries, build directories, credentials, secrets, unrelated files, and environment dumps are excluded.
+The text checks are not a comprehensive secret detector; custody relies on the declared report producers receiving no secrets and never collecting credential or general environment material.
+Complete human-readable failures also remain in step logs; retained reports have no release-acceptance authority and use no third-party reporting service.
+
 ## Deliberate limits
 
 The pulse is manual, reporting-only, bounded by job timeouts, and cancels an older run for the same ref.
-It has no secret, publication, release, attestation, artifact-upload, scheduled, push, or pull-request path.
+It has no secret, publication, release, attestation, scheduled, push, or pull-request path.
 It creates no required check, branch rule, or automatic retry loop.
 
 The coverage example observes the coverage machinery, not the separate library-source report.

@@ -169,6 +169,137 @@ jobs:
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --
 
+      - &stage-reports
+        name: Stage only bounded diagnostic reports
+        id: reports
+        if: always()
+        shell: pwsh
+        env:
+          REPORT_JOB: ${{ github.job }}
+          REPORT_STATUS: ${{ job.status }}
+          REPORT_SOURCE: ${{ github.sha }}
+          REPORT_RUN: ${{ github.run_id }}
+          REPORT_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+          $repository = [IO.Path]::GetFullPath($env:GITHUB_WORKSPACE)
+          $target = if ($env:CARGO_TARGET_DIR) { [IO.Path]::GetFullPath($env:CARGO_TARGET_DIR) } else { "$repository/target" }
+          $paths = [Collections.Generic.List[string]]::new()
+          switch -Exact ($env:REPORT_JOB) {
+              { $_ -in @('linux-x64','unix-crossings','windows-x64') } { $paths.Add("$target/nextest/ci/junit.xml") }
+              'recipe-grammar' { $paths.Add("$target/grammar.log") }
+              'source-coverage' {
+                  foreach ($name in @('nextest/ci/junit.xml','library-summary.json','library.lcov','tracked-sources.txt','mapped-sources.txt','unowned-mappings.txt','unmapped-sources.txt')) { $paths.Add("$target/$name") }
+              }
+              'mutation-campaign' {
+                  $root = "$repository/target/qualification/mutation"
+                  foreach ($name in @('compiler.txt','proc.txt','equivalent.txt','planned.txt','accounted.txt','declared.txt','duplicates.txt','executed.txt')) { $paths.Add("$root/$name") }
+                  foreach ($family in @('recipe','token','descriptor','shared','spans')) {
+                      foreach ($name in @('selected.txt','input/expected.tsv','input/console.txt','input/command.txt','input/version.txt','input/target.txt','input/toolchain.txt','input/sources.txt','report/mutants.out/outcomes.json')) { $paths.Add("$root/$family/$name") }
+                  }
+              }
+              'execution-economics' {
+                  if ($env:ECONOMICS_SUBJECT -cnotin @('compiler','runtime')) { throw 'Unknown report subject' }
+                  $root = "$repository/target/qualification/$env:ECONOMICS_SUBJECT-economics"
+                  $report = "$target/tmp/$env:ECONOMICS_SUBJECT-economics"
+                  foreach ($name in @('artifacts.jsonl','timing.stderr')) { $paths.Add("$root/$name") }
+                  foreach ($name in @('context.txt','timing.log')) { $paths.Add("$report/$name") }
+                  if ($env:ECONOMICS_SUBJECT -ceq 'compiler') {
+                      $names = [Collections.Generic.List[string]]::new()
+                      foreach ($round in 0..3) {
+                          foreach ($bytes in @(0,16777216,67108864)) { $names.Add("allocation-$round-$bytes") }
+                          foreach ($pair in @('density-4','density-16','density-64','codec-width-1','codec-width-8','codec-width-32','late-duplicate-8','late-duplicate-32','late-duplicate-127','near-limit-62','near-limit-63','near-limit-64')) { $names.Add("compiler-$round-$pair") }
+                      }
+                      foreach ($name in @('missing-release','failed-child','deadline')) { $names.Add($name) }
+                      foreach ($name in $names) {
+                          foreach ($extension in @('time','stdout','stderr','status')) { $paths.Add("$report/memory/$name.$extension") }
+                      }
+                  }
+              }
+              'adopter-economics' {
+                  $root = "$repository/target/qualification/adopter-economics"
+                  foreach ($name in @('control-build','workspace-graph','adopter-lock','adopter-graph')) { $paths.Add("$root/native/$name.json") }
+                  foreach ($round in 0..2) {
+                      foreach ($phase in @('cold','warm','edited','edited-warm')) {
+                          foreach ($kind in @('build','consumer')) { $paths.Add("$root/native/$round-$phase-$kind.json") }
+                      }
+                      foreach ($kind in @('wrong-model','clean')) { $paths.Add("$root/native/$round-$kind.json") }
+                  }
+                  foreach ($name in @('context.txt','builds.log')) { $paths.Add("$target/tmp/adopter-economics/$name") }
+              }
+              default { throw 'Unknown report job' }
+          }
+          $fileLimit = 16MB
+          $totalLimit = 96MB
+          if ($paths.Count -gt 384) { throw 'Report roster exceeds its file bound' }
+          $destination = Join-Path $env:RUNNER_TEMP 'macroonz-diagnostic-reports'
+          if (Test-Path -LiteralPath $destination) { throw 'Report staging must be fresh' }
+          New-Item -ItemType Directory -Path $destination | Out-Null
+          $rows = [Collections.Generic.List[object]]::new()
+          $uploads = [Collections.Generic.List[string]]::new()
+          $total = 0L
+          $failed = $false
+          foreach ($path in $paths) {
+              $relative = [IO.Path]::GetRelativePath($repository, [IO.Path]::GetFullPath($path)).Replace('\','/')
+              $row = [ordered]@{ path = $relative; disposition = 'missing'; bytes = 0; sha256 = $null }
+              try {
+                  if (-not $relative.StartsWith('target/', [StringComparison]::Ordinal) -or $relative.Split('/') -contains '..') { throw 'Report escaped the declared target' }
+                  $cursor = $repository
+                  foreach ($part in $relative.Split('/')) {
+                      $cursor = Join-Path $cursor $part
+                      if (Test-Path -LiteralPath $cursor) {
+                          if ((Get-Item -Force -LiteralPath $cursor).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Linked report path refused' }
+                      }
+                  }
+                  if (Test-Path -LiteralPath $path) {
+                      $item = Get-Item -Force -LiteralPath $path
+                      if ($item.PSIsContainer) { throw 'Report directory refused' }
+                      if ($item.Length -gt $fileLimit -or $item.Length -gt $totalLimit - $total) { throw 'Report byte bound exceeded' }
+                      $stream = [IO.File]::Open($path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+                      try {
+                          if ($stream.Length -gt $fileLimit -or $stream.Length -gt $totalLimit - $total) { throw 'Report grew beyond its byte bound' }
+                          $bytes = [byte[]]::new([int]$stream.Length)
+                          $stream.ReadExactly($bytes)
+                          if ($stream.ReadByte() -ne -1) { throw 'Report changed while reading' }
+                      } finally { $stream.Dispose() }
+                      $text = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
+                      if ($text.Contains([char]0)) { throw 'Binary report refused' }
+                      $output = Join-Path $destination (('{0:D3}-' -f $rows.Count) + [IO.Path]::GetFileName($path))
+                      [IO.File]::WriteAllBytes($output, $bytes)
+                      $uploads.Add($output)
+                      $row.disposition = 'retained'
+                      $row.bytes = $bytes.Length
+                      $row.sha256 = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes))
+                      $total += $bytes.Length
+                  } elseif ($env:REPORT_STATUS -ceq 'success') { throw 'Required successful-run report missing' }
+              } catch {
+                  $failed = $true
+                  $row.disposition = "refused: $($_.Exception.Message)"
+                  Write-Warning "$relative : $($row.disposition)"
+              }
+              $rows.Add([pscustomobject]$row)
+          }
+          $manifest = Join-Path $destination 'manifest.json'
+          [ordered]@{ source = $env:REPORT_SOURCE; run = $env:REPORT_RUN; attempt = $env:REPORT_ATTEMPT; job = $env:REPORT_JOB; prior_status = $env:REPORT_STATUS; file_limit = $fileLimit; total_limit = $totalLimit; retained_bytes = $total; reports = @($rows) } |
+              ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $manifest -Encoding utf8NoBOM
+          if ((Get-Item -LiteralPath $manifest).Length -gt 1MB) { throw 'Report manifest exceeds its bound' }
+          $uploads.Add($manifest)
+          @('paths<<MACROONZ_REPORT_PATHS', $uploads, 'MACROONZ_REPORT_PATHS') | Add-Content -LiteralPath $env:GITHUB_OUTPUT -Encoding utf8NoBOM
+          if ($failed) { throw 'Report custody refused one or more files; admissible reports remain uploadable' }
+
+      - &upload-reports
+        name: Retain bounded reports for seven days
+        if: always() && steps.reports.outputs.paths != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: reports-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ strategy.job-index }}-${{ github.run_attempt }}
+          path: ${{ steps.reports.outputs.paths }}
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
+          overwrite: false
+
   unix-crossings:
     name: ${{ matrix.lane }} host crossing
     strategy:
@@ -257,6 +388,9 @@ jobs:
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --
 
+      - *stage-reports
+      - *upload-reports
+
   windows-x64:
     name: Windows x64 host crossing
     runs-on: windows-2025
@@ -339,6 +473,9 @@ jobs:
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --
 
+      - *stage-reports
+      - *upload-reports
+
   recipe-grammar:
     name: Linux x64 recipe grammar campaign
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -389,10 +526,16 @@ jobs:
         run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --all-features --test fuzz_compose --test reduction_instrument --locked --no-fail-fast --no-tests fail
 
       - name: Run the coverage-guided recipe grammar campaign
-        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --all-features --test fuzz_compose --locked --run-ignored only --no-tests fail --success-output final -E 'test(=recipe_grammar::the_recipe_grammar_uses_coverage_feedback_corpus_reduction_and_replay)'
+        run: |
+          mkdir -p "$CARGO_TARGET_DIR"
+          cargo +1.98.1 nextest run -j1 -p macroonz-harness --all-features --test fuzz_compose --locked --run-ignored only --no-tests fail --success-output final \
+            -E 'test(=recipe_grammar::the_recipe_grammar_uses_coverage_feedback_corpus_reduction_and_replay)' 2>&1 | tee "$CARGO_TARGET_DIR/grammar.log"
 
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --
+
+      - *stage-reports
+      - *upload-reports
 
   mutation-campaign:
     name: Linux x64 changed-source mutation
@@ -591,6 +734,9 @@ jobs:
           wc -l "$MUTATION_ROOT/executed.txt" "$MUTATION_ROOT/equivalent.txt" "$MUTATION_ROOT/accounted.txt"
           git diff --exit-code HEAD --
 
+      - *stage-reports
+      - *upload-reports
+
   execution-economics:
     name: Linux x64 ${{ matrix.subject }} execution observations
     strategy:
@@ -765,6 +911,9 @@ jobs:
 
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --
+
+      - *stage-reports
+      - *upload-reports
 
   adopter-economics:
     name: Windows x64 adopter build observations
@@ -1099,6 +1248,9 @@ jobs:
         run: git diff --exit-code HEAD --
 
 
+      - *stage-reports
+      - *upload-reports
+
   source-coverage:
     name: Linux x64 source coverage
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -1232,3 +1384,6 @@ jobs:
 
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --
+
+      - *stage-reports
+      - *upload-reports
