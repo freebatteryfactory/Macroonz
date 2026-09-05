@@ -1,5 +1,8 @@
 //! Benchmark choreography shared by the two independent recipe work families.
 
+#[path = "repetition.rs"]
+mod repetition;
+
 use macroonz_harness::bench::{
     BenchAttachment, BenchBinding, BenchCall, BenchMeasurement, BenchOutcome, BenchReferences,
     BenchReport, BenchRow, BenchStage, BenchTable, BenchTableName, ComplexityClaimRef,
@@ -83,8 +86,8 @@ pub(super) fn record<F: WorkFamily>(
     repetitions: u64,
     recorder: &mut WorkRecorder,
 ) -> Result<(), WorkRecordingRefusal> {
-    let counts = family.counts(axis);
     for _ in 0..repetitions {
+        let counts = family.counts(axis);
         for (name, count) in F::observation_names()
             .iter()
             .copied()
