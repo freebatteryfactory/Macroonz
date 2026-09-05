@@ -234,3 +234,53 @@ The observation consists of the owner's checklist responses, five screenshots, a
 The final screenshot showed no detected workspace problems and no visible recurrence of the codec `count` diagnostic.
 This closes the tested local editor recheck, not universal editor support, hosted qualification, or release acceptance.
 The previously named grammar-word hover and by-spelling source-attribution ceilings remain unchanged.
+
+## Final manual hosted qualification
+
+Qualified source: `ebd4a5804a227d264693e7ae5ffcc7630328ae84`.
+Qualified tree: `9a9485802e7360b5d6612fa3db81f152e0ccf540`.
+Workflow blob: `e9432d58e92e153317639d784bf083ed3bde84c4`.
+Manual [run 33978493149](https://github.com/freebatteryfactory/Macroonz/actions/runs/33978493149), attempt one, began at `2026-09-05T16:38:22Z` and completed successfully at `2026-09-05T17:42:42Z`.
+
+| Hosted observation | Job ID | Conclusion |
+| --- | --- | --- |
+| Blacksmith Linux x64 complete wall | 101339317235 | success |
+| Blacksmith Linux ARM64 host crossing | 101339317334 | success |
+| GitHub Windows x64 host crossing | 101339317096 | success |
+| GitHub macOS ARM64 host crossing | 101339317291 | success |
+| Blacksmith Linux x64 source coverage | 101339317230 | success |
+| Blacksmith Linux x64 changed-source mutation | 101339317258 | success |
+| Blacksmith Linux x64 recipe grammar campaign | 101339317225 | success |
+| Blacksmith Linux x64 compiler execution observations | 101339317719 | success |
+| Blacksmith Linux x64 runtime execution observations | 101339317282 | success |
+| GitHub Windows x64 adopter build observations | 101339317188 | success |
+
+Each native wall and the coverage ordinary run passed 688 tests with zero failures or errors; separate explicit commands passed the feature postures, no-harness controls, five long campaigns and extracted-package adoption.
+The mutation reports reconcile 899 actual executions as 221 caught and 678 compiler-unviable, with zero misses or timeouts, plus two separately reviewed equivalences in the complete 901-variant source denominator.
+Every native baseline succeeded and each outcome roster matched its declared source coordinates and replacement identities.
+Mapped library coverage records 29,808/33,406 lines, 40,758/46,266 regions and 3,912/4,384 functions; 310 of 486 tracked library files have mappings, 176 are explicitly unmapped, and no unowned mappings exist.
+Stable branch and MC/DC denominators remain zero rather than a claimed coverage plane.
+The bounded compiler-instrumented grammar search used 96 search attempts and fifteen retained inputs, with 111 executions including replay and no subject failure found.
+Compiler execution, generated runtime, compiler-process maximum RSS and Windows cold/warm/edited-build comparisons completed their declared populations against `a6a5b0c84634240980d6a31143ebeb3440da3bf8`, whose underlying qualified product source is `5baca339824708ae932da02cb283efc5c9633acf`.
+Timing remains report-only; these observations do not establish a speedup, heap-allocation count, asymptotic complexity proof or universal host behavior.
+All 636 retained report files across ten artifacts independently matched their manifest byte lengths and SHA-256 values, with no missing or refused entry.
+Raw reports retain only the bounded seven-day hosted custody and disposable local copies, not tracked payloads.
+
+The preceding [run 33976400524](https://github.com/freebatteryfactory/Macroonz/actions/runs/33976400524) had nine successful jobs and failed mutation before any mutant executed because native Cargo's child compiler selected an unpinned toolchain outside the checkout.
+The matched local negative/positive control and inherited `RUSTUP_TOOLCHAIN=1.98.1` correction preserve that failure rather than relabeling it successful.
+
+### Integrated source and final candidates
+
+The owner-authorized ordinary no-fast-forward merge `8732fbaafd0f192c327560d1343b4c1d5edb496a` has first parent `90bd660190fbeae8f7088d8e55f53c0c0dc8fcee`, second parent `ebd4a5804a227d264693e7ae5ffcc7630328ae84`, and the exact qualified tree above.
+Main was pushed and verified against the remote.
+This receipt-only successor does not replace the qualified publication source and is excluded from all four package archives.
+
+| Package | Archive bytes | Candidate SHA-256 |
+| --- | ---: | --- |
+| macroonz-compiler 0.2.0 | 585369 | `0DDEA0FC11A2F131495D60FF2E381CF2396D872682C1D2565100A79493237DA5` |
+| macroonz-harness 0.2.0 | 512389 | `686EC4890E452C6E1432B5107EB13C8A68314FBEC021FAD59DAC0006A1543BE6` |
+| macroonz-macros 0.2.0 | 53349 | `40647320461183F73A5155A31A0F2B1F8F421E4356F93461699AA0C9D969B284` |
+| macroonz 0.2.0 | 136840 | `35E1013FE198B8C6704D3673FD3EAAA66BE5967B6026F46A7B04AE9EC36E6778` |
+
+All four clean-source archives embed the qualified source and were independently hash-checked again before release execution.
+The hosted extracted-package crossings do not establish registry delivery; that observation follows dependency-ordered upload and a fresh registry-only adopter.
