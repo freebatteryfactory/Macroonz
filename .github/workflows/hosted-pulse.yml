@@ -338,3 +338,137 @@ jobs:
 
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --
+
+  source-coverage:
+    name: Linux x64 source coverage
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target/qualification/source-coverage
+      CARGO_LLVM_COV_TARGET_DIR: ${{ github.workspace }}/target/qualification/source-coverage
+
+    steps:
+      - name: Check out the declared revision
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Restore declared Cargo registry material
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git/db
+          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.1-${{ hashFiles('Cargo.lock') }}
+
+      - name: Install the declared Rust toolchain
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy --component rust-src --component llvm-tools-preview --target wasm32-unknown-unknown
+
+      - name: Install declared coverage tools
+        uses: taiki-e/install-action@5b4d68e2e660441203ab128a23676f1e4faf1532 # v2.86.3
+        with:
+          tool: cargo-nextest@0.9.132,cargo-llvm-cov@0.9.0
+          fallback: none
+
+      - name: Record host and tool identities
+        run: |
+          uname -a
+          rustc +1.98.1 --version --verbose
+          cargo +1.98.1 --version --verbose
+          cargo nextest --version
+          cargo llvm-cov --version
+
+      - name: Fetch the locked dependency graph
+        run: |
+          cargo +1.98.1 fetch --locked
+          echo "CARGO_NET_OFFLINE=true" >> "$GITHUB_ENV"
+
+      - name: Configure host-only instrumentation without source variation
+        run: |
+          coverage_environment="$(cargo +1.98.1 llvm-cov show-env --sh --no-cfg-coverage --coverage-host-only)"
+          eval "$coverage_environment"
+          test -n "${RUSTC_WRAPPER:?}"
+          test -n "${LLVM_PROFILE_FILE:?}"
+          while IFS= read -r entry; do
+            case "$entry" in
+              LLVM_PROFILE_FILE=*|RUSTC_WRAPPER=*|__CARGO_LLVM_COV_*=*|CARGO_LLVM_COV*=*)
+                printf '%s\n' "$entry" >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(env)
+
+      - name: Instrument the ordinary all-feature population
+        run: cargo +1.98.1 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast --no-tests fail
+
+      - name: Instrument the compiler without its proc-host feature
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-compiler --no-default-features --locked --no-fail-fast --no-tests fail
+
+      - name: Instrument the harness without preemption
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --no-default-features --locked --no-fail-fast --no-tests fail
+
+      - name: Instrument the facade with harness but without preemption
+        run: cargo +1.98.1 nextest run -j1 -p macroonz --no-default-features --features harness --locked --no-fail-fast --no-tests fail
+
+      - *diet-owner
+      - *diet-recipe
+      - *diet-carrier
+      - *maximal-recipe
+      - *interleave-exhaustive
+      - *interleave-sampled
+      - *network-long
+      - *preemption-long
+
+      - name: Report the declared library packages and source homes
+        run: |
+          report=(cargo +1.98.1 llvm-cov report
+            -p macroonz -p macroonz-compiler -p macroonz-macros -p macroonz-harness
+            --coverage-host-only --locked --offline
+            --ignore-filename-regex '(^|[/\\])(tests|examples|target)[/\\]')
+          "${report[@]}"
+          "${report[@]}" --summary-only --json --output-path "$CARGO_TARGET_DIR/library-summary.json"
+          LLVM_COV_FLAGS=-show-directory-coverage "${report[@]}" --html --output-dir "$CARGO_TARGET_DIR/report"
+          "${report[@]}" --summary-only --lcov --output-path "$CARGO_TARGET_DIR/library.lcov"
+
+      - name: Reconcile mapped and tracked library sources
+        run: |
+          git ls-files -- ':(glob)src/**/*.rs' ':(glob)macros/compiler/src/**/*.rs' ':(glob)macros/proc/src/**/*.rs' ':(glob)harness/src/**/*.rs' |
+            LC_ALL=C sort -u > "$CARGO_TARGET_DIR/tracked-sources.txt"
+          while IFS= read -r entry; do
+            case "$entry" in
+              "SF:$GITHUB_WORKSPACE/"*) printf '%s\n' "${entry#"SF:$GITHUB_WORKSPACE/"}" ;;
+              SF:*) printf 'Unexpected mapped source: %s\n' "$entry" >&2; exit 1 ;;
+            esac
+          done < "$CARGO_TARGET_DIR/library.lcov" |
+            LC_ALL=C sort -u > "$CARGO_TARGET_DIR/mapped-sources.txt"
+          test -s "$CARGO_TARGET_DIR/tracked-sources.txt"
+          test -s "$CARGO_TARGET_DIR/mapped-sources.txt"
+          for source_root in src/ macros/compiler/src/ macros/proc/src/ harness/src/; do
+            if ! grep -q "^$source_root" "$CARGO_TARGET_DIR/mapped-sources.txt"; then
+              printf 'No executable mapping for required package source root: %s\n' "$source_root" >&2
+              exit 1
+            fi
+            if ! awk -v prefix="$GITHUB_WORKSPACE/$source_root" '
+              /^SF:/ { inside = index(substr($0, 4), prefix) == 1 }
+              inside && /^LF:/ { found += substr($0, 4) }
+              inside && /^LH:/ { hit += substr($0, 4) }
+              END { exit !(found > 0 && hit > 0 && hit <= found) }
+            ' "$CARGO_TARGET_DIR/library.lcov"; then
+              printf 'No coherent executed-line observation for required package source root: %s\n' "$source_root" >&2
+              exit 1
+            fi
+          done
+          LC_ALL=C comm -13 "$CARGO_TARGET_DIR/tracked-sources.txt" "$CARGO_TARGET_DIR/mapped-sources.txt" > "$CARGO_TARGET_DIR/unowned-mappings.txt"
+          if test -s "$CARGO_TARGET_DIR/unowned-mappings.txt"; then
+            cat "$CARGO_TARGET_DIR/unowned-mappings.txt"
+            exit 1
+          fi
+          LC_ALL=C comm -23 "$CARGO_TARGET_DIR/tracked-sources.txt" "$CARGO_TARGET_DIR/mapped-sources.txt" > "$CARGO_TARGET_DIR/unmapped-sources.txt"
+          printf 'Tracked library sources without an executable mapping (not a coverage percentage):\n'
+          cat "$CARGO_TARGET_DIR/unmapped-sources.txt"
+          wc -l "$CARGO_TARGET_DIR/tracked-sources.txt" "$CARGO_TARGET_DIR/mapped-sources.txt" "$CARGO_TARGET_DIR/unmapped-sources.txt"
+
+      - name: Refuse tracked-tree mutation
+        run: git diff --exit-code HEAD --

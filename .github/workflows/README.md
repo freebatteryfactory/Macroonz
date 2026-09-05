@@ -30,6 +30,27 @@ GitHub supplies the standard public Windows and macOS runners for independent pr
 Every hosted result names its actual operating system and architecture.
 A cloud runner never establishes a physical-host claim.
 
+## Library-source coverage
+
+An independent Linux x64 lane instruments the workspace with the pinned stable compiler and matching LLVM tools through the declared coverage driver.
+Its build and profile directory is separate from ordinary qualification and performance measurement.
+No `cfg(coverage)` source variation is enabled.
+Host-only instrumentation leaves nested Wasm checks uninstrumented rather than requiring a profiler runtime that target does not supply.
+
+The source report combines the ordinary all-feature tests, compiler core, harness without preemption, facade harness-only and no-harness controls, and the same explicitly named long campaigns.
+Each invocation has its own nonempty selection and must pass before the combined report is produced.
+Compile-time proc-macro observations contribute alongside runtime observations; compiled workspace output is never restored from a coverage cache.
+
+LLVM reports mapped library-source functions, lines, and regions, with per-file denominators and directory indexes for package and source-home navigation.
+Test, example, disposable target, and external dependency sources are outside that library report.
+The report explicitly selects all four library packages rather than borrowing the coverage tool's default package selection.
+The mapped source roster is reconciled against tracked library sources, refusing empty rosters, a required package without an executable mapping, and mappings outside that declared inventory.
+Each required package must also carry a positive executable-line denominator and an observed hit count within it; source names alone cannot qualify a disconnected instrument.
+Sources without an executable mapping are listed separately because declarations, uninstantiated generic material, and macro-only files may have none.
+An absent mapping is neither zero nor complete coverage.
+Stable doctest execution, Wasm compilation, other host architectures, assertion sensitivity, and delivered-package behavior retain their separate observations; the source report establishes none of them by implication.
+No branch or MC/DC percentage is claimed without an actual supported denominator.
+
 ## Reproducibility and custody
 
 The workflow installs the repository's exact stable Rust toolchain and exact auxiliary tool versions.
@@ -55,7 +76,7 @@ The pulse is manual, reporting-only, bounded by job timeouts, and cancels an old
 It has no secret, publication, release, attestation, artifact-upload, scheduled, push, or pull-request path.
 It creates no required check, branch rule, or automatic retry loop.
 
-The coverage example observes the coverage machinery, not a whole-library coverage percentage.
+The coverage example observes the coverage machinery, not the separate library-source report.
 The deterministic recipe-economics tests observe structural work and generated-byte contracts, not host-time or memory efficiency.
 Package delivery, source-coverage reports, mutation search, coverage-guided grammar campaigns, and real resource comparisons require their own declared executions; an ordinary native test result does not establish those planes.
 
