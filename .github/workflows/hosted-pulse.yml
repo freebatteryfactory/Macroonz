@@ -229,14 +229,18 @@ jobs:
               }
               'adopter-economics' {
                   $root = "$repository/target/qualification/adopter-economics"
-                  foreach ($name in @('control-build','workspace-graph','adopter-lock','adopter-graph')) { $paths.Add("$root/native/$name.json") }
-                  foreach ($round in 0..2) {
-                      foreach ($phase in @('cold','warm','edited','edited-warm')) {
-                          foreach ($kind in @('build','consumer')) { $paths.Add("$root/native/$round-$phase-$kind.json") }
+                  $paths.Add("$root/native/control-build.json")
+                  foreach ($side in @('baseline','candidate')) {
+                      foreach ($name in @('workspace-graph','adopter-lock','adopter-graph')) { $paths.Add("$root/$side/native/$name.json") }
+                      foreach ($round in 0..2) {
+                          foreach ($phase in @('cold','warm','edited','edited-warm')) {
+                              foreach ($kind in @('build','consumer')) { $paths.Add("$root/$side/native/$round-$phase-$kind.json") }
+                          }
+                          foreach ($kind in @('wrong-model','clean')) { $paths.Add("$root/$side/native/$round-$kind.json") }
                       }
-                      foreach ($kind in @('wrong-model','clean')) { $paths.Add("$root/native/$round-$kind.json") }
+                      foreach ($name in @('context.txt','builds.log')) { $paths.Add("$target/tmp/adopter-economics/$side/$name") }
                   }
-                  foreach ($name in @('context.txt','builds.log')) { $paths.Add("$target/tmp/adopter-economics/$name") }
+                  foreach ($name in @('build-order.csv','comparison-summary.csv')) { $paths.Add("$root/$name") }
               }
               default { throw 'Unknown report job' }
           }
@@ -1120,6 +1124,8 @@ jobs:
       run:
         shell: pwsh
     env:
+      ECONOMICS_BASELINE: a6a5b0c84634240980d6a31143ebeb3440da3bf8
+      ECONOMICS_QUALIFIED_SOURCE: 5baca339824708ae932da02cb283efc5c9633acf
       ECONOMICS_ROOT: ${{ github.workspace }}/target/qualification/adopter-economics
       CARGO_TARGET_DIR: ${{ github.workspace }}/target/qualification/adopter-economics/observer
 
@@ -1128,6 +1134,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Restore declared Cargo registry material
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -1302,7 +1309,7 @@ jobs:
           $native = "$root/native"
           $build = [IO.Path]::GetFullPath("$root/build")
           if ((Test-Path -LiteralPath $native) -or (Test-Path -LiteralPath $build)) { throw 'Observation storage is not fresh' }
-          New-Item -ItemType Directory -Path $native,"$root/adopter/src" | Out-Null
+          New-Item -ItemType Directory -Path $native | Out-Null
           $cargo = (Get-Command cargo.exe).Source
           $rustc = (Get-Command rustc.exe).Source
           $control = "$root/build-control.exe"
@@ -1336,91 +1343,129 @@ jobs:
           $nested = Get-Process -Id ([int]$descendant.Groups[1].Value) -ErrorAction SilentlyContinue
           if ($null -ne $nested -and -not $nested.WaitForExit(5000)) { throw 'Bounded descendant did not exit' }
           Write-Host 'All thirteen bounded-process controls passed; no universal descendant-containment claim.'
-          $manifest = "$root/adopter/Cargo.toml"
-          @('[package]','name = "macroonz-build-observation"','version = "0.0.0"','edition = "2024"','publish = false',
-            '[dependencies]','macroonz = { path = "../../../../" }','[workspace]',
-            '[profile.dev]','incremental = true','overflow-checks = true') |
-              Set-Content -LiteralPath $manifest -Encoding utf8NoBOM
-          $rootLock = (Get-FileHash -LiteralPath "$repository/Cargo.lock").Hash
-          Copy-Item -LiteralPath "$repository/Cargo.lock" -Destination "$root/adopter/Cargo.lock"
-          $authored = Get-Content -LiteralPath "$repository/harness/tests/recipe_economics/host/build-adopter.rs" -Raw
-          $before = '(Closed, OpenDoor) => Open with(crate::record_effect);'
-          $after = '(Closed, OpenDoor) => Closed with(crate::record_effect);'
-          if ([regex]::Matches($authored, [regex]::Escape($before)).Count -ne 1) { throw 'The single declared edit seat moved' }
-          [IO.File]::WriteAllText("$root/adopter/src/main.rs", $authored, [Text.UTF8Encoding]::new($false))
-          $initial = Start-Observation $cargo @('+1.98.1','metadata','--manifest-path',"$repository/Cargo.toml",'--locked','--offline','--format-version','1')
-          $baseline = (Required-Observation 'workspace-graph' $initial 300000 16777216).stdout | ConvertFrom-Json
-          $update = Start-Observation $cargo @('+1.98.1','update','--workspace','--manifest-path',$manifest,'--offline')
-          $null = Required-Observation 'adopter-lock' $update 300000 16777216
-          $metadata = Start-Observation $cargo @('+1.98.1','metadata','--manifest-path',$manifest,'--locked','--offline','--format-version','1')
-          $resolved = (Required-Observation 'adopter-graph' $metadata 300000 16777216).stdout | ConvertFrom-Json
-          foreach ($package in $resolved.packages) {
-              if ($null -ne $package.source -and $package.id -cnotin $baseline.packages.id) { throw "External dependency identity drift: $($package.id)" }
-          }
-          $expectedPackages = @{
-              macroonz = "$repository/Cargo.toml"
-              'macroonz-compiler' = "$repository/macros/compiler/Cargo.toml"
-              'macroonz-macros' = "$repository/macros/proc/Cargo.toml"
-              'macroonz-harness' = "$repository/harness/Cargo.toml"
-          }
-          foreach ($package in $resolved.packages) {
-              if ($null -eq $package.source -and -not $expectedPackages.ContainsKey($package.name) -and $package.name -cne 'macroonz-build-observation') { throw "Unexpected path package: $($package.name)" }
-          }
-          foreach ($entry in $expectedPackages.GetEnumerator()) {
-              $located = @($resolved.packages | Where-Object name -CEQ $entry.Key)
-              if ($located.Count -ne 1 -or [IO.Path]::GetFullPath($located[0].manifest_path) -ne [IO.Path]::GetFullPath($entry.Value)) { throw "Adopter package location drift: $($entry.Key)" }
-          }
-          $lock = (Get-FileHash -LiteralPath "$root/adopter/Cargo.lock").Hash
-          $reportRoot = "$env:CARGO_TARGET_DIR/tmp/adopter-economics"
-          New-Item -ItemType Directory -Path $reportRoot | Out-Null
-          $tool = rustc +1.98.1 --version
-          $target = (rustc +1.98.1 -vV | Select-String '^host: ').ToString().Substring(6)
-          @($env:GITHUB_SHA,$target,$tool) | Set-Content -LiteralPath "$reportRoot/context.txt" -Encoding utf8NoBOM
-          @("adopter-build,$env:GITHUB_SHA,$target,$tool",'interval,cargo-start-to-observed-exit;excludes-drain-edit-cleanup-json-consumer') |
-              Set-Content -LiteralPath "$reportRoot/builds.log" -Encoding utf8NoBOM
-          foreach ($round in 0..2) {
-              if (Test-Path -LiteralPath $build) { throw 'Cold Cargo target was not absent' }
-              foreach ($phase in @('cold','warm','edited','edited-warm')) {
-                  $edited = $phase -in @('edited','edited-warm')
-                  $open = ($round -eq 1) -eq $edited
-                  $expected = if ($open) { 'open' } else { 'closed' }
-                  $text = if ($open) { $authored } else { $authored.Replace($before,$after) }
-                  if ($phase -in @('cold','edited')) {
-                      [IO.File]::WriteAllText("$root/adopter/src/main.rs", $text, [Text.UTF8Encoding]::new($false))
-                  } elseif (-not (Test-Path -LiteralPath $build)) { throw 'Warm build lost its preceding target' }
-                  $start = Start-Observation $cargo @('+1.98.1','build','--manifest-path',$manifest,'--locked','--offline','--jobs','1','--message-format=json')
-                  $result = Required-Observation "$round-$phase-build" $start 300000 16777216
-                  Write-Host $result.stderr
-                  $messages = @($result.stdout -split '\r?\n' | Where-Object { $_.Trim().Length -gt 0 } | ConvertFrom-Json)
-                  $finished = @($messages | Where-Object reason -CEQ 'build-finished')
-                  $artifacts = @($messages | Where-Object reason -CEQ 'compiler-artifact')
-                  $fresh = @($artifacts | Where-Object fresh -EQ $true)
-                  $rebuilt = @($artifacts | Where-Object fresh -EQ $false)
-                  $executable = @($artifacts | Where-Object { $_.target.name -ceq 'macroonz-build-observation' -and $null -ne $_.executable })
-                  if ($finished.Count -ne 1 -or -not $finished[0].success -or $executable.Count -ne 1 -or $artifacts.Count -eq 0) { throw 'Incomplete Cargo artifact population' }
-                  $consumer = Required-Observation "$round-$phase-consumer" (Start-Observation $executable[0].executable @($expected)) 10000 4096
-                  $expectedOutput = "adopter-domain=2 expected-target=$expected effects=1"
-                  if ($consumer.stderr.Length -ne 0 -or $consumer.stdout.TrimEnd([char]13,[char]10) -cne $expectedOutput) { throw 'Independent consumer refused' }
-                  if ($phase -eq 'edited') {
-                      $wrong = if ($open) { 'closed' } else { 'open' }
-                      $negative = Invoke-BoundedObservation -Start (Start-Observation $executable[0].executable @($wrong)) -DeadlineMs 10000 -StreamCharacters 4096
-                      $negative | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath "$native/$round-wrong-model.json" -Encoding utf8NoBOM
-                      if ($null -ne $negative.refusal -or $negative.exit_code -ne 101 -or -not $negative.child_terminated -or -not $negative.stderr.Contains('assertion')) { throw 'Wrong model did not produce the expected assertion refusal' }
-                  }
-                  if ((Get-FileHash -LiteralPath "$root/adopter/Cargo.lock").Hash -cne $lock -or (Get-FileHash -LiteralPath "$repository/Cargo.lock").Hash -cne $rootLock) { throw 'Locked graph changed during observation' }
-                  $sourceHash = (Get-FileHash -LiteralPath "$root/adopter/src/main.rs").Hash
-                  $executableHash = (Get-FileHash -LiteralPath $executable[0].executable).Hash
-                  $fields = @('build',$round,$phase,$result.elapsed_ticks,$result.stopwatch_frequency,$artifacts.Count,$fresh.Count,$rebuilt.Count,$executable[0].fresh.ToString().ToLowerInvariant(),$sourceHash,$executableHash,$lock,'build=0','consumer=0',$expectedOutput)
-                  $line = $fields -join ','
-                  $line | Add-Content -LiteralPath "$reportRoot/builds.log" -Encoding utf8NoBOM
-                  Write-Host $line
+          function Prepare-Adopter([string]$sourceRoot, [string]$revision, [string]$side) {
+              $root = "$env:ECONOMICS_ROOT/$side"
+              $native = "$root/native"
+              New-Item -ItemType Directory -Path $native,"$root/adopter/src" | Out-Null
+              $dependencyPath = ConvertTo-Json -InputObject $sourceRoot.Replace('\','/') -Compress
+              $manifest = "$root/adopter/Cargo.toml"
+              @('[package]','name = "macroonz-build-observation"','version = "0.0.0"','edition = "2024"','publish = false',
+                '[dependencies]',"macroonz = { path = $dependencyPath }",'[workspace]',
+                '[profile.dev]','incremental = true','overflow-checks = true') |
+                  Set-Content -LiteralPath $manifest -Encoding utf8NoBOM
+              $rootLock = (Get-FileHash -LiteralPath "$sourceRoot/Cargo.lock").Hash
+              Copy-Item -LiteralPath "$sourceRoot/Cargo.lock" -Destination "$root/adopter/Cargo.lock"
+              $authored = Get-Content -LiteralPath "$repository/harness/tests/recipe_economics/host/build-adopter.rs" -Raw
+              $before = '(Closed, OpenDoor) => Open with(crate::record_effect);'
+              $after = '(Closed, OpenDoor) => Closed with(crate::record_effect);'
+              if ([regex]::Matches($authored, [regex]::Escape($before)).Count -ne 1) { throw 'The single declared edit seat moved' }
+              [IO.File]::WriteAllText("$root/adopter/src/main.rs", $authored, [Text.UTF8Encoding]::new($false))
+              $initial = Start-Observation $cargo @('+1.98.1','metadata','--manifest-path',"$sourceRoot/Cargo.toml",'--locked','--offline','--format-version','1')
+              $baseline = (Required-Observation 'workspace-graph' $initial 300000 16777216).stdout | ConvertFrom-Json
+              $update = Start-Observation $cargo @('+1.98.1','update','--workspace','--manifest-path',$manifest,'--offline')
+              $null = Required-Observation 'adopter-lock' $update 300000 16777216
+              $metadata = Start-Observation $cargo @('+1.98.1','metadata','--manifest-path',$manifest,'--locked','--offline','--format-version','1')
+              $resolved = (Required-Observation 'adopter-graph' $metadata 300000 16777216).stdout | ConvertFrom-Json
+              foreach ($package in $resolved.packages) {
+                  if ($null -ne $package.source -and $package.id -cnotin $baseline.packages.id) { throw "External dependency identity drift: $($package.id)" }
               }
-              $clean = Start-Observation $cargo @('+1.98.1','clean','--target-dir',$build)
-              $cleaned = Required-Observation "$round-clean" $clean 300000 1048576
-              Write-Host $cleaned.stderr
-              if (Test-Path -LiteralPath $build) { throw 'Cargo left the cold target present' }
+              $expectedPackages = @{
+                  macroonz = "$sourceRoot/Cargo.toml"
+                  'macroonz-compiler' = "$sourceRoot/macros/compiler/Cargo.toml"
+                  'macroonz-macros' = "$sourceRoot/macros/proc/Cargo.toml"
+                  'macroonz-harness' = "$sourceRoot/harness/Cargo.toml"
+              }
+              foreach ($package in $resolved.packages) {
+                  if ($null -eq $package.source -and -not $expectedPackages.ContainsKey($package.name) -and $package.name -cne 'macroonz-build-observation') { throw "Unexpected path package: $($package.name)" }
+              }
+              foreach ($entry in $expectedPackages.GetEnumerator()) {
+                  $located = @($resolved.packages | Where-Object name -CEQ $entry.Key)
+                  if ($located.Count -ne 1 -or [IO.Path]::GetFullPath($located[0].manifest_path) -ne [IO.Path]::GetFullPath($entry.Value)) { throw "Adopter package location drift: $($entry.Key)" }
+              }
+              $lock = (Get-FileHash -LiteralPath "$root/adopter/Cargo.lock").Hash
+              $reportRoot = "$env:CARGO_TARGET_DIR/tmp/adopter-economics/$side"
+              New-Item -ItemType Directory -Path $reportRoot | Out-Null
+              $tool = rustc +1.98.1 --version
+              $target = (rustc +1.98.1 -vV | Select-String '^host: ').ToString().Substring(6)
+              @($revision,$target,$tool) | Set-Content -LiteralPath "$reportRoot/context.txt" -Encoding utf8NoBOM
+              @("adopter-build,$revision,$target,$tool",'interval,cargo-start-to-observed-exit;excludes-drain-edit-cleanup-json-consumer') |
+                  Set-Content -LiteralPath "$reportRoot/builds.log" -Encoding utf8NoBOM
+              [pscustomobject]@{ root=$root; native=$native; manifest=$manifest; sourceRoot=$sourceRoot; revision=$revision; side=$side; rootLock=$rootLock; lock=$lock; reportRoot=$reportRoot; authored=$authored; before=$before; after=$after }
           }
-          Get-FileHash -LiteralPath "$reportRoot/builds.log","$reportRoot/context.txt",$manifest,"$root/adopter/Cargo.lock" | Format-List
+          $baselineSource = "$root/baseline-source"
+          if (Test-Path -LiteralPath $baselineSource) { throw 'Baseline source storage is not fresh' }
+          if ((git rev-parse HEAD) -cne $env:GITHUB_SHA) { throw 'Candidate source moved' }
+          git diff --exit-code HEAD --
+          git merge-base --is-ancestor $env:ECONOMICS_QUALIFIED_SOURCE $env:ECONOMICS_BASELINE
+          git merge-base --is-ancestor $env:ECONOMICS_BASELINE HEAD
+          $inputs = @('src','macros/compiler/src','macros/proc/src','harness/src','Cargo.toml','macros/compiler/Cargo.toml','macros/proc/Cargo.toml','harness/Cargo.toml','Cargo.lock','rust-toolchain.toml','.cargo/config.toml')
+          git diff --exit-code $env:ECONOMICS_QUALIFIED_SOURCE $env:ECONOMICS_BASELINE -- @inputs
+          if (@(git ls-tree -r $env:ECONOMICS_BASELINE | Select-String '^120000 ').Count -ne 0) { throw 'Baseline carries a symbolic link' }
+          New-Item -ItemType Directory -Path $baselineSource | Out-Null
+          git archive --format=tar --output="$root/baseline-source.tar" $env:ECONOMICS_BASELINE
+          tar -xf "$root/baseline-source.tar" -C $baselineSource
+          $populations = @{
+              baseline = Prepare-Adopter $baselineSource $env:ECONOMICS_BASELINE 'baseline'
+              candidate = Prepare-Adopter $repository $env:GITHUB_SHA 'candidate'
+          }
+          "round,side,source,status" | Set-Content -LiteralPath "$env:ECONOMICS_ROOT/build-order.csv" -Encoding utf8NoBOM
+          foreach ($round in 0..2) {
+              $order = if ($round % 2 -eq 0) { @('baseline','candidate') } else { @('candidate','baseline') }
+              foreach ($side in $order) {
+                  $population = $populations[$side]
+                  $root = $population.root
+                  $native = $population.native
+                  $manifest = $population.manifest
+                  $build = [IO.Path]::GetFullPath("$root/build")
+                  $reportRoot = $population.reportRoot
+                  $lock = $population.lock
+                  $authored = $population.authored
+                  $before = $population.before
+                  $after = $population.after
+                  if (Test-Path -LiteralPath $build) { throw 'Cold Cargo target was not absent' }
+                  foreach ($phase in @('cold','warm','edited','edited-warm')) {
+                      $edited = $phase -in @('edited','edited-warm')
+                      $open = ($round -eq 1) -eq $edited
+                      $expected = if ($open) { 'open' } else { 'closed' }
+                      $text = if ($open) { $authored } else { $authored.Replace($before,$after) }
+                      if ($phase -in @('cold','edited')) {
+                          [IO.File]::WriteAllText("$root/adopter/src/main.rs", $text, [Text.UTF8Encoding]::new($false))
+                      } elseif (-not (Test-Path -LiteralPath $build)) { throw 'Warm build lost its preceding target' }
+                      $start = Start-Observation $cargo @('+1.98.1','build','--manifest-path',$manifest,'--locked','--offline','--jobs','1','--message-format=json')
+                      $result = Required-Observation "$round-$phase-build" $start 300000 16777216
+                      Write-Host $result.stderr
+                      $messages = @($result.stdout -split '\r?\n' | Where-Object { $_.Trim().Length -gt 0 } | ConvertFrom-Json)
+                      $finished = @($messages | Where-Object reason -CEQ 'build-finished')
+                      $artifacts = @($messages | Where-Object reason -CEQ 'compiler-artifact')
+                      $fresh = @($artifacts | Where-Object fresh -EQ $true)
+                      $rebuilt = @($artifacts | Where-Object fresh -EQ $false)
+                      $executable = @($artifacts | Where-Object { $_.target.name -ceq 'macroonz-build-observation' -and $null -ne $_.executable })
+                      if ($finished.Count -ne 1 -or -not $finished[0].success -or $executable.Count -ne 1 -or $artifacts.Count -eq 0) { throw 'Incomplete Cargo artifact population' }
+                      $consumer = Required-Observation "$round-$phase-consumer" (Start-Observation $executable[0].executable @($expected)) 10000 4096
+                      $expectedOutput = "adopter-domain=2 expected-target=$expected effects=1"
+                      if ($consumer.stderr.Length -ne 0 -or $consumer.stdout.TrimEnd([char]13,[char]10) -cne $expectedOutput) { throw 'Independent consumer refused' }
+                      if ($phase -eq 'edited') {
+                          $wrong = if ($open) { 'closed' } else { 'open' }
+                          $negative = Invoke-BoundedObservation -Start (Start-Observation $executable[0].executable @($wrong)) -DeadlineMs 10000 -StreamCharacters 4096
+                          $negative | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath "$native/$round-wrong-model.json" -Encoding utf8NoBOM
+                          if ($null -ne $negative.refusal -or $negative.exit_code -ne 101 -or -not $negative.child_terminated -or -not $negative.stderr.Contains('assertion')) { throw 'Wrong model did not produce the expected assertion refusal' }
+                      }
+                      if ((Get-FileHash -LiteralPath "$root/adopter/Cargo.lock").Hash -cne $lock -or (Get-FileHash -LiteralPath "$($population.sourceRoot)/Cargo.lock").Hash -cne $population.rootLock) { throw 'Locked graph changed during observation' }
+                      $sourceHash = (Get-FileHash -LiteralPath "$root/adopter/src/main.rs").Hash
+                      $executableHash = (Get-FileHash -LiteralPath $executable[0].executable).Hash
+                      $fields = @('build',$round,$phase,$result.elapsed_ticks,$result.stopwatch_frequency,$artifacts.Count,$fresh.Count,$rebuilt.Count,$executable[0].fresh.ToString().ToLowerInvariant(),$sourceHash,$executableHash,$lock,'build=0','consumer=0',$expectedOutput)
+                      $line = $fields -join ','
+                      $line | Add-Content -LiteralPath "$reportRoot/builds.log" -Encoding utf8NoBOM
+                      Write-Host $line
+                  }
+                  $clean = Start-Observation $cargo @('+1.98.1','clean','--target-dir',$build)
+                  $cleaned = Required-Observation "$round-clean" $clean 300000 1048576
+                  Write-Host $cleaned.stderr
+                  if (Test-Path -LiteralPath $build) { throw 'Cargo left the cold target present' }
+                  "$round,$side,$($population.revision),0" | Add-Content -LiteralPath "$env:ECONOMICS_ROOT/build-order.csv" -Encoding utf8NoBOM
+                  Get-FileHash -LiteralPath "$reportRoot/builds.log","$reportRoot/context.txt",$manifest,"$root/adopter/Cargo.lock" | Format-List
+              }
+          }
           git diff --exit-code HEAD --
 
       - name: Reconcile the complete native build population
@@ -1430,16 +1475,44 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           Set-StrictMode -Version Latest
-          foreach ($phase in @('cold','warm','edited','edited-warm')) {
-              $seconds = @(foreach ($round in 0..2) {
-                  $native = Get-Content -LiteralPath "$env:ECONOMICS_ROOT/native/$round-$phase-build.json" -Raw | ConvertFrom-Json
-                  if ($null -ne $native.refusal -or $native.exit_code -ne 0 -or -not $native.child_terminated -or $native.elapsed_ticks -le 0 -or $native.stopwatch_frequency -le 0) { throw 'Native timing is unavailable' }
-                  [double]$native.elapsed_ticks / [double]$native.stopwatch_frequency
-              })
-              $ordered = @($seconds | Sort-Object)
-              if ($ordered.Count -ne 3) { throw 'Build timing population changed' }
-              "phase=$phase seconds-min=$($ordered[0]) seconds-median=$($ordered[1]) seconds-max=$($ordered[2]); no samples trimmed; no version comparison"
+          $order = @(Import-Csv -LiteralPath "$env:ECONOMICS_ROOT/build-order.csv")
+          if ($order.Count -ne 6) { throw 'Incomplete paired build order' }
+          $position = 0
+          foreach ($round in 0..2) {
+              $sides = if ($round % 2 -eq 0) { @('baseline','candidate') } else { @('candidate','baseline') }
+              foreach ($side in $sides) {
+                  $source = if ($side -ceq 'baseline') { $env:ECONOMICS_BASELINE } else { $env:GITHUB_SHA }
+                  $entry = $order[$position++]
+                  if ($entry.round -cne [string]$round -or $entry.side -cne $side -or $entry.source -cne $source -or $entry.status -cne '0') { throw 'Paired build order or completion moved' }
+                  $context = @(Get-Content -LiteralPath "$env:CARGO_TARGET_DIR/tmp/adopter-economics/$side/context.txt")
+                  if ($context.Count -ne 3 -or $context[0] -cne $source -or $source -ceq '') { throw 'Build revision context moved' }
+              }
           }
+          if ($env:ECONOMICS_BASELINE -ceq $env:GITHUB_SHA) { throw 'Build sources are identical' }
+          $summary = @(foreach ($phase in @('cold','warm','edited','edited-warm')) {
+              $populations = @{}
+              foreach ($side in @('baseline','candidate')) {
+                  $seconds = @(foreach ($round in 0..2) {
+                      $native = Get-Content -LiteralPath "$env:ECONOMICS_ROOT/$side/native/$round-$phase-build.json" -Raw | ConvertFrom-Json
+                      if ($null -ne $native.refusal -or $native.exit_code -ne 0 -or -not $native.child_terminated -or $native.elapsed_ticks -le 0 -or $native.stopwatch_frequency -le 0) { throw 'Native timing is unavailable' }
+                      $elapsed = [double]$native.elapsed_ticks / [double]$native.stopwatch_frequency
+                      if (-not [double]::IsFinite($elapsed) -or $elapsed -le 0) { throw 'Native elapsed time is not finite and positive' }
+                      $elapsed
+                  })
+                  $ordered = @($seconds | Sort-Object)
+                  if ($ordered.Count -ne 3) { throw 'Build timing population changed' }
+                  $populations[$side] = $ordered
+              }
+              [pscustomobject]@{
+                  phase=$phase
+                  baseline_min_seconds=$populations.baseline[0]; baseline_median_seconds=$populations.baseline[1]; baseline_max_seconds=$populations.baseline[2]
+                  candidate_min_seconds=$populations.candidate[0]; candidate_median_seconds=$populations.candidate[1]; candidate_max_seconds=$populations.candidate[2]
+                  median_ratio=$populations.candidate[1]/$populations.baseline[1]
+              }
+          })
+          $summary | Export-Csv -LiteralPath "$env:ECONOMICS_ROOT/comparison-summary.csv" -NoTypeInformation
+          $summary | Format-List
+          'All three paired cycles retained; no timing threshold or statistical-significance claim.'
 
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --

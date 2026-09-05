@@ -164,14 +164,51 @@ fn reconcile(report: &str, context: &[&str; 3]) -> Result<(), String> {
 fn native_build_samples_preserve_phases_source_freshness_and_independent_consumers()
 -> Result<(), String> {
     let root = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("adopter-economics");
-    let declared = read_bounded(&root.join("context.txt"))?;
-    let fields = declared.lines().collect::<Vec<_>>();
-    let [source, target, toolchain] = fields.as_slice() else {
-        return Err("native build context must have three declared fields".to_owned());
+    let baseline_context = read_bounded(&root.join("baseline/context.txt"))?;
+    let candidate_context = read_bounded(&root.join("candidate/context.txt"))?;
+    let baseline = read_bounded(&root.join("baseline/builds.log"))?;
+    let candidate = read_bounded(&root.join("candidate/builds.log"))?;
+    comparison(&baseline_context, &baseline, &candidate_context, &candidate)?;
+    writeln!(std::io::stdout().lock(), "{baseline}\n{candidate}").map_err(|error| error.to_string())
+}
+
+fn comparison(
+    baseline_context: &str,
+    baseline: &str,
+    candidate_context: &str,
+    candidate: &str,
+) -> Result<(), String> {
+    let baseline_fields = baseline_context.lines().collect::<Vec<_>>();
+    let candidate_fields = candidate_context.lines().collect::<Vec<_>>();
+    let ([before, target, compiler], [after, other_target, other_compiler]) =
+        (baseline_fields.as_slice(), candidate_fields.as_slice())
+    else {
+        return Err("native build contexts must have three declared fields".to_owned());
     };
-    let report = read_bounded(&root.join("builds.log"))?;
-    reconcile(&report, &[*source, *target, *toolchain])?;
-    writeln!(std::io::stdout().lock(), "{report}").map_err(|error| error.to_string())
+    if before == after || target != other_target || compiler != other_compiler {
+        return Err(
+            "build comparison needs distinct revisions and the same target/compiler".to_owned(),
+        );
+    }
+    reconcile(baseline, &[*before, *target, *compiler])?;
+    reconcile(candidate, &[*after, *other_target, *other_compiler])?;
+    for (left_line, right_line) in baseline.lines().skip(2).zip(candidate.lines().skip(2)) {
+        let left_fields = left_line.split(',').collect::<Vec<_>>();
+        let right_fields = right_line.split(',').collect::<Vec<_>>();
+        let (left_coordinate, left) = sample(&left_fields)?;
+        let (right_coordinate, right) = sample(&right_fields)?;
+        if left_coordinate != right_coordinate
+            || left.source != right.source
+            || left.lock != right.lock
+            || left.frequency != right.frequency
+            || left.artifacts != right.artifacts
+        {
+            return Err(
+                "paired builds changed phase order, authored input, graph or clock".to_owned(),
+            );
+        }
+    }
+    Ok(())
 }
 
 fn complete_report() -> String {
@@ -197,6 +234,46 @@ fn complete_report() -> String {
         }
     }
     lines.join("\n")
+}
+
+#[test]
+fn build_comparison_requires_matching_inputs_and_distinct_revision_custody() -> Result<(), String> {
+    let baseline = complete_report();
+    let candidate = baseline.replace("adopter-build,source,", "adopter-build,candidate,");
+    let before = "source\ntarget\ntoolchain";
+    let after = "candidate\ntarget\ntoolchain";
+    comparison(before, &baseline, after, &candidate)?;
+    for context in [
+        before,
+        "candidate\nother\ntoolchain",
+        "candidate\ntarget\nother",
+        "",
+    ] {
+        assert!(comparison(before, &baseline, context, &candidate).is_err());
+    }
+    for changed in [
+        baseline.clone(),
+        candidate.replace(&"a".repeat(64), &"f".repeat(64)),
+        candidate.replace(&"e".repeat(64), &"f".repeat(64)),
+        candidate.replace("10000000", "9999999"),
+        super::without_record(&candidate, "build,0,cold,"),
+        candidate
+            .replace(",48,0,48,false,", ",49,0,49,false,")
+            .replace(",48,48,0,true,", ",49,49,0,true,")
+            .replace(",48,47,1,false,", ",49,48,1,false,"),
+    ] {
+        assert!(comparison(before, &baseline, after, &changed).is_err());
+    }
+    let changed_executable = candidate.replace(&"c".repeat(64), &"f".repeat(64));
+    comparison(before, &baseline, after, &changed_executable)?;
+    let changed_timing = candidate.replace(",1,10000000,", ",2,10000000,");
+    comparison(before, &baseline, after, &changed_timing)?;
+    let mut records = candidate.lines().collect::<Vec<_>>();
+    records.swap(2, 3);
+    let reordered = records.join("\n");
+    reconcile(&reordered, &["candidate", "target", "toolchain"])?;
+    assert!(comparison(before, &baseline, after, &reordered).is_err());
+    Ok(())
 }
 
 #[test]

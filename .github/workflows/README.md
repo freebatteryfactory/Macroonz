@@ -140,8 +140,9 @@ The scalar vectors bind consumed output to these subjects; independent structura
 
 A separate Windows job observes the canonical adopter through Cargo rather than attributing compiler-call timing to a downstream build.
 It uses the declared development profile and enables incremental compilation only inside that observation's child processes; ordinary qualification remains nonincremental.
-The standalone manifest points explicitly to the checkout, seeds the committed lock and reconciles its workspace membership offline.
-Native metadata must retain the existing external package identities and resolve all four first-party packages to the declared checkout paths.
+Each standalone manifest points explicitly to its declared candidate checkout or baseline Git snapshot, seeds that source's committed lock and reconciles its workspace membership offline.
+The baseline's product trees and build inputs must match its declared qualified source before extraction.
+Native metadata must retain the existing external package identities and resolve all four first-party packages to that population's declared paths.
 This measures checkout adoption, not extracted-package delivery or registry availability.
 
 The same bounded process operation supervises both Cargo and the independently expected executable.
@@ -151,15 +152,19 @@ Operating-system read and cleanup failures refuse the observation without claimi
 The host records PowerShell, runtime/tool and actual machine facts beside the source and locked graph.
 
 Each repeated cycle starts with an absent task-owned Cargo target, builds unchanged source, changes exactly the declared transition target, and builds that edited source unchanged again.
+Baseline and candidate cycles alternate order, using the same current caller specimen with separately resolved libraries and no shared compiled output.
 The edit direction alternates between cycles.
 Every phase runs a handwritten full-domain consumer, and each edited executable must also reject the opposite expectation.
-The economics reader reconciles the entire phase population, native artifact freshness, positive clock units, stable locked graph and no-op executable identity.
+The economics reader reconciles both complete revision-bound phase populations, native artifact freshness, positive clock units, stable locked graph and no-op executable identity.
+Paired populations must use the same authored inputs, dependency graph, clock scale and artifact denominator; executable bytes need not match across source revisions or distinct build paths.
 The host retains native Cargo JSON and child results before emitting its compact report; a summary line alone is not native build evidence.
 
 The timed interval runs from Cargo process start through observed exit, including capture backpressure while it runs but excluding post-exit stream draining, source edits, cleanup, JSON interpretation and consumer execution.
 An absent Cargo target does not make the operating-system or registry cache cold.
 Artifact freshness does not expose individual rustc incremental-query reuse.
-Repeated timings remain observations with visible variability, not a performance threshold or source-version comparison.
+The paired summary retains every cycle and reports phase minima, medians, maxima and median ratios without a performance threshold or significance claim.
+Alternating cycles does not remove operating-system caches, path differences, build order, background activity or shared-host effects.
+When the product implementation is unchanged, these are variability observations rather than optimization evidence.
 Each completed cycle cleans only its exact build child after native results are retained; a deadline leaves the campaign incomplete.
 
 ## Reproducibility and custody
