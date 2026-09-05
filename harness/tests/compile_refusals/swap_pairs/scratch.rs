@@ -1,4 +1,6 @@
 //! Deterministic disposable scratch custody and shell-free Cargo invocation.
+//!
+//! Standalone challenge locks are seeded from the repository and reconciled with Cargo's workspace-only update before locked compilation.
 
 use super::render::RenderedSource;
 use macroonz_harness::report::{
@@ -118,9 +120,20 @@ impl Scratch {
 
     pub(crate) fn generate_lockfile(&self) -> Result<HostFacts, HostFailure> {
         let host = self.host_facts()?;
+        fs::copy(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../Cargo.lock"),
+            self.root.join("Cargo.lock"),
+        )
+        .map_err(|error| {
+            infrastructure(
+                InfrastructureFault::BackendInitializationFailed,
+                &format!("could not seed the challenge dependency lock: {error}"),
+            )
+        })?;
         let output = Command::new("cargo")
             .arg("+1.98.1")
-            .arg("generate-lockfile")
+            .arg("update")
+            .arg("--workspace")
             .arg("--manifest-path")
             .arg(&self.manifest)
             .arg("--offline")

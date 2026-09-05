@@ -115,6 +115,16 @@ pub(crate) fn cargo(scratch: &Path, arguments: &[&str]) -> Result<Output, String
     cargo_with_target(scratch, &scratch.join("target"), arguments)
 }
 
+/// Reconcile a standalone fixture against the repository's existing dependency pins.
+pub(crate) fn lock_from_repository(scratch: &Path) -> Result<Output, String> {
+    std::fs::copy(
+        repository_root()?.join("Cargo.lock"),
+        scratch.join("Cargo.lock"),
+    )
+    .map_err(|error| error.to_string())?;
+    cargo(scratch, &["update", "--workspace", "--offline"])
+}
+
 /// Run a Cargo observation whose manifest and disposable build root have separate declared custody.
 pub(crate) fn cargo_with_target(
     manifest_root: &Path,

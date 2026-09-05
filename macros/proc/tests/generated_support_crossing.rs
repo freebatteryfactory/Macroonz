@@ -6,7 +6,10 @@
 #[path = "support/scratch.rs"]
 mod scratch;
 
-use scratch::{cargo, command_refusal, manifest_path, observed_in_scratch_for, repository_root};
+use scratch::{
+    cargo, command_refusal, lock_from_repository, manifest_path, observed_in_scratch_for,
+    repository_root,
+};
 use std::path::Path;
 
 /// Write the fixed producer library and downstream consumer.
@@ -72,6 +75,7 @@ fn named_proc_test_support_debt_does_not_expand() -> Result<(), String> {
     assert_source_occurrences(&root, concat!("fn ", "scratch_root("), &owner)?;
     assert_source_occurrences(&root, concat!("fn ", "observed_in_scratch_for("), &owner)?;
     assert_source_occurrences(&root, concat!("fn ", "cargo("), &owner)?;
+    assert_source_occurrences(&root, concat!("fn ", "lock_from_repository("), &owner)?;
     assert_source_occurrences(&root, concat!("fn ", "manifest_path("), &owner)?;
     assert_source_occurrences(&root, concat!("fn ", "command_refusal("), &owner)?;
     assert_source_occurrences(&root, concat!("fn ", "repository_root("), &owner)?;
@@ -132,15 +136,58 @@ fn a_downstream_crate_invokes_the_proc_emitted_mutation_carrier() -> Result<(), 
 /// Build and execute the downstream crossing inside one exclusively owned scratch root.
 fn observe_crossing(scratch: &Path) -> Result<(), String> {
     write_specimen(scratch)?;
-    let locked = cargo(scratch, &["generate-lockfile", "--offline"])?;
+    let locked = lock_from_repository(scratch)?;
     if !locked.status.success() {
         return Err(command_refusal("scratch lock generation", &locked));
     }
+    let seed = std::fs::read_to_string(repository_root()?.join("Cargo.lock"))
+        .map_err(|error| error.to_string())?;
+    let held =
+        std::fs::read_to_string(scratch.join("Cargo.lock")).map_err(|error| error.to_string())?;
+    external_packages_stay_in_the_seed(&seed, &held)?;
     let tested = cargo(scratch, &["test", "--locked", "--offline"])?;
     if !tested.status.success() {
         return Err(command_refusal("downstream carrier qualification", &tested));
     }
     Ok(())
+}
+
+/// Cargo may prune unreachable packages, but every retained external identity stays in the seed.
+fn external_packages_stay_in_the_seed(seed: &str, held: &str) -> Result<(), String> {
+    let mut observed = 0_usize;
+    for package in held.split("[[package]]").skip(1) {
+        let identity = package
+            .lines()
+            .take_while(|line| !line.starts_with("dependencies = "))
+            .collect::<Vec<_>>()
+            .join("\n");
+        if identity.lines().any(|line| line.starts_with("source = ")) {
+            if !seed.contains(identity.trim()) {
+                return Err(format!(
+                    "the fixture resolved an external identity outside its seed: {identity}"
+                ));
+            }
+            observed = observed.saturating_add(1);
+        }
+    }
+    if observed == 0 {
+        return Err("the external dependency comparison was empty".to_owned());
+    }
+    Ok(())
+}
+
+#[test]
+fn dependency_seed_comparison_rejects_changed_and_empty_external_identities() {
+    let seed = "[[package]]\nname = \"dependency\"\nversion = \"1.0.0\"\nsource = \"registry+declared\"\nchecksum = \"original\"\n";
+    assert!(external_packages_stay_in_the_seed(seed, seed).is_ok());
+    for changed in [
+        seed.replace("1.0.0", "1.0.1"),
+        seed.replace("original", "different"),
+        seed.replace("registry+declared", "registry+foreign"),
+        String::new(),
+    ] {
+        assert!(external_packages_stay_in_the_seed(seed, &changed).is_err());
+    }
 }
 
 /// The producer library owns the declaration and exports its deferred carrier.

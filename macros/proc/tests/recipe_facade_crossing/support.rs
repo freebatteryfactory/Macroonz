@@ -24,7 +24,8 @@ use no_harness::{NO_HARNESS_CONSUMER, NO_HARNESS_PRODUCER};
 use renamed_facade::{CONSUMER, PRODUCER};
 
 use crate::scratch::{
-    cargo, command_refusal, manifest_path, observed_in_scratch_for, repository_root,
+    cargo, command_refusal, lock_from_repository, manifest_path, observed_in_scratch_for,
+    repository_root,
 };
 use std::path::Path;
 
@@ -125,7 +126,7 @@ pub(super) fn observe_effect_execution(scratch: &Path) -> Result<(), String> {
         EFFECT_CONSUMER,
         AdopterUnsafePosture::CallerOwned,
     )?;
-    let locked = cargo(scratch, &["generate-lockfile", "--offline"])?;
+    let locked = lock_from_repository(scratch)?;
     if !locked.status.success() {
         return Err(command_refusal("effect-execution lock generation", &locked));
     }
@@ -159,7 +160,7 @@ pub(super) fn observed_in_scratch(
 
 pub(super) fn observe_crossing(scratch: &Path) -> Result<(), String> {
     write_specimen(scratch, ", features = [\"harness\"]", PRODUCER, CONSUMER)?;
-    let locked = cargo(scratch, &["generate-lockfile", "--offline"])?;
+    let locked = lock_from_repository(scratch)?;
     if !locked.status.success() {
         return Err(command_refusal("scratch lock generation", &locked));
     }
@@ -191,7 +192,7 @@ pub(super) fn observe_subject_journeys(scratch: &Path) -> Result<(), String> {
         SUBJECT_JOURNEYS_PRODUCER,
         SUBJECT_JOURNEYS_CONSUMER,
     )?;
-    let locked = cargo(scratch, &["generate-lockfile", "--offline"])?;
+    let locked = lock_from_repository(scratch)?;
     if !locked.status.success() {
         return Err(command_refusal("subject-journey lock generation", &locked));
     }
@@ -218,7 +219,7 @@ pub(super) fn observe_subject_journeys(scratch: &Path) -> Result<(), String> {
 
 pub(super) fn observe_generic_crossing(scratch: &Path) -> Result<(), String> {
     write_specimen(scratch, "", GENERIC_PRODUCER, GENERIC_CONSUMER)?;
-    let locked = cargo(scratch, &["generate-lockfile", "--offline"])?;
+    let locked = lock_from_repository(scratch)?;
     if !locked.status.success() {
         return Err(command_refusal("generic-recipe lock generation", &locked));
     }
@@ -252,7 +253,7 @@ pub(super) fn observe_negative_space(scratch: &Path, edition: &str) -> Result<()
         NEGATIVE_SPACE_CONSUMER,
         AdopterUnsafePosture::Forbidden,
     )?;
-    let locked = cargo(scratch, &["generate-lockfile", "--offline"])?;
+    let locked = lock_from_repository(scratch)?;
     if !locked.status.success() {
         return Err(command_refusal("negative-space lock generation", &locked));
     }
@@ -271,7 +272,7 @@ pub(super) fn observe_generic_refusals(scratch: &Path) -> Result<(), String> {
         return Err("the generic-refusal denominator is empty".to_owned());
     };
     write_specimen(scratch, "", first, "")?;
-    let locked = cargo(scratch, &["generate-lockfile", "--offline"])?;
+    let locked = lock_from_repository(scratch)?;
     if !locked.status.success() {
         return Err(command_refusal("generic-refusal lock generation", &locked));
     }
@@ -291,7 +292,7 @@ pub(super) fn observe_generic_refusals(scratch: &Path) -> Result<(), String> {
 
 pub(super) fn observe_without_harness(scratch: &Path) -> Result<(), String> {
     write_specimen(scratch, "", NO_HARNESS_PRODUCER, NO_HARNESS_CONSUMER)?;
-    let locked = cargo(scratch, &["generate-lockfile", "--offline"])?;
+    let locked = lock_from_repository(scratch)?;
     if !locked.status.success() {
         return Err(command_refusal("no-harness lock generation", &locked));
     }
@@ -304,7 +305,7 @@ pub(super) fn observe_without_harness(scratch: &Path) -> Result<(), String> {
 
 pub(super) fn observe_harness_refusal(scratch: &Path) -> Result<(), String> {
     write_specimen(scratch, "", HARNESS_REFUSAL_PRODUCER, EMPTY_CONSUMER)?;
-    let locked = cargo(scratch, &["generate-lockfile", "--offline"])?;
+    let locked = lock_from_repository(scratch)?;
     if !locked.status.success() {
         return Err(command_refusal("harness-refusal lock generation", &locked));
     }

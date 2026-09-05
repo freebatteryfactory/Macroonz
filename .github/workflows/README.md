@@ -33,7 +33,8 @@ A cloud runner never establishes a physical-host claim.
 ## Reproducibility and custody
 
 The workflow installs the repository's exact stable Rust toolchain and exact auxiliary tool versions.
-Every compilation uses the committed lockfile.
+Workspace compilation uses the committed lockfile.
+Standalone test packages seed that file and reconcile only their workspace membership through Cargo's workspace-only update, retaining existing external pins before locked compilation.
 One declared dependency-fetch step precedes offline Cargo execution, so a build cannot acquire a new graph halfway through qualification.
 One inherited Cargo job bound constrains nested compilation as well as the parent command; separate runner jobs remain independent.
 

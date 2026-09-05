@@ -9,7 +9,10 @@ use std::process::Output;
 #[path = "support/scratch.rs"]
 mod scratch;
 
-use scratch::{cargo, command_refusal, manifest_path, observed_in_scratch_for, repository_root};
+use scratch::{
+    cargo, command_refusal, lock_from_repository, manifest_path, observed_in_scratch_for,
+    repository_root,
+};
 
 #[derive(Clone, Copy)]
 enum Boundary {
@@ -44,7 +47,7 @@ fn observe_matrix(scratch: &Path) -> Result<(), String> {
 fn observe_lawful_package(scratch: &Path) -> Result<(), String> {
     require_success(
         "advanced-Rust lock generation",
-        &cargo(scratch, &["generate-lockfile", "--offline"])?,
+        &lock_from_repository(scratch)?,
     )?;
     require_success(
         "advanced-Rust package tests",
@@ -86,11 +89,11 @@ fn observe_generated_unsafe(scratch: &Path) -> Result<(), String> {
     let missing = scratch.join("generated-missing");
     require_success(
         "documented generated unsafe lock generation",
-        &cargo(&documented, &["generate-lockfile", "--offline"])?,
+        &lock_from_repository(&documented)?,
     )?;
     require_success(
         "missing-doc generated unsafe lock generation",
-        &cargo(&missing, &["generate-lockfile", "--offline"])?,
+        &lock_from_repository(&missing)?,
     )?;
     require_success(
         "documented generated unsafe API",
