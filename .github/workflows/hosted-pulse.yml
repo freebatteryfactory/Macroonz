@@ -203,7 +203,12 @@ jobs:
                   if ($env:ECONOMICS_SUBJECT -cnotin @('compiler','runtime')) { throw 'Unknown report subject' }
                   $root = "$repository/target/qualification/$env:ECONOMICS_SUBJECT-economics"
                   $report = "$target/tmp/$env:ECONOMICS_SUBJECT-economics"
-                  foreach ($name in @('artifacts.jsonl','timing.stderr')) { $paths.Add("$root/$name") }
+                  foreach ($name in @('artifacts.jsonl','artifacts-baseline.jsonl','baseline-inputs.txt','comparison-context.txt','comparison-summary.csv','comparison/order.csv','timing.stderr')) { $paths.Add("$root/$name") }
+                  foreach ($round in 0..3) {
+                      foreach ($side in @('baseline','candidate')) {
+                          foreach ($extension in @('log','stderr')) { $paths.Add("$root/comparison/$round-$side.$extension") }
+                      }
+                  }
                   foreach ($name in @('context.txt','timing.log')) { $paths.Add("$report/$name") }
                   if ($env:ECONOMICS_SUBJECT -ceq 'compiler') {
                       $names = [Collections.Generic.List[string]]::new()
@@ -752,12 +757,15 @@ jobs:
       ECONOMICS_SUBJECT: ${{ matrix.subject }}
       ECONOMICS_ROOT: ${{ github.workspace }}/target/qualification/${{ matrix.subject }}-economics
       CARGO_TARGET_DIR: ${{ github.workspace }}/target/qualification/${{ matrix.subject }}-economics/observer
+      ECONOMICS_BASELINE: a6a5b0c84634240980d6a31143ebeb3440da3bf8
+      ECONOMICS_QUALIFIED_SOURCE: 5baca339824708ae932da02cb283efc5c9633acf
 
     steps:
-      - name: Check out the declared revision
+      - name: Check out the declared comparison history
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Restore declared Cargo registry material
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -804,8 +812,23 @@ jobs:
         run: |
           git diff --exit-code HEAD --
           mkdir -p "$ECONOMICS_ROOT"
-          build="$ECONOMICS_ROOT/libraries"
-          test ! -e "$build"
+          git merge-base --is-ancestor "$ECONOMICS_QUALIFIED_SOURCE" "$ECONOMICS_BASELINE"
+          git merge-base --is-ancestor "$ECONOMICS_BASELINE" HEAD
+          inputs=(src macros/compiler/src macros/proc/src harness/src Cargo.toml macros/compiler/Cargo.toml
+            macros/proc/Cargo.toml harness/Cargo.toml Cargo.lock rust-toolchain.toml .cargo/config.toml)
+          git diff --exit-code "$ECONOMICS_QUALIFIED_SOURCE" "$ECONOMICS_BASELINE" -- "${inputs[@]}"
+          for input in "${inputs[@]}"; do
+            printf '%s %s\n' "$(git rev-parse "$ECONOMICS_BASELINE:$input")" "$input"
+          done > "$ECONOMICS_ROOT/baseline-inputs.txt"
+          baseline="$ECONOMICS_ROOT/baseline-source"
+          test ! -e "$baseline"
+          if git ls-tree -r "$ECONOMICS_BASELINE" | grep '^120000 ' > /dev/null; then
+            printf 'Baseline source contains a forbidden link\n' >&2; exit 1
+          fi
+          mkdir -p "$baseline"
+          git archive --format=tar "$ECONOMICS_BASELINE" | tar -xf - -C "$baseline"
+          cmp Cargo.lock "$baseline/Cargo.lock"
+          cmp rust-toolchain.toml "$baseline/rust-toolchain.toml"
           subject=harness/tests/recipe_economics/host
           case "$ECONOMICS_SUBJECT" in
             compiler) entry=compiler-axes; packages=(-p macroonz-compiler -p macroonz-harness) ;;
@@ -813,30 +836,126 @@ jobs:
             *) printf 'Unknown economics subject\n' >&2; exit 1 ;;
           esac
           rustfmt +1.98.1 --edition 2024 --check "$subject/$entry.rs"
-          CARGO_TARGET_DIR="$build" timeout --kill-after=5s 600s cargo +1.98.1 build \
-            "${packages[@]}" --all-features --lib --release \
-            --locked --offline --message-format=json > "$ECONOMICS_ROOT/artifacts.jsonl"
-          test "$(grep -Fxc '{"reason":"build-finished","success":true}' "$ECONOMICS_ROOT/artifacts.jsonl")" = 1
-          harness="$build/release/libmacroonz_harness.rlib"
-          test -f "$harness"
-          case "$ECONOMICS_SUBJECT" in
-            compiler) library="$build/release/libmacroonz_compiler.rlib"; binding=macroonz_compiler ;;
-            runtime) library="$build/release/libmacroonz.rlib"; binding=macroonz ;;
-          esac
-          test -f "$library"
-          export PILOT_SOURCE="$GITHUB_SHA"
           export PILOT_TARGET="$(rustc +1.98.1 -vV | sed -n 's/^host: //p')"
           export PILOT_TOOLCHAIN="$(rustc +1.98.1 --version)"
           test -n "$PILOT_TARGET"
           mkdir -p "$CARGO_TARGET_DIR/tmp/$ECONOMICS_SUBJECT-economics"
-          printf '%s\n' "$PILOT_SOURCE" "$PILOT_TARGET" "$PILOT_TOOLCHAIN" > "$CARGO_TARGET_DIR/tmp/$ECONOMICS_SUBJECT-economics/context.txt"
-          timeout --kill-after=5s 120s rustc +1.98.1 --edition=2024 -D warnings \
-            -C opt-level=3 -C overflow-checks=yes --extern "$binding=$library" \
-            --extern "macroonz_harness=$harness" -L "dependency=$build/release/deps" \
-            "$subject/$entry.rs" -o "$ECONOMICS_ROOT/subject"
+          build_subject() {
+            local source="$1" revision="$2" suffix="$3"
+            local build="$ECONOMICS_ROOT/libraries$suffix" library binding
+            test ! -e "$build"
+            CARGO_TARGET_DIR="$build" timeout --kill-after=5s 600s cargo +1.98.1 build \
+              --manifest-path "$source/Cargo.toml" "${packages[@]}" --all-features --lib --release \
+              --locked --offline --message-format=json > "$ECONOMICS_ROOT/artifacts$suffix.jsonl"
+            test "$(grep -Fxc '{"reason":"build-finished","success":true}' "$ECONOMICS_ROOT/artifacts$suffix.jsonl")" = 1
+            local harness="$build/release/libmacroonz_harness.rlib"
+            test -f "$harness"
+            case "$ECONOMICS_SUBJECT" in
+              compiler) library="$build/release/libmacroonz_compiler.rlib"; binding=macroonz_compiler ;;
+              runtime) library="$build/release/libmacroonz.rlib"; binding=macroonz ;;
+            esac
+            test -f "$library"
+            PILOT_SOURCE="$revision" timeout --kill-after=5s 120s rustc +1.98.1 --edition=2024 -D warnings \
+              -C opt-level=3 -C overflow-checks=yes --extern "$binding=$library" \
+              --extern "macroonz_harness=$harness" -L "dependency=$build/release/deps" \
+              "$subject/$entry.rs" -o "$ECONOMICS_ROOT/subject$suffix"
+          }
+          build_subject "$GITHUB_WORKSPACE" "$GITHUB_SHA" ''
+          build_subject "$baseline" "$ECONOMICS_BASELINE" '-baseline'
+          printf '%s\n' "$GITHUB_SHA" "$PILOT_TARGET" "$PILOT_TOOLCHAIN" > "$CARGO_TARGET_DIR/tmp/$ECONOMICS_SUBJECT-economics/context.txt"
+          printf '%s\n' "$ECONOMICS_BASELINE" "$GITHUB_SHA" "$PILOT_TARGET" "$PILOT_TOOLCHAIN" > "$ECONOMICS_ROOT/comparison-context.txt"
           sha256sum Cargo.lock "$subject/$entry.rs" "$subject/measurement.rs" \
             "$subject/resident.rs" "$subject/runtime-shapes.rs" \
-            "$ECONOMICS_ROOT/subject" "$ECONOMICS_ROOT/artifacts.jsonl"
+            "$ECONOMICS_ROOT/subject" "$ECONOMICS_ROOT/subject-baseline" \
+            "$ECONOMICS_ROOT/artifacts.jsonl" "$ECONOMICS_ROOT/artifacts-baseline.jsonl"
+
+      - name: Compare alternating baseline and candidate execution populations
+        run: |
+          comparison="$ECONOMICS_ROOT/comparison"
+          test ! -e "$comparison"
+          mkdir -p "$comparison"
+          report_root="$CARGO_TARGET_DIR/tmp/$ECONOMICS_SUBJECT-economics"
+          target="$(rustc +1.98.1 -vV | sed -n 's/^host: //p')"
+          toolchain="$(rustc +1.98.1 --version)"
+          for round in 0 1 2 3; do
+            order=(baseline candidate)
+            if (( round % 2 )); then order=(candidate baseline); fi
+            for side in "${order[@]}"; do
+              case "$side" in
+                baseline) binary="$ECONOMICS_ROOT/subject-baseline"; source="$ECONOMICS_BASELINE" ;;
+                candidate) binary="$ECONOMICS_ROOT/subject"; source="$GITHUB_SHA" ;;
+              esac
+              status=0
+              (ulimit -f 4096; timeout --kill-after=5s 180s "$binary" \
+                > "$comparison/$round-$side.log" 2> "$comparison/$round-$side.stderr") || status=$?
+              printf '%s,%s,%s,%s\n' "$round" "$side" "$source" "$status" >> "$comparison/order.csv"
+              cat "$comparison/$round-$side.stderr"
+              if test "$status" != 0; then cat "$comparison/$round-$side.log"; exit "$status"; fi
+              test ! -s "$comparison/$round-$side.stderr"
+              printf '%s\n' "$source" "$target" "$toolchain" > "$report_root/context.txt"
+              cp "$comparison/$round-$side.log" "$report_root/timing.log"
+              cargo +1.98.1 nextest run -j1 -p macroonz-harness --test recipe_economics --locked \
+                --run-ignored only --no-tests fail --success-output final \
+                -E "test(=bench_driver::host_report::native_${ECONOMICS_SUBJECT}_samples_match_the_declared_context_and_population)"
+            done
+          done
+          printf '%s\n' "$GITHUB_SHA" "$target" "$toolchain" > "$report_root/context.txt"
+          cp "$comparison/3-candidate.log" "$report_root/timing.log"
+
+      - name: Report source comparison variability without timing thresholds
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+          $context = @(Get-Content -LiteralPath "$env:ECONOMICS_ROOT/comparison-context.txt")
+          if ($context.Count -ne 4 -or $context[0] -cne $env:ECONOMICS_BASELINE -or $context[1] -cne $env:GITHUB_SHA -or $context[0] -ceq $context[1]) { throw 'Comparison context moved' }
+          $order = @(Get-Content -LiteralPath "$env:ECONOMICS_ROOT/comparison/order.csv")
+          $expected = @(foreach ($round in 0..3) {
+              $sides = if ($round % 2 -eq 0) { @('baseline','candidate') } else { @('candidate','baseline') }
+              foreach ($side in $sides) {
+                  $revision = if ($side -ceq 'baseline') { $context[0] } else { $context[1] }
+                  "$round,$side,$revision,0"
+              }
+          })
+          if (($order -join "`n") -cne ($expected -join "`n")) { throw 'Comparison order or completion moved' }
+          $populations = @{}
+          foreach ($side in @('baseline','candidate')) {
+              $cells = [Collections.Generic.SortedDictionary[string,Collections.Generic.List[ulong]]]::new([StringComparer]::Ordinal)
+              foreach ($round in 0..3) {
+                  $path = "$env:ECONOMICS_ROOT/comparison/$round-$side.log"
+                  if ((Get-Item -LiteralPath $path).Length -gt 4MB) { throw 'Comparison report exceeds its input bound' }
+                  foreach ($line in [IO.File]::ReadLines($path)) {
+                      if (-not $line.StartsWith('sample,', [StringComparison]::Ordinal)) { continue }
+                      $fields = $line.Split(',')
+                      if ($fields.Count -ne 7 -or $fields[6] -cnotmatch '^[0-9]+$') { throw 'Invalid duration record' }
+                      $duration = [ulong]::Parse($fields[6], [Globalization.CultureInfo]::InvariantCulture)
+                      if ($duration -eq 0) { throw 'Unmeasured duration' }
+                      $key = "$($fields[1]),$($fields[3]),$($fields[4])"
+                      if (-not $cells.ContainsKey($key)) { $cells.Add($key, [Collections.Generic.List[ulong]]::new()) }
+                      $cells[$key].Add($duration)
+                  }
+              }
+              if ($cells.Count -eq 0) { throw 'Empty comparison population' }
+              foreach ($values in $cells.Values) {
+                  if ($values.Count -ne 80) { throw 'Comparison cell population moved' }
+                  $values.Sort()
+              }
+              $populations[$side] = $cells
+          }
+          if (($populations.baseline.Keys -join "`n") -cne ($populations.candidate.Keys -join "`n")) { throw 'Comparison cell rosters disagree' }
+          $rows = @("baseline=$($context[0]);candidate=$($context[1]);target=$($context[2]);toolchain=$($context[3]);no samples trimmed;report-only",
+              'family,role,input,baseline-min-ns,baseline-median-ns,baseline-max-ns,candidate-min-ns,candidate-median-ns,candidate-max-ns,candidate-over-baseline-median')
+          foreach ($key in $populations.baseline.Keys) {
+              $left = $populations.baseline[$key]
+              $right = $populations.candidate[$key]
+              $leftMedian = ([double]$left[39] + [double]$left[40]) / 2
+              $rightMedian = ([double]$right[39] + [double]$right[40]) / 2
+              $values = @($left[0],$leftMedian,$left[79],$right[0],$rightMedian,$right[79],($rightMedian / $leftMedian))
+              $formatted = @($values | ForEach-Object { $_.ToString([Globalization.CultureInfo]::InvariantCulture) })
+              $rows += "$key,$($formatted -join ',')"
+          }
+          $rows | Set-Content -LiteralPath "$env:ECONOMICS_ROOT/comparison-summary.csv" -Encoding utf8NoBOM
+          $rows
 
       - name: Observe and reconcile every declared execution sample
         run: |

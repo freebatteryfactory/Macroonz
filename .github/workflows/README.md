@@ -115,6 +115,16 @@ The existing economics target separately reconciles the complete sample populati
 Native samples remain visible in step logs without trimming or a default performance threshold.
 These timing observations do not establish adopter-build economics, memory efficiency or a baseline-version comparison; those require their own observations.
 
+The execution job also builds an explicitly selected baseline from Git into a separate exclusive release target, using the same current caller specimens and toolchain as the candidate.
+Before comparison, the selected baseline's library trees, manifests, lockfile, toolchain pin, and Cargo configuration must match its declared underlying qualified product source.
+Both baseline and candidate link their own compiler or facade and harness artifacts; neither inherits the other's compiled output.
+Four alternating baseline/candidate process pairs execute the complete subject populations, each independently reconciled by the existing native report reader with that revision's context.
+The comparison retains all samples and reports per-family, role, and input minimum, median, maximum, and median ratio without a numerical timing acceptance threshold.
+Samples within a process share execution history; the summary does not treat them as independent host trials or calculate statistical significance.
+The recorded order refuses missing, reordered, or unsuccessful process observations.
+When product implementations are unchanged, the result is a same-implementation variability observation, not an optimization claim.
+Build order, process startup, host scheduling, and cache effects remain part of the observation's limits; alternating execution does not establish an isolated hardware laboratory.
+
 The compiler sibling also records GNU time's child-process maximum resident set with its actual tool identity and native KiB unit.
 Allocation controls touch and consume declared zero, medium and large buffers in alternating rounds; the instrument must distinguish their increasing resident sizes before the memory observation qualifies.
 Each compiler family/size process inspects its output or exact refusal and holds consumed material through the declared release protocol.
