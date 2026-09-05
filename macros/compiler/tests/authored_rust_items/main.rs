@@ -2,6 +2,7 @@
 //!
 //! The fixtures carry structural pressure from ordinary and advanced Rust without asking Macroonz to interpret what any item means.
 
+mod diagnostics;
 mod item_cases;
 
 use core::convert::Infallible;
