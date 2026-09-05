@@ -1,5 +1,8 @@
 //! Exact sample-population custody for separately executed compiler and runtime subjects.
 
+#[path = "memory_report.rs"]
+mod memory;
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::{Read, Write};
 

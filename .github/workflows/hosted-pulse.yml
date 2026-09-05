@@ -706,6 +706,63 @@ jobs:
             --run-ignored only --no-tests fail --success-output final \
             -E "test(=bench_driver::host_report::native_${ECONOMICS_SUBJECT}_samples_match_the_declared_context_and_population)"
 
+      - name: Observe bounded compiler process memory with allocation controls
+        if: matrix.subject == 'compiler'
+        run: |
+          test -x /usr/bin/time
+          /usr/bin/time --version
+          sha256sum /usr/bin/time
+          subject=harness/tests/recipe_economics/host
+          rustfmt +1.98.1 --edition 2024 --check "$subject/memory-control.rs"
+          timeout --kill-after=5s 120s rustc +1.98.1 --edition=2024 -D warnings \
+            -C opt-level=3 -C overflow-checks=yes "$subject/memory-control.rs" -o "$ECONOMICS_ROOT/memory-control"
+          sha256sum "$subject/memory-control.rs" "$subject/resident.rs" "$ECONOMICS_ROOT/memory-control"
+          memory="$CARGO_TARGET_DIR/tmp/compiler-economics/memory"
+          test ! -e "$memory"
+          mkdir -p "$memory"
+          observe_memory() {
+            local name="$1" deadline="$2" release="$3" status=0
+            shift 3
+            (ulimit -f 4096; printf '%s' "$release" | timeout --kill-after=2s "$deadline" \
+              /usr/bin/time -f 'peak-kib=%M status=%x' -o "$memory/$name.time" \
+              "$@" > "$memory/$name.stdout" 2> "$memory/$name.stderr") || status=$?
+            printf '%s\n' "$status" > "$memory/$name.status"
+            return "$status"
+          }
+          for round in 0 1 2 3; do
+            allocations=(0 16777216 67108864)
+            cases=(density:4 density:16 density:64 codec-width:1 codec-width:8 codec-width:32
+              late-duplicate:8 late-duplicate:32 late-duplicate:127 near-limit:62 near-limit:63 near-limit:64)
+            if (( round % 2 )); then
+              allocations=(67108864 16777216 0)
+              reversed=()
+              for (( index=${#cases[@]}-1; index>=0; index-- )); do reversed+=("${cases[index]}"); done
+              cases=("${reversed[@]}")
+            fi
+            for bytes in "${allocations[@]}"; do
+              observe_memory "allocation-$round-$bytes" 10s $'release\n' "$ECONOMICS_ROOT/memory-control" "$bytes" hold-for-observer
+            done
+            for pair in "${cases[@]}"; do
+              family="${pair%:*}"; size="${pair#*:}"
+              observe_memory "compiler-$round-$family-$size" 10s $'release\n' "$ECONOMICS_ROOT/subject" memory "$family" "$size"
+            done
+          done
+          status=0
+          observe_memory missing-release 10s '' "$ECONOMICS_ROOT/subject" memory density 4 || status=$?
+          test "$status" = 1
+          grep -F 'observer did not supply the exact release token and EOF' "$memory/missing-release.stderr"
+          status=0
+          observe_memory failed-child 10s $'release\n' "$ECONOMICS_ROOT/memory-control" lifecycle fail || status=$?
+          test "$status" = 1
+          grep -F 'deliberate lifecycle failure' "$memory/failed-child.stderr"
+          status=0
+          observe_memory deadline 0.1s '' "$ECONOMICS_ROOT/memory-control" lifecycle stall-ready || status=$?
+          test "$status" = 124
+          printf 'Native memory negative controls: missing release=1, failed child=1, deadline=124\n'
+          cargo +1.98.1 nextest run -j1 -p macroonz-harness --test recipe_economics --locked \
+            --run-ignored only --no-tests fail --success-output final \
+            -E 'test(=bench_driver::host_report::memory::native_memory_reports_require_completed_children_and_all_declared_observations)'
+
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --
 

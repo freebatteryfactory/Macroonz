@@ -113,7 +113,15 @@ Every measured repetition executes the callable again and consumes its result.
 Explicit deadlines and output-file bounds constrain the subject; nonzero execution remains a failed observation even if partial sample records exist.
 The existing economics target separately reconciles the complete sample population, declared source, compiler, target and interval, refusing missing, duplicate, foreign or unmeasured rows.
 Native samples remain visible in step logs without trimming or a default performance threshold.
-These jobs do not establish adopter-build economics, memory efficiency or a baseline-version comparison; those require their own observations.
+These timing observations do not establish adopter-build economics, memory efficiency or a baseline-version comparison; those require their own observations.
+
+The compiler sibling also records GNU time's child-process maximum resident set with its actual tool identity and native KiB unit.
+Allocation controls touch and consume declared zero, medium and large buffers in alternating rounds; the instrument must distinguish their increasing resident sizes before the memory observation qualifies.
+Each compiler family/size process inspects its output or exact refusal and holds consumed material through the declared release protocol.
+The economics target requires every declared observation, positive native RSS, successful process status, empty stderr and the exact retained output length/checksum vector.
+Readiness alone cannot admit a result: missing release, failed-child and deadline controls preserve their nonzero exits.
+Memory includes startup, compiler execution, output inspection, release handling and exit; it is not compiler-only heap allocation, leak detection, simultaneous process-tree residency or a memory-efficiency verdict.
+The scalar vectors bind consumed output to these subjects; independent structural expectations remain with their correctness preflight.
 
 ## Reproducibility and custody
 

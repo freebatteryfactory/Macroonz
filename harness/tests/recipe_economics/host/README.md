@@ -13,6 +13,7 @@ Its call-count and structure-width axes remain separate, and its timed codec int
 Identical work must fail the planted-worse gate; doubled actual execution must satisfy the declared work distinction before timing begins.
 `resident.rs` holds the consumed bytes until the external observer supplies the exact release token and EOF.
 A readiness line without a successful process exit does not establish a completed observation.
+`memory-control.rs` supplies the external allocation-sensitivity and failed-child/deadline controls; it measures no Macroonz behavior itself.
 
 The qualification host owns process and output bounds, native memory observation, source custody and report reconciliation.
 Raw records remain disposable under its exact target.
