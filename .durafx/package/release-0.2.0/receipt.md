@@ -3,6 +3,7 @@
 ## Standing
 
 - This page is the single receipt for the Macroonz `0.2.0` release plane.
+- Current registry standing: all four `0.2.0` packages are published and independently checksum-verified; documentation delivery and the authorized tag/Release operations are being completed separately below.
 - No `0.2.0` package has been published, no `v0.2.0` tag exists, and no GitHub Release exists at the time this page was opened.
 - The first section below records local shape-lot custody that tests cannot retain; every later section appends only after its own local qualification, hosted, registry, tag, release, or acceptance authority exists.
 
@@ -284,3 +285,32 @@ This receipt-only successor does not replace the qualified publication source an
 
 All four clean-source archives embed the qualified source and were independently hash-checked again before release execution.
 The hosted extracted-package crossings do not establish registry delivery; that observation follows dependency-ordered upload and a fresh registry-only adopter.
+
+## Dependency-ordered registry publication
+
+The owner explicitly authorized completion of publication, documentation verification, the qualified-source tag and GitHub Release on 2026-09-05.
+Each package passed `cargo +1.98.1 publish -p <package> --all-features --locked --dry-run --registry crates-io` from a clean detached checkout of `ebd4a5804a227d264693e7ae5ffcc7630328ae84` immediately before its live upload without `--dry-run`.
+Every dry-run archive matched the final candidate SHA-256 above; Cargo's temporary publish archive resides beneath `package/tmp-crate`, not the ordinary package-output root.
+No product source, lockfile, version, dependency pin or package roster was changed to publish.
+Cargo waited for each new version to become available before the next dependent package began.
+
+| Package | Registry creation UTC | Registry checksum |
+| --- | --- | --- |
+| macroonz-compiler 0.2.0 | 2026-09-05T18:15:56.379404Z | `0DDEA0FC11A2F131495D60FF2E381CF2396D872682C1D2565100A79493237DA5` |
+| macroonz-harness 0.2.0 | 2026-09-05T18:18:11.218591Z | `686EC4890E452C6E1432B5107EB13C8A68314FBEC021FAD59DAC0006A1543BE6` |
+| macroonz-macros 0.2.0 | 2026-09-05T18:18:41.642167Z | `40647320461183F73A5155A31A0F2B1F8F421E4356F93461699AA0C9D969B284` |
+| macroonz 0.2.0 | 2026-09-05T18:19:34.285620Z | `35E1013FE198B8C6704D3673FD3EAAA66BE5967B6026F46A7B04AE9EC36E6778` |
+
+All four versions are unyanked, carry minimum Rust 1.98.1, and have registry checksums identical to the local candidates and independently downloaded registry archives.
+Every downloaded archive embeds the exact qualified source in `.cargo_vcs_info.json`.
+No credential value or authorization header entered repository output or this receipt.
+The proc package's two excluded repository-only integration targets remain the previously qualified intentional packaging exclusions.
+
+### Registry-only adopter
+
+A fresh standalone package declared only `macroonz = "=0.2.0"`, with no path dependency, Git dependency, local patch or workspace fallback.
+Cargo metadata resolved all four product packages from crates.io; their lockfile checksums matched the publication table.
+The adopter's generated lockfile SHA-256 is `0DB750E8009FDED94157BC82A608DD986C0E222F38118B0FD08AAD192C64119F`.
+This fresh consumer resolution selected newer compatible transitive dependencies, including cc 1.4.5, find-msvc-tools 0.1.12, cpufeatures 0.3.1 and smallvec 1.16.0; it is a separate delivered-adopter observation, not a relabeling of the release wall's committed graph.
+After registry fetch, locked offline execution passed the unchanged facade recipe example and the unchanged pure compile-contract comparison example.
+Those sources are reconstructible as `git show ebd4a58:examples/recipe.rs` and `git show ebd4a58:examples/compile_contract.rs`; the former observes relation lookup, typestate, codec round-trip and configured/exact dispatch, while the latter observes the harness oracle without claiming to run rustc itself.
