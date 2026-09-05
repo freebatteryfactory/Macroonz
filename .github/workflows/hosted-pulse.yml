@@ -563,6 +563,7 @@ jobs:
       MUTATION_ROOT: ${{ github.workspace }}/target/qualification/mutation
       CARGO_TARGET_DIR: ${{ github.workspace }}/target/qualification/mutation-reader
       MUTATION_BASELINE: 90bd660190fbeae8f7088d8e55f53c0c0dc8fcee
+      RUSTUP_TOOLCHAIN: "1.98.1"
 
     steps:
       - name: Check out the declared revision and its comparison history
@@ -603,6 +604,18 @@ jobs:
         run: |
           cargo +1.98.1 fetch --locked
           echo "CARGO_NET_OFFLINE=true" >> "$GITHUB_ENV"
+
+      - name: Verify child toolchain custody outside the checkout
+        run: |
+          expected="$(rustup which --toolchain "$RUSTUP_TOOLCHAIN" rustc)"
+          probe="$(mktemp -d "$RUNNER_TEMP/macroonz-toolchain-XXXXXX")"
+          (
+            cd "$probe"
+            test "$(rustup which rustc)" = "$expected"
+            rustc --version --verbose
+            cargo --version --verbose
+          )
+          rmdir -- "$probe"
 
       - name: Qualify the current-campaign receiver
         run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --all-features --test trust_opening_evidence --locked --no-tests fail

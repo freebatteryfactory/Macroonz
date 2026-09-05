@@ -85,6 +85,8 @@ Cargo jobs, backend workers and test threads are bounded, the lint wall stays ac
 The job deadline bounds the combined campaign; a terminated campaign is incomplete rather than a smaller passing denominator.
 
 Each family has fresh copied source and build storage, with no compiled output inherited from another mutation family or the current-source observer.
+The mutation job propagates its pinned toolchain through `RUSTUP_TOOLCHAIN` so native Cargo and compiler children retain that selection outside the checkout, including dependency and copied-source directories.
+An outside-checkout preflight compares the effective compiler path with the declared toolchain before any mutation family runs.
 The runner compares recorded, current and retained executed-copy source bytes after completion.
 The existing harness integration target reads the unchanged native console and its declared command, tool, target and source material through the public backend adapter.
 It reconciles exact mutant identities and permits only reported assertion rejections or compiler-unviable variants; misses, timeouts and infrastructure failures are not credited as catches.
