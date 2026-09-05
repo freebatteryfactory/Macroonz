@@ -10,7 +10,8 @@ mod delivery;
 #[path = "support/archive_skill.rs"]
 mod skill;
 
-use crate::scratch::{cargo_with_target, observed_in_scratch_for};
+use crate::scratch::{cargo_command, cargo_with_target, observed_in_scratch_for};
+use std::ffi::OsStr;
 use std::path::Path;
 
 #[test]
@@ -34,6 +35,31 @@ fn incomplete_cargo_requests_refuse_before_launching_a_process() {
             Err(refusal.to_owned())
         );
     }
+}
+
+#[test]
+fn scratch_commands_do_not_inherit_the_parent_workspace_nextest_profile() -> Result<(), String> {
+    let root = Path::new("delivered");
+    let target = root.join("build");
+    for arguments in [&["nextest", "run"][..], &["test"][..]] {
+        let command = cargo_command(root, &target, arguments)?;
+        assert_eq!(
+            command
+                .get_envs()
+                .find(|(name, _value)| *name == OsStr::new("NEXTEST_PROFILE")),
+            Some((OsStr::new("NEXTEST_PROFILE"), None)),
+        );
+        assert_eq!(
+            command
+                .get_envs()
+                .find(|(name, _value)| *name == OsStr::new("CARGO_TARGET_DIR")),
+            Some((OsStr::new("CARGO_TARGET_DIR"), Some(target.as_os_str()))),
+        );
+        assert!(command.get_envs().all(|(name, _value)| {
+            name != OsStr::new("CARGO_BUILD_JOBS") && name != OsStr::new("CARGO_INCREMENTAL")
+        }));
+    }
+    Ok(())
 }
 
 #[test]

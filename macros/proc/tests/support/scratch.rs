@@ -131,6 +131,17 @@ pub(crate) fn cargo_with_target(
     target: &Path,
     arguments: &[&str],
 ) -> Result<Output, String> {
+    cargo_command(manifest_root, target, arguments)?
+        .output()
+        .map_err(|error| error.to_string())
+}
+
+/// Construct one scratch Cargo command without inheriting another workspace's Nextest profile.
+pub(crate) fn cargo_command(
+    manifest_root: &Path,
+    target: &Path,
+    arguments: &[&str],
+) -> Result<Command, String> {
     let (subcommand, rest) = arguments
         .split_first()
         .ok_or_else(|| "a Cargo observation requires one subcommand".to_owned())?;
@@ -151,8 +162,8 @@ pub(crate) fn cargo_with_target(
         .args(remaining)
         .current_dir(manifest_root)
         .env("CARGO_TARGET_DIR", target)
-        .output()
-        .map_err(|error| error.to_string())
+        .env_remove("NEXTEST_PROFILE");
+    Ok(command)
 }
 
 /// Render one unsuccessful subprocess as an actionable refusal.
