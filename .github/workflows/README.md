@@ -123,6 +123,32 @@ Readiness alone cannot admit a result: missing release, failed-child and deadlin
 Memory includes startup, compiler execution, output inspection, release handling and exit; it is not compiler-only heap allocation, leak detection, simultaneous process-tree residency or a memory-efficiency verdict.
 The scalar vectors bind consumed output to these subjects; independent structural expectations remain with their correctness preflight.
 
+## Adopter build observations
+
+A separate Windows job observes the canonical adopter through Cargo rather than attributing compiler-call timing to a downstream build.
+It uses the declared development profile and enables incremental compilation only inside that observation's child processes; ordinary qualification remains nonincremental.
+The standalone manifest points explicitly to the checkout, seeds the committed lock and reconciles its workspace membership offline.
+Native metadata must retain the existing external package identities and resolve all four first-party packages to the declared checkout paths.
+This measures checkout adoption, not extracted-package delivery or registry availability.
+
+The same bounded process operation supervises both Cargo and the independently expected executable.
+Concurrent stdout/stderr limits, start failures, nonzero exits, process deadlines and inherited-stream drain deadlines have explicit native controls.
+An inherited control child is independently bounded and observed to exit; this is not universal containment of descendants after their parent exits.
+Operating-system read and cleanup failures refuse the observation without claiming that every such failure was injected.
+The host records PowerShell, runtime/tool and actual machine facts beside the source and locked graph.
+
+Each repeated cycle starts with an absent task-owned Cargo target, builds unchanged source, changes exactly the declared transition target, and builds that edited source unchanged again.
+The edit direction alternates between cycles.
+Every phase runs a handwritten full-domain consumer, and each edited executable must also reject the opposite expectation.
+The economics reader reconciles the entire phase population, native artifact freshness, positive clock units, stable locked graph and no-op executable identity.
+The host retains native Cargo JSON and child results before emitting its compact report; a summary line alone is not native build evidence.
+
+The timed interval runs from Cargo process start through observed exit, including capture backpressure while it runs but excluding post-exit stream draining, source edits, cleanup, JSON interpretation and consumer execution.
+An absent Cargo target does not make the operating-system or registry cache cold.
+Artifact freshness does not expose individual rustc incremental-query reuse.
+Repeated timings remain observations with visible variability, not a performance threshold or source-version comparison.
+Each completed cycle cleans only its exact build child after native results are retained; a deadline leaves the campaign incomplete.
+
 ## Reproducibility and custody
 
 The workflow installs the repository's exact stable Rust toolchain and exact auxiliary tool versions.

@@ -766,6 +766,339 @@ jobs:
       - name: Refuse tracked-tree mutation
         run: git diff --exit-code HEAD --
 
+  adopter-economics:
+    name: Windows x64 adopter build observations
+    runs-on: windows-2025
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      ECONOMICS_ROOT: ${{ github.workspace }}/target/qualification/adopter-economics
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target/qualification/adopter-economics/observer
+
+    steps:
+      - name: Check out the declared revision
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Restore declared Cargo registry material
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git/db
+          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.1-${{ hashFiles('Cargo.lock') }}
+
+      - name: Install the declared Rust toolchain
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy
+
+      - name: Install the declared test runner
+        uses: taiki-e/install-action@5b4d68e2e660441203ab128a23676f1e4faf1532 # v2.86.3
+        with:
+          tool: cargo-nextest@0.9.132
+          fallback: none
+
+      - name: Record actual build host and tool identities
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          Get-CimInstance Win32_Processor | Select-Object Name,NumberOfCores,NumberOfLogicalProcessors
+          Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,OSArchitecture,TotalVisibleMemorySize,FreePhysicalMemory
+          $PSVersionTable
+          "Runtime=$([Environment]::Version) stopwatch-frequency=$([Diagnostics.Stopwatch]::Frequency)"
+          "Runner OS=$env:RUNNER_OS architecture=$env:RUNNER_ARCH image=$env:ImageOS image-version=$env:ImageVersion"
+          rustc +1.98.1 --version --verbose
+          cargo +1.98.1 --version --verbose
+          cargo nextest --version
+          foreach ($toolName in @('cargo','rustc')) {
+              $toolPath = rustup which --toolchain 1.98.1 $toolName
+              Get-FileHash -LiteralPath $toolPath | Format-List
+          }
+          Get-PSDrive -PSProvider FileSystem | Select-Object Name,Used,Free
+
+      - name: Fetch the locked dependency graph
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          cargo +1.98.1 fetch --locked
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value 'CARGO_NET_OFFLINE=true'
+
+      - name: Qualify the economics report readers
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --test recipe_economics --all-features --locked --no-tests fail
+
+      - name: Observe bounded alternating adopter builds
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+          $PSNativeCommandUseErrorActionPreference = $true
+          function Invoke-BoundedObservation {
+              param(
+                  [Parameter(Mandatory)][Diagnostics.ProcessStartInfo]$Start,
+                  [ValidateRange(1, 300000)][int]$DeadlineMs,
+                  [ValidateRange(1, 16777216)][int]$StreamCharacters,
+                  [ValidateRange(1, 5000)][int]$DrainMs = 5000
+              )
+              $Start.UseShellExecute = $false
+              $Start.CreateNoWindow = $true
+              $Start.WindowStyle = [Diagnostics.ProcessWindowStyle]::Hidden
+              $Start.RedirectStandardOutput = $true
+              $Start.RedirectStandardError = $true
+              $child = [Diagnostics.Process]::new()
+              $child.StartInfo = $Start
+              $clock = [Diagnostics.Stopwatch]::new()
+              $drain = [Diagnostics.Stopwatch]::new()
+              $started = $false
+              $refusal = $null
+              $detail = $null
+              $exitCode = $null
+              $childId = $null
+              $terminated = $false
+              $streams = @()
+              try {
+                  $clock.Start()
+                  try { $started = $child.Start() }
+                  catch { $detail = $_.Exception.Message; throw 'process-start' }
+                  if (-not $started) { throw 'process-start' }
+                  $childId = $child.Id
+                  foreach ($entry in @(@('stdout', $child.StandardOutput), @('stderr', $child.StandardError))) {
+                      $buffer = [char[]]::new(16384)
+                      $streams += [pscustomobject]@{
+                          name = $entry[0]
+                          reader = $entry[1]
+                          buffer = $buffer
+                          text = [Text.StringBuilder]::new()
+                          pending = $entry[1].ReadAsync($buffer, 0, $buffer.Length)
+                          eof = $false
+                      }
+                  }
+                  while ($true) {
+                      $progress = $false
+                      if ($child.HasExited -and $clock.IsRunning) {
+                          $clock.Stop()
+                          $exitCode = $child.ExitCode
+                          $drain.Start()
+                      }
+                      if ($clock.IsRunning -and $clock.ElapsedMilliseconds -ge $DeadlineMs) {
+                          throw 'process-deadline'
+                      }
+                      foreach ($stream in $streams) {
+                          if ($stream.eof -or -not $stream.pending.IsCompleted) { continue }
+                          $progress = $true
+                          try { $read = $stream.pending.GetAwaiter().GetResult() }
+                          catch { $detail = $_.Exception.Message; throw "stream-read:$($stream.name)" }
+                          if ($read -eq 0) { $stream.eof = $true; continue }
+                          if ($read -gt $StreamCharacters - $stream.text.Length) {
+                              throw "stream-bound:$($stream.name)"
+                          }
+                          [void]$stream.text.Append($stream.buffer, 0, $read)
+                          $stream.pending = $stream.reader.ReadAsync($stream.buffer, 0, $stream.buffer.Length)
+                      }
+                      if (-not $clock.IsRunning -and @($streams | Where-Object { -not $_.eof }).Count -eq 0) { break }
+                      if ($drain.IsRunning -and $drain.ElapsedMilliseconds -ge $DrainMs) { throw 'stream-deadline' }
+                      if (-not $progress) { [Threading.Thread]::Sleep(1) }
+                  }
+              }
+              catch { $refusal = $_.Exception.Message }
+              finally {
+                  $clock.Stop()
+                  if ($started) {
+                      try {
+                          if (-not $child.HasExited) { $child.Kill($true) }
+                          $terminated = $child.WaitForExit(5000)
+                          if (-not $terminated) { $refusal = 'process-cleanup' }
+                      }
+                      catch { $detail = $_.Exception.Message; $refusal = 'process-cleanup' }
+                  }
+                  foreach ($stream in $streams) { $stream.reader.Dispose() }
+                  $child.Dispose()
+              }
+              $captured = @{ stdout = ''; stderr = '' }
+              foreach ($stream in $streams) { $captured[$stream.name] = $stream.text.ToString() }
+              [pscustomobject]@{
+                  refusal = $refusal
+                  detail = $detail
+                  exit_code = $exitCode
+                  child_id = $childId
+                  child_terminated = $terminated
+                  elapsed_ticks = $clock.ElapsedTicks
+                  stopwatch_frequency = [Diagnostics.Stopwatch]::Frequency
+                  stdout = $captured.stdout
+                  stderr = $captured.stderr
+              }
+          }
+          function Start-Observation([string]$Executable, [string[]]$Arguments) {
+              $start = [Diagnostics.ProcessStartInfo]::new()
+              $start.FileName = $Executable
+              $start.WorkingDirectory = $env:GITHUB_WORKSPACE
+              foreach ($argument in $Arguments) { $start.ArgumentList.Add($argument) }
+              $start.Environment['CARGO_BUILD_JOBS'] = '1'
+              $start.Environment['CARGO_INCREMENTAL'] = '1'
+              $start.Environment['CARGO_NET_OFFLINE'] = 'true'
+              $start.Environment['CARGO_TARGET_DIR'] = $build
+              $start.Environment['RUSTFLAGS'] = '-Dwarnings'
+              $start
+          }
+          function Required-Observation([string]$Name, [Diagnostics.ProcessStartInfo]$Start, [int]$Deadline, [int]$Limit) {
+              $result = Invoke-BoundedObservation -Start $Start -DeadlineMs $Deadline -StreamCharacters $Limit
+              $result | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath "$native/$Name.json" -Encoding utf8NoBOM
+              if ($null -ne $result.refusal -or $result.exit_code -ne 0 -or -not $result.child_terminated) {
+                  Write-Host $result.stdout
+                  Write-Host $result.stderr
+                  throw "$Name refused: $($result.refusal); exit=$($result.exit_code); detail=$($result.detail)"
+              }
+              $result
+          }
+          $repository = [IO.Path]::GetFullPath($env:GITHUB_WORKSPACE)
+          $root = [IO.Path]::GetFullPath($env:ECONOMICS_ROOT)
+          if ([IO.Path]::GetDirectoryName($root) -ne [IO.Path]::GetFullPath("$repository/target/qualification")) { throw 'Unexpected observation root' }
+          $native = "$root/native"
+          $build = [IO.Path]::GetFullPath("$root/build")
+          if ((Test-Path -LiteralPath $native) -or (Test-Path -LiteralPath $build)) { throw 'Observation storage is not fresh' }
+          New-Item -ItemType Directory -Path $native,"$root/adopter/src" | Out-Null
+          $cargo = (Get-Command cargo.exe).Source
+          $rustc = (Get-Command rustc.exe).Source
+          $control = "$root/build-control.exe"
+          $controlSource = "$repository/harness/tests/recipe_economics/host/build-control.rs"
+          $compile = Start-Observation $rustc @('+1.98.1','--edition=2024','-Dwarnings','-C','opt-level=1','-C','overflow-checks=yes',$controlSource,'-o',$control)
+          $null = Required-Observation 'control-build' $compile 120000 1048576
+          Get-FileHash -LiteralPath $controlSource,$control,$cargo,$rustc | Format-List
+          foreach ($stream in @('stdout','stderr')) {
+              foreach ($size in @(0,1023,1024,1025)) {
+                  $r = Invoke-BoundedObservation -Start (Start-Observation $control @($stream,[string]$size)) -DeadlineMs 5000 -StreamCharacters 1024
+                  if ($size -le 1024) {
+                      if ($null -ne $r.refusal -or $r.exit_code -ne 0 -or $r.$stream.Length -ne $size) { throw "Invalid passing boundary $stream/$size" }
+                  } elseif ($r.refusal -cne "stream-bound:$stream") { throw "Missing output-bound refusal $stream/$size" }
+                  if (-not $r.child_terminated) { throw 'Control child was not reaped' }
+                  Write-Host "control=$stream size=$size refusal=$($r.refusal) exit=$($r.exit_code)"
+              }
+          }
+          $r = Invoke-BoundedObservation -Start (Start-Observation $control @('both','65536')) -DeadlineMs 5000 -StreamCharacters 65536
+          if ($null -ne $r.refusal -or $r.exit_code -ne 0 -or $r.stdout.Length -ne 65536 -or $r.stderr.Length -ne 65536 -or -not $r.child_terminated) { throw 'Concurrent stream control failed' }
+          $r = Invoke-BoundedObservation -Start (Start-Observation $control @('stall','30000')) -DeadlineMs 100 -StreamCharacters 1024
+          if ($r.refusal -cne 'process-deadline' -or -not $r.child_terminated) { throw 'Process deadline control failed' }
+          $r = Invoke-BoundedObservation -Start (Start-Observation $control @('fail','0')) -DeadlineMs 5000 -StreamCharacters 1024
+          if ($null -ne $r.refusal -or $r.exit_code -eq 0 -or -not $r.stderr.Contains('declared child failure') -or -not $r.child_terminated) { throw 'Nonzero child control failed' }
+          if (Test-Path -LiteralPath "$root/absent.exe") { throw 'Missing-program control is present' }
+          $r = Invoke-BoundedObservation -Start (Start-Observation "$root/absent.exe" @()) -DeadlineMs 5000 -StreamCharacters 1024
+          if ($r.refusal -cne 'process-start' -or $null -ne $r.child_id -or $r.child_terminated) { throw 'Missing-program control failed' }
+          $r = Invoke-BoundedObservation -Start (Start-Observation $control @('inherit','1500')) -DeadlineMs 5000 -StreamCharacters 1024 -DrainMs 100
+          if ($r.refusal -cne 'stream-deadline' -or -not $r.child_terminated) { throw 'Inherited stream control failed' }
+          $descendant = [regex]::Match($r.stdout, 'descendant=(\d+)')
+          if (-not $descendant.Success) { throw 'Missing declared descendant' }
+          $nested = Get-Process -Id ([int]$descendant.Groups[1].Value) -ErrorAction SilentlyContinue
+          if ($null -ne $nested -and -not $nested.WaitForExit(5000)) { throw 'Bounded descendant did not exit' }
+          Write-Host 'All thirteen bounded-process controls passed; no universal descendant-containment claim.'
+          $manifest = "$root/adopter/Cargo.toml"
+          @('[package]','name = "macroonz-build-observation"','version = "0.0.0"','edition = "2024"','publish = false',
+            '[dependencies]','macroonz = { path = "../../../../" }','[workspace]',
+            '[profile.dev]','incremental = true','overflow-checks = true') |
+              Set-Content -LiteralPath $manifest -Encoding utf8NoBOM
+          $rootLock = (Get-FileHash -LiteralPath "$repository/Cargo.lock").Hash
+          Copy-Item -LiteralPath "$repository/Cargo.lock" -Destination "$root/adopter/Cargo.lock"
+          $authored = Get-Content -LiteralPath "$repository/harness/tests/recipe_economics/host/build-adopter.rs" -Raw
+          $before = '(Closed, OpenDoor) => Open with(crate::record_effect);'
+          $after = '(Closed, OpenDoor) => Closed with(crate::record_effect);'
+          if ([regex]::Matches($authored, [regex]::Escape($before)).Count -ne 1) { throw 'The single declared edit seat moved' }
+          [IO.File]::WriteAllText("$root/adopter/src/main.rs", $authored, [Text.UTF8Encoding]::new($false))
+          $initial = Start-Observation $cargo @('+1.98.1','metadata','--manifest-path',"$repository/Cargo.toml",'--locked','--offline','--format-version','1')
+          $baseline = (Required-Observation 'workspace-graph' $initial 300000 16777216).stdout | ConvertFrom-Json
+          $update = Start-Observation $cargo @('+1.98.1','update','--workspace','--manifest-path',$manifest,'--offline')
+          $null = Required-Observation 'adopter-lock' $update 300000 16777216
+          $metadata = Start-Observation $cargo @('+1.98.1','metadata','--manifest-path',$manifest,'--locked','--offline','--format-version','1')
+          $resolved = (Required-Observation 'adopter-graph' $metadata 300000 16777216).stdout | ConvertFrom-Json
+          foreach ($package in $resolved.packages) {
+              if ($null -ne $package.source -and $package.id -cnotin $baseline.packages.id) { throw "External dependency identity drift: $($package.id)" }
+          }
+          $expectedPackages = @{
+              macroonz = "$repository/Cargo.toml"
+              'macroonz-compiler' = "$repository/macros/compiler/Cargo.toml"
+              'macroonz-macros' = "$repository/macros/proc/Cargo.toml"
+              'macroonz-harness' = "$repository/harness/Cargo.toml"
+          }
+          foreach ($package in $resolved.packages) {
+              if ($null -eq $package.source -and -not $expectedPackages.ContainsKey($package.name) -and $package.name -cne 'macroonz-build-observation') { throw "Unexpected path package: $($package.name)" }
+          }
+          foreach ($entry in $expectedPackages.GetEnumerator()) {
+              $located = @($resolved.packages | Where-Object name -CEQ $entry.Key)
+              if ($located.Count -ne 1 -or [IO.Path]::GetFullPath($located[0].manifest_path) -ne [IO.Path]::GetFullPath($entry.Value)) { throw "Adopter package location drift: $($entry.Key)" }
+          }
+          $lock = (Get-FileHash -LiteralPath "$root/adopter/Cargo.lock").Hash
+          $reportRoot = "$env:CARGO_TARGET_DIR/tmp/adopter-economics"
+          New-Item -ItemType Directory -Path $reportRoot | Out-Null
+          $tool = rustc +1.98.1 --version
+          $target = (rustc +1.98.1 -vV | Select-String '^host: ').ToString().Substring(6)
+          @($env:GITHUB_SHA,$target,$tool) | Set-Content -LiteralPath "$reportRoot/context.txt" -Encoding utf8NoBOM
+          @("adopter-build,$env:GITHUB_SHA,$target,$tool",'interval,cargo-start-to-observed-exit;excludes-drain-edit-cleanup-json-consumer') |
+              Set-Content -LiteralPath "$reportRoot/builds.log" -Encoding utf8NoBOM
+          foreach ($round in 0..2) {
+              if (Test-Path -LiteralPath $build) { throw 'Cold Cargo target was not absent' }
+              foreach ($phase in @('cold','warm','edited','edited-warm')) {
+                  $edited = $phase -in @('edited','edited-warm')
+                  $open = ($round -eq 1) -eq $edited
+                  $expected = if ($open) { 'open' } else { 'closed' }
+                  $text = if ($open) { $authored } else { $authored.Replace($before,$after) }
+                  if ($phase -in @('cold','edited')) {
+                      [IO.File]::WriteAllText("$root/adopter/src/main.rs", $text, [Text.UTF8Encoding]::new($false))
+                  } elseif (-not (Test-Path -LiteralPath $build)) { throw 'Warm build lost its preceding target' }
+                  $start = Start-Observation $cargo @('+1.98.1','build','--manifest-path',$manifest,'--locked','--offline','--jobs','1','--message-format=json')
+                  $result = Required-Observation "$round-$phase-build" $start 300000 16777216
+                  Write-Host $result.stderr
+                  $messages = @($result.stdout -split '\r?\n' | Where-Object { $_.Trim().Length -gt 0 } | ConvertFrom-Json)
+                  $finished = @($messages | Where-Object reason -CEQ 'build-finished')
+                  $artifacts = @($messages | Where-Object reason -CEQ 'compiler-artifact')
+                  $fresh = @($artifacts | Where-Object fresh -EQ $true)
+                  $rebuilt = @($artifacts | Where-Object fresh -EQ $false)
+                  $executable = @($artifacts | Where-Object { $_.target.name -ceq 'macroonz-build-observation' -and $null -ne $_.executable })
+                  if ($finished.Count -ne 1 -or -not $finished[0].success -or $executable.Count -ne 1 -or $artifacts.Count -eq 0) { throw 'Incomplete Cargo artifact population' }
+                  $consumer = Required-Observation "$round-$phase-consumer" (Start-Observation $executable[0].executable @($expected)) 10000 4096
+                  $expectedOutput = "adopter-domain=2 expected-target=$expected effects=1"
+                  if ($consumer.stderr.Length -ne 0 -or $consumer.stdout.TrimEnd([char]13,[char]10) -cne $expectedOutput) { throw 'Independent consumer refused' }
+                  if ($phase -eq 'edited') {
+                      $wrong = if ($open) { 'closed' } else { 'open' }
+                      $negative = Invoke-BoundedObservation -Start (Start-Observation $executable[0].executable @($wrong)) -DeadlineMs 10000 -StreamCharacters 4096
+                      $negative | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath "$native/$round-wrong-model.json" -Encoding utf8NoBOM
+                      if ($null -ne $negative.refusal -or $negative.exit_code -ne 101 -or -not $negative.child_terminated -or -not $negative.stderr.Contains('assertion')) { throw 'Wrong model did not produce the expected assertion refusal' }
+                  }
+                  if ((Get-FileHash -LiteralPath "$root/adopter/Cargo.lock").Hash -cne $lock -or (Get-FileHash -LiteralPath "$repository/Cargo.lock").Hash -cne $rootLock) { throw 'Locked graph changed during observation' }
+                  $sourceHash = (Get-FileHash -LiteralPath "$root/adopter/src/main.rs").Hash
+                  $executableHash = (Get-FileHash -LiteralPath $executable[0].executable).Hash
+                  $fields = @('build',$round,$phase,$result.elapsed_ticks,$result.stopwatch_frequency,$artifacts.Count,$fresh.Count,$rebuilt.Count,$executable[0].fresh.ToString().ToLowerInvariant(),$sourceHash,$executableHash,$lock,'build=0','consumer=0',$expectedOutput)
+                  $line = $fields -join ','
+                  $line | Add-Content -LiteralPath "$reportRoot/builds.log" -Encoding utf8NoBOM
+                  Write-Host $line
+              }
+              $clean = Start-Observation $cargo @('+1.98.1','clean','--target-dir',$build)
+              $cleaned = Required-Observation "$round-clean" $clean 300000 1048576
+              Write-Host $cleaned.stderr
+              if (Test-Path -LiteralPath $build) { throw 'Cargo left the cold target present' }
+          }
+          Get-FileHash -LiteralPath "$reportRoot/builds.log","$reportRoot/context.txt",$manifest,"$root/adopter/Cargo.lock" | Format-List
+          git diff --exit-code HEAD --
+
+      - name: Reconcile the complete native build population
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --test recipe_economics --all-features --locked --run-ignored only --no-tests fail --success-output final -E 'test(=bench_driver::host_report::build::native_build_samples_preserve_phases_source_freshness_and_independent_consumers)'
+
+      - name: Report observed build variability without a performance threshold
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+          foreach ($phase in @('cold','warm','edited','edited-warm')) {
+              $seconds = @(foreach ($round in 0..2) {
+                  $native = Get-Content -LiteralPath "$env:ECONOMICS_ROOT/native/$round-$phase-build.json" -Raw | ConvertFrom-Json
+                  if ($null -ne $native.refusal -or $native.exit_code -ne 0 -or -not $native.child_terminated -or $native.elapsed_ticks -le 0 -or $native.stopwatch_frequency -le 0) { throw 'Native timing is unavailable' }
+                  [double]$native.elapsed_ticks / [double]$native.stopwatch_frequency
+              })
+              $ordered = @($seconds | Sort-Object)
+              if ($ordered.Count -ne 3) { throw 'Build timing population changed' }
+              "phase=$phase seconds-min=$($ordered[0]) seconds-median=$($ordered[1]) seconds-max=$($ordered[2]); no samples trimmed; no version comparison"
+          }
+
+      - name: Refuse tracked-tree mutation
+        run: git diff --exit-code HEAD --
+
+
   source-coverage:
     name: Linux x64 source coverage
     runs-on: blacksmith-4vcpu-ubuntu-2404
