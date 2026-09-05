@@ -179,6 +179,7 @@ Third-party actions are pinned by immutable commit identity, checkout does not r
 The dependency cache contains Cargo registry packages and Git database material only; compiled targets, qualification scratch, verdicts, and accepted evidence never derive authority from a cache hit.
 
 The ordinary Nextest wall writes structured JUnit output for the runner's test analytics.
+Its configured JUnit path is relative to Nextest's workspace-local store, not the Cargo build target; the collector reads that same workspace path in native and isolated-coverage jobs.
 Separate posture and long-campaign invocations retain their outcomes in step logs without overwriting that report.
 Step logs retain human-readable failures.
 The archive campaign also retains successful child-command output and Cargo source records in its step log, then removes its exclusively owned scratch directory.

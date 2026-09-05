@@ -187,10 +187,11 @@ jobs:
           $target = if ($env:CARGO_TARGET_DIR) { [IO.Path]::GetFullPath($env:CARGO_TARGET_DIR) } else { "$repository/target" }
           $paths = [Collections.Generic.List[string]]::new()
           switch -Exact ($env:REPORT_JOB) {
-              { $_ -in @('linux-x64','unix-crossings','windows-x64') } { $paths.Add("$target/nextest/ci/junit.xml") }
+              { $_ -in @('linux-x64','unix-crossings','windows-x64') } { $paths.Add("$repository/target/nextest/ci/junit.xml") }
               'recipe-grammar' { $paths.Add("$target/grammar.log") }
               'source-coverage' {
-                  foreach ($name in @('nextest/ci/junit.xml','library-summary.json','library.lcov','tracked-sources.txt','mapped-sources.txt','unowned-mappings.txt','unmapped-sources.txt')) { $paths.Add("$target/$name") }
+                  $paths.Add("$repository/target/nextest/ci/junit.xml")
+                  foreach ($name in @('library-summary.json','library.lcov','tracked-sources.txt','mapped-sources.txt','unowned-mappings.txt','unmapped-sources.txt')) { $paths.Add("$target/$name") }
               }
               'mutation-campaign' {
                   $root = "$repository/target/qualification/mutation"
