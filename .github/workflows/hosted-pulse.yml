@@ -804,9 +804,9 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          Get-CimInstance Win32_Processor | Select-Object Name,NumberOfCores,NumberOfLogicalProcessors
-          Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,OSArchitecture,TotalVisibleMemorySize,FreePhysicalMemory
-          $PSVersionTable
+          Get-CimInstance Win32_Processor | Select-Object Name,NumberOfCores,NumberOfLogicalProcessors | Format-List
+          Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,OSArchitecture,TotalVisibleMemorySize,FreePhysicalMemory | Format-List
+          $PSVersionTable | Format-List
           "Runtime=$([Environment]::Version) stopwatch-frequency=$([Diagnostics.Stopwatch]::Frequency)"
           "Runner OS=$env:RUNNER_OS architecture=$env:RUNNER_ARCH image=$env:ImageOS image-version=$env:ImageVersion"
           rustc +1.98.1 --version --verbose
