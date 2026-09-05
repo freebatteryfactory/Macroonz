@@ -11,4 +11,6 @@ The retained-coordinate family reads its declared vectors, while the breadth fam
 
 The test establishes deterministic work counts and generated-byte movement for the exact source revision.
 Its deterministic clock only proves benchmark choreography, so it makes no host-time, memory, asymptotic, cross-platform, or universal performance claim.
-Cold, warm, incremental, package, target-growth, and externally observable host-resource measurements belong to bounded qualification outside this tracked behavioral lane.
+The [external subject](host/README.md) supplies canonical caller material for separately bounded native qualification through the same public benchmark receiver.
+Its real-clock observations remain distinct from this lane's deterministic clock.
+Cold, warm, incremental, package, target-growth, and externally observable host-resource measurements belong to that qualification host rather than the library's behavioral verdict.

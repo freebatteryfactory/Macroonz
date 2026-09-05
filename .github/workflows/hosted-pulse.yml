@@ -591,6 +591,110 @@ jobs:
           wc -l "$MUTATION_ROOT/executed.txt" "$MUTATION_ROOT/equivalent.txt" "$MUTATION_ROOT/accounted.txt"
           git diff --exit-code HEAD --
 
+  compiler-economics:
+    name: Linux x64 compiler execution observations
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      ECONOMICS_ROOT: ${{ github.workspace }}/target/qualification/compiler-economics
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target/qualification/compiler-economics/observer
+
+    steps:
+      - name: Check out the declared revision
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Restore declared Cargo registry material
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git/db
+          key: cargo-home-${{ runner.os }}-${{ runner.arch }}-rust-1.98.1-${{ hashFiles('Cargo.lock') }}
+
+      - name: Install the declared Rust toolchain
+        run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy
+
+      - name: Install the declared test runner
+        uses: taiki-e/install-action@5b4d68e2e660441203ab128a23676f1e4faf1532 # v2.86.3
+        with:
+          tool: cargo-nextest@0.9.132
+          fallback: none
+
+      - name: Record actual host and instrument identities
+        run: |
+          uname -a
+          lscpu
+          cat /proc/meminfo
+          for resource in /sys/fs/cgroup/cpu.max /sys/fs/cgroup/memory.max; do
+            if test -r "$resource"; then printf '%s: ' "$resource"; cat "$resource"; fi
+          done
+          printf 'Runner OS=%s architecture=%s image=%s image-version=%s\n' \
+            "$RUNNER_OS" "$RUNNER_ARCH" "${ImageOS:-unreported}" "${ImageVersion:-unreported}"
+          rustc +1.98.1 --version --verbose
+          cargo +1.98.1 --version --verbose
+          cargo nextest --version
+          timeout --version
+          df -h "$GITHUB_WORKSPACE"
+
+      - name: Fetch the locked dependency graph
+        run: |
+          cargo +1.98.1 fetch --locked
+          echo "CARGO_NET_OFFLINE=true" >> "$GITHUB_ENV"
+
+      - name: Qualify structural work and the native report reader
+        run: cargo +1.98.1 nextest run -j1 -p macroonz-harness --test recipe_economics --locked --no-tests fail
+
+      - name: Build the declared optimized libraries and external subject
+        run: |
+          git diff --exit-code HEAD --
+          mkdir -p "$ECONOMICS_ROOT"
+          build="$ECONOMICS_ROOT/libraries"
+          test ! -e "$build"
+          subject=harness/tests/recipe_economics/host
+          rustfmt +1.98.1 --edition 2024 --check "$subject/compiler-axes.rs"
+          CARGO_TARGET_DIR="$build" timeout --kill-after=5s 600s cargo +1.98.1 build \
+            -p macroonz-compiler -p macroonz-harness --all-features --lib --release \
+            --locked --offline --message-format=json > "$ECONOMICS_ROOT/artifacts.jsonl"
+          test "$(grep -Fxc '{"reason":"build-finished","success":true}' "$ECONOMICS_ROOT/artifacts.jsonl")" = 1
+          compiler="$build/release/libmacroonz_compiler.rlib"
+          harness="$build/release/libmacroonz_harness.rlib"
+          test -f "$compiler"
+          test -f "$harness"
+          export PILOT_SOURCE="$GITHUB_SHA"
+          export PILOT_TARGET="$(rustc +1.98.1 -vV | sed -n 's/^host: //p')"
+          export PILOT_TOOLCHAIN="$(rustc +1.98.1 --version)"
+          test -n "$PILOT_TARGET"
+          mkdir -p "$CARGO_TARGET_DIR/tmp/compiler-economics"
+          printf '%s\n' "$PILOT_SOURCE" "$PILOT_TARGET" "$PILOT_TOOLCHAIN" > "$CARGO_TARGET_DIR/tmp/compiler-economics/context.txt"
+          timeout --kill-after=5s 120s rustc +1.98.1 --edition=2024 -D warnings \
+            -C opt-level=3 -C overflow-checks=yes --extern "macroonz_compiler=$compiler" \
+            --extern "macroonz_harness=$harness" -L "dependency=$build/release/deps" \
+            "$subject/compiler-axes.rs" -o "$ECONOMICS_ROOT/compiler-axes"
+          sha256sum Cargo.lock "$subject/compiler-axes.rs" "$subject/measurement.rs" \
+            "$subject/resident.rs" "$ECONOMICS_ROOT/compiler-axes" "$ECONOMICS_ROOT/artifacts.jsonl"
+
+      - name: Observe and reconcile every compiler execution sample
+        run: |
+          report="$CARGO_TARGET_DIR/tmp/compiler-economics/timing.log"
+          status=0
+          (ulimit -f 4096; timeout --kill-after=5s 180s "$ECONOMICS_ROOT/compiler-axes" \
+            > "$report" 2> "$ECONOMICS_ROOT/timing.stderr") || status=$?
+          cat "$ECONOMICS_ROOT/timing.stderr"
+          if test "$status" != 0; then cat "$report"; exit "$status"; fi
+          test ! -s "$ECONOMICS_ROOT/timing.stderr"
+          sha256sum "$report"
+          cargo +1.98.1 nextest run -j1 -p macroonz-harness --test recipe_economics --locked \
+            --run-ignored only --no-tests fail --success-output final \
+            -E 'test(=bench_driver::host_report::native_compiler_samples_match_the_declared_context_and_population)'
+
+      - name: Refuse tracked-tree mutation
+        run: git diff --exit-code HEAD --
+
   source-coverage:
     name: Linux x64 source coverage
     runs-on: blacksmith-4vcpu-ubuntu-2404

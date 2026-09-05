@@ -3,6 +3,9 @@
 #[path = "repetition.rs"]
 mod repetition;
 
+#[path = "host_report.rs"]
+mod host_report;
+
 use macroonz_harness::bench::{
     BenchAttachment, BenchBinding, BenchCall, BenchMeasurement, BenchOutcome, BenchReferences,
     BenchReport, BenchRow, BenchStage, BenchTable, BenchTableName, ComplexityClaimRef,

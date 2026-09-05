@@ -95,6 +95,21 @@ The tool does not expand every macro definition and retains its declared default
 Source mutation coverage is therefore bounded by the enumerated instrument, not a proof that every incorrect program would be detected.
 Native reports remain disposable; successful source and report custody precedes exact build cleanup, and no mutation build cache is reused for current-source verification.
 
+## Compiler execution observations
+
+A separate Linux x64 job builds exactly the compiler and harness libraries in a fresh exclusive release target and links their declared top-level library outputs.
+Cargo's native artifact records remain beside the successful command; cached filename searches never choose the libraries.
+It compiles the economics lane's canonical external subject without adding another Cargo package or a product clock reader.
+The public benchmark receiver owns correctness preflight, declared work, identical-control refusal, doubled actual execution and qualified secondary timing.
+The host records actual CPU, memory and available cgroup limits rather than treating the requested runner size as an observation.
+
+The subject varies relation density, codec width, late duplicate refusal and near-bound vocabulary size.
+Every measured repetition executes the callable again and consumes its result.
+Explicit deadlines and output-file bounds constrain the subject; nonzero execution remains a failed observation even if partial sample records exist.
+The existing economics target separately reconciles the complete sample population, declared source, compiler, target and interval, refusing missing, duplicate, foreign or unmeasured rows.
+Native samples remain visible in step logs without trimming or a default performance threshold.
+This job does not establish generated-runtime economics, adopter-build economics, memory efficiency or a baseline-version comparison; those require their own observations.
+
 ## Reproducibility and custody
 
 The workflow installs the repository's exact stable Rust toolchain and exact auxiliary tool versions.
