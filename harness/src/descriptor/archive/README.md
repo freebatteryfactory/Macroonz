@@ -21,9 +21,24 @@ Roles and tags must already be strictly ordered by namespace and stem, as the ca
 Duplicate or out-of-order labels refuse instead of being normalized.
 Every member must be consumed; unknown versions, origins and synthesis slots refuse.
 
+## Complete row records
+
+The `read_row` and `retain_row` operations retain every canonical row origin through the same bounded name, label and prefix readers as candidates.
+`ArchivedRow` owns its readable fields and canonical bytes, while `ArchivedOrigin` records hand-written, generated, candidate, replay-admission or discharge-admission claims.
+Candidate reading remains restricted to the candidate origin and keeps its existing refusals.
+The descriptor encoder remains the sole owner of the row grammar; no second writer or row envelope is introduced.
+
+Historical replay admissions retain exact thirty-two-byte proposal and replay claims, the recorded replay-bearing ground and destination name.
+Discharge admissions retain a proposal claim and destination, with no ground byte or replay seat.
+Generated origins retain the declaration door and projection; producer and schema provenance belong to the binding and are absent from canonical row bytes.
+The complete reader refuses unknown origins, malformed address widths and a discharge or unknown ground in the replay-bearing arm.
+It does not require an admission destination to equal the row's execution suite, because the live row constructor establishes no such join.
+No historical origin constructs a live `Origin`, proposal, replay reference or human admission.
+
 ## Bounds and custody
 
 The caller independently bounds complete canonical bytes, each name component and each role or tag population.
+`RowArchiveLimits` shares those ceilings with candidate reading and applies the field ceiling to historical address fields as well.
 The reader checks the complete byte ceiling before reading, each name component before copying and each roster count before walking it.
 It never reserves from a supplied count and allocates no missing material.
 The result owns its bytes and readable fields independently of the source buffer.

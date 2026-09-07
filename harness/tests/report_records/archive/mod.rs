@@ -16,6 +16,7 @@ mod reduction_vector;
 mod reduction_hostile;
 mod candidates;
 mod candidate_vector;
+mod rows;
 mod proposal_vector;
 mod proposals;
 mod mutation_vector;

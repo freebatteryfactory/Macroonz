@@ -1,12 +1,22 @@
 //! Historical descriptor bounds, name admission and read-only projections.
 
-use super::{ArchivedCandidate, ArchivedName, ArchivedSynthesis, CandidateArchiveLimits};
+use super::{
+    ArchivedCandidate, ArchivedName, ArchivedOrigin, ArchivedRow, ArchivedSynthesis,
+    CandidateArchiveLimits,
+};
 use crate::descriptor::NameRefusal;
 
 #[path = "read.rs"]
 mod read;
 
+#[path = "read_row.rs"]
+mod row;
+
+#[path = "guard_row.rs"]
+mod row_readers;
+
 pub use read::{read_candidate, retain_candidate};
+pub use row::{read_row, retain_row};
 
 impl ArchivedName {
     /// Append this historical name through the descriptor owner's canonical grammar.

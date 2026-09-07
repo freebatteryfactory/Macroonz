@@ -1,7 +1,7 @@
 //! Bounded historical reading of the descriptor owner's canonical candidate bytes.
 
 use super::super::{
-    ArchivedCandidate, ArchivedName, ArchivedSynthesis, CandidateArchiveLimits,
+    ArchivedCandidate, ArchivedName, ArchivedRowFields, ArchivedSynthesis, CandidateArchiveLimits,
     CandidateArchiveRefusal,
 };
 use crate::descriptor::Row;
@@ -29,6 +29,39 @@ pub fn read_candidate(
     canonical: &[u8],
     limits: CandidateArchiveLimits,
 ) -> Result<ArchivedCandidate, CandidateArchiveRefusal> {
+    let (mut reader, fields) = descriptor(canonical, limits)?;
+    let origin = reader.byte()?;
+    if origin != 3 {
+        return Err(CandidateArchiveRefusal::NotCandidate { found: origin });
+    }
+    let synthesis = synthesis(&mut reader, limits)?;
+    finish(&reader)?;
+    let ArchivedRowFields {
+        claim,
+        execution_suite,
+        roles,
+        tags,
+        subject,
+        check,
+        population,
+    } = fields;
+    Ok(ArchivedCandidate {
+        canonical: canonical.to_vec(),
+        claim,
+        execution_suite,
+        roles,
+        tags,
+        subject,
+        check,
+        population,
+        synthesis,
+    })
+}
+
+pub(super) fn descriptor(
+    canonical: &[u8],
+    limits: CandidateArchiveLimits,
+) -> Result<(BodyReader<'_, CandidateArchiveRefusal>, ArchivedRowFields), CandidateArchiveRefusal> {
     if canonical.len() > limits.bytes() {
         return Err(CandidateArchiveRefusal::BytesTooLarge);
     }
@@ -46,32 +79,41 @@ pub fn read_candidate(
     let subject = name(&mut reader, limits)?;
     let check = name(&mut reader, limits)?;
     let population = name(&mut reader, limits)?;
-    let origin = reader.byte()?;
-    if origin != 3 {
-        return Err(CandidateArchiveRefusal::NotCandidate { found: origin });
+    Ok((
+        reader,
+        ArchivedRowFields {
+            claim,
+            execution_suite,
+            roles,
+            tags,
+            subject,
+            check,
+            population,
+        },
+    ))
+}
+
+pub(super) fn synthesis(
+    reader: &mut BodyReader<'_, CandidateArchiveRefusal>,
+    limits: CandidateArchiveLimits,
+) -> Result<ArchivedSynthesis, CandidateArchiveRefusal> {
+    match reader.byte()? {
+        1 => Ok(ArchivedSynthesis::Survivor(name(reader, limits)?)),
+        2 => Ok(ArchivedSynthesis::ProofGap),
+        _ => Err(CandidateArchiveRefusal::InvalidSynthesis),
     }
-    let synthesis = match reader.byte()? {
-        1 => ArchivedSynthesis::Survivor(name(&mut reader, limits)?),
-        2 => ArchivedSynthesis::ProofGap,
-        _ => return Err(CandidateArchiveRefusal::InvalidSynthesis),
-    };
+}
+
+pub(super) fn finish(
+    reader: &BodyReader<'_, CandidateArchiveRefusal>,
+) -> Result<(), CandidateArchiveRefusal> {
     if reader.remaining() != 0 {
         return Err(CandidateArchiveRefusal::TrailingBytes);
     }
-    Ok(ArchivedCandidate {
-        canonical: canonical.to_vec(),
-        claim,
-        execution_suite,
-        roles,
-        tags,
-        subject,
-        check,
-        population,
-        synthesis,
-    })
+    Ok(())
 }
 
-fn name(
+pub(super) fn name(
     reader: &mut BodyReader<'_, CandidateArchiveRefusal>,
     limits: CandidateArchiveLimits,
 ) -> Result<ArchivedName, CandidateArchiveRefusal> {

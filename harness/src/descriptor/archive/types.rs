@@ -3,7 +3,84 @@
 #[path = "type_guard.rs"]
 mod guard;
 
-pub use guard::{read_candidate, retain_candidate};
+pub use guard::{read_candidate, read_row, retain_candidate, retain_row};
+
+/// Independent canonical-byte, framed-field and per-label-roster ceilings for historical rows.
+pub type RowArchiveLimits = CandidateArchiveLimits;
+
+/// The historical provenance a canonical row recorded, without admission authority.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ArchivedOrigin {
+    /// A hand-authored row.
+    HandWritten,
+    /// A producer's declared door and projection.
+    Generated {
+        /// The historical declaration door.
+        door: ArchivedName,
+        /// The historical projection.
+        projection: ArchivedName,
+    },
+    /// An unadmitted synthesis opening.
+    Candidate(ArchivedSynthesis),
+    /// A claimed replay-bearing admission with historical address bytes.
+    AdmittedReplay {
+        /// The claimed proposal address, with no retained proposal preimage.
+        proposal: [u8; 32],
+        /// The recorded replay-bearing ground.
+        ground: crate::descriptor::ReplayBearingGround,
+        /// The recorded destination suite.
+        destination: ArchivedName,
+        /// The claimed capsule-entry address, with no retained entry preimage.
+        replay: [u8; 32],
+    },
+    /// A claimed discharge admission, with no replay seat.
+    AdmittedDischarge {
+        /// The claimed proposal address, with no retained proposal preimage.
+        proposal: [u8; 32],
+        /// The recorded destination suite.
+        destination: ArchivedName,
+    },
+}
+
+/// An owned historical row retaining its exact canonical preimage and origin.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArchivedRow {
+    canonical: Vec<u8>,
+    fields: ArchivedRowFields,
+    origin: ArchivedOrigin,
+}
+
+/// The shared informed prefix of candidate and complete historical row readings.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ArchivedRowFields {
+    claim: ArchivedName,
+    execution_suite: ArchivedName,
+    roles: Vec<ArchivedName>,
+    tags: Vec<ArchivedName>,
+    subject: ArchivedName,
+    check: ArchivedName,
+    population: ArchivedName,
+}
+
+/// Why canonical material could not become a complete historical row.
+#[must_use = "a refusal states why the historical row was not admitted"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RowArchiveRefusal {
+    /// The shared descriptor grammar or resource bounds refused.
+    Canonical(CandidateArchiveRefusal),
+    /// The origin slot has no descriptor reading.
+    InvalidOrigin {
+        /// The offered origin slot.
+        found: u8,
+    },
+    /// A replay-bearing origin names another ground.
+    InvalidReplayGround {
+        /// The offered ground slot.
+        found: u8,
+    },
+    /// A historical address field does not contain exactly thirty-two bytes.
+    InvalidAddressWidth,
+}
 
 /// An owned historical namespace and local spelling without a static-name mint.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -43,13 +120,13 @@ pub struct ArchivedCandidate {
     synthesis: ArchivedSynthesis,
 }
 
-/// Why canonical material could not become a historical candidate descriptor.
+/// Why the shared canonical descriptor grammar or resource bounds refused.
 #[must_use = "a refusal states why the historical candidate was not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CandidateArchiveRefusal {
     /// The complete canonical material exceeds its independent byte ceiling.
     BytesTooLarge,
-    /// A name component exceeds its independent byte ceiling.
+    /// A framed field exceeds its independent byte ceiling.
     FieldTooLarge,
     /// A role or tag roster exceeds its independent population ceiling.
     TooManyLabels,

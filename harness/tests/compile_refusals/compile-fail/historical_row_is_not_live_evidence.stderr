@@ -1,0 +1,26 @@
+error[E0308]: mismatched types
+ --> tests/compile_refusals/compile-fail/historical_row_is_not_live_evidence.rs:7:5
+  |
+6 | fn promote(historical: ArchivedRow) -> Row {
+  |                                        --- expected `macroonz_harness::descriptor::Row` because of return type
+7 |     historical
+  |     ^^^^^^^^^^ expected `Row`, found `ArchivedRow`
+
+error[E0308]: mismatched types
+  --> tests/compile_refusals/compile-fail/historical_row_is_not_live_evidence.rs:11:5
+   |
+10 | fn promote_origin(historical: ArchivedOrigin) -> Origin {
+   |                                                  ------ expected `Origin` because of return type
+11 |     historical
+   |     ^^^^^^^^^^ expected `Origin`, found `ArchivedOrigin`
+
+error[E0308]: mismatched types
+  --> tests/compile_refusals/compile-fail/historical_row_is_not_live_evidence.rs:15:5
+   |
+14 | fn promote_bytes(historical: &ArchivedRow) -> &CanonicalRowBytes {
+   |                                               ------------------ expected `&CanonicalRowBytes` because of return type
+15 |     historical.canonical_bytes()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&CanonicalRowBytes`, found `&[u8]`
+   |
+   = note: expected reference `&CanonicalRowBytes`
+              found reference `&[u8]`
