@@ -116,7 +116,7 @@ pub enum ArchiveRefusal {
     },
     /// An enum discriminant has no meaning in this format.
     InvalidSlot,
-    /// A required textual field is not UTF-8.
+    /// A text field is not UTF-8 or a required input profile name is empty.
     InvalidText,
     /// A nested digest is not exactly thirty-two bytes.
     InvalidAddressWidth,

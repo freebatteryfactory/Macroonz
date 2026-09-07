@@ -13,6 +13,28 @@ use vector::{InputKind, Vector};
 const LIMITS: ArchiveLimits = ArchiveLimits::declared(4096, 2048);
 
 #[test]
+fn empty_required_profile_names_refuse_despite_valid_utf8_and_integrity() -> Result<(), ()> {
+    for (namespace, name) in [
+        (b"".as_slice(), b"bytes".as_slice()),
+        (b"outside".as_slice(), b"".as_slice()),
+    ] {
+        let mut vector = Vector::declared(InputKind::Bound);
+        vector.metadata = vec![1];
+        vector::frame(namespace, &mut vector.metadata);
+        vector::frame(name, &mut vector.metadata);
+        vector.metadata.extend_from_slice(&7u32.to_be_bytes());
+        vector::frame(&[6; 32], &mut vector.metadata);
+        core::str::from_utf8(namespace).map_err(|_| ())?;
+        core::str::from_utf8(name).map_err(|_| ())?;
+        assert_eq!(
+            read_capsule(&vector.encoded(), LIMITS),
+            Err(ArchiveRefusal::InvalidText)
+        );
+    }
+    Ok(())
+}
+
+#[test]
 fn unit_capsules_retain_the_unit_key_domain_without_inventing_case_identity() -> Result<(), ()> {
     let capsule = fixture::unit_capsule()?;
     let record = retain_capsule(&capsule, LIMITS).map_err(|_| ())?;
