@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+ --> tests/compile_refusals/compile-fail/saved_replay_requires_current_typed_bindings.rs:8:51
+  |
+8 |     let _wrong_type = replay(historical, binding, decoder, invocation, InputLimits::declared(4096, 64));
+  |                       ------                      ^^^^^^^ expected `&InputBinding<u16>`, found `&InputBinding<u8>`
+  |                       |
+  |                       arguments to this function are incorrect
+  |
+  = note: expected reference `&InputBinding<u16>`
+             found reference `&InputBinding<u8>`
+note: function defined here
+ --> src/runner/replay.rs
+  |
+  | pub fn replay<Input>(
+  |        ^^^^^^

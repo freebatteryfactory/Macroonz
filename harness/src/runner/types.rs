@@ -9,6 +9,10 @@ use crate::clock::HarnessClock;
 use crate::descriptor::{
     AuthoredTable, Binding, ClaimRef, ExecutionSuite, SubjectRoute, TableView, TrialTableRefusal,
 };
+use crate::identity::ContentAddress;
+use crate::input::InputEnvelope;
+use crate::report::TrialReport;
+use crate::report::replay::{ReplayJoinRefusal, ReplayReading};
 use crate::report::{
     EmptySelectionReason, ExecutionInput, FindingCause, InfrastructureFailure, InvocationProfile,
     SelectionExpectation, SkipReason, TargetBinding, TimeBudget, TrialConclusion, TrialFinding,
@@ -18,6 +22,15 @@ use std::collections::BTreeSet;
 
 #[path = "type_guard.rs"]
 mod guard;
+
+/// A saved historical witness beside its independently earned current report and comparison.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReplayedTrial {
+    historical: ContentAddress,
+    witness: InputEnvelope,
+    report: TrialReport,
+    comparison: Result<ReplayReading, ReplayJoinRefusal>,
+}
 
 /// What one run stands on: the budgets a check reads, the host facts it was told, the site its reports are written at, and the caller's clock.
 ///

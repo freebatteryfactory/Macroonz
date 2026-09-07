@@ -25,7 +25,7 @@ fn child_loads_capsule() -> Result<(), Box<dyn Error>> {
     publish(record.encoded())
 }
 
-fn publish(encoded: &[u8]) -> Result<(), Box<dyn Error>> {
+pub(super) fn publish(encoded: &[u8]) -> Result<(), Box<dyn Error>> {
     let mut line = String::from(PREFIX);
     for byte in encoded {
         write!(&mut line, "{byte:02x}")?;
@@ -37,7 +37,7 @@ fn publish(encoded: &[u8]) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn round_trip(encoded: &[u8], child_name: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+pub(super) fn round_trip(encoded: &[u8], child_name: &str) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut child = Command::new(std::env::current_exe()?)
         .args(["--ignored", "--exact", child_name, "--nocapture"])
         .stdin(Stdio::piped())

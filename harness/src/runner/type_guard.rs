@@ -3,10 +3,17 @@
 //! Declared inside `types.rs` as its own child, which is what keeps the private seats private.
 //! A run's hosting facts are stated once, at the call that declares them.
 
-use super::{FailedTrial, Invocation, SeatFailure, SeatRefusal, Selection, SelectionPlan};
+use super::{
+    FailedTrial, Invocation, ReplayedTrial, SeatFailure, SeatRefusal, Selection, SelectionPlan,
+};
 use crate::clock::HarnessClock;
 use crate::descriptor::TrialTableRefusal;
+use crate::identity::ContentAddress;
 use crate::input::BoundInput;
+use crate::input::InputEnvelope;
+use crate::report::TrialReport;
+use crate::report::archive::ArchivedCapsule;
+use crate::report::replay::{ReplayJoinRefusal, ReplayReading, compare};
 use crate::report::{
     EmptySelectionReason, ExecutionInput, InvocationProfile, SelectionExpectation, SkipReason,
     TargetBinding, TrialId, TrialSite,
@@ -44,6 +51,45 @@ impl Invocation {
             input_bytes: input.envelope().payload().len(),
             input,
         }
+    }
+}
+
+impl ReplayedTrial {
+    /// The earned current report and admitted witness joined to their historical source.
+    pub(in crate::runner) fn earned(
+        historical: &ArchivedCapsule,
+        report: TrialReport,
+        witness: InputEnvelope,
+    ) -> Self {
+        Self {
+            historical: historical.address(),
+            comparison: compare(historical, &report, &witness),
+            witness,
+            report,
+        }
+    }
+
+    /// The historical envelope this execution read.
+    #[must_use]
+    pub const fn historical(&self) -> ContentAddress {
+        self.historical
+    }
+
+    /// The exact witness under its independently supplied current convention.
+    #[must_use]
+    pub const fn witness(&self) -> &InputEnvelope {
+        &self.witness
+    }
+
+    /// The complete report earned by current execution.
+    #[must_use]
+    pub const fn report(&self) -> &TrialReport {
+        &self.report
+    }
+
+    /// The report owner's comparison over the actual admitted witness.
+    pub const fn comparison(&self) -> &Result<ReplayReading, ReplayJoinRefusal> {
+        &self.comparison
     }
 }
 

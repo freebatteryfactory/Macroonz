@@ -69,6 +69,7 @@ Neither reading observes the host or reconstructs facts absent from its input.
 The [archive](archive/README.md) home retains bounded owned capsule, trial and complete-run data through the canonical identity preimages and complete census.
 Loading produces historical claims with explicit unauthenticated custody; only independently bound fresh execution can establish a current result.
 Its original execution key and reduced witness remain separate coordinates.
+The [replay comparison](replay/README.md) joins that witness to a current report and keeps outcome, coordinate movement, lineage and historical standing separate.
 
 ## Foreign material
 

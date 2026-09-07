@@ -8,6 +8,9 @@ mod trial_vector;
 mod run_vector;
 mod run_fixture;
 mod runs;
+mod replay;
+mod replay_movement;
+mod replay_process;
 
 use macroonz_harness::report::archive::{
     ArchiveLimits, ArchiveRefusal, read_capsule, retain_capsule,

@@ -69,6 +69,18 @@ An exceeded bound records a budget skip with no clock reading and cannot pass ei
 Envelope admission limits remain the input owner's separate resource bounds.
 The unit-input road leaves case and byte consumption to its check, and no elapsed measurement is interpreted as a timeout.
 
+## Saved-witness replay
+
+`replay` receives a historical capsule and independently supplied current trial, decoder, invocation and input admission limits.
+It packs the saved reached bytes under the current decoder's declared profile, decodes them once with complete consumption required, and calls the existing `run_one` road once.
+An input refusal produces no trial report, while an execution-budget refusal retains the existing skipped report before clock or subject execution.
+Admitted execution retains the ordinary panic, conclusion and measurement behavior of `run_one`.
+The decoder remains caller-owned code under the [input contract](../input/README.md), including its effects and termination.
+
+`ReplayedTrial` retains the historical envelope address, the admitted witness, the complete current report and the [report owner's comparison](../report/replay/README.md).
+Historical source claims do not choose the current binding, and changing that binding never erases the report it actually earned.
+This operation performs no reduction, mints no live replay capsule and establishes no human admission.
+
 ## The complete table is the denominator
 
 A selection chooses from the authored world and never shrinks it.
