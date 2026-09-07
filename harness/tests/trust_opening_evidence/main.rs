@@ -8,5 +8,6 @@ mod composition;
 mod discovery;
 mod interpretation;
 mod proposal_admission;
+mod proposal_input;
 mod specimen;
 mod support;

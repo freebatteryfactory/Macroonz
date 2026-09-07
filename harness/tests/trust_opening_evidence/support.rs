@@ -475,6 +475,21 @@ pub(super) fn unused_trial_call(_invocation: &Invocation) -> TrialConclusion {
 pub(super) fn trial_binding_for(
     claim_stem: &'static str,
 ) -> Result<TrialBinding, TrialTableRefusal> {
+    trial_binding_with(
+        claim_stem,
+        Origin::HandWritten,
+        RevisionBinding::declared(ContentAddress::derived(REVISION_TAG, b"trial")),
+        unused_trial_call,
+    )
+}
+
+/// The shared mutation-receiver row joined to its caller's origin, revision and typed callable.
+pub(super) fn trial_binding_with<Input>(
+    claim_stem: &'static str,
+    origin: Origin,
+    revision: RevisionBinding,
+    call: fn(&Invocation<Input>) -> TrialConclusion,
+) -> Result<TrialBinding<Input>, TrialTableRefusal> {
     let subject = SubjectRoute::named(OWNER, "comparison-subject")?;
     let check_ref = CheckRef::named(OWNER, "comparison-check")?;
     let row = Row::declared(
@@ -487,12 +502,11 @@ pub(super) fn trial_binding_for(
         subject,
         check_ref,
         PopulationRef::named(OWNER, "one-input")?,
-        Origin::HandWritten,
+        origin,
     )?;
-    let revision = RevisionBinding::declared(ContentAddress::derived(REVISION_TAG, b"trial"));
     Binding::bound(
         row,
-        ExecutableAttachment::attached(subject, check_ref, revision, revision, unused_trial_call),
+        ExecutableAttachment::attached(subject, check_ref, revision, revision, call),
         Provenance::Unproduced,
     )
     .map_err(TrialTableRefusal::from)

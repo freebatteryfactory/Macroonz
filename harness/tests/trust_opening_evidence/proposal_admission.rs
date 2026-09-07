@@ -3,7 +3,7 @@
 use super::interpretation::interpreted_survivor;
 use super::support::{
     CompiledRosterMeaning, MutationRoadFailure, OWNER, REPLAY_SCHEMA_TAG, REVISION_TAG, check,
-    claim, foreign_invocation, interpreted_kill, invocation, trial_binding_for,
+    claim, foreign_invocation, interpreted_kill, invocation, trial_binding_for, trial_binding_with,
 };
 use macroonz_harness::depot::capsules::{
     ReplayCapsuleEntry, ReplayDepotRefusal, ReplayDepotSink, StoredReplayEntryRef,
@@ -97,33 +97,12 @@ fn candidate_trial_call(_invocation: &Invocation) -> TrialConclusion {
 }
 
 fn candidate_binding(point: MutationPointRef) -> Result<TrialBinding, TrialTableRefusal> {
-    let subject = SubjectRoute::named(OWNER, "comparison-subject")?;
-    let check_ref = CheckRef::named(OWNER, "comparison-check")?;
-    let row = Row::declared(
-        ClaimRef::named(OWNER, "comparison-behaviour")?,
-        ExecutionSuite::named(OWNER, "mutation-receiver")?,
-        Classification::authored(
-            vec![Role::named(OWNER, "mutation")?],
-            vec![Tag::named(OWNER, "outside-consumer")?],
-        )?,
-        subject,
-        check_ref,
-        PopulationRef::named(OWNER, "one-input")?,
+    trial_binding_with(
+        "comparison-behaviour",
         Origin::Candidate(SynthesisFacts::Survivor(point)),
-    )?;
-    let revision = RevisionBinding::declared(ContentAddress::derived(REVISION_TAG, b"trial"));
-    Binding::bound(
-        row,
-        ExecutableAttachment::attached(
-            subject,
-            check_ref,
-            revision,
-            revision,
-            candidate_trial_call,
-        ),
-        Provenance::Unproduced,
+        RevisionBinding::declared(ContentAddress::derived(REVISION_TAG, b"trial")),
+        candidate_trial_call,
     )
-    .map_err(TrialTableRefusal::from)
 }
 
 fn authored_parent() -> Result<TrialTable, TrialTableRefusal> {

@@ -14,6 +14,10 @@ Verdict owns mutation outcomes, targets, reports, and intended rejection.
 
 The separate backend `wrap` road supplies mutant-scoped execution without moving into this home.
 
+Candidate proving accepts the parent's bound input type through the existing [runner](../../runner/README.md#typed-input).
+The demonstration retains the complete staged run and the selected candidate's actual refusal, including its input standing.
+It establishes no new mutation activation or human admission.
+
 A proposal sink reports caller-owned review custody, and a replay depot reports caller-owned replay custody.
 
 Neither seam proves filesystem durability, creates canonical identity, or admits a proposal without the explicit human operation.

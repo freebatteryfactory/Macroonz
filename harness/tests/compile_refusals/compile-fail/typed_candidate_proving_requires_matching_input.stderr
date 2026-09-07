@@ -1,0 +1,31 @@
+error[E0308]: mismatched types
+  --> tests/compile_refusals/compile-fail/typed_candidate_proving_requires_matching_input.rs:14:44
+   |
+14 |     let _refused = prove_candidate(parent, candidate, target, invocation);
+   |                    ---------------         ^^^^^^^^^ expected `Binding<Invocation<BoundInput<u8>>, ...>`, found `Binding<Invocation<...>, ...>`
+   |                    |
+   |                    arguments to this function are incorrect
+   |
+   = note: expected struct `macroonz_harness::descriptor::Binding<Invocation<BoundInput<u8>>, TrialConclusion>`
+              found struct `macroonz_harness::descriptor::Binding<Invocation<BoundInput<u16>>, TrialConclusion>`
+note: function defined here
+  --> src/muterprater/proposal/propose.rs
+   |
+   | pub fn prove_candidate<Input>(
+   |        ^^^^^^^^^^^^^^^
+
+error[E0308]: mismatched types
+  --> tests/compile_refusals/compile-fail/typed_candidate_proving_requires_matching_input.rs:23:63
+   |
+23 |     let _refused = prove_candidate(parent, candidate, target, invocation);
+   |                    ---------------                            ^^^^^^^^^^ expected `&Invocation<BoundInput<u8>>`, found `&Invocation<BoundInput<u16>>`
+   |                    |
+   |                    arguments to this function are incorrect
+   |
+   = note: expected reference `&Invocation<BoundInput<u8>>`
+              found reference `&Invocation<BoundInput<u16>>`
+note: function defined here
+  --> src/muterprater/proposal/propose.rs
+   |
+   | pub fn prove_candidate<Input>(
+   |        ^^^^^^^^^^^^^^^
