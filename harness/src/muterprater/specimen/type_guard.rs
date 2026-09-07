@@ -259,7 +259,8 @@ impl<'parity, 'pair, 'input, Input, Meaning>
     /// Retain one exact selected compiled rejection and the unchanged baseline it stood over.
     pub(in crate::muterprater) fn demonstrated(
         parity: &'parity NoMutationParityQualification<'pair, 'input, Input, Meaning>,
-        baseline_artifact: ArtifactContentId,
+        baseline_artifact: ArtifactContent,
+        selected_artifact: ArtifactContent,
         standing: CompiledSpecimenStanding,
         baseline_report: TrialReport,
         selected_report: TrialReport,
@@ -268,6 +269,7 @@ impl<'parity, 'pair, 'input, Input, Meaning>
         Self {
             parity,
             baseline_artifact,
+            selected_artifact,
             standing,
             baseline_report,
             selected_report,
@@ -286,7 +288,19 @@ impl<'parity, 'pair, 'input, Input, Meaning>
     /// The separately compiled unchanged compiler-source content identity.
     #[must_use]
     pub const fn baseline_artifact(&self) -> ArtifactContentId {
-        self.baseline_artifact
+        self.baseline_artifact.identity()
+    }
+
+    /// The exact unchanged source retained after its host request completed.
+    #[must_use]
+    pub const fn baseline_content(&self) -> &ArtifactContent {
+        &self.baseline_artifact
+    }
+
+    /// The exact selected source retained after its host request completed.
+    #[must_use]
+    pub const fn selected_content(&self) -> &ArtifactContent {
+        &self.selected_artifact
     }
 
     /// The selected compiled specimen's exact standing.

@@ -9,5 +9,6 @@ Specimen consumes discovery's surface, selection, and directive vocabulary, inte
 Interpretation consumes compiled projection pressure in return, so the two homes keep distinct ownership across a reference cycle.
 
 The operation binds bytes-only artifact identity to the exact pair, selection, execution, check, and reports produced through a caller-owned compiler host.
+Successful pressure owns the exact unchanged and selected source buffers handed to the host, so later inspection needs no materializer or host call.
 It records what the host reports and does not claim to observe the host's process.
 Wrapped-backend pressure is a separate evidence book and cannot substitute for exact compiled specimen pressure.

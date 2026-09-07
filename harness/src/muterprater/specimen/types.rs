@@ -148,7 +148,8 @@ pub struct CompiledSpecimenStanding {
 /// It cannot be minted from an external backend's output or from labels attached after execution.
 pub struct CompiledProjectionPressure<'parity, 'pair, 'input, Input, Meaning> {
     parity: &'parity NoMutationParityQualification<'pair, 'input, Input, Meaning>,
-    baseline_artifact: ArtifactContentId,
+    baseline_artifact: ArtifactContent,
+    selected_artifact: ArtifactContent,
     standing: CompiledSpecimenStanding,
     baseline_report: TrialReport,
     selected_report: TrialReport,

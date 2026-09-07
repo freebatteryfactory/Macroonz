@@ -12,6 +12,7 @@ mod mutation_archive;
 mod proposal_admission;
 mod proposal_input;
 mod specimen;
+mod specimen_retention;
 mod support;
 #[path = "../support/archive_process.rs"]
 mod archive_process;

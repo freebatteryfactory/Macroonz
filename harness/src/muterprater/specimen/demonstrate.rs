@@ -258,7 +258,8 @@ pub fn demonstrate_compiled_projection<'parity, 'pair, 'input, Input, Meaning>(
     );
     Ok(CompiledProjectionPressure::demonstrated(
         parity,
-        specimens.baseline.identity(),
+        specimens.baseline,
+        specimens.selected,
         standing,
         baseline_report,
         selected_report,
