@@ -15,10 +15,16 @@ mod trial;
 #[path = "guard_trial.rs"]
 mod trial_readings;
 
+#[path = "read_run.rs"]
+mod run;
+#[path = "guard_run.rs"]
+mod run_readings;
+
 #[path = "read.rs"]
 mod read;
 
 pub use read::read_capsule;
+pub use run::read_run;
 pub use trial::read_trial;
 
 impl ArchiveLimits {

@@ -3,7 +3,7 @@
 Owned historical data retained from the report owner's canonical identity material.
 
 A loaded record states what its source claimed.
-It is never a current `ReplayCapsule`, `TrialReport`, reduction binding, cache permission or human admission.
+It is never a current `ReplayCapsule`, `TrialReport`, `RunReport`, reduction binding, cache permission or human admission.
 Its addresses establish integrity of the supplied preimages, not execution or writer authenticity.
 An `AddressClaim` retains a nested digest whose original preimage is absent; it cannot become a `ContentAddress`.
 Input profile metadata is likewise a historical claim, because the original case bytes need not be the reduced witness.
@@ -67,10 +67,45 @@ The reader rejects undeclared trailing material and every unknown discriminant.
 The historical replay ceiling cannot exceed its recorded decoder ceiling.
 Neither a retained pass nor a claimed ceiling establishes that the producer actually executed a subject.
 
+## Complete-run envelope
+
+The complete-run envelope derives its leading address under `historical-run-report/v1`.
+It uses format one, kind three and historical custody zero, followed by these members:
+
+- Framed invocation and target context: `u32be` case budget, `u64be` byte budget, `u64be` time budget, framed UTF-8 target and framed UTF-8 toolchain.
+- Input marker zero for unit input, or one followed by framed input coordinates and profile metadata.
+- Table posture byte zero for authored, or one followed by the staged parent's framed UTF-8 namespace and stem.
+- One selection-outcome byte.
+- Census population as `u64be`, followed by that many framed rows in the original order.
+
+Context encoding reuses the invocation and target fields of the canonical execution-key writer.
+Input coordinates reuse its two framed thirty-two-byte case and decoder claims and decoder-posture byte.
+Profile metadata is the same namespace, local name, version and schema sequence used by trial and capsule envelopes.
+The run retains context and input even when no row is selected or the census is empty.
+Selection slots are satisfied zero, unsatisfied by empty selection one, empty as carried over from a previous run two and empty as asking what the world holds three.
+
+Each row contains framed thirty-two-byte trial, row-revision, subject-revision and check-revision claims, then framed UTF-8 claim namespace and stem, then one disposition byte.
+Disposition zero is selected and adds the framed entire trial envelope, including its own integrity address.
+Disposition one is outside selection and two is suite not run, with no trial member.
+Required namespace and stem components are nonempty; historical names never become static descriptor names.
+
+The reader refuses duplicate semantic trial claims, even if their row-revision claims differ.
+Selected trial, subject and check coordinates must match their census row.
+Every selected trial's invocation, target and complete optional input must match the run context.
+Satisfied selection requires at least one selected row; every empty-selection outcome requires none.
+A selected skip, timeout or infrastructure failure still satisfies selection without claiming execution or a passing conclusion.
+
+Row revisions and claim spellings remain historical claims because the report does not retain their descriptor preimages.
+It likewise holds neither an authored-table name nor individual subject and check revision postures to reconstruct.
+Integrity and internal joins do not establish that the claimed census was actually complete or authentic.
+Coverage and live comparison continue to require a current `RunReport`.
+
 ## Bounds and custody
 
 The caller supplies complete-envelope and per-field byte ceilings.
 Every framed member, including a nested preimage, is a field for this purpose.
+Run limits independently bound census rows before walking or allocating that population, and each framed row and nested trial envelope obeys the field ceiling.
+The reader never reserves storage from an untrusted census count.
 The reader checks the complete envelope before hashing, then each field before copying.
 There are no recursive members or inferred host facts.
 The writer checks the same sizes before asking existing encoders to allocate their preimages.

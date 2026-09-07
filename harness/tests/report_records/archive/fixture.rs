@@ -77,6 +77,10 @@ pub(super) fn host_report(
 }
 
 pub(super) fn report(payload: &[u8]) -> Result<TrialReport, ()> {
+    execute(subject, &typed_invocation(payload)?)
+}
+
+pub(super) fn typed_invocation(payload: &[u8]) -> Result<Invocation<BoundInput<Vec<u8>>>, ()> {
     let profile = InputProfile::declared(
         NamespacedName::named("archive", "bytes").map_err(|_| ())?,
         1,
@@ -86,10 +90,10 @@ pub(super) fn report(payload: &[u8]) -> Result<TrialReport, ()> {
     let input = InputBinding::declared(profile, revision(), bytes)
         .decode(envelope)
         .map_err(|_| ())?;
-    execute(subject, &invocation().with_input(input))
+    Ok(invocation().with_input(input))
 }
 
-fn invocation() -> Invocation {
+pub(super) fn invocation() -> Invocation {
     Invocation::declared(
         InvocationProfile::declared(
             CaseBudget::declared(1),

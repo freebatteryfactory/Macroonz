@@ -3,7 +3,7 @@
 use super::{ArchiveLimits, ArchiveRefusal, ArchivedCapsule, CAPSULE_ARCHIVE_TAG, read_capsule};
 use crate::identity::{ContentAddress, encode_bytes};
 use crate::report::{
-    ExecutionKey, ReplayCapsule, execution_key_preimage, fingerprint_preimage,
+    ExecutionInput, ExecutionKey, ReplayCapsule, execution_key_preimage, fingerprint_preimage,
     input_execution_key_preimage, replay_capsule_preimage,
 };
 
@@ -109,12 +109,16 @@ pub(super) fn write_execution(key: &ExecutionKey, body: &mut Vec<u8>) {
     encode_bytes(&key_bytes, body);
     if let Some(input) = key.input() {
         body.push(1);
-        let profile = input.profile();
-        encode_bytes(profile.name().namespace().written().as_bytes(), body);
-        encode_bytes(profile.name().stem().written().as_bytes(), body);
-        body.extend_from_slice(&profile.version().to_be_bytes());
-        encode_bytes(profile.schema().as_bytes(), body);
+        write_input_metadata(input, body);
     } else {
         body.push(0);
     }
+}
+
+pub(super) fn write_input_metadata(input: ExecutionInput, body: &mut Vec<u8>) {
+    let profile = input.profile();
+    encode_bytes(profile.name().namespace().written().as_bytes(), body);
+    encode_bytes(profile.name().stem().written().as_bytes(), body);
+    body.extend_from_slice(&profile.version().to_be_bytes());
+    encode_bytes(profile.schema().as_bytes(), body);
 }

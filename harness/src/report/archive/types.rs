@@ -2,14 +2,77 @@
 
 use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use crate::report::{
-    FailureClass, InfrastructureFault, InvocationProfile, ReplayPosture, SkipReason, TargetBinding,
-    TextFidelity,
+    FailureClass, InfrastructureFault, InvocationProfile, NotSelectedReason, ReplayPosture,
+    SelectionOutcome, SkipReason, TargetBinding, TextFidelity,
 };
 
 #[path = "type_guard.rs"]
 mod guard;
 
-pub use guard::{read_capsule, read_trial};
+pub use guard::{read_capsule, read_run, read_trial};
+
+/// The envelope domain for historical complete-run records.
+pub const RUN_ARCHIVE_TAG: DomainTag =
+    DomainTag::declared("historical-run-report", IdentityProfileVersion::declared(1));
+
+/// Independent byte and census-row ceilings for complete-run retention.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RunArchiveLimits {
+    bytes: ArchiveLimits,
+    rows: usize,
+}
+
+/// An owned historical namespace and local spelling without a static-name mint.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArchivedName {
+    namespace: String,
+    stem: String,
+}
+
+/// The historical table posture, retaining only the name the report actually holds.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ArchivedTablePosture {
+    /// The source claimed an authored table.
+    Authored,
+    /// The source claimed candidates overlaid on this authored parent.
+    Staged {
+        /// The exact historical parent name.
+        parent: ArchivedName,
+    },
+}
+
+/// What the source claimed about one census row's selection.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ArchivedDisposition {
+    /// Selected, with the entire historical trial record.
+    Selected(Box<ArchivedTrial>),
+    /// Unselected, with the original reason.
+    NotSelected(NotSelectedReason),
+}
+
+/// A historical census row with all its retained revision and claim coordinates.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArchivedAccounting {
+    trial: AddressClaim,
+    row: AddressClaim,
+    subject: AddressClaim,
+    check: AddressClaim,
+    claim: ArchivedName,
+    disposition: ArchivedDisposition,
+}
+
+/// An owned historical complete run whose selected records agree with its context.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArchivedRun {
+    encoded: Vec<u8>,
+    address: ContentAddress,
+    invocation: InvocationProfile,
+    target: TargetBinding,
+    input: Option<ArchivedInput>,
+    posture: ArchivedTablePosture,
+    selection: SelectionOutcome,
+    census: Vec<ArchivedAccounting>,
+}
 
 /// The envelope domain for historical capsule data.
 pub const CAPSULE_ARCHIVE_TAG: DomainTag = DomainTag::declared(
@@ -235,7 +298,7 @@ pub enum ArchiveRefusal {
     },
     /// An enum discriminant has no meaning in this format.
     InvalidSlot,
-    /// A text field is not UTF-8 or a required input profile name is empty.
+    /// A text field is not UTF-8 or a required name component is empty.
     InvalidText,
     /// A nested digest is not exactly thirty-two bytes.
     InvalidAddressWidth,
@@ -249,4 +312,12 @@ pub enum ArchiveRefusal {
     InvalidForeignText,
     /// A claimed clock regression does not contain backwards readings.
     InvalidMeasurement,
+    /// The census exceeds its independent row ceiling.
+    TooManyRows,
+    /// Two census rows claim the same semantic trial.
+    DuplicateTrial,
+    /// A selected trial disagrees with the run's invocation, target or input.
+    RunContextMismatch,
+    /// The selection outcome contradicts the presence of selected census rows.
+    SelectionMismatch,
 }

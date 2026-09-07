@@ -122,3 +122,36 @@ fn actual_and_independent_trials_survive_a_fresh_process() -> Result<(), Box<dyn
     );
     Ok(())
 }
+
+#[test]
+#[ignore = "driven by the run process-boundary claim"]
+fn child_loads_run() -> Result<(), Box<dyn Error>> {
+    let mut encoded = Vec::new();
+    std::io::stdin()
+        .lock()
+        .take(32769)
+        .read_to_end(&mut encoded)?;
+    let record = macroonz_harness::report::archive::read_run(&encoded, super::runs::LIMITS)
+        .map_err(|refusal| std::io::Error::other(format!("{refusal:?}")))?;
+    drop(encoded);
+    publish(record.encoded())
+}
+
+#[test]
+fn actual_and_independent_runs_survive_a_fresh_process() -> Result<(), Box<dyn Error>> {
+    let report =
+        super::run_fixture::typed().map_err(|()| std::io::Error::other("fixture refused"))?;
+    let record = macroonz_harness::report::archive::retain_run(&report, super::runs::LIMITS)
+        .map_err(|refusal| std::io::Error::other(format!("{refusal:?}")))?;
+    drop(report);
+    for encoded in [
+        record.encoded().to_vec(),
+        super::run_vector::RunVector::mixed().encoded(),
+    ] {
+        assert_eq!(
+            round_trip(&encoded, "archive::process::child_loads_run")?,
+            encoded
+        );
+    }
+    Ok(())
+}

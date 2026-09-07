@@ -79,39 +79,13 @@ pub(super) fn execution(
     let trial = claim(&mut reader, limits)?;
     let subject = claim(&mut reader, limits)?;
     let check = claim(&mut reader, limits)?;
-    let invocation = InvocationProfile::declared(
-        CaseBudget::declared(reader.u32()?),
-        ByteBudget::declared(reader.u64()?),
-        TimeBudget::declared(reader.u64()?),
-    );
-    let target = TargetBinding::bound(
-        TargetTriple::declared(text(&mut reader, limits)?),
-        ToolchainIdentity::declared(text(&mut reader, limits)?),
-    );
+    let (invocation, target) = context(&mut reader, limits)?;
     let (tag, input) = match envelope.byte()? {
         0 => (EXECUTION_KEY_TAG, None),
-        1 => {
-            let namespace = text(envelope, limits)?.to_owned();
-            let profile = profile(envelope, limits)?;
-            if namespace.is_empty() || profile.name.is_empty() {
-                return Err(ArchiveRefusal::InvalidText);
-            }
-            let schema = claim(envelope, limits)?;
-            let case = claim(&mut reader, limits)?;
-            let decoder = claim(&mut reader, limits)?;
-            let posture = posture(reader.byte()?)?;
-            (
-                INPUT_EXECUTION_KEY_TAG,
-                Some(ArchivedInput {
-                    namespace,
-                    profile,
-                    schema,
-                    case,
-                    decoder,
-                    posture,
-                }),
-            )
-        }
+        1 => (
+            INPUT_EXECUTION_KEY_TAG,
+            Some(input(&mut reader, envelope, limits)?),
+        ),
         _ => return Err(ArchiveRefusal::InvalidSlot),
     };
     finish(&reader)?;
@@ -123,6 +97,42 @@ pub(super) fn execution(
         invocation,
         target,
         input,
+    })
+}
+
+pub(super) fn context(
+    reader: &mut BodyReader<'_, ArchiveRefusal>,
+    limits: ArchiveLimits,
+) -> Result<(InvocationProfile, TargetBinding), ArchiveRefusal> {
+    let invocation = InvocationProfile::declared(
+        CaseBudget::declared(reader.u32()?),
+        ByteBudget::declared(reader.u64()?),
+        TimeBudget::declared(reader.u64()?),
+    );
+    let target = TargetBinding::bound(
+        TargetTriple::declared(text(reader, limits)?),
+        ToolchainIdentity::declared(text(reader, limits)?),
+    );
+    Ok((invocation, target))
+}
+
+pub(super) fn input(
+    reader: &mut BodyReader<'_, ArchiveRefusal>,
+    metadata: &mut BodyReader<'_, ArchiveRefusal>,
+    limits: ArchiveLimits,
+) -> Result<ArchivedInput, ArchiveRefusal> {
+    let namespace = text(metadata, limits)?.to_owned();
+    let profile = profile(metadata, limits)?;
+    if namespace.is_empty() || profile.name.is_empty() {
+        return Err(ArchiveRefusal::InvalidText);
+    }
+    Ok(ArchivedInput {
+        namespace,
+        profile,
+        schema: claim(metadata, limits)?,
+        case: claim(reader, limits)?,
+        decoder: claim(reader, limits)?,
+        posture: posture(reader.byte()?)?,
     })
 }
 

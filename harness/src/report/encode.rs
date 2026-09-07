@@ -100,12 +100,20 @@ pub fn execution_key_preimage(
     encode_bytes(trial.address().as_bytes(), &mut bytes);
     encode_bytes(subject.address().as_bytes(), &mut bytes);
     encode_bytes(check.address().as_bytes(), &mut bytes);
+    encode_context(invocation, target, &mut bytes);
+    bytes
+}
+
+pub(super) fn encode_context(
+    invocation: InvocationProfile,
+    target: &TargetBinding,
+    bytes: &mut Vec<u8>,
+) {
     bytes.extend_from_slice(&invocation.cases().cases().to_be_bytes());
     bytes.extend_from_slice(&invocation.bytes().bytes().to_be_bytes());
     bytes.extend_from_slice(&invocation.time().nanoseconds().to_be_bytes());
-    encode_bytes(target.target().spelling().as_bytes(), &mut bytes);
-    encode_bytes(target.toolchain().spelling().as_bytes(), &mut bytes);
-    bytes
+    encode_bytes(target.target().spelling().as_bytes(), bytes);
+    encode_bytes(target.toolchain().spelling().as_bytes(), bytes);
 }
 
 /// The input-bearing preimage: the unit-key fields, framed case and decoder addresses, then decoder posture.
@@ -121,10 +129,14 @@ pub fn input_execution_key_preimage(key: &ExecutionKey, input: ExecutionInput) -
         key.invocation(),
         key.target(),
     );
-    encode_bytes(input.case().address().as_bytes(), &mut bytes);
-    encode_bytes(input.decoder().as_bytes(), &mut bytes);
-    bytes.push(ReplayPosture::from(input.posture()).slot());
+    encode_input(input, &mut bytes);
     bytes
+}
+
+pub(super) fn encode_input(input: ExecutionInput, bytes: &mut Vec<u8>) {
+    encode_bytes(input.case().address().as_bytes(), bytes);
+    encode_bytes(input.decoder().as_bytes(), bytes);
+    bytes.push(ReplayPosture::from(input.posture()).slot());
 }
 
 /// The complete preimage of one [`ReplayCapsule`]'s identity.
