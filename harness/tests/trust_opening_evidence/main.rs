@@ -7,6 +7,7 @@ mod campaign_input;
 mod composition;
 mod discovery;
 mod interpretation;
+mod mutation_archive;
 mod proposal_admission;
 mod proposal_input;
 mod specimen;

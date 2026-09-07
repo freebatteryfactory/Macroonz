@@ -1,13 +1,98 @@
 //! Historical mutation coordinates without execution or activation authority.
 
 use crate::descriptor::archive::ArchivedName;
-use crate::muterprater::SourceCoordinate;
-use crate::report::archive::AddressClaim;
+use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use crate::muterprater::{
+    BaselineAxis, EquivalenceAxis, ExecutionAxis, InconclusiveCause, MaterializationAxis,
+    MutationCensus, SourceCoordinate,
+};
+use crate::report::archive::{
+    AddressClaim, ArchiveLimits, ArchiveRefusal, ArchivedFinding, ArchivedForeignText,
+};
 
 #[path = "type_guard.rs"]
 mod guard;
 
+pub use guard::read_mutation;
+pub use guard::read_mutation_run;
 pub(crate) use guard::{read_activation, read_target};
+
+/// The envelope domain for complete ordered historical mutation runs.
+pub const MUTATION_RUN_ARCHIVE_TAG: DomainTag = DomainTag::declared(
+    "historical-mutation-run",
+    IdentityProfileVersion::declared(1),
+);
+
+/// Independent byte and report-population ceilings for historical mutation runs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MutationRunArchiveLimits {
+    bytes: ArchiveLimits,
+    reports: usize,
+}
+
+/// A complete ordered historical mutation run and its derived accounting.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArchivedMutationRun {
+    encoded: Vec<u8>,
+    address: ContentAddress,
+    baseline: BaselineAxis,
+    reports: Vec<ArchivedMutation>,
+    census: MutationCensus,
+}
+
+/// The envelope domain for a complete historical mutation record.
+pub const MUTATION_ARCHIVE_TAG: DomainTag = DomainTag::declared(
+    "historical-mutation-report",
+    IdentityProfileVersion::declared(1),
+);
+
+/// The retained rejection claim, with no live demonstration authority.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ArchivedRejection {
+    /// The historical trial and cause preimage, location and optional foreign material.
+    Demonstrated(Box<ArchivedFinding>),
+    /// The backend's exact retained bytes and loss markers, without a fingerprint.
+    ReportedByBackend(ArchivedForeignText),
+}
+
+/// The complete historical outcome and the evidence its arm retains.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ArchivedMutationOutcome {
+    /// The source claimed rejection under a qualified execution chain.
+    Killed(ArchivedRejection),
+    /// The source claimed acceptance after positive observed activation.
+    Survived,
+    /// The source claimed no conclusion for this stated cause.
+    Inconclusive(InconclusiveCause),
+}
+
+/// An owned complete historical mutation record whose outcome respects its axis ceiling.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArchivedMutation {
+    encoded: Vec<u8>,
+    address: ContentAddress,
+    target: ArchivedMutationTarget,
+    baseline: BaselineAxis,
+    materialization: MaterializationAxis,
+    activation: ArchivedActivation,
+    execution: ExecutionAxis,
+    outcome: ArchivedMutationOutcome,
+    equivalence: EquivalenceAxis,
+}
+
+/// Why a complete historical mutation record could not be admitted.
+#[must_use = "a refusal explains why no historical mutation record was admitted"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MutationArchiveRefusal {
+    /// A bounded field or envelope failed the common historical record grammar.
+    Record(ArchiveRefusal),
+    /// A kill or survivor claims more than its retained axes permit.
+    OutcomeAxesMismatch,
+    /// The run claims a baseline other than a qualified pass.
+    BaselineNotQualified,
+    /// The declared report population exceeds its independent ceiling.
+    TooManyReports,
+}
 
 /// The historical identity of a damaged subject.
 #[derive(Debug, Clone, PartialEq, Eq)]

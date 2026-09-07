@@ -13,8 +13,10 @@ pub(crate) use encode::{
 };
 pub use encode_run::retain_run;
 pub use encode_trial::retain_trial;
+pub(crate) use encode_trial::{foreign as write_foreign, write_finding};
 pub(crate) use size_run::encoded_size as run_size;
 pub(crate) use size_run::name_size;
+pub(crate) use size_trial::{finding_size, foreign_size};
 pub use types::{
     AddressClaim, ArchiveLimits, ArchiveRefusal, ArchivedAttempt, ArchivedCapsule,
     ArchivedClockFailure, ArchivedConclusion, ArchivedExecution, ArchivedFinding,
@@ -27,5 +29,6 @@ pub use types::{
     RUN_ARCHIVE_TAG, RunArchiveLimits, read_run,
 };
 pub(crate) use types::{
-    claim, cursor, envelope, execution, fingerprint, finish, frame, name, posture, text,
+    claim, cursor, envelope, execution, finding, fingerprint, finish, foreign, frame, name,
+    posture, text,
 };

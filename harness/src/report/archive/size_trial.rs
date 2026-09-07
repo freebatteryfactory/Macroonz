@@ -1,9 +1,11 @@
 //! Complete size admission before trial encoding allocates any preimage.
 
-use super::encode::{bounded, execution_size, sum};
+use super::encode::{bounded, execution_size, fingerprint_size, sum};
 use super::{ArchiveLimits, ArchiveRefusal};
 use crate::clock::{ClockFailure, MeasurementReading};
-use crate::report::{ForeignText, RunAttempt, TrialConclusion, TrialReport, Truncation};
+use crate::report::{
+    ForeignText, RunAttempt, TrialConclusion, TrialFinding, TrialReport, Truncation,
+};
 
 pub(super) fn encoded_size(
     report: &TrialReport,
@@ -44,21 +46,26 @@ fn attempt_size(attempt: &RunAttempt, limits: ArchiveLimits) -> Result<usize, Ar
             sum(&[2, foreign_size(failure.foreign(), limits)?])
         }
         RunAttempt::Executed(TrialConclusion::Refused(finding)) => {
-            let family = bounded(finding.cause().family().len(), limits)?;
-            let local = bounded(finding.cause().local().len(), limits)?;
-            let fingerprint = bounded(sum(&[57, family, local])?, limits)?;
-            let file = bounded(finding.located().file().len(), limits)?;
-            sum(&[
-                21,
-                fingerprint,
-                file,
-                foreign_size(finding.foreign(), limits)?,
-            ])
+            sum(&[1, finding_size(finding, limits)?])
         }
     }
 }
 
-fn foreign_size(
+pub(crate) fn finding_size(
+    finding: &TrialFinding,
+    limits: ArchiveLimits,
+) -> Result<usize, ArchiveRefusal> {
+    let fingerprint = fingerprint_size(finding.cause(), limits)?;
+    let file = bounded(finding.located().file().len(), limits)?;
+    sum(&[
+        20,
+        fingerprint,
+        file,
+        foreign_size(finding.foreign(), limits)?,
+    ])
+}
+
+pub(crate) fn foreign_size(
     foreign: Option<&ForeignText>,
     limits: ArchiveLimits,
 ) -> Result<usize, ArchiveRefusal> {

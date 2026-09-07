@@ -18,6 +18,10 @@ mod candidates;
 mod candidate_vector;
 mod proposal_vector;
 mod proposals;
+mod mutation_vector;
+mod mutations;
+mod mutation_runs;
+mod mutation_hostile;
 
 use macroonz_harness::report::archive::{
     ArchiveLimits, ArchiveRefusal, read_capsule, retain_capsule,

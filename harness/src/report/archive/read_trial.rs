@@ -58,12 +58,7 @@ fn attempt(
     match reader.byte()? {
         0 => Ok(ArchivedAttempt::Executed(ArchivedConclusion::Passed)),
         1 => Ok(ArchivedAttempt::Executed(ArchivedConclusion::Refused(
-            Box::new(ArchivedFinding {
-                fingerprint: fingerprint(frame(reader, limits)?, limits)?,
-                file: text(reader, limits)?.to_owned(),
-                line: reader.u32()?,
-                foreign: foreign(reader, limits)?,
-            }),
+            Box::new(finding(reader, limits)?),
         ))),
         2 => Ok(ArchivedAttempt::SkippedWithReason(skip(reader.byte()?)?)),
         3 => Ok(ArchivedAttempt::TimedOut),
@@ -97,7 +92,19 @@ fn fault(slot: u8) -> Result<InfrastructureFault, ArchiveRefusal> {
     }
 }
 
-fn foreign(
+pub(crate) fn finding(
+    reader: &mut BodyReader<'_, ArchiveRefusal>,
+    limits: ArchiveLimits,
+) -> Result<ArchivedFinding, ArchiveRefusal> {
+    Ok(ArchivedFinding {
+        fingerprint: fingerprint(frame(reader, limits)?, limits)?,
+        file: text(reader, limits)?.to_owned(),
+        line: reader.u32()?,
+        foreign: foreign(reader, limits)?,
+    })
+}
+
+pub(crate) fn foreign(
     reader: &mut BodyReader<'_, ArchiveRefusal>,
     limits: ArchiveLimits,
 ) -> Result<Option<ArchivedForeignText>, ArchiveRefusal> {

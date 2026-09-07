@@ -7,7 +7,7 @@ use crate::clock::{ClockFailure, MeasurementReading};
 use crate::identity::{ContentAddress, encode_bytes, encode_length};
 use crate::report::{
     ForeignText, InfrastructureFault, RunAttempt, SkipReason, TextFidelity, TrialConclusion,
-    TrialId, TrialReport, Truncation, fingerprint_preimage,
+    TrialFinding, TrialId, TrialReport, Truncation, fingerprint_preimage,
 };
 
 /// Retain a complete trial as bounded historical data for caller-owned storage.
@@ -44,13 +44,7 @@ fn attempt(trial: TrialId, attempt: &RunAttempt, body: &mut Vec<u8>) {
         RunAttempt::Executed(TrialConclusion::Passed) => body.push(0),
         RunAttempt::Executed(TrialConclusion::Refused(finding)) => {
             body.push(1);
-            encode_bytes(
-                &fingerprint_preimage(trial, finding.cause(), finding.class()),
-                body,
-            );
-            encode_bytes(finding.located().file().as_bytes(), body);
-            body.extend_from_slice(&finding.located().line().to_be_bytes());
-            foreign(finding.foreign(), body);
+            write_finding(trial, finding, body);
         }
         RunAttempt::SkippedWithReason(reason) => {
             body.push(2);
@@ -77,7 +71,17 @@ fn attempt(trial: TrialId, attempt: &RunAttempt, body: &mut Vec<u8>) {
     }
 }
 
-fn foreign(foreign: Option<&ForeignText>, body: &mut Vec<u8>) {
+pub(crate) fn write_finding(trial: TrialId, finding: &TrialFinding, body: &mut Vec<u8>) {
+    encode_bytes(
+        &fingerprint_preimage(trial, finding.cause(), finding.class()),
+        body,
+    );
+    encode_bytes(finding.located().file().as_bytes(), body);
+    body.extend_from_slice(&finding.located().line().to_be_bytes());
+    foreign(finding.foreign(), body);
+}
+
+pub(crate) fn foreign(foreign: Option<&ForeignText>, body: &mut Vec<u8>) {
     let Some(foreign) = foreign else {
         body.push(0);
         return;

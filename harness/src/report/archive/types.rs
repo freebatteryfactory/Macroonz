@@ -14,7 +14,8 @@ mod guard;
 pub use guard::{read_capsule, read_run, read_trial};
 
 pub(crate) use guard::{
-    claim, cursor, envelope, execution, fingerprint, finish, frame, name, posture, text,
+    claim, cursor, envelope, execution, finding, fingerprint, finish, foreign, frame, name,
+    posture, text,
 };
 
 /// The envelope domain for historical complete-run records.

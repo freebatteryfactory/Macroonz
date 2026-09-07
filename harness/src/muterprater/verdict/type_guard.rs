@@ -570,9 +570,15 @@ macro_rules! implement_mutation_census {
             /// The accounting over one run's mutants, counted from the records themselves.
             #[must_use]
             pub fn over(reports: &[MutationReport]) -> Self {
+                Self::over_verdicts(reports.iter().map(MutationReport::verdict))
+            }
+
+            pub(in crate::muterprater) fn over_verdicts(
+                verdicts: impl Iterator<Item = MutationVerdict>,
+            ) -> Self {
                 let mut census = Self::empty();
-                for report in reports {
-                    let seat = match report.verdict() {
+                for verdict in verdicts {
+                    let seat = match verdict {
                         $(MutationVerdict::$variant => MutationCensusSeat::$variant),+
                     };
                     census.increment(seat, 1u32);

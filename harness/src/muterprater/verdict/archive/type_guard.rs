@@ -1,15 +1,84 @@
 //! Read-only historical target and activation projections.
 
+use super::ArchivedActivation;
 use super::{
-    ArchivedActivationReading, ArchivedMutationIdentity, ArchivedMutationSite,
-    ArchivedMutationTarget,
+    ArchivedActivationReading, ArchivedMutation, ArchivedMutationIdentity, ArchivedMutationOutcome,
+    ArchivedMutationSite, ArchivedMutationTarget,
 };
 use crate::descriptor::archive::ArchivedName;
+use crate::identity::ContentAddress;
+use crate::muterprater::{BaselineAxis, EquivalenceAxis, ExecutionAxis, MaterializationAxis};
 use crate::report::archive::AddressClaim;
 
 #[path = "read.rs"]
 mod read;
 pub(crate) use read::{read_activation, read_target};
+
+#[path = "read_record.rs"]
+mod record;
+pub use record::read_mutation;
+
+#[path = "read_run.rs"]
+mod run;
+#[path = "guard_run.rs"]
+mod run_readings;
+pub use run::read_mutation_run;
+
+impl ArchivedMutation {
+    /// The exact envelope for caller-owned storage.
+    #[must_use]
+    pub fn encoded(&self) -> &[u8] {
+        &self.encoded
+    }
+
+    /// The integrity address of the historical envelope.
+    #[must_use]
+    pub const fn address(&self) -> ContentAddress {
+        self.address
+    }
+
+    /// The complete historical target.
+    #[must_use]
+    pub const fn target(&self) -> &ArchivedMutationTarget {
+        &self.target
+    }
+
+    /// The recorded baseline axis.
+    #[must_use]
+    pub const fn baseline(&self) -> BaselineAxis {
+        self.baseline
+    }
+
+    /// The recorded materialization axis.
+    #[must_use]
+    pub const fn materialization(&self) -> MaterializationAxis {
+        self.materialization
+    }
+
+    /// The historical activation and its retained claims.
+    #[must_use]
+    pub const fn activation(&self) -> &ArchivedActivation {
+        &self.activation
+    }
+
+    /// The recorded execution axis.
+    #[must_use]
+    pub const fn execution(&self) -> ExecutionAxis {
+        self.execution
+    }
+
+    /// The historical outcome and retained rejection, when present.
+    #[must_use]
+    pub const fn outcome(&self) -> &ArchivedMutationOutcome {
+        &self.outcome
+    }
+
+    /// The recorded scoped-equivalence axis.
+    #[must_use]
+    pub const fn equivalence(&self) -> EquivalenceAxis {
+        self.equivalence
+    }
+}
 
 impl ArchivedMutationIdentity {
     /// The historical point, absent for external coordinate identities.
