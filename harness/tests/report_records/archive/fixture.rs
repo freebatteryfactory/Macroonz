@@ -7,8 +7,8 @@ use macroonz_harness::descriptor::{
     Provenance, RevisionBinding, Row,
 };
 use macroonz_harness::generate::{
-    ByteReducerId, FingerprintPreservation, ProbeOutcome, ReductionBudget, ReductionPlan,
-    ReductionProbeBinding, capture_replay, reduce,
+    ByteReducerId, FingerprintPreservation, ProbeOutcome, ReductionBudget, ReductionEvidence,
+    ReductionPlan, ReductionProbeBinding, SemanticReducerBinding, capture_replay, reduce,
 };
 use macroonz_harness::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use macroonz_harness::input::{BoundInput, InputBinding, InputLimits, InputProfile, pack};
@@ -169,6 +169,33 @@ pub(super) fn unit_capsule() -> Result<ReplayCapsule, ()> {
 }
 
 fn reduce_report(report: &TrialReport, payload: &[u8]) -> Result<ReplayCapsule, ()> {
+    Ok(capture_replay(&reduction_under(
+        report,
+        payload,
+        32,
+        Vec::new(),
+    )?))
+}
+
+pub(super) fn reduction(
+    payload: &[u8],
+    budget: u32,
+    semantic: Vec<SemanticReducerBinding>,
+) -> Result<ReductionEvidence, ()> {
+    reduction_under(&report(payload)?, payload, budget, semantic)
+}
+
+pub(super) fn unit_reduction(payload: &[u8], budget: u32) -> Result<ReductionEvidence, ()> {
+    let report = execute(|_| refusal(), &invocation())?;
+    reduction_under(&report, payload, budget, Vec::new())
+}
+
+fn reduction_under(
+    report: &TrialReport,
+    payload: &[u8],
+    budget: u32,
+    semantic: Vec<SemanticReducerBinding>,
+) -> Result<ReductionEvidence, ()> {
     let binding = ReductionProbeBinding::bound(
         report,
         GenerationProfile::declared("archive-byte-sequence", 1),
@@ -180,11 +207,10 @@ fn reduce_report(report: &TrialReport, payload: &[u8]) -> Result<ReplayCapsule, 
     let plan = ReductionPlan::declared(
         MinimizationProfile::declared("archive-reduction", 1),
         ByteReducerId::ChunkRemovalAndZeroing,
-        Vec::new(),
+        semantic,
         FingerprintPreservation::Required,
-        ReductionBudget::declared(32),
+        ReductionBudget::declared(budget),
     )
     .map_err(|_| ())?;
-    let evidence = reduce(&plan, payload, &binding).map_err(|_| ())?;
-    Ok(capture_replay(&evidence))
+    reduce(&plan, payload, &binding).map_err(|_| ())
 }

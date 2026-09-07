@@ -147,7 +147,7 @@ pub fn reduce(
     let outcome = ReductionOutcome::reduced(state.best, preserved, state.census, halt);
     Ok(ReductionEvidence::recorded(
         admitted_binding,
-        plan.profile(),
+        plan,
         semantic.path,
         byte_reducer,
         outcome,

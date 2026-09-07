@@ -469,7 +469,7 @@ impl ReductionEvidence {
     #[must_use]
     pub(crate) fn recorded(
         probe: &ReductionProbeBinding,
-        minimization: MinimizationProfile,
+        plan: &ReductionPlan,
         semantic_reducers: Vec<SemanticReducerExecution>,
         byte_reducer: ByteReducerExecution,
         outcome: ReductionOutcome,
@@ -480,7 +480,8 @@ impl ReductionEvidence {
             generation: probe.generation(),
             schema: probe.schema(),
             probe_revision: probe.revision(),
-            minimization,
+            minimization: plan.profile(),
+            budget: plan.budget(),
             semantic_reducers,
             byte_reducer,
             outcome,
@@ -516,6 +517,12 @@ impl ReductionEvidence {
     #[must_use]
     pub const fn minimization(&self) -> MinimizationProfile {
         self.minimization
+    }
+
+    /// The candidate-probe budget actually supplied by the reduction plan.
+    #[must_use]
+    pub const fn budget(&self) -> ReductionBudget {
+        self.budget
     }
 
     /// The semantic reducers actually invoked, in execution order.

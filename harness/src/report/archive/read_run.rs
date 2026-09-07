@@ -65,7 +65,7 @@ pub fn read_run(encoded: &[u8], limits: RunArchiveLimits) -> Result<ArchivedRun,
     })
 }
 
-fn name(
+pub(crate) fn name(
     reader: &mut BodyReader<'_, ArchiveRefusal>,
     limits: ArchiveLimits,
 ) -> Result<ArchivedName, ArchiveRefusal> {

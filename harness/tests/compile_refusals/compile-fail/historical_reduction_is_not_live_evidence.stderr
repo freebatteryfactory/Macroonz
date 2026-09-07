@@ -1,0 +1,29 @@
+error[E0308]: mismatched types
+ --> tests/compile_refusals/compile-fail/historical_reduction_is_not_live_evidence.rs:8:5
+  |
+7 | fn promote(historical: ArchivedReduction) -> ReductionEvidence {
+  |                                              ----------------- expected `ReductionEvidence` because of return type
+8 |     historical
+  |     ^^^^^^^^^^ expected `ReductionEvidence`, found `ArchivedReduction`
+
+error[E0308]: mismatched types
+  --> tests/compile_refusals/compile-fail/historical_reduction_is_not_live_evidence.rs:12:20
+   |
+12 |     capture_replay(historical)
+   |     -------------- ^^^^^^^^^^ expected `&ReductionEvidence`, found `&ArchivedReduction`
+   |     |
+   |     arguments to this function are incorrect
+   |
+   = note: expected reference `&ReductionEvidence`
+              found reference `&ArchivedReduction`
+note: function defined here
+  --> src/generate/reduction/reduce.rs
+   |
+   | pub fn capture_replay(evidence: &ReductionEvidence) -> ReplayCapsule {
+   |        ^^^^^^^^^^^^^^
+
+error[E0616]: field `budget` of struct `ArchivedReduction` is private
+  --> tests/compile_refusals/compile-fail/historical_reduction_is_not_live_evidence.rs:16:16
+   |
+16 |     historical.budget = ReductionBudget::declared(999);
+   |                ^^^^^^ private field

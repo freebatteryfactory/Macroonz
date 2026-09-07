@@ -6,7 +6,7 @@ use super::{ArchiveLimits, ArchiveRefusal, RunArchiveLimits};
 use crate::descriptor::{NamespacedName, TablePosture};
 use crate::report::{RunReport, SelectionDisposition, TrialAccounting};
 
-pub(super) fn name_size(
+pub(crate) fn name_size(
     name: NamespacedName,
     limits: ArchiveLimits,
 ) -> Result<usize, ArchiveRefusal> {

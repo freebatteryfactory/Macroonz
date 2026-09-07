@@ -11,13 +11,13 @@ use crate::report::{
     TimeBudget, ToolchainIdentity,
 };
 
-pub(super) fn cursor(bytes: &[u8]) -> BodyReader<'_, ArchiveRefusal> {
+pub(crate) fn cursor(bytes: &[u8]) -> BodyReader<'_, ArchiveRefusal> {
     BodyReader::over(bytes, ArchiveRefusal::Truncated, |declared| {
         ArchiveRefusal::LengthOutsidePlatform { declared }
     })
 }
 
-pub(super) fn frame<'body>(
+pub(crate) fn frame<'body>(
     reader: &mut BodyReader<'body, ArchiveRefusal>,
     limits: ArchiveLimits,
 ) -> Result<&'body [u8], ArchiveRefusal> {
@@ -35,7 +35,7 @@ pub(super) fn text<'body>(
     core::str::from_utf8(frame(reader, limits)?).map_err(|_invalid| ArchiveRefusal::InvalidText)
 }
 
-pub(super) fn claim(
+pub(crate) fn claim(
     reader: &mut BodyReader<'_, ArchiveRefusal>,
     limits: ArchiveLimits,
 ) -> Result<AddressClaim, ArchiveRefusal> {
@@ -44,14 +44,14 @@ pub(super) fn claim(
         .map_err(|_wrong_width| ArchiveRefusal::InvalidAddressWidth)
 }
 
-pub(super) fn finish(reader: &BodyReader<'_, ArchiveRefusal>) -> Result<(), ArchiveRefusal> {
+pub(crate) fn finish(reader: &BodyReader<'_, ArchiveRefusal>) -> Result<(), ArchiveRefusal> {
     if reader.remaining() != 0 {
         return Err(ArchiveRefusal::TrailingBytes);
     }
     Ok(())
 }
 
-pub(super) fn posture(slot: u8) -> Result<ReplayPosture, ArchiveRefusal> {
+pub(crate) fn posture(slot: u8) -> Result<ReplayPosture, ArchiveRefusal> {
     match slot {
         0 => Ok(ReplayPosture::ExactDerived),
         1 => Ok(ReplayPosture::DeclaredByAuthor),
@@ -162,7 +162,7 @@ pub(super) fn fingerprint(
     })
 }
 
-pub(super) fn envelope(
+pub(crate) fn envelope(
     encoded: &[u8],
     tag: DomainTag,
     expected_kind: u32,

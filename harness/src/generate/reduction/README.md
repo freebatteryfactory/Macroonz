@@ -5,8 +5,10 @@ The reduction owner searches for a smaller input that still produces the fingerp
 Every candidate descends under the reducer that authored it and reaches one shared admission law: the report-bound probe must reproduce the same fingerprint.
 Owner-semantic candidates run before the generic byte search, and a finite probe budget bounds the complete road.
 
-The retained evidence keeps the reducers that actually ran, the work they offered, the reached input, the fingerprint it preserved, the stopping posture, and the replay ceiling earned across those participants.
+The retained evidence keeps the declared candidate-probe budget, the reducers that actually ran, the work they offered, the reached input, the fingerprint it preserved, the stopping posture, and the replay ceiling earned across those participants.
 A replay capsule can be minted only from that completed evidence.
+
+The [archive](archive/README.md) retains that account as bounded historical data for inspection and independently bound replay.
 
 The original report and the reached witness retain distinct roles: the report identifies the failure being reduced, while the witness contains the bytes the probe still refused.
 Fingerprint preservation does not make two different specimens the same execution.

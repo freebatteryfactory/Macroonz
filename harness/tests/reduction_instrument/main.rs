@@ -168,6 +168,50 @@ fn non_descending_candidates(input: &[u8]) -> Result<SemanticCandidates, Semanti
     SemanticCandidates::proposed(input, vec![input.to_vec()])
 }
 
+fn empty_witness_probe(input: &[u8]) -> ProbeOutcome {
+    if input.is_empty() {
+        trial_fingerprint(PRESERVED_CAUSE).map_or(ProbeOutcome::NoFailure, ProbeOutcome::Reproduced)
+    } else {
+        ProbeOutcome::NoFailure
+    }
+}
+
+#[test]
+fn an_empty_reproducer_retains_an_unspent_candidate_budget() -> Result<(), ReductionRoadFailure> {
+    let report = trial_report_with(refused_trial).ok_or(ReductionRoadFailure::Fixture)?;
+    let binding = ReductionProbeBinding::bound(
+        &report,
+        GenerationProfile::declared("empty-reproducer", 1),
+        GeneratedSupportSchemaId::over(ContentAddress::derived(SCHEMA_TAG, b"empty")),
+        revision_derived_from(include_bytes!("main.rs")),
+        empty_witness_probe,
+    )
+    .map_err(|_| ReductionRoadFailure::Fixture)?;
+    let plan = ReductionPlan::declared(
+        MinimizationProfile::declared("empty-reproducer", 1),
+        ByteReducerId::ChunkRemovalAndZeroing,
+        Vec::new(),
+        FingerprintPreservation::Required,
+        ReductionBudget::declared(5),
+    )?;
+    let evidence = reduce(&plan, &[], &binding)?;
+    let limits = macroonz_harness::generate::reduce::archive::ReductionArchiveLimits::declared(
+        macroonz_harness::report::archive::ArchiveLimits::declared(8192, 4096),
+        0,
+    );
+    let record = macroonz_harness::generate::reduce::archive::retain_reduction(&evidence, limits)
+        .map_err(|_| ReductionRoadFailure::Fixture)?;
+    assert!(record.capsule().input().is_empty());
+    assert_eq!(record.budget().probes(), 5);
+    assert_eq!(record.census().probes(), 0);
+    assert_eq!(record.halt(), ReductionHalt::FixedPointReached);
+    assert_eq!(
+        record.byte_reducer(),
+        ByteReducerExecution::Executed(ByteReducerId::ChunkRemovalAndZeroing)
+    );
+    Ok(())
+}
+
 #[test]
 fn generic_reduction_preserves_one_fingerprint_and_reports_every_candidate_class()
 -> Result<(), ReductionRoadFailure> {
@@ -224,6 +268,17 @@ fn generic_reduction_preserves_one_fingerprint_and_reports_every_candidate_class
         ByteReducerExecution::Executed(ByteReducerId::ChunkRemovalAndZeroing)
     );
     assert!(evidence.semantic_reducers().is_empty());
+    let limits = macroonz_harness::generate::reduce::archive::ReductionArchiveLimits::declared(
+        macroonz_harness::report::archive::ArchiveLimits::declared(8192, 4096),
+        0,
+    );
+    let saved = macroonz_harness::generate::reduce::archive::retain_reduction(&evidence, limits)
+        .map_err(|_| ReductionRoadFailure::Fixture)?;
+    assert_eq!(saved.budget().probes(), 16);
+    assert_eq!(saved.census().accepted(), 1);
+    assert_eq!(saved.census().fingerprint_moved(), 2);
+    assert_eq!(saved.census().no_failure(), 4);
+    assert_eq!(saved.census().probes(), 7);
     Ok(())
 }
 

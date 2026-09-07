@@ -259,6 +259,7 @@ pub struct ReductionEvidence {
     schema: GeneratedSupportSchemaId,
     probe_revision: RevisionBinding,
     minimization: MinimizationProfile,
+    budget: ReductionBudget,
     semantic_reducers: Vec<SemanticReducerExecution>,
     byte_reducer: ByteReducerExecution,
     outcome: ReductionOutcome,

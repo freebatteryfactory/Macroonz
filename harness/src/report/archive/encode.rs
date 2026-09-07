@@ -3,8 +3,9 @@
 use super::{ArchiveLimits, ArchiveRefusal, ArchivedCapsule, CAPSULE_ARCHIVE_TAG, read_capsule};
 use crate::identity::{ContentAddress, encode_bytes};
 use crate::report::{
-    ExecutionInput, ExecutionKey, ReplayCapsule, execution_key_preimage, fingerprint_preimage,
-    input_execution_key_preimage, replay_capsule_preimage,
+    ExecutionInput, ExecutionKey, Fingerprint, GenerationProfile, MinimizationProfile,
+    ReplayCapsule, execution_key_preimage, fingerprint_preimage, input_execution_key_preimage,
+    replay_capsule_preimage,
 };
 
 /// Retain an earned capsule as bounded historical data for caller-owned storage.
@@ -16,7 +17,14 @@ pub fn retain_capsule(
     capsule: &ReplayCapsule,
     limits: ArchiveLimits,
 ) -> Result<ArchivedCapsule, ArchiveRefusal> {
-    let total = encoded_size(capsule, limits)?;
+    let total = capsule_size(
+        capsule.key(),
+        capsule.fingerprint(),
+        capsule.input(),
+        capsule.generation(),
+        capsule.minimization(),
+        limits,
+    )?;
     let fingerprint = capsule.fingerprint();
     let fingerprint_bytes = fingerprint_preimage(
         fingerprint.trial(),
@@ -37,7 +45,7 @@ pub fn retain_capsule(
     read_capsule(&encoded, limits)
 }
 
-pub(super) fn sum(parts: &[usize]) -> Result<usize, ArchiveRefusal> {
+pub(crate) fn sum(parts: &[usize]) -> Result<usize, ArchiveRefusal> {
     parts.iter().try_fold(0usize, |total, part| {
         total
             .checked_add(*part)
@@ -45,22 +53,29 @@ pub(super) fn sum(parts: &[usize]) -> Result<usize, ArchiveRefusal> {
     })
 }
 
-pub(super) fn bounded(length: usize, limits: ArchiveLimits) -> Result<usize, ArchiveRefusal> {
+pub(crate) fn bounded(length: usize, limits: ArchiveLimits) -> Result<usize, ArchiveRefusal> {
     if length > limits.field() {
         return Err(ArchiveRefusal::FieldTooLarge);
     }
     Ok(length)
 }
 
-fn encoded_size(capsule: &ReplayCapsule, limits: ArchiveLimits) -> Result<usize, ArchiveRefusal> {
-    let execution_size = execution_size(capsule.key(), limits)?;
-    let cause = capsule.fingerprint().cause();
+pub(crate) fn capsule_size(
+    key: &ExecutionKey,
+    fingerprint: Fingerprint,
+    input: &[u8],
+    generation: GenerationProfile,
+    minimization: MinimizationProfile,
+    limits: ArchiveLimits,
+) -> Result<usize, ArchiveRefusal> {
+    let execution_size = execution_size(key, limits)?;
+    let cause = fingerprint.cause();
     let family = bounded(cause.family().len(), limits)?;
     let local = bounded(cause.local().len(), limits)?;
     let fingerprint_size = bounded(sum(&[57, family, local])?, limits)?;
-    let input = bounded(capsule.input().len(), limits)?;
-    let generation = bounded(capsule.generation().name().len(), limits)?;
-    let minimization = bounded(capsule.minimization().name().len(), limits)?;
+    let input = bounded(input.len(), limits)?;
+    let generation = bounded(generation.name().len(), limits)?;
+    let minimization = bounded(minimization.name().len(), limits)?;
     let capsule_size = bounded(sum(&[153, input, generation, minimization])?, limits)?;
     let total = sum(&[60, execution_size, fingerprint_size, capsule_size])?;
     if total > limits.envelope() {

@@ -27,6 +27,9 @@ pub use read::read_capsule;
 pub use run::read_run;
 pub use trial::read_trial;
 
+pub(crate) use identity::{claim, cursor, envelope, finish, frame, posture};
+pub(crate) use run::name;
+
 impl ArchiveLimits {
     /// The complete-envelope and per-frame ceilings.
     #[must_use]

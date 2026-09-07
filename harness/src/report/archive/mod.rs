@@ -8,8 +8,10 @@ mod size_run;
 mod types;
 
 pub use encode::retain_capsule;
+pub(crate) use encode::{bounded, capsule_size, sum};
 pub use encode_run::retain_run;
 pub use encode_trial::retain_trial;
+pub(crate) use size_run::name_size;
 pub use types::{
     AddressClaim, ArchiveLimits, ArchiveRefusal, ArchivedAttempt, ArchivedCapsule,
     ArchivedClockFailure, ArchivedConclusion, ArchivedExecution, ArchivedFinding,
@@ -21,3 +23,4 @@ pub use types::{
     ArchivedAccounting, ArchivedDisposition, ArchivedName, ArchivedRun, ArchivedTablePosture,
     RUN_ARCHIVE_TAG, RunArchiveLimits, read_run,
 };
+pub(crate) use types::{claim, cursor, envelope, finish, frame, name, posture};

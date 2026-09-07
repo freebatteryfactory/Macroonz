@@ -11,6 +11,9 @@ mod runs;
 mod replay;
 mod replay_movement;
 mod replay_process;
+mod reductions;
+mod reduction_vector;
+mod reduction_hostile;
 
 use macroonz_harness::report::archive::{
     ArchiveLimits, ArchiveRefusal, read_capsule, retain_capsule,

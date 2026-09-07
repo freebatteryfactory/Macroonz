@@ -1,6 +1,7 @@
 #![doc = include_str!("README.md")]
 
 mod reduce;
+pub mod archive;
 pub(super) mod types;
 
 pub use reduce::{capture_replay, reduce, shrink_verdict};
