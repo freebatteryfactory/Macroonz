@@ -138,6 +138,11 @@ impl ContentAddress {
 }
 
 impl<'body, Refusal: Copy> BodyReader<'body, Refusal> {
+    /// Read one schema-owned discriminant byte.
+    pub(crate) fn byte(&mut self) -> Result<u8, Refusal> {
+        self.fixed::<1>().map(|[byte]| byte)
+    }
+
     /// Open at the first body byte under the calling home's refusal vocabulary.
     pub(crate) const fn over(
         body: &'body [u8],

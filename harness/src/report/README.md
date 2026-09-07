@@ -64,6 +64,12 @@ It counts exercise rather than correctness, so a trial that ran and refused is e
 
 Neither reading observes the host or reconstructs facts absent from its input.
 
+## Historical retention
+
+The [archive](archive/README.md) home retains bounded owned capsule data through the canonical identity preimages.
+Loading produces historical claims with explicit unauthenticated custody; only independently bound fresh execution can establish a current result.
+Its original execution key and reduced witness remain separate coordinates.
+
 ## Foreign material
 
 Text arriving from a subject, decoder, or external tool is bounded and carries whether bytes were cut or cannot render exactly as text.

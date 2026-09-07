@@ -1,5 +1,7 @@
 //! Report identities, source-site separation, and foreign material are observed from outside the crate.
 
+mod archive;
+
 use macroonz_harness::descriptor::{
     CheckRef, ClaimRef, Classification, DerivedRevision, ExecutionSuite, Origin, PopulationRef,
     RevisionBinding, Role, Row, SubjectRoute, Tag,
