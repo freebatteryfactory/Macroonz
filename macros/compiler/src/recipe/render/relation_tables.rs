@@ -35,7 +35,7 @@ pub(super) fn relation_tables(
             inline_module(relation.name_token().clone(), body)?,
         ));
     }
-    GeneratedTree::assembled(tokens).map_err(ProjectionError::Tokens)
+    GeneratedTree::assembled(tokens).map_err(ProjectionError::from)
 }
 
 fn table_function(

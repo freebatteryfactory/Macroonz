@@ -41,7 +41,7 @@ pub(super) fn unit_tree(
     tokens: Result<Vec<GeneratedToken>, Overflow>,
 ) -> Result<GeneratedTree, RenderError> {
     let composed = tokens.map_err(overflown)?;
-    GeneratedTree::assembled(composed).map_err(overflown)
+    GeneratedTree::assembled(composed).map_err(RenderError::from)
 }
 
 /// One token-magnitude overflow in the render step's own words.

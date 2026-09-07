@@ -93,6 +93,9 @@ pub fn greet(input: TokenStream) -> TokenStream {
 The package ships a complete one-unit callable compiler at `examples/callable_compiler.rs` using their minimal equivalents; run `cargo run -p macroonz-compiler --example callable_compiler` from the workspace root.
 That example executes `Request::over(...).render(...)`, not `host::expand` or a proc-macro host crossing.
 
+For a kind whose output is an addressed source artifact, follow the stamp home's [runnable publication](src/stamp/README.md#runnable-publication).
+Its `published_kind` example carries the actual definition through the sealed expansion and keeps the publication actor's remaining work explicit.
+
 `Greeting::read` is the raw caller's grammar owner.
 The compiler hands it typed token trees with spans and supplies reusable grammar mechanics without assigning meaning to any clause.
 

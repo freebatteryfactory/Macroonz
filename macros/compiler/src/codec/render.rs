@@ -8,11 +8,10 @@ use super::read::decode_road;
 use super::spell::type_path;
 use super::write::encode_road;
 use super::{CodecContent, CodecPlacement, CodecProjection};
-use crate::bounded::Overflow;
 use crate::kind::SoleRole;
 use crate::plan::Plan;
 use crate::render::{Output, RenderError};
-use crate::token::{GeneratedToken, GeneratedTree, implementation};
+use crate::token::{GeneratedToken, GeneratedTree, GeneratedTreeRefusal, implementation};
 
 /// Render the one unit a codec request produces.
 ///
@@ -35,8 +34,8 @@ pub fn render_codec(
 ///
 /// # Errors
 ///
-/// Returns [`Overflow`] where a level of the surface passes the declared per-level token magnitude.
-pub fn codec_surface(content: &CodecContent) -> Result<GeneratedTree, Overflow> {
+/// Returns [`GeneratedTreeRefusal`] where a token's lexical role or a level's token magnitude refuses.
+pub fn codec_surface(content: &CodecContent) -> Result<GeneratedTree, GeneratedTreeRefusal> {
     let shape = &content.shape;
     let reads = content.direction.reads();
     let mut tokens: Vec<GeneratedToken> = Vec::new();

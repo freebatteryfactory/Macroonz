@@ -39,6 +39,45 @@ It generates one marker per member, one structural `RecipeStage` trait carrying 
 The projection assigns no runtime transition meaning to those types.
 Newtypes, markers and phantom carriers are ordinary data-item compositions rather than separate compiler ontologies.
 
+## Clause forms
+
+The tables below give the clause spellings inside the final `bake! { ... }` of an inline recipe module.
+Capitalized names, `name`, `path`, and ellipses stand for caller material; they are not additional keywords.
+Use only the families required by the recipe, in this order when present:
+
+| Family | Written form |
+| --- | --- |
+| Vocabularies | `vocabularies { Left; Right; };` |
+| Transition lowering | `transitions(State, Event) { (From, Trigger) => To with(path); };` or a row ending `with(target) { exact Rust };` |
+| Generic relations | `relations { name(Left, Right) { (LeftMember, RightMember); }; };` |
+| Transition absence | `absence(allowed);` or `absence(refused);`, required when `transitions` is present |
+| Relation postures | `postures { name { repetition(refused); }; };` |
+| Codecs | `codecs { name(Record) { direction(round_trip); refusal(DecodeError); assembly(assembled, total); members { field: Type => count(required); }; }; };` |
+| Projections | `projections { companions; relation_tables { name; }; typestate(Left); };` |
+| Evidence | `evidence { trials { ... }; mutation(Target) { ... }; benchmarks { ... }; network { ... }; concurrency { ... }; };` |
+| Support address | `support(caller_chosen_macro);` |
+
+An unlabeled relation row is `(LeftMember, RightMember);`, a path-bearing row is `(LeftMember, RightMember) with(path);`, and an exact payload row is `(LeftMember, RightMember) with { exact Rust };`.
+The [declaration contract](#the-declaration) owns row uniformity, structural meaning and transition effects.
+Each relation posture names a question followed by its answer in parentheses; `membership(left, right)` and `completeness(left, right)` take one answer per endpoint roster, while `empty`, `repetition`, `density`, `absence`, `self_relation` and `cycle` take one answer.
+The [relation vocabulary](../relation/types.rs) declares each question's answer spellings and meanings.
+
+The [projection disclosure](#projection-disclosure) section owns the preset, configured and exact-signature forms of `dispatch` and `relation_tables`.
+The other projection entries are `companions;`, `codec;`, `compile_contract;`, `declaration_conformance;`, and `typestate(Vocabulary);`.
+`typestate;` selects the sole declared vocabulary; when several vocabularies are declared, `typestate(Vocabulary);` names the intended one.
+The [evidence contract](#evidence-projections) owns the support address requirement and the limits of the generated tests.
+
+Codec directions are `encode`, `decode`, and `round_trip`.
+The assembly clause is `assembly(method, total);` or `assembly(method, checked(RefusalPath));`.
+A member is `field: TypePath => shape(cardinality);`, with shape `count`, `bytes`, `text`, `closed_choice`, or `nested`, and cardinality `required`, `optional`, or `repeated`.
+The [codec owner](../codec/README.md) owns the methods each type must supply and their byte semantics.
+
+Evidence bodies use the existing [trial](../descriptor/trial/README.md), [mutation](../descriptor/mutation/README.md), [benchmark](../descriptor/bench/README.md), [network](../descriptor/network/README.md), and [concurrency](../descriptor/concurrency/README.md) grammars.
+An explicit unavailable entry is `trials unavailable;`, `mutation unavailable;`, `benchmarks unavailable;`, `network unavailable;`, or `concurrency unavailable;` in the evidence block.
+It carries no body or target argument and does not establish execution.
+
+The [first recipe](../../../../examples/recipe.rs) is the runnable starting point for structural clauses; the [renamed facade consumer](../../../proc/tests/recipe_facade_crossing.rs) observes the composed recipe and evidence crossings.
+
 ## Capability catalog
 
 The catalog preserves complete caller-authored modules, visibility, attributes, documentation, imports, reexports, constants, aliases, data items, traits, implementations and functions as ordinary Rust.

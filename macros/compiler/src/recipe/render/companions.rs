@@ -39,7 +39,7 @@ pub(super) fn companions(recipe: &Recipe) -> Result<GeneratedTree, ProjectionErr
             tokens.extend(relation_payload_constant(relation)?);
         }
     }
-    GeneratedTree::assembled(tokens).map_err(ProjectionError::Tokens)
+    GeneratedTree::assembled(tokens).map_err(ProjectionError::from)
 }
 
 fn roster_constant<'name>(

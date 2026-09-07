@@ -59,6 +59,17 @@ impl From<Overflow> for ProjectionError {
     }
 }
 
+impl From<crate::token::GeneratedTreeRefusal> for ProjectionError {
+    fn from(refusal: crate::token::GeneratedTreeRefusal) -> Self {
+        match refusal {
+            crate::token::GeneratedTreeRefusal::Unbounded(overflow) => Self::Tokens(overflow),
+            refused @ crate::token::GeneratedTreeRefusal::Token { .. } => {
+                Self::Render(refused.into())
+            }
+        }
+    }
+}
+
 impl From<ProjectionError> for RenderError {
     fn from(refusal: ProjectionError) -> Self {
         match refusal {

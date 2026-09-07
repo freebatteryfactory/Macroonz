@@ -229,6 +229,21 @@ Runnable examples cross distinct public roads:
 The compile-contract example is intentionally the pure comparison half.
 The caller that actually runs rustc or Cargo owns that effect, structured diagnostic extraction, and the provenance of the observation it supplies.
 
+For a specific task, start at its owner:
+
+| Task | Start here |
+| --- | --- |
+| Write a recipe clause or configure a projection | [Recipe clause forms](macros/compiler/src/recipe/README.md#clause-forms) |
+| Replace a projection algorithm | [Callable projector](macros/compiler/README.md#raw-callable-road) |
+| Define a kind, role or complete disposition set | [Kind](macros/compiler/src/kind/README.md) |
+| Publish a shared macro definition and its adoption sites | [Runnable publication](macros/compiler/src/stamp/README.md#runnable-publication) |
+| Compose generated tokens or preserve exact authored Rust | [Token generation](macros/compiler/src/token/generation/README.md) |
+| Generate canonical encode and decode methods | [Codec](macros/compiler/src/codec/README.md) |
+| Declare trial, benchmark or mutation material | [Descriptor adapter](macros/compiler/src/descriptor/README.md) |
+| Invoke deferred test or benchmark cargo | [Support carrier](macros/compiler/src/support/README.md) |
+| Add an independent judgment or replay a retained witness | [Harness](harness/README.md) |
+| Interpret a refusal and its location | [Diagnostic](macros/compiler/src/diagnostic/README.md) |
+
 The shipped [Macroonz agent skill](skills/macroonz/SKILL.md) is a one-page routing surface for agents authoring recipes from the packaged facade.
 
 Contribution procedure lives in [`CONTRIBUTING.md`](CONTRIBUTING.md).

@@ -3,6 +3,9 @@
 #[path = "../support/mod.rs"]
 mod support;
 
+#[path = "../../examples/published_kind.rs"]
+mod published_kind_example;
+
 use crate::support::observe_rustc;
 use macroonz_compiler::stamp::{
     DECLARED_REACH, Fragment, Landing, OPAQUE_REACH_REFUSAL, Part, Pattern, PublicationGround,
@@ -190,6 +193,19 @@ const ALL_REACHES: [Visibility; 5] = [
     Visibility::Public,
 ];
 
+/// The shipped publication example's definition and distinct landings compile and execute without Macroonz in the consumer.
+#[test]
+fn the_published_kind_example_produces_standalone_adopted_source() -> Result<(), String> {
+    published_kind_example::main()?;
+    let mut source = published_kind_example::generated_source([7, 9])?;
+    source.push_str("\nfn main() { assert_eq!(first::VALUE, 7); assert_eq!(second::VALUE, 9); }\n");
+    let compiled = observe_rustc("published-kind-example", &source, &[])?;
+    if !compiled.status.success() {
+        return Err(String::from_utf8_lossy(&compiled.stderr).into_owned());
+    }
+    Ok(())
+}
+
 /// Claim: every closed site reach has exactly one transported reach and both source spellings agree with that table.
 ///
 /// Population: all five `Visibility` rows and all four `TransportedReach` rows.
@@ -328,7 +344,7 @@ fn generated_published_source_compiles_and_executes_in_a_scratch_crate() -> Resu
 /// Claim: an opaque forwarded visibility refuses at the generated definition's public front door rather than being copied or widened.
 ///
 /// Hostile control: an outer macro captures `pub` as a `vis` fragment before forwarding it, so its token spelling looks lawful while its opaque fragment provenance makes transport impossible.
-/// Evidence ceiling: this fixes the generated refusal sentence and compile-time posture for one opaque public reach under Rust 1.98; proc-macro placement belongs to the proc host rather than this source artifact.
+/// Evidence ceiling: this fixes the sole generated refusal and compile-time posture for one opaque public reach under Rust 1.98; proc-macro placement belongs to the proc host rather than this source artifact.
 #[test]
 fn an_opaque_forwarded_visibility_refuses_instead_of_guessing_a_scope() -> Result<(), String> {
     let artifact = published(&ALL_REACHES)?;
@@ -346,10 +362,18 @@ fn main() {{}}
 ",
         artifact.definition().inspected()
     );
-    let compiled = observe_rustc("published-stamp", &source, &[])?;
+    let compiled = observe_rustc("published-stamp", &source, &["--error-format=short"])?;
     assert!(!compiled.status.success(), "the opaque visibility compiled");
     let diagnostic = String::from_utf8_lossy(&compiled.stderr);
-    assert!(diagnostic.contains(OPAQUE_REACH_REFUSAL), "{diagnostic}");
+    let findings = diagnostic
+        .lines()
+        .filter(|line| !line.starts_with("error: aborting due to "))
+        .map(|line| {
+            line.split_once(": error: ")
+                .map_or(line, |(_, message)| message)
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(findings, [OPAQUE_REACH_REFUSAL], "{diagnostic}");
     Ok(())
 }
 

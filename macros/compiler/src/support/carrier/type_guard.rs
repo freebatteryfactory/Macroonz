@@ -43,7 +43,7 @@ impl SupportShell {
     /// Renders the inert shell from one plan and verified assembly.
     ///
     /// # Errors
-    /// Returns a declaration mismatch or generated-tree overflow.
+    /// Returns a declaration mismatch, generated-tree overflow or lexical token refusal.
     pub fn assembled<C: Kind>(
         carrier: &Plan<C>,
         assembly: &SupportAssembly,

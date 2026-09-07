@@ -5,7 +5,7 @@
 
 use super::{
     FragmentGenerationIssue, FragmentGenerationRefusal, GeneratedDelimiter, GeneratedLiteral,
-    GeneratedToken, GeneratedTree,
+    GeneratedToken, GeneratedTree, GeneratedTreeRefusal,
 };
 use crate::token::{CapturedDelimiter, CapturedFragment, CapturedPayload, CapturedTokenTree};
 
@@ -17,7 +17,7 @@ impl CapturedFragment<'_> {
     ///
     /// # Errors
     ///
-    /// Returns the exact captured span where an admitted generated literal or generated-token magnitude refuses.
+    /// Returns the exact captured span where a literal, lexical role or generated-token magnitude refuses.
     pub fn generated(self) -> Result<GeneratedTree, FragmentGenerationRefusal> {
         preserved_tree(self.tokens())
     }
@@ -32,9 +32,15 @@ pub(crate) fn preserved_tree(
         .iter()
         .map(|token| preserved_token(token, &mut source_spans))
         .collect::<Result<Vec<_>, _>>()?;
-    GeneratedTree::preserved(generated, source_spans).map_err(|_| FragmentGenerationRefusal {
-        issue: FragmentGenerationIssue::Unbounded,
-        at: tokens.first().map(CapturedTokenTree::span),
+    GeneratedTree::preserved(generated, source_spans.clone()).map_err(|refusal| match refusal {
+        GeneratedTreeRefusal::Unbounded(_) => FragmentGenerationRefusal {
+            issue: FragmentGenerationIssue::Unbounded,
+            at: tokens.first().map(CapturedTokenTree::span),
+        },
+        GeneratedTreeRefusal::Token { position, issue } => FragmentGenerationRefusal {
+            issue: FragmentGenerationIssue::Token(issue),
+            at: source_spans.get(position).copied().flatten(),
+        },
     })
 }
 

@@ -1,9 +1,10 @@
-//! The support home's two refusal rosters observed at the public boundary: every support-declaration refusal keeps its slot, byte, and diagnostic posture, and both shell refusals keep their typed causality and complete canonical payloads.
+//! Support-declaration and shell refusals keep their typed causes, canonical payloads and diagnostic posture at the public boundary.
 
 use macroonz_compiler::request;
 use macroonz_compiler::support::{
     ASSEMBLY_FACT, DeclarationError as SupportDeclarationError, ShellError,
 };
+use macroonz_compiler::token::{GeneratedTokenIssue, GeneratedTreeRefusal};
 use macroonz_compiler::{
     LineBody, Observed, Overflow, Phase, RefusalClass, Refused, SHELL_FAMILY,
     SUPPORT_DECLARATION_FAMILY, TextCapture, encode_bytes,
@@ -70,11 +71,11 @@ fn every_support_declaration_refusal_keeps_its_public_contract() {
     );
 }
 
-/// Claim: both shell-refusal rows keep their typed causality and complete canonical payloads at the public boundary.
+/// Claim: declaration mismatch and magnitude refusal keep distinct typed causes and canonical payloads.
 /// Subject: `ShellError` construction, encoding, display, and `Refused` projection.
 /// Population: the declaration-identity mismatch and generated-tree overflow rows.
 /// Hostile control: two independently captured declarations supply distinct identity payloads, while the overflow row carries distinct bound and observed counts.
-/// Denominator: the complete public `ShellError` roster, including its `Overflow` conversion.
+/// Denominator: declaration mismatch and both routes from a token magnitude refusal.
 /// Evidence ceiling: this observes the refusal values directly and does not manufacture an invalid `SupportAssembly` through private seats.
 #[test]
 fn every_shell_refusal_keeps_its_public_contract() -> Result<(), ()> {
@@ -114,6 +115,10 @@ fn every_shell_refusal_keeps_its_public_contract() -> Result<(), ()> {
     };
     let unbounded = ShellError::from(overflow);
     assert_eq!(
+        ShellError::from(GeneratedTreeRefusal::Unbounded(overflow)),
+        unbounded
+    );
+    assert_eq!(
         unbounded,
         ShellError::TreeUnbounded {
             bound: 16,
@@ -144,4 +149,37 @@ fn every_shell_refusal_keeps_its_public_contract() -> Result<(), ()> {
     assert_eq!(<ShellError as Refused>::PHASE, Phase::Assembly);
     assert_eq!(<ShellError as Refused>::FAMILY, SHELL_FAMILY);
     Ok(())
+}
+
+/// Lexical shell refusals retain the source position and role without claiming a magnitude failure or a repair.
+#[test]
+fn lexical_shell_refusals_keep_position_and_role_in_their_public_bytes() {
+    for (issue, expected_slot) in [
+        (GeneratedTokenIssue::Word, 0),
+        (GeneratedTokenIssue::RawIdentifier, 1),
+        (GeneratedTokenIssue::Punctuation, 2),
+    ] {
+        for position in [0_u8, 7] {
+            let refusal = ShellError::from(GeneratedTreeRefusal::Token {
+                position: usize::from(position),
+                issue,
+            });
+            assert_eq!(
+                refusal,
+                ShellError::TokenInvalid {
+                    position: usize::from(position),
+                    issue
+                }
+            );
+            let mut expected = vec![2];
+            expected.extend_from_slice(&u64::from(position).to_be_bytes());
+            expected.push(expected_slot);
+            assert_eq!(refusal.canonical_bytes(), expected);
+            assert_eq!(refusal.class(), RefusalClass::CarrierNotAssembled);
+            assert_eq!(refusal.observed(), Observed::ContractDisagreement);
+            assert_eq!(refusal.body(), LineBody::SingleCause);
+            assert!(refusal.related().is_empty());
+            assert!(refusal.repairs().is_empty());
+        }
+    }
 }

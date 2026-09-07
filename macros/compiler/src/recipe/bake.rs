@@ -258,15 +258,8 @@ fn final_emission(
     support: Option<&crate::expansion::Expansion<SupportCarrier>>,
     door: &Door,
 ) -> Result<crate::expansion::Expansion<RecipeShell>, Diagnostic> {
-    let tree = final_tree(recipe, projection, support).map_err(|overflow| {
-        whole(
-            &crate::render::RenderError::TokensUnbounded {
-                bound: overflow.capacity,
-                observed: overflow.offered,
-            },
-            door,
-        )
-    })?;
+    let tree = final_tree(recipe, projection, support)
+        .map_err(|refusal| whole(&crate::render::RenderError::from(refusal), door))?;
     let content = RecipeShellContent::composed(
         projection.identity(),
         support.map(crate::expansion::Expansion::identity),
@@ -280,7 +273,7 @@ fn final_tree(
     recipe: &Recipe,
     projection: &crate::expansion::Expansion<RecipeProjection>,
     support: Option<&crate::expansion::Expansion<SupportCarrier>>,
-) -> Result<GeneratedTree, crate::bounded::Overflow> {
+) -> Result<GeneratedTree, crate::token::GeneratedTreeRefusal> {
     let mut root = GeneratedTree::assembled(Vec::new())?;
     if let Some(support) = support
         && let Some(tree) = support.emit().tokens()

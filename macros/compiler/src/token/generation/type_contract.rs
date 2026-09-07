@@ -2,8 +2,58 @@
 
 use super::{
     FragmentGenerationIssue, FragmentGenerationRefusal, GeneratedLiteralRefusal,
-    GeneratedRowRefusal, GeneratedTree,
+    GeneratedRowRefusal, GeneratedTokenIssue, GeneratedTree, GeneratedTreeRefusal,
 };
+
+impl GeneratedTokenIssue {
+    /// The stable lexical-role slot used by owning refusal encodings.
+    #[must_use]
+    pub const fn slot(self) -> u8 {
+        match self {
+            Self::Word => 0,
+            Self::RawIdentifier => 1,
+            Self::Punctuation => 2,
+        }
+    }
+}
+
+impl core::fmt::Display for GeneratedTokenIssue {
+    fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        into.write_str(match self {
+            Self::Word => "the spelling is not one Rust word token",
+            Self::RawIdentifier => "the name is not one permitted Rust raw identifier",
+            Self::Punctuation => "the character is not one Rust punctuation token",
+        })
+    }
+}
+
+impl core::error::Error for GeneratedTokenIssue {}
+
+impl core::fmt::Display for GeneratedTreeRefusal {
+    fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Unbounded(overflow) => write!(into, "{overflow}"),
+            Self::Token { position, issue } => {
+                write!(into, "generated token {position} refused: {issue}")
+            }
+        }
+    }
+}
+
+impl core::error::Error for GeneratedTreeRefusal {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+        match self {
+            Self::Unbounded(overflow) => Some(overflow),
+            Self::Token { issue, .. } => Some(issue),
+        }
+    }
+}
+
+impl From<crate::bounded::Overflow> for GeneratedTreeRefusal {
+    fn from(overflow: crate::bounded::Overflow) -> Self {
+        Self::Unbounded(overflow)
+    }
+}
 
 impl core::fmt::Debug for GeneratedTree {
     fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -59,6 +109,7 @@ impl core::fmt::Display for FragmentGenerationIssue {
     fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Literal(issue) => write!(into, "{issue}"),
+            Self::Token(issue) => write!(into, "{issue}"),
             Self::Unbounded => {
                 into.write_str("the preserved fragment exceeds the generated-token magnitude")
             }

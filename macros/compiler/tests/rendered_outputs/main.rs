@@ -7,6 +7,7 @@ use macroonz_compiler::render::{
     RENDERED_BYTE_LIMIT as MODULE_RENDERED_BYTE_LIMIT,
     RenderedProjection as ModuleRenderedProjection, RenderedUnit as ModuleRenderedUnit,
 };
+use macroonz_compiler::token::GeneratedTokenIssue;
 use macroonz_compiler::{
     CrateBinding, Destination, Diagnostic, Expansion, GENERATED_TOKEN_LIMIT, GeneratedToken,
     GeneratedTree, Kind, LineBody, MEMBERSHIP_LIMIT, NoQuestions, Observed, Phase, Producer,
@@ -178,9 +179,9 @@ fn a_projection_preserves_rendering_order_and_reads_deliveries_in_roster_order()
     let head = membership.under(Seat::Head).ok_or(())?;
     let tail = membership.under(Seat::Tail).ok_or(())?;
     let projection = RenderedProjection::materialized(vec![
-        RootRenderedUnit::materialized(tail, spelled("tail-first")?).map_err(|_| ())?,
-        RootRenderedUnit::materialized(head, spelled("head-first")?).map_err(|_| ())?,
-        RootRenderedUnit::materialized(head, spelled("head-second")?).map_err(|_| ())?,
+        RootRenderedUnit::materialized(tail, spelled("tail_first")?).map_err(|_| ())?,
+        RootRenderedUnit::materialized(head, spelled("head_first")?).map_err(|_| ())?,
+        RootRenderedUnit::materialized(head, spelled("head_second")?).map_err(|_| ())?,
     ])
     .map_err(|_| ())?;
 
@@ -189,20 +190,20 @@ fn a_projection_preserves_rendering_order_and_reads_deliveries_in_roster_order()
         .iter()
         .map(|unit| unit.tree().inspected())
         .collect();
-    assert_eq!(rendered, ["tail-first ", "head-first ", "head-second "]);
+    assert_eq!(rendered, ["tail_first ", "head_first ", "head_second "]);
 
     let under_head: Vec<String> = projection
         .units_under(Seat::Head)
         .map(|unit| unit.tree().inspected())
         .collect();
-    assert_eq!(under_head, ["head-first ", "head-second "]);
+    assert_eq!(under_head, ["head_first ", "head_second "]);
     assert_eq!(projection.count_under(Seat::Head), 2);
 
     let delivered: Vec<String> = projection
         .units_to(Destination::DeclarationSite)
         .map(|unit| unit.tree().inspected())
         .collect();
-    assert_eq!(delivered, ["head-first ", "head-second ", "tail-first "]);
+    assert_eq!(delivered, ["head_first ", "head_second ", "tail_first "]);
     assert_eq!(projection.count_to(Destination::DeclarationSite), 3);
     Ok(())
 }
@@ -254,7 +255,7 @@ fn every_render_magnitude_refuses_at_its_own_boundary() -> Result<(), ()> {
 
     let mut units = Vec::new();
     for at in 0..=MEMBERSHIP_LIMIT {
-        let spelling = format!("unit-{at}");
+        let spelling = format!("unit_{at}");
         units.push(RootRenderedUnit::materialized(planned, spelled(&spelling)?).map_err(|_| ())?);
     }
     let units_refusal = RenderedProjection::materialized(units).err().ok_or(())?;
@@ -287,7 +288,7 @@ fn every_render_magnitude_refuses_at_its_own_boundary() -> Result<(), ()> {
     Ok(())
 }
 
-/// The five refusal rows have stable discriminants and reproducible canonical fields.
+/// The rendering refusal rows have stable discriminants and reproducible canonical fields.
 #[test]
 fn rendering_refusal_bytes_are_complete_and_row_separated() {
     let rows = [
@@ -306,6 +307,10 @@ fn rendering_refusal_bytes_are_complete_and_row_separated() {
             bound: 17,
             observed: 19,
         },
+        RenderError::TokenInvalid {
+            position: 23,
+            issue: GeneratedTokenIssue::Word,
+        },
     ];
     let expected = [
         encoded_refusal(1, &[]),
@@ -313,6 +318,7 @@ fn rendering_refusal_bytes_are_complete_and_row_separated() {
         encoded_refusal(3, &seat_and_counts("head", 7, 9)),
         encoded_refusal(4, &counts(11, 13)),
         encoded_refusal(5, &counts(17, 19)),
+        encoded_refusal(6, &[0, 0, 0, 0, 0, 0, 0, 23, 0]),
     ];
 
     for (position, (row, bytes)) in rows.iter().zip(expected.iter()).enumerate() {
@@ -326,5 +332,52 @@ fn rendering_refusal_bytes_are_complete_and_row_separated() {
         for right in rows.iter().skip(left_at + 1) {
             assert_ne!(left.canonical_bytes(), right.canonical_bytes());
         }
+    }
+}
+
+/// A malformed word returns the rendering diagnostic before any sealed expansion can exist.
+#[test]
+fn malformed_output_has_no_sealed_callable_expansion() -> Result<(), ()> {
+    for spelling in ["#", "", "1x", "a b"] {
+        let read = TextCapture::read(DECLARATION).map_err(|_| ())?;
+        let refused = Request::<RenderKind>::over(read.input().clone(), "render", &DOOR)
+            .render(|_, out| {
+                out.unit(
+                    Seat::Head,
+                    GeneratedTree::assembled(vec![GeneratedToken::Word(spelling.to_owned())])?,
+                )
+            })
+            .err()
+            .ok_or(())?;
+        assert_eq!(refused.phase(), Phase::Rendering);
+        assert_eq!(refused.observed(), Observed::ContractDisagreement);
+        assert!(
+            refused
+                .summary()
+                .contains("generated token 0 refused: the spelling is not one Rust word token")
+        );
+        assert!(refused.related().carried().is_empty());
+    }
+    assert!(lawful().is_ok());
+    Ok(())
+}
+
+/// Token-role and position disagreements remain separate in the rendering refusal's machine encoding.
+#[test]
+fn lexical_refusal_encodings_retain_their_role_and_position() {
+    for (issue, slot) in [
+        (GeneratedTokenIssue::Word, 0u8),
+        (GeneratedTokenIssue::RawIdentifier, 1),
+        (GeneratedTokenIssue::Punctuation, 2),
+    ] {
+        let refusal = RenderError::TokenInvalid { position: 2, issue };
+        assert_eq!(
+            refusal.canonical_bytes(),
+            encoded_refusal(6, &[0, 0, 0, 0, 0, 0, 0, 2, slot])
+        );
+        assert_ne!(
+            refusal.canonical_bytes(),
+            RenderError::TokenInvalid { position: 3, issue }.canonical_bytes()
+        );
     }
 }

@@ -2,7 +2,8 @@
 
 use super::{
     GeneratedDelimiter, GeneratedLiteral, GeneratedLiteralForm, GeneratedLiteralRefusal,
-    GeneratedLiteralValue, GeneratedRowRefusal, GeneratedSpacing, GeneratedToken, GeneratedTree,
+    GeneratedLiteralValue, GeneratedRowRefusal, GeneratedSpacing, GeneratedToken,
+    GeneratedTokenIssue, GeneratedTree, GeneratedTreeRefusal,
 };
 use crate::bounded::{Bounded, NonEmptyError, Overflow};
 use crate::token::{CapturedAtom, SpanHandle, capture_literal};
@@ -190,14 +191,13 @@ impl GeneratedTree {
     ///
     /// # Errors
     ///
-    /// Returns [`Overflow`] where the tree carries more top-level tokens than the declared magnitude admits.
-    pub fn assembled(tokens: Vec<GeneratedToken>) -> Result<Self, Overflow> {
-        Bounded::new(tokens).map(|tokens| {
-            let source_spans = absent_source_spans(tokens.as_slice());
-            Self {
-                tokens,
-                source_spans,
-            }
+    /// Returns [`GeneratedTreeRefusal`] where the top-level magnitude or any nested token's lexical role refuses.
+    pub fn assembled(tokens: Vec<GeneratedToken>) -> Result<Self, GeneratedTreeRefusal> {
+        let tokens = Bounded::new(tokens)?;
+        let source_spans = admitted_source_spans(tokens.as_slice())?;
+        Ok(Self {
+            tokens,
+            source_spans,
         })
     }
 
@@ -205,9 +205,10 @@ impl GeneratedTree {
     pub(crate) fn preserved(
         tokens: Vec<GeneratedToken>,
         source_spans: Vec<Option<SpanHandle>>,
-    ) -> Result<Self, Overflow> {
+    ) -> Result<Self, GeneratedTreeRefusal> {
         let tokens = Bounded::new(tokens)?;
-        debug_assert_eq!(source_spans.len(), recursive_token_count(tokens.as_slice()));
+        let admitted = admitted_source_spans(tokens.as_slice())?;
+        debug_assert_eq!(source_spans.len(), admitted.len());
         Ok(Self {
             tokens,
             source_spans,
@@ -291,38 +292,49 @@ impl GeneratedTree {
     }
 }
 
-/// One absent source entry for every token in pre-order.
-fn absent_source_spans(tokens: &[GeneratedToken]) -> Vec<Option<SpanHandle>> {
+/// Admit every offered lexical role while deriving its pre-order source roster.
+fn admitted_source_spans(
+    tokens: &[GeneratedToken],
+) -> Result<Vec<Option<SpanHandle>>, GeneratedTreeRefusal> {
     let mut spans = Vec::new();
-    for token in tokens {
+    let mut pending = tokens.iter().rev().collect::<Vec<_>>();
+    while let Some(token) = pending.pop() {
+        let issue = match token {
+            GeneratedToken::Word(word) if !ra_ap_rustc_lexer::is_ident(word) => {
+                Some(GeneratedTokenIssue::Word)
+            }
+            GeneratedToken::RawIdentifier(name)
+                if !ra_ap_rustc_lexer::is_ident(name)
+                    || crate::token::bank::raw_identifier_is_reserved(name) =>
+            {
+                Some(GeneratedTokenIssue::RawIdentifier)
+            }
+            GeneratedToken::Punct { mark, .. } if !"=<>!~+-*/%^&|@.,;:#$?'".contains(*mark) => {
+                Some(GeneratedTokenIssue::Punctuation)
+            }
+            GeneratedToken::Word(_)
+            | GeneratedToken::RawIdentifier(_)
+            | GeneratedToken::Punct { .. }
+            | GeneratedToken::Text(_)
+            | GeneratedToken::Group { .. }
+            | GeneratedToken::ByteText(_)
+            | GeneratedToken::Number(_)
+            | GeneratedToken::Literal(_) => None,
+        };
+        if let Some(issue) = issue {
+            return Err(GeneratedTreeRefusal::Token {
+                position: spans.len(),
+                issue,
+            });
+        }
         spans.push(None);
         if let GeneratedToken::Group {
             tokens: nested_tokens,
             ..
         } = token
         {
-            spans.extend(absent_source_spans(nested_tokens.as_slice()));
+            pending.extend(nested_tokens.as_slice().iter().rev());
         }
     }
-    spans
-}
-
-/// The recursive token denominator one source roster must match.
-fn recursive_token_count(tokens: &[GeneratedToken]) -> usize {
-    tokens.iter().fold(0usize, |count, token| {
-        let nested = match token {
-            GeneratedToken::Group {
-                tokens: nested_tokens,
-                ..
-            } => recursive_token_count(nested_tokens.as_slice()),
-            GeneratedToken::Word(_)
-            | GeneratedToken::Punct { .. }
-            | GeneratedToken::Text(_)
-            | GeneratedToken::ByteText(_)
-            | GeneratedToken::Number(_)
-            | GeneratedToken::RawIdentifier(_)
-            | GeneratedToken::Literal(_) => 0,
-        };
-        count.saturating_add(1).saturating_add(nested)
-    })
+    Ok(spans)
 }

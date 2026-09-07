@@ -38,5 +38,5 @@ pub(crate) use types::GeneratedLiteralForm;
 pub use types::{
     FragmentGenerationIssue, FragmentGenerationRefusal, GENERATED_TOKEN_LIMIT, GeneratedDelimiter,
     GeneratedLiteral, GeneratedLiteralRefusal, GeneratedRowRefusal, GeneratedSpacing,
-    GeneratedToken, GeneratedTree,
+    GeneratedToken, GeneratedTokenIssue, GeneratedTree, GeneratedTreeRefusal,
 };

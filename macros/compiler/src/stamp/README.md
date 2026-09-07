@@ -60,3 +60,11 @@ A caller hands it what its plan decided, and the two refusals that reading raise
 
 This home owns the authored pattern, the closed seat and site namespaces, the one-level reach transport, and the whole rendered publication value.
 Planning owns whether a requested seat exists and lands as an artifact; a publication actor owns staged bytes, filesystem placement, independent comparison with the record, and version-control custody.
+
+## Runnable publication
+
+The [published-kind example](../../examples/published_kind.rs) declares a caller-owned kind and address, renders a stamp inside its request, reads the definition from the sealed expansion's publication partition, and carries each named site's invocation alongside it.
+Run `cargo run -p macroonz-compiler --example published_kind` from the workspace root to exercise that construction and its record comparisons.
+Successful execution is silent and leaves the source material with the example's caller; it performs no installation.
+The [published-stamp lane](../../tests/published_stamps/main.rs) compiles that same example's generated definition and landings as standalone Rust and executes independent assertions for the distinct site values.
+Run `cargo test -p macroonz-compiler --test published_stamps` to exercise that consumer crossing and the reach controls.

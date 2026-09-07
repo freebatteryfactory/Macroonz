@@ -21,6 +21,10 @@ impl ShellError {
                 encode_length(*bound, into);
                 encode_length(*observed, into);
             }
+            Self::TokenInvalid { position, issue } => {
+                encode_length(*position, into);
+                into.push(issue.slot());
+            }
         }
     }
 }

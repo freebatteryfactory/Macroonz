@@ -55,7 +55,7 @@ pub(super) fn typestate(recipe: &Recipe) -> Result<GeneratedTree, ProjectionErro
         public(),
         inline_module(GeneratedToken::word("typestate"), items)?,
     );
-    GeneratedTree::assembled(projected).map_err(ProjectionError::Tokens)
+    GeneratedTree::assembled(projected).map_err(ProjectionError::from)
 }
 
 fn stage_trait() -> Result<Vec<GeneratedToken>, ProjectionError> {

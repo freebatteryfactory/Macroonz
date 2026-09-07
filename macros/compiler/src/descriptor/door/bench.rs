@@ -65,7 +65,7 @@ fn walked(
 
     let address = support_address(read.support().spelling(), door)?;
     let matched = GeneratedTree::assembled(bench::matched_clauses(&read))
-        .map_err(|overflow| whole(&super::walk::overflown(overflow), door))?;
+        .map_err(|refusal| whole(&crate::render::RenderError::from(refusal), door))?;
     let rows = u64::try_from(read.row_count()).unwrap_or(u64::MAX);
     let answer = BenchAnswer::MeasuringBenchmarks {
         table: read.table().clone(),

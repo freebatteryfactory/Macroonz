@@ -47,7 +47,7 @@ pub(super) fn dispatch(
     );
     let mut tokens = refusal;
     tokens.extend(dispatch_function(states, events, relation, effective)?);
-    GeneratedTree::assembled(tokens).map_err(ProjectionError::Tokens)
+    GeneratedTree::assembled(tokens).map_err(ProjectionError::from)
 }
 
 fn dispatch_function(
