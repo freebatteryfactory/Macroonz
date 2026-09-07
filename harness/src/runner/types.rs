@@ -3,14 +3,14 @@
 //! Constructors and readers are this file's own child, `type_guard.rs`, so an invocation is born in one place and nothing reaches in afterwards.
 //!
 //! The descriptor home declares its table and its attachment over two type parameters, because it sits below the record vocabulary and may not import a record type.
-//! This home sees both, so the parameters are pinned here once: the facts are [`Invocation`] and the conclusion is [`TrialConclusion`].
+//! This home joins [`Invocation`] and [`TrialConclusion`], retaining the invocation's input type.
 
 use crate::clock::HarnessClock;
 use crate::descriptor::{
     AuthoredTable, Binding, ClaimRef, ExecutionSuite, SubjectRoute, TableView, TrialTableRefusal,
 };
 use crate::report::{
-    EmptySelectionReason, FindingCause, InfrastructureFailure, InvocationProfile,
+    EmptySelectionReason, ExecutionInput, FindingCause, InfrastructureFailure, InvocationProfile,
     SelectionExpectation, SkipReason, TargetBinding, TimeBudget, TrialConclusion, TrialFinding,
     TrialId, TrialSite,
 };
@@ -23,13 +23,16 @@ mod guard;
 ///
 /// The engine reads this value and its other parameters and nothing else: no argument vector, no environment, no clock of its own, no output stream.
 /// The site states where the invocation was written, not where a row was authored.
-/// The budgets are the check's to honour, so a bound that was exceeded is a conclusion the check states rather than one the engine infers from a measurement.
+/// Input admission and budget handling belong to the [runner contract](super#typed-input).
 #[derive(Debug, Clone)]
-pub struct Invocation {
+pub struct Invocation<Input = ()> {
     profile: InvocationProfile,
     target: TargetBinding,
     site: TrialSite,
     clock: HarnessClock,
+    input: Input,
+    input_standing: Option<ExecutionInput>,
+    input_bytes: usize,
 }
 
 /// What one invocation chooses from the complete world.
@@ -97,16 +100,16 @@ pub enum ReportRecordingRefusal {
 /// The callable one executable attachment carries, at the types this engine runs.
 ///
 /// A capture-free function pointer, which excludes captured state and establishes neither semantic purity nor termination.
-pub type TrialCall = fn(&Invocation) -> TrialConclusion;
+pub type TrialCall<Input = ()> = fn(&Invocation<Input>) -> TrialConclusion;
 
 /// One row married to its callable, at the types this engine runs.
-pub type TrialBinding = Binding<Invocation, TrialConclusion>;
+pub type TrialBinding<Input = ()> = Binding<Invocation<Input>, TrialConclusion>;
 
 /// The complete authored world, at the types this engine runs.
-pub type TrialTable = AuthoredTable<Invocation, TrialConclusion>;
+pub type TrialTable<Input = ()> = AuthoredTable<Invocation<Input>, TrialConclusion>;
 
 /// The sealed read surface an authored table and a staged view both present, at the types this engine runs.
-pub type TrialTableView<'view> = TableView<'view, Invocation, TrialConclusion>;
+pub type TrialTableView<'view, Input = ()> = TableView<'view, Invocation<Input>, TrialConclusion>;
 
 /// The typed cause every caught subject panic is cited under.
 ///

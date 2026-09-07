@@ -6,6 +6,7 @@
 use super::assemble::{run_report, trial_report};
 use super::catch::caught_conclusion;
 use super::types::{Invocation, SelectionPlan, TrialBinding, TrialTableView};
+use crate::clock::MeasurementReading;
 use crate::report::{RunAttempt, RunReport, TrialReport};
 use core::convert::Infallible;
 
@@ -13,12 +14,24 @@ use core::convert::Infallible;
 ///
 /// The attachment's callable is a capture-free function pointer, and this call is the trial boundary around it.
 /// A subject panic is caught here and recorded as the finding it is, so a panicking subject leaves a verdict rather than a dead process.
-/// Every other arm of [`RunAttempt`] belongs to a seat that can establish it — a host that skipped the trial, a watchdog that stopped it, a harness that failed around it — and this call states none of them because it establishes none of them.
+/// An admitted specimen exceeding its case or byte budget is skipped before calling the subject or clock.
+/// Timeouts and infrastructure failures require a host that can establish them.
 ///
 /// The invocation's own [`HarnessClock`](crate::clock::HarnessClock) opens before the subject and finishes afterwards.
 /// Its typed reading is recorded and never concluded from: an unavailable or failed wall measurement cannot change what the check concluded, and an observed zero stays distinct from both.
 #[must_use]
-pub fn run_one(binding: &TrialBinding, invocation: &Invocation) -> TrialReport {
+pub fn run_one<Input>(
+    binding: &TrialBinding<Input>,
+    invocation: &Invocation<Input>,
+) -> TrialReport {
+    if let Some(reason) = invocation.input_budget_refusal() {
+        return trial_report(
+            binding,
+            invocation,
+            RunAttempt::SkippedWithReason(reason),
+            MeasurementReading::Unavailable,
+        );
+    }
     let measurement = invocation.clock().begin();
     let conclusion = caught_conclusion(binding.attachment(), invocation);
     trial_report(
@@ -36,10 +49,10 @@ pub fn run_one(binding: &TrialBinding, invocation: &Invocation) -> TrialReport {
 ///
 /// The posture the report records is the view's own, the selection outcome is the plan's expectation read against what the walk selected, and the profile and target binding are the invocation's — all recorded rather than restated.
 #[must_use]
-pub fn run_all(
-    view: &TrialTableView<'_>,
+pub fn run_all<Input>(
+    view: &TrialTableView<'_, Input>,
     selection: &SelectionPlan,
-    invocation: &Invocation,
+    invocation: &Invocation<Input>,
 ) -> RunReport {
     match run_report(view, selection, invocation, |binding| {
         Ok::<TrialReport, Infallible>(run_one(binding, invocation))

@@ -14,7 +14,7 @@ pub const INPUT_CASE_TAG: DomainTag =
     DomainTag::declared("trial-input", IdentityProfileVersion::declared(1));
 
 /// The caller's named input convention, version and schema commitment.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct InputProfile {
     name: NamespacedName,
     version: u32,

@@ -1,13 +1,14 @@
 //! Every public type of the record vocabulary.
 //!
 //! Declarations only.
-//! The roads that reach a private field are in `type_guard.rs` and its three subject files, the canonical preimages are in `encode.rs`, and the readings are their own pure-function files.
+//! The roads that reach a private field are in `type_guard.rs` and its subject files, the canonical preimages are in `encode.rs`, and the readings are their own pure-function files.
 
 use crate::clock::MeasurementReading;
 use crate::descriptor::{
-    AuthoredTableName, ClaimRef, GeneratedSupportSchemaId, TablePosture, TrialKey,
+    AuthoredTableName, ClaimRef, GeneratedSupportSchemaId, RevisionPosture, TablePosture, TrialKey,
 };
-use crate::identity::{DomainTag, IdentityProfileVersion};
+use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use crate::input::{InputCaseId, InputProfile};
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -131,10 +132,10 @@ pub struct ByteBudget(u64);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct TimeBudget(u64);
 
-/// The facts of one invocation that can change what a trial concludes.
+/// The conclusion-relevant case, byte and time budgets of one invocation.
 ///
 /// A result reached under a smaller budget is not evidence for a larger one, which is why these ride [`ExecutionKey`].
-/// The set is closed: a fact that can move a conclusion is a field here, and adding one is a change to the law rather than a new argument.
+/// Exact specimen and decoder standing belongs to [`ExecutionInput`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct InvocationProfile {
     cases: CaseBudget,
@@ -142,9 +143,22 @@ pub struct InvocationProfile {
     time: TimeBudget,
 }
 
-/// The domain tag every execution key is derived under.
+/// The domain tag for unit-input execution keys.
 pub const EXECUTION_KEY_TAG: DomainTag =
     DomainTag::declared("execution-key", IdentityProfileVersion::declared(1));
+
+/// The domain tag for execution keys carrying an admitted specimen.
+pub const INPUT_EXECUTION_KEY_TAG: DomainTag =
+    DomainTag::declared("input-execution-key", IdentityProfileVersion::declared(1));
+
+/// The specimen and decoder standing retained from one admitted typed input.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ExecutionInput {
+    profile: InputProfile,
+    case: InputCaseId,
+    decoder: ContentAddress,
+    posture: RevisionPosture,
+}
 
 /// What one execution of one trial was keyed by.
 ///
@@ -156,6 +170,7 @@ pub struct ExecutionKey {
     revisions: ExecutionRevisions,
     invocation: InvocationProfile,
     target: TargetBinding,
+    input: Option<ExecutionInput>,
 }
 
 // What an attachment's revision bindings buy.
@@ -165,15 +180,15 @@ pub struct ExecutionKey {
 /// This vocabulary is the one owning statement about cache eligibility, and every other mention of eligibility in the harness points here.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CacheEligibility {
-    /// Both revisions were derived by the harness operation from the canonical material their owners supplied, so the key carries their exact addresses.
+    /// Every participating revision was derived by the harness operation from the canonical material its owner supplied.
     Eligible,
-    /// The attachment carries no harness-derived commitment strong enough to let a prior execution stand in for this one, so every run executes.
+    /// A participating revision lacks a harness-derived commitment strong enough to let a prior execution stand in for this one.
     NeverEligible,
 }
 
 /// What a reproduction of one execution can claim.
 ///
-/// The runner opens the posture at the attachment's revision meet, and every later participant — the probe adapter, each semantic reducer actually invoked — can only narrow it.
+/// The runner meets the attachment and any input decoder revisions, and every later participant — the probe adapter, each semantic reducer actually invoked — can only narrow that ceiling.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ReplayPosture {
     /// The one posture that earns the phrase "replay exactly": the reproduction is the same execution, not a similar one.
@@ -399,7 +414,7 @@ pub struct HostTrialRecord {
 
 /// The exact semantic and revision standing one admitted trial report ran under.
 ///
-/// The runner derives both members: the key from the bound row, attachment, invocation profile and target, and the replay ceiling from the attachment's two revision postures.
+/// The runner derives the key from the bound row and invocation, and meets every participating executable revision into the replay ceiling.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TrialRunStanding {
     key: ExecutionKey,
@@ -511,6 +526,7 @@ pub struct RunReport {
     selection: SelectionOutcome,
     invocation: InvocationProfile,
     target: TargetBinding,
+    input: Option<ExecutionInput>,
 }
 
 // The comparison.
@@ -602,6 +618,15 @@ crate::report::declare_change_pair! {
 }
 
 crate::report::declare_change_pair! {
+    /// How the specimen, input profile or decoder standing moved between two runs.
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    pub struct ExecutionInputChange {
+        context {}
+        value: Option<ExecutionInput>,
+    }
+}
+
+crate::report::declare_change_pair! {
     /// How the exact target and toolchain pair moved between two runs.
     #[derive(Debug, Clone, PartialEq, Eq, Hash)]
     pub struct TargetBindingChange {
@@ -654,6 +679,7 @@ pub struct ReportExecutionDiff {
     flips: Vec<ConclusionFlip>,
     invocation: Option<InvocationProfileChange>,
     target: Option<Box<TargetBindingChange>>,
+    input: Option<Box<ExecutionInputChange>>,
 }
 
 /// The declared population and execution-standing comparison reading between two reports.

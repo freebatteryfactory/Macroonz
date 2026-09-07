@@ -3,9 +3,10 @@
 //! It runs outside the runner and never grows the runner's memory: the baseline is the caller's to supply, both censuses are read through borrowed indexes, and the difference that comes back owns only identities and small typed facts.
 
 use super::{
-    Baseline, CensusDelta, ConclusionFlip, ExecutionRevisionChange, InvocationProfileChange,
-    NotComparedReason, ReportComparison, ReportDiff, ReportExecutionDiff, ReportPopulationDiff,
-    RowRevisionChange, RunReport, TargetBindingChange, TrialAccounting, TrialId,
+    Baseline, CensusDelta, ConclusionFlip, ExecutionInputChange, ExecutionRevisionChange,
+    InvocationProfileChange, NotComparedReason, ReportComparison, ReportDiff, ReportExecutionDiff,
+    ReportPopulationDiff, RowRevisionChange, RunReport, TargetBindingChange, TrialAccounting,
+    TrialId,
 };
 use std::collections::BTreeMap;
 
@@ -96,7 +97,14 @@ fn diffed(previous: &RunReport, current: &RunReport) -> ReportDiff {
         revised,
         CensusDelta::between(previous.denominator(), current.denominator()),
     );
-    let execution = ReportExecutionDiff::stated(execution_revisions, flips, invocation, target);
+    let input = (previous.input() != current.input()).then(|| {
+        Box::new(ExecutionInputChange::between(
+            previous.input(),
+            current.input(),
+        ))
+    });
+    let execution =
+        ReportExecutionDiff::stated(execution_revisions, flips, invocation, target, input);
     ReportDiff::stated(population, execution)
 }
 

@@ -66,10 +66,10 @@ pub(super) fn refused() -> TrialConclusion {
     ))
 }
 
-pub(super) fn binding(
+pub(super) fn binding<Input>(
     stem: &'static str,
-    call: fn(&Invocation) -> TrialConclusion,
-) -> Result<TrialBinding, TrialTableRefusal> {
+    call: fn(&Invocation<Input>) -> TrialConclusion,
+) -> Result<TrialBinding<Input>, TrialTableRefusal> {
     let subject = SubjectRoute::named(OWNER, stem)?;
     let check = CheckRef::named(OWNER, "conclusion")?;
     let row = Row::declared(
@@ -98,7 +98,9 @@ pub(super) fn binding(
     .map_err(TrialTableRefusal::from)
 }
 
-pub(super) fn world(bindings: Vec<TrialBinding>) -> Result<TrialTable, TrialTableRefusal> {
+pub(super) fn world<Input>(
+    bindings: Vec<TrialBinding<Input>>,
+) -> Result<TrialTable<Input>, TrialTableRefusal> {
     TrialTable::authored(
         AuthoredTableName::named(OWNER, "runner-world")?,
         Provenance::Unproduced,

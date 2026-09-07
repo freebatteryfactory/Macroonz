@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+ --> tests/compile_refusals/compile-fail/input-invocation-requires-a-decoder-binding.rs:6:42
+  |
+6 |     let _unbound = invocation.with_input(7u8);
+  |                               ---------- ^^^ expected `BoundInput<_>`, found `u8`
+  |                               |
+  |                               arguments to this method are incorrect
+  |
+  = note: expected struct `BoundInput<_>`
+               found type `u8`
+note: method defined here
+ --> src/runner/type_guard.rs
+  |
+  |     pub fn with_input<Input>(self, input: BoundInput<Input>) -> Invocation<BoundInput<Input>> {
+  |            ^^^^^^^^^^

@@ -6,9 +6,10 @@
 use super::{FailedTrial, Invocation, SeatFailure, SeatRefusal, Selection, SelectionPlan};
 use crate::clock::HarnessClock;
 use crate::descriptor::TrialTableRefusal;
+use crate::input::BoundInput;
 use crate::report::{
-    EmptySelectionReason, InvocationProfile, SelectionExpectation, TargetBinding, TrialId,
-    TrialSite,
+    EmptySelectionReason, ExecutionInput, InvocationProfile, SelectionExpectation, SkipReason,
+    TargetBinding, TrialId, TrialSite,
 };
 
 impl Invocation {
@@ -25,6 +26,50 @@ impl Invocation {
             target,
             site,
             clock,
+            input: (),
+            input_standing: None,
+            input_bytes: 0,
+        }
+    }
+
+    /// The declared run facts joined to a decoder-admitted typed specimen.
+    #[must_use]
+    pub fn with_input<Input>(self, input: BoundInput<Input>) -> Invocation<BoundInput<Input>> {
+        Invocation {
+            profile: self.profile,
+            target: self.target,
+            site: self.site,
+            clock: self.clock,
+            input_standing: Some(ExecutionInput::of(&input)),
+            input_bytes: input.envelope().payload().len(),
+            input,
+        }
+    }
+}
+
+impl<Input> Invocation<Input> {
+    /// The admitted input owned by this invocation, or its explicit unit value.
+    #[must_use]
+    pub const fn input(&self) -> &Input {
+        &self.input
+    }
+
+    /// The input standing derived when the admitted specimen entered this invocation.
+    #[must_use]
+    pub const fn input_standing(&self) -> Option<ExecutionInput> {
+        self.input_standing
+    }
+
+    /// Whether the one admitted specimen exceeds a declared execution budget.
+    pub(in crate::runner) fn input_budget_refusal(&self) -> Option<SkipReason> {
+        self.input_standing?;
+        let bytes = u64::try_from(self.input_bytes).ok();
+        if self.profile.cases().cases() == 0
+            || bytes.is_none_or(|count| count > self.profile.bytes().bytes())
+        {
+            Some(SkipReason::BudgetExhausted)
+        } else {
+            None
         }
     }
 

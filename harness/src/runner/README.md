@@ -50,6 +50,24 @@ Both roads enter one assembler, which derives the standing a host cannot author 
 
 A host may state only the semantic trial it ran, what became of the attempt, and the wall reading it observed.
 The join refuses records that are duplicated, outside the table, outside the selection, or absent for a selected trial.
+The host-record road accepts unit-input invocations only; those records establish no individual specimen join.
+
+## Typed input
+
+`Invocation::declared` creates the explicit unit-input road, which retains its cloneable surface.
+`with_input` consumes a decoder-admitted `BoundInput<T>` and creates `Invocation<BoundInput<T>>` for the same execution and accounting engine.
+The callable reads the actual value through `invocation.input().value()`.
+There is no constructor pairing an arbitrary value with unrelated bytes, and cloning a caller's value cannot mint another admitted invocation.
+
+The input's profile, case identity and decoder revision travel into the report's execution standing.
+The decoder posture participates in the complete replay and cache ceiling.
+Input values remain caller-owned semantics; a shared reference does not establish purity or exclude interior mutability.
+
+Each selected trial receives the same admitted specimen once.
+Before calling it, the runner requires room for one case and the specimen's actual payload bytes in that trial's invocation budgets.
+An exceeded bound records a budget skip with no clock reading and cannot pass either verdict fold.
+Envelope admission limits remain the input owner's separate resource bounds.
+The unit-input road leaves case and byte consumption to its check, and no elapsed measurement is interpreted as a timeout.
 
 ## The complete table is the denominator
 

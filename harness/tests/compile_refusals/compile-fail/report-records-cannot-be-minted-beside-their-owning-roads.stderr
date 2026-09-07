@@ -43,8 +43,8 @@ error[E0624]: associated function `recorded` is private
    | |         census: Vec<TrialAccounting>,
    | |         posture: TablePosture,
    | |         selection: SelectionOutcome,
-   | |         invocation: InvocationProfile,
-   | |         target: TargetBinding,
+...  |
+   | |         input: Option<ExecutionInput>,
    | |     ) -> Self {
    | |_____________- private associated function defined here
 

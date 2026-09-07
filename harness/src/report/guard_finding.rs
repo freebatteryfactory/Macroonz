@@ -74,13 +74,13 @@ impl ReplayCapsule {
         }
     }
 
-    /// The execution this capsule reproduces.
+    /// The original refused execution from which reduction began.
     #[must_use]
     pub const fn key(&self) -> &ExecutionKey {
         &self.key
     }
 
-    /// The exact input bytes the execution was handed.
+    /// The reached witness bytes that preserved the failure during reduction.
     #[must_use]
     pub fn input(&self) -> &[u8] {
         &self.input

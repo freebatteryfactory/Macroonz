@@ -22,12 +22,16 @@ pub fn trial_identity(row: &Row) -> TrialId {
 /// The key one execution of one bound trial is looked up under.
 ///
 /// The parts are the trial's semantic identity, the attachment's two revision bindings, the invocation's profile, and the declared target binding — the last unconditionally, because the key's own constructor admits no shape without it.
-/// What a hit under this key is worth is the attachment's posture question, answered by [`attachment_cache_eligibility`](crate::report::attachment_cache_eligibility).
+/// Input-bearing invocations additionally bind the exact case and decoder revision.
+/// The complete recorded cache ceiling is [`TrialRunStanding::cache_eligibility`](crate::report::TrialRunStanding::cache_eligibility).
 ///
 /// Holding a key is not holding a cached result.
 /// This engine looks nothing up: it executes what the selection admitted, and a caller that keeps results across runs decides what a matching key buys.
 #[must_use]
-pub fn execution_key(binding: &TrialBinding, invocation: &Invocation) -> ExecutionKey {
+pub fn execution_key<Input>(
+    binding: &TrialBinding<Input>,
+    invocation: &Invocation<Input>,
+) -> ExecutionKey {
     let revisions = execution_revisions(binding);
     ExecutionKey::over(
         trial_identity(binding.row()),
@@ -36,13 +40,14 @@ pub fn execution_key(binding: &TrialBinding, invocation: &Invocation) -> Executi
         invocation.profile(),
         invocation.target().clone(),
     )
+    .with_input(invocation.input_standing())
 }
 
 /// The exact subject and check revision standing one binding declares.
 ///
 /// One join shared by the execution key and the complete-table accounting, so selected and unselected rows read the same revision relationship.
 #[must_use]
-pub(super) fn execution_revisions(binding: &TrialBinding) -> ExecutionRevisions {
+pub(super) fn execution_revisions<Input>(binding: &TrialBinding<Input>) -> ExecutionRevisions {
     let attachment = binding.attachment();
     ExecutionRevisions::bound(
         SubjectRevisionId::of_binding(attachment.subject_revision()),

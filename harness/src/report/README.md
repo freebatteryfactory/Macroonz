@@ -25,6 +25,9 @@ A report joins both rails without letting either stand in for the other.
 
 An execution key names one execution of one semantic trial under its exact revision, invocation, target, and toolchain standing.
 The target and toolchain are always part of that standing, because evidence reached on one host configuration cannot authorize a cache claim about another.
+An input-bearing key additionally commits to the exact specimen case and decoder revision standing under the `input-execution-key/v1` domain.
+Unit-input keys use `execution-key/v1`; their preimage is owned by `execution_key_preimage`.
+The case carries the profile and schema commitment established by the input home.
 
 The authored row has a separate revision identity for census and aggregation.
 Editing bookkeeping around a trial moves the row revision without claiming that its executable meaning moved.
@@ -33,6 +36,8 @@ Editing bookkeeping around a trial moves the row revision without claiming that 
 
 A report states the subject and check revisions its execution used.
 The weaker revision posture limits both cache eligibility and what a reproduction may claim.
+For input-bearing execution, the decoder revision joins the subject and check in that meet.
+The complete ceiling is read from `TrialRunStanding`; attachment-only readings establish only the subject and check's ceiling.
 No caller can strengthen that ceiling by attaching a stronger label beside the recorded revisions.
 
 A replay capsule can be minted only from completed reduction evidence bound to a real refused report.
@@ -52,6 +57,7 @@ The report preserves whether that empty result contradicted the caller's declare
 
 Comparison is a pure reading of two retained reports.
 It keeps population movement apart from execution-standing movement, refuses reports whose table postures cannot lawfully be compared, and keeps a missing baseline distinct from an unchanged run.
+Input standing is retained and compared even when a selection chooses no row, so specimen, profile and decoder movement remain visible independently of conclusion flips.
 
 Coverage is a pure reading of one authored report's complete denominator.
 It counts exercise rather than correctness, so a trial that ran and refused is exercised while a selected trial that never ran is not.

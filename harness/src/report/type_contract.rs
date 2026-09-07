@@ -10,9 +10,18 @@ impl From<RevisionPosture> for CacheEligibility {
     ///
     /// A caller holding an attachment reads the meet of its two bindings first; this map answers for one posture, not for a pair.
     fn from(posture: RevisionPosture) -> Self {
+        Self::from(ReplayPosture::from(posture))
+    }
+}
+
+impl From<ReplayPosture> for CacheEligibility {
+    /// Whether the complete replay ceiling permits a rerun cache.
+    fn from(posture: ReplayPosture) -> Self {
         match posture {
-            RevisionPosture::Derived => Self::Eligible,
-            RevisionPosture::Declared | RevisionPosture::Untracked => Self::NeverEligible,
+            ReplayPosture::ExactDerived => Self::Eligible,
+            ReplayPosture::DeclaredByAuthor | ReplayPosture::UnavailableBecauseUntracked => {
+                Self::NeverEligible
+            }
         }
     }
 }

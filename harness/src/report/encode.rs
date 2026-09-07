@@ -5,8 +5,9 @@
 //! Nothing here reads an ambient fact; every byte comes from a value the caller already holds.
 
 use super::{
-    CheckRevisionId, FailureClass, FindingCause, InvocationProfile, ProfiledTrial, ReplayCapsule,
-    ReplayPosture, SubjectRevisionId, TargetBinding, TrialId, TrialProfile,
+    CheckRevisionId, ExecutionInput, ExecutionKey, FailureClass, FindingCause, InvocationProfile,
+    ProfiledTrial, ReplayCapsule, ReplayPosture, SubjectRevisionId, TargetBinding, TrialId,
+    TrialProfile,
 };
 
 pub use crate::identity::{encode_bytes, encode_length};
@@ -73,7 +74,7 @@ pub fn trial_preimage(profiled: ProfiledTrial) -> Vec<u8> {
     bytes
 }
 
-/// The complete preimage of one [`ExecutionKey`](super::ExecutionKey).
+/// The complete preimage of one unit-input [`ExecutionKey`].
 ///
 /// | # | member | encoding |
 /// | - | ------ | -------- |
@@ -104,6 +105,25 @@ pub fn execution_key_preimage(
     bytes.extend_from_slice(&invocation.time().nanoseconds().to_be_bytes());
     encode_bytes(target.target().spelling().as_bytes(), &mut bytes);
     encode_bytes(target.toolchain().spelling().as_bytes(), &mut bytes);
+    bytes
+}
+
+/// The input-bearing preimage: the unit-key fields, framed case and decoder addresses, then decoder posture.
+///
+/// Both appended frames contain the full thirty-two bytes; the case commits to the profile, schema and exact specimen through the input owner's format.
+/// The final byte is the decoder posture's [`ReplayPosture::slot`] after conversion from its revision posture.
+#[must_use]
+pub fn input_execution_key_preimage(key: &ExecutionKey, input: ExecutionInput) -> Vec<u8> {
+    let mut bytes = execution_key_preimage(
+        key.trial(),
+        key.subject(),
+        key.check(),
+        key.invocation(),
+        key.target(),
+    );
+    encode_bytes(input.case().address().as_bytes(), &mut bytes);
+    encode_bytes(input.decoder().as_bytes(), &mut bytes);
+    bytes.push(ReplayPosture::from(input.posture()).slot());
     bytes
 }
 

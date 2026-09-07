@@ -3,11 +3,11 @@
 use crate::clock::MeasurementReading;
 use crate::descriptor::{ClaimRef, TablePosture};
 use crate::report::{
-    ExecutionKey, ExecutionRevisions, Exercise, ForeignText, HostTrialRecord,
-    InfrastructureFailure, InfrastructureFault, InvocationProfile, NotSelectedReason, OutcomeClass,
-    ReplayPosture, RowRevisionId, RunAttempt, RunReport, SelectionDisposition,
-    SelectionExpectation, SelectionOutcome, TargetBinding, TrialAccounting, TrialConclusion,
-    TrialId, TrialReport, TrialRunStanding, TrialSite,
+    CacheEligibility, ExecutionInput, ExecutionKey, ExecutionRevisions, Exercise, ForeignText,
+    HostTrialRecord, InfrastructureFailure, InfrastructureFault, InvocationProfile,
+    NotSelectedReason, OutcomeClass, ReplayPosture, RowRevisionId, RunAttempt, RunReport,
+    SelectionDisposition, SelectionExpectation, SelectionOutcome, TargetBinding, TrialAccounting,
+    TrialConclusion, TrialId, TrialReport, TrialRunStanding, TrialSite,
 };
 
 impl InfrastructureFailure {
@@ -77,10 +77,16 @@ impl TrialRunStanding {
         &self.key
     }
 
-    /// The replay ceiling derived from the attachment's revision posture meet.
+    /// The replay ceiling derived from every participating executable revision.
     #[must_use]
     pub const fn replay(&self) -> ReplayPosture {
         self.replay
+    }
+
+    /// Whether the complete recorded revision standing permits a rerun cache.
+    #[must_use]
+    pub fn cache_eligibility(&self) -> CacheEligibility {
+        CacheEligibility::from(self.replay)
     }
 }
 
@@ -278,6 +284,7 @@ impl RunReport {
         selection: SelectionOutcome,
         invocation: InvocationProfile,
         target: TargetBinding,
+        input: Option<ExecutionInput>,
     ) -> Self {
         Self {
             census,
@@ -285,6 +292,7 @@ impl RunReport {
             selection,
             invocation,
             target,
+            input,
         }
     }
 
@@ -322,5 +330,11 @@ impl RunReport {
     #[must_use]
     pub const fn target(&self) -> &TargetBinding {
         &self.target
+    }
+
+    /// The invocation's admitted specimen standing, including when no row was selected.
+    #[must_use]
+    pub const fn input(&self) -> Option<ExecutionInput> {
+        self.input
     }
 }
