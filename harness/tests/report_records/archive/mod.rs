@@ -3,6 +3,8 @@
 mod fixture;
 mod process;
 mod vector;
+mod trials;
+mod trial_vector;
 
 use macroonz_harness::report::archive::{
     ArchiveLimits, ArchiveRefusal, read_capsule, retain_capsule,

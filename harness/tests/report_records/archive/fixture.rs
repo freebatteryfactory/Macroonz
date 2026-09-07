@@ -1,7 +1,7 @@
 //! Actual typed execution and reduction provide the earned writer specimen.
 
 use arbitrary::Unstructured;
-use macroonz_harness::clock::HarnessClock;
+use macroonz_harness::clock::{HarnessClock, MeasurementReading};
 use macroonz_harness::descriptor::{
     Binding, DerivedRevision, ExecutableAttachment, GeneratedSupportSchemaId, NamespacedName,
     Provenance, RevisionBinding,
@@ -14,10 +14,11 @@ use macroonz_harness::identity::{ContentAddress, DomainTag, IdentityProfileVersi
 use macroonz_harness::input::{BoundInput, InputBinding, InputLimits, InputProfile, pack};
 use macroonz_harness::report::{
     ByteBudget, CaseBudget, FailureClass, FindingLocation, Fingerprint, GenerationProfile,
-    InvocationProfile, MinimizationProfile, ReplayCapsule, RunAttempt, TargetBinding, TargetTriple,
-    TimeBudget, ToolchainIdentity, TrialConclusion, TrialFinding, TrialReport, TrialSite,
+    HostTrialRecord, InvocationProfile, MinimizationProfile, ReplayCapsule, RunAttempt,
+    TargetBinding, TargetTriple, TimeBudget, ToolchainIdentity, TrialConclusion, TrialFinding,
+    TrialReport, TrialSite,
 };
-use macroonz_harness::runner::{Invocation, run_one};
+use macroonz_harness::runner::{Invocation, TrialBinding, record_one, run_one, trial_identity};
 
 fn revision() -> RevisionBinding {
     RevisionBinding::derived(DerivedRevision::from_material(include_bytes!("fixture.rs")))
@@ -54,11 +55,25 @@ fn execute<Input>(
     call: fn(&Invocation<Input>) -> TrialConclusion,
     invocation: &Invocation<Input>,
 ) -> Result<TrialReport, ()> {
+    Ok(run_one(&binding(call)?, invocation))
+}
+
+fn binding<Input>(
+    call: fn(&Invocation<Input>) -> TrialConclusion,
+) -> Result<TrialBinding<Input>, ()> {
     let row = super::super::row()?;
     let attachment =
         ExecutableAttachment::attached(row.subject(), row.check(), revision(), revision(), call);
-    let binding = Binding::bound(row, attachment, Provenance::Unproduced).map_err(|_| ())?;
-    Ok(run_one(&binding, invocation))
+    Binding::bound(row, attachment, Provenance::Unproduced).map_err(|_| ())
+}
+
+pub(super) fn host_report(
+    attempt: RunAttempt,
+    measurement: MeasurementReading,
+) -> Result<TrialReport, ()> {
+    let binding = binding(|_| TrialConclusion::Passed)?;
+    let record = HostTrialRecord::recorded(trial_identity(binding.row()), attempt, measurement);
+    record_one(&binding, &invocation(), record).map_err(|_| ())
 }
 
 pub(super) fn report(payload: &[u8]) -> Result<TrialReport, ()> {

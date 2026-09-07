@@ -7,10 +7,19 @@ use super::{
 use crate::identity::ContentAddress;
 use crate::report::{FailureClass, InvocationProfile, ReplayPosture, TargetBinding};
 
+#[path = "read_identity.rs"]
+mod identity;
+
+#[path = "read_trial.rs"]
+mod trial;
+#[path = "guard_trial.rs"]
+mod trial_readings;
+
 #[path = "read.rs"]
 mod read;
 
 pub use read::read_capsule;
+pub use trial::read_trial;
 
 impl ArchiveLimits {
     /// The complete-envelope and per-frame ceilings.

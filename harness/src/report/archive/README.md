@@ -2,7 +2,7 @@
 
 Owned historical data retained from the report owner's canonical identity material.
 
-A loaded capsule records what its source claimed.
+A loaded record states what its source claimed.
 It is never a current `ReplayCapsule`, `TrialReport`, reduction binding, cache permission or human admission.
 Its addresses establish integrity of the supplied preimages, not execution or writer authenticity.
 An `AddressClaim` retains a nested digest whose original preimage is absent; it cannot become a `ContentAddress`.
@@ -28,6 +28,44 @@ Each nested digest field has exactly thirty-two bytes.
 The reader checks the fingerprint's trial against the key and the capsule's key and fingerprint addresses against their supplied preimages.
 It rejects unsupported markers, invalid UTF-8, trailing material and a capsule ceiling stronger than its recorded decoder permits.
 Historical profile names retain their exact spelling without creating static descriptor names.
+
+## Trial envelope
+
+The trial envelope derives its leading address under `historical-trial-report/v1`.
+It uses format one, kind two and historical custody zero, followed by the same execution preimage and input metadata as the capsule envelope.
+The remaining fields occur in this order:
+
+- One replay-ceiling byte using `ReplayPosture::slot`.
+- Framed UTF-8 module path, framed UTF-8 file, `u32be` line and framed UTF-8 display name.
+- One attempt byte and its arm's members.
+- One measurement byte and its arm's members.
+
+Attempt zero is executed/pass and has no members.
+Attempt one is executed/refusal: framed canonical fingerprint preimage, framed UTF-8 refusal file, `u32be` refusal line and optional foreign material.
+The fingerprint trial must equal the execution trial.
+Attempt two is skipped, followed by one reason byte: budget exhausted zero, target unsupported one, prerequisite absent two or satisfied by cached execution three.
+Attempt three is timed out and has no members.
+Attempt four is infrastructure failure, followed by one fault byte and optional foreign material.
+Infrastructure slots are generation unavailable zero, support absent one, capture failed two, backend unavailable three, backend initialization failed four and backend execution unresolved five.
+
+Optional foreign material begins with zero for absent or one for present.
+Present material contains framed exact bytes, one truncation byte and one fidelity byte.
+Truncation zero is complete; truncation one inserts `u64be` admitted and offered counts before fidelity.
+Fidelity zero is exact UTF-8 and one is lossy replacement.
+The reader checks fidelity against the retained bytes and enforces the report owner's foreign-byte bound.
+A truncated record must retain exactly that bound, name its actual retained length and state a strictly larger offered count.
+Offered counts remain portable `u64` claims without allocating the missing material.
+
+Measurement zero is observed duration followed by `u64be` nanoseconds; one is unavailable; two is failure followed by one failure byte.
+Clock failure slots are opening refused zero, closing refused one, opening unwound two, closing unwound three and regressed four.
+Regression additionally retains `u64be` opening and closing readings and requires closing to precede opening.
+No reader calls a clock or constructs a current measurement tick.
+Measurement is retained independently of the attempt and never upgrades its conclusion.
+The envelope address covers retained bytes for integrity; adding a measurement or foreign-text field does not change the canonical execution key or failure fingerprint.
+
+The reader rejects undeclared trailing material and every unknown discriminant.
+The historical replay ceiling cannot exceed its recorded decoder ceiling.
+Neither a retained pass nor a claimed ceiling establishes that the producer actually executed a subject.
 
 ## Bounds and custody
 

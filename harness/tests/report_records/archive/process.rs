@@ -4,13 +4,13 @@ use super::{
     LIMITS, fixture,
     vector::{InputKind, Vector},
 };
-use macroonz_harness::report::archive::{read_capsule, retain_capsule};
+use macroonz_harness::report::archive::{read_capsule, read_trial, retain_capsule, retain_trial};
 use std::error::Error;
 use std::fmt::Write as _;
 use std::io::{Read as _, Write as _};
 use std::process::{Command, Stdio};
 
-const PREFIX: &str = "MACROONZ_ARCHIVED_CAPSULE=";
+const PREFIX: &str = "MACROONZ_ARCHIVED_RECORD=";
 
 #[test]
 #[ignore = "driven by the capsule process-boundary claim"]
@@ -22,8 +22,12 @@ fn child_loads_capsule() -> Result<(), Box<dyn Error>> {
         .read_to_end(&mut encoded)?;
     let record = read_capsule(&encoded, LIMITS)
         .map_err(|refusal| std::io::Error::other(format!("{refusal:?}")))?;
+    publish(record.encoded())
+}
+
+fn publish(encoded: &[u8]) -> Result<(), Box<dyn Error>> {
     let mut line = String::from(PREFIX);
-    for byte in record.encoded() {
+    for byte in encoded {
         write!(&mut line, "{byte:02x}")?;
     }
     let mut stdout = std::io::stdout().lock();
@@ -33,14 +37,9 @@ fn child_loads_capsule() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn round_trip(encoded: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
+fn round_trip(encoded: &[u8], child_name: &str) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut child = Command::new(std::env::current_exe()?)
-        .args([
-            "--ignored",
-            "--exact",
-            "archive::process::child_loads_capsule",
-            "--nocapture",
-        ])
+        .args(["--ignored", "--exact", child_name, "--nocapture"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -79,10 +78,47 @@ fn actual_and_independent_capsules_survive_a_fresh_process() -> Result<(), Box<d
     let capsule = fixture::capsule().map_err(|()| std::io::Error::other("fixture refused"))?;
     let record = retain_capsule(&capsule, LIMITS)
         .map_err(|refusal| std::io::Error::other(format!("{refusal:?}")))?;
-    assert_eq!(round_trip(record.encoded())?, record.encoded());
+    assert_eq!(
+        round_trip(record.encoded(), "archive::process::child_loads_capsule")?,
+        record.encoded()
+    );
     for typed in [InputKind::Unit, InputKind::Bound] {
         let encoded = Vector::declared(typed).encoded();
-        assert_eq!(round_trip(&encoded)?, encoded);
+        assert_eq!(
+            round_trip(&encoded, "archive::process::child_loads_capsule")?,
+            encoded
+        );
     }
+    Ok(())
+}
+
+#[test]
+#[ignore = "driven by the trial process-boundary claim"]
+fn child_loads_trial() -> Result<(), Box<dyn Error>> {
+    let mut encoded = Vec::new();
+    std::io::stdin()
+        .lock()
+        .take(16385)
+        .read_to_end(&mut encoded)?;
+    let record = read_trial(&encoded, super::trials::LIMITS)
+        .map_err(|refusal| std::io::Error::other(format!("{refusal:?}")))?;
+    publish(record.encoded())
+}
+
+#[test]
+fn actual_and_independent_trials_survive_a_fresh_process() -> Result<(), Box<dyn Error>> {
+    let report =
+        fixture::report(&[1, 2, 3]).map_err(|()| std::io::Error::other("fixture refused"))?;
+    let record = retain_trial(&report, super::trials::LIMITS)
+        .map_err(|refusal| std::io::Error::other(format!("{refusal:?}")))?;
+    assert_eq!(
+        round_trip(record.encoded(), "archive::process::child_loads_trial")?,
+        record.encoded()
+    );
+    let encoded = super::trial_vector::envelope(&super::trial_vector::body(&[3], &[1]));
+    assert_eq!(
+        round_trip(&encoded, "archive::process::child_loads_trial")?,
+        encoded
+    );
     Ok(())
 }

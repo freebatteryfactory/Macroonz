@@ -66,7 +66,7 @@ Neither reading observes the host or reconstructs facts absent from its input.
 
 ## Historical retention
 
-The [archive](archive/README.md) home retains bounded owned capsule data through the canonical identity preimages.
+The [archive](archive/README.md) home retains bounded owned capsule and trial data through the canonical identity preimages.
 Loading produces historical claims with explicit unauthenticated custody; only independently bound fresh execution can establish a current result.
 Its original execution key and reduced witness remain separate coordinates.
 
