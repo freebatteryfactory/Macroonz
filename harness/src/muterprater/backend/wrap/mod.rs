@@ -36,9 +36,11 @@
 //! External mutants arrive as source coordinates rather than as claims, so the reading from a coordinate to its owning claim is the caller's ([`OwnerLookup`](crate::muterprater::OwnerLookup)), and so is the reading from damage text to operator family ([`FamilyLookup`](crate::muterprater::FamilyLookup)).
 //! Neither answer is invented here: an unanswered lookup produces [`MappingPosture::OwnerUnmapped`](crate::muterprater::MappingPosture::OwnerUnmapped) and [`FamilyAttribution::OutsideTheBank`](crate::muterprater::FamilyAttribution::OutsideTheBank), and the witness selection widens accordingly.
 
+mod compare_archive;
 mod parse;
 mod plan;
 mod read;
 
+pub(in crate::muterprater::backend) use compare_archive::{archived_word, check_archived_console};
 pub use plan::{mutant_scoped, plan_pass};
 pub use read::{console_profile, read_artifact, read_output};

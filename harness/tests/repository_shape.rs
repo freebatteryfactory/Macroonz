@@ -79,16 +79,8 @@ fn assert_single_owner_stamps(root: &Path) -> Result<(), std::io::Error> {
         "map_err(|_| EncodeRefusal::LengthPastEncodingWidth)",
         &["descriptor/encode.rs"],
     )?;
-    assert_occurrences(
-        root,
-        "fn collected<Refusal>(",
-        &["muterprater/backend/roster.rs"],
-    )?;
-    assert_occurrences(
-        root,
-        "fn matched<Refusal>(",
-        &["muterprater/backend/roster.rs"],
-    )?;
+    assert_occurrences(root, "fn collected<", &["muterprater/backend/roster.rs"])?;
+    assert_occurrences(root, "fn matched<", &["muterprater/backend/roster.rs"])?;
     assert_occurrences(
         root,
         "macro_rules! namespaced_reference",

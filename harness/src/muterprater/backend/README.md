@@ -7,4 +7,5 @@ The public `macroonz_harness::muterprater::wrap` operation reads and plans impor
 It neither executes a backend nor acquires evaluation-pair or selection authority.
 
 The `wrap` road is a directory behind one door: its parse role owns the line grammar and the readers from one console line to what it states, its read role owns the console profile and the two readings of a backend's output, and its plan role owns the witness selection and the pass plan.
-`roster.rs` owns the one source-roster join both the artifact reading and the current-source custody stand on.
+`roster.rs` owns source-roster collection and exact file matching for artifact readings, current-source custody and historical material joins.
+The [archive](archive/README.md) retains owned historical manifests and explicitly supplied originals through that same roster owner and the existing wrap grammar.

@@ -9,6 +9,7 @@ mod types;
 
 pub(crate) use encode::{activation_size, target_size, write_activation, write_target};
 pub use encode_record::retain_mutation;
+pub(crate) use encode_run::encoded_size as mutation_run_size;
 pub use encode_run::retain_mutation_run;
 pub use types::{
     ArchivedActivation, ArchivedActivationReading, ArchivedMutationIdentity, ArchivedMutationSite,

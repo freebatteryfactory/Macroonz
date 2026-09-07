@@ -238,6 +238,7 @@ impl CompiledSuiteArtifactCustody {
     ) -> Result<Self, ArtifactCustodyRefusal> {
         let current = collected(
             current_sources,
+            MutationSourceRevision::file,
             ArtifactCustodyRefusal::DuplicateCurrentSource,
         )?;
         let expected: BTreeMap<&str, MutationSourceRevisionId> = manifest

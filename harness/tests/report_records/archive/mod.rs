@@ -22,6 +22,10 @@ mod mutation_vector;
 mod mutations;
 mod mutation_runs;
 mod mutation_hostile;
+mod backend_vector;
+mod backends;
+mod backend_hostile;
+mod backend_claims;
 
 use macroonz_harness::report::archive::{
     ArchiveLimits, ArchiveRefusal, read_capsule, retain_capsule,

@@ -37,7 +37,7 @@ pub fn retain_mutation_run(
     read_mutation_run(&encoded, limits)
 }
 
-fn encoded_size(
+pub(crate) fn encoded_size(
     run: &MutationRun,
     limits: MutationRunArchiveLimits,
 ) -> Result<usize, MutationArchiveRefusal> {

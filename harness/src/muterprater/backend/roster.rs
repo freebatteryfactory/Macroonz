@@ -1,9 +1,8 @@
-//! The one source-roster join both custody roads stand on.
+//! Source-roster collection and exact file matching.
 //!
-//! A roster of source revisions is collected by file, refusing a repeated file, and then matched against the files a reading or a manifest expects, refusing an expected file the roster lacks and a roster file nothing expects.
-//! Each road supplies its own refusal for each of the three disagreements, so the two public refusal vocabularies stay distinct while the walk is written once.
+//! A roster is collected by file, refusing a repeated file, and matched against the files a reading or a manifest expects.
+//! Each caller supplies its own refusals for duplicate, missing and unexpected files.
 
-use super::types::MutationSourceRevision;
 use std::collections::{BTreeMap, BTreeSet};
 
 /// Collect supplied source revisions by file.
@@ -11,13 +10,14 @@ use std::collections::{BTreeMap, BTreeSet};
 /// # Errors
 ///
 /// Refuses the first repeated file, through the caller's refusal.
-pub(super) fn collected<Refusal>(
-    supplied: Vec<MutationSourceRevision>,
+pub(super) fn collected<Value, Refusal>(
+    supplied: impl IntoIterator<Item = Value>,
+    file_of: fn(&Value) -> &str,
     duplicate: fn(String) -> Refusal,
-) -> Result<BTreeMap<String, MutationSourceRevision>, Refusal> {
+) -> Result<BTreeMap<String, Value>, Refusal> {
     let mut roster = BTreeMap::new();
     for source in supplied {
-        let file = source.file().to_owned();
+        let file = file_of(&source).to_owned();
         if roster.insert(file.clone(), source).is_some() {
             return Err(duplicate(file));
         }
@@ -30,8 +30,8 @@ pub(super) fn collected<Refusal>(
 /// # Errors
 ///
 /// Refuses the first expected file the roster lacks in file order, then the first roster file nothing expects in file order, each through the caller's refusal.
-pub(super) fn matched<Refusal>(
-    roster: &BTreeMap<String, MutationSourceRevision>,
+pub(super) fn matched<Value, Refusal>(
+    roster: &BTreeMap<String, Value>,
     expected: &BTreeSet<&str>,
     missing: fn(String) -> Refusal,
     unexpected: fn(String) -> Refusal,
