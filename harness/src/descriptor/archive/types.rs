@@ -3,7 +3,67 @@
 #[path = "type_guard.rs"]
 mod guard;
 
+pub use guard::read_binding;
+pub(crate) use guard::read_revision;
 pub use guard::{read_candidate, read_row, retain_candidate, retain_row};
+
+/// Independent binding-byte, name/address-field and per-row-label ceilings.
+pub type BindingArchiveLimits = RowArchiveLimits;
+
+/// A historical executable revision claim without its original derivation material.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ArchivedRevisionBinding {
+    revision: [u8; 32],
+    posture: crate::descriptor::RevisionPosture,
+}
+
+/// The producer standing retained beside a historical row.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ArchivedProvenance {
+    /// No producer standing was supplied.
+    Unproduced,
+    /// A producer and schema were claimed, without proof of their currency.
+    Produced {
+        /// The historical producer name.
+        producer: ArchivedName,
+        /// The historical schema address claim.
+        schema: [u8; 32],
+    },
+}
+
+/// A complete historical row and attachment standing with no callable.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArchivedBinding {
+    encoded: Vec<u8>,
+    row: ArchivedRow,
+    subject: ArchivedName,
+    check: ArchivedName,
+    subject_revision: ArchivedRevisionBinding,
+    check_revision: ArchivedRevisionBinding,
+    provenance: ArchivedProvenance,
+}
+
+/// Why a historical binding could not be retained or read.
+#[must_use = "a refusal states why the historical binding was not admitted"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BindingArchiveRefusal {
+    /// The framing, names or independent resource bounds refused.
+    Canonical(CandidateArchiveRefusal),
+    /// The nested row refused its owning grammar.
+    Row(RowArchiveRefusal),
+    /// The computed encoding size cannot be represented.
+    SizeOutsidePlatform,
+    /// A revision or provenance slot has no reading.
+    InvalidSlot,
+    /// An address claim is not exactly thirty-two bytes.
+    InvalidAddressWidth,
+    /// The attachment subject disagrees with its row.
+    SubjectMismatch,
+    /// The attachment check disagrees with its row.
+    CheckMismatch,
+    /// A generated row omitted producer standing.
+    GeneratedWithoutSchemaPin,
+}
 
 /// Independent canonical-byte, framed-field and per-label-roster ceilings for historical rows.
 pub type RowArchiveLimits = CandidateArchiveLimits;

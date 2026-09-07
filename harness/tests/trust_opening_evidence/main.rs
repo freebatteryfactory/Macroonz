@@ -8,6 +8,7 @@ mod campaign_input;
 mod composition;
 mod discovery;
 mod interpretation;
+mod parity_archive;
 mod mutation_archive;
 mod proposal_admission;
 mod proposal_input;

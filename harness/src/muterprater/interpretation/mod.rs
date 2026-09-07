@@ -1,6 +1,8 @@
 #![doc = include_str!("README.md")]
 
 pub mod interpret;
+pub mod archive;
+mod qualify;
 mod types;
 
 pub use types::{

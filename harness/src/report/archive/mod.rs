@@ -16,6 +16,7 @@ pub use encode_trial::retain_trial;
 pub(crate) use encode_trial::{foreign as write_foreign, write_finding};
 pub(crate) use size_run::encoded_size as run_size;
 pub(crate) use size_run::name_size;
+pub(crate) use size_trial::encoded_size as trial_size;
 pub(crate) use size_trial::{finding_size, foreign_size};
 pub use types::{
     AddressClaim, ArchiveLimits, ArchiveRefusal, ArchivedAttempt, ArchivedCapsule,

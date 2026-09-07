@@ -7,7 +7,7 @@ use crate::report::{
     ForeignText, RunAttempt, TrialConclusion, TrialFinding, TrialReport, Truncation,
 };
 
-pub(super) fn encoded_size(
+pub(crate) fn encoded_size(
     report: &TrialReport,
     limits: ArchiveLimits,
 ) -> Result<usize, ArchiveRefusal> {

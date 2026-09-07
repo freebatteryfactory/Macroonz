@@ -17,6 +17,7 @@ pub(crate) use stamp::{
 
 pub use compare::compare;
 pub use coverage::claim_coverage;
+pub(crate) use encode::trial_claim_preimage;
 pub use encode::{
     encode_bytes, encode_length, execution_key_preimage, fingerprint_preimage,
     input_execution_key_preimage, replay_capsule_preimage, trial_preimage,

@@ -1,20 +1,14 @@
 //! The row roads: how an origin's payload is admitted, how a row is born over its canonical bytes, and how its trial key is derived.
 
-use crate::descriptor::encode::{encode_row_content, encode_trial_coordinates};
+use crate::descriptor::encode::{derive_trial_key, encode_row_content, encode_trial_coordinates};
 use crate::descriptor::types::{
     AdmissionFacts, AdmissionGround, CanonicalRowBytes, CapsulePosture, CheckRef, ClaimRef,
     Classification, ClassificationRefusal, DischargeAdmission, DoorRef, ExecutionSuite, Origin,
     PopulationRef, ProducerFacts, ProjectionRef, ProposalId, ReplayAdmission, ReplayBearingGround,
     ReplayRef, Role, Row, RowRefusal, SubjectRoute, Tag, TrialCoordinates, TrialKey,
 };
-use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use crate::identity::ContentAddress;
 use std::collections::BTreeSet;
-
-/// The domain a trial key is derived under.
-///
-/// Its own tag rather than the row-revision one beside it: a trial's four coordinates and a row's seven fields answer different questions.
-const TRIAL_KEY_DOMAIN: DomainTag =
-    DomainTag::declared("trial-key", IdentityProfileVersion::declared(1));
 
 impl AdmissionGround {
     /// Whether admitting on this ground authors a depot capsule entry.
@@ -394,7 +388,7 @@ impl TrialKey {
     #[must_use]
     pub fn over(coordinates: TrialCoordinates) -> Self {
         let preimage = encode_trial_coordinates(coordinates);
-        Self(ContentAddress::derived(TRIAL_KEY_DOMAIN, &preimage))
+        Self(derive_trial_key(&preimage))
     }
 }
 

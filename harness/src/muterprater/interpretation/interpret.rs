@@ -17,8 +17,8 @@ use super::types::{
     InterpreterAvailability, MUTERPRATER_NAMESPACE, MissingTrustEvidence, MutationWitness,
     NO_MUTATION_PAIRING, NoMutationObservationRefusal, NoMutationParityQualification,
     NoMutationParityReading, NoMutationParityStanding, NoMutationReports, NoMutationResults,
-    PARITY_DECLARATION_SUBSTRATE, PARITY_RENDERING_SUBSTRATE, ParityQualificationRefusal,
-    ParityRefusal, RejectedNoMutationParity,
+    PARITY_DECLARATION_SUBSTRATE, PARITY_RENDERING_SUBSTRATE, ParityRefusal,
+    RejectedNoMutationParity,
 };
 use crate::descriptor::NamespacedName;
 use crate::muterprater::{
@@ -165,19 +165,14 @@ pub fn observe_no_mutation<'pair, 'input, Input, Meaning>(
 pub fn qualify_no_mutation<'pair, 'input, Input, Meaning>(
     reading: NoMutationParityReading<'pair, 'input, Input, Meaning>,
 ) -> NoMutationParityStanding<'pair, 'input, Input, Meaning> {
-    let cause = if lens_verdict(reading.production_report()).is_err() {
-        Some(ParityQualificationRefusal::ProductionDidNotQualify)
-    } else if lens_verdict(reading.evaluation_report()).is_err() {
-        Some(ParityQualificationRefusal::EvaluationDidNotQualify)
-    } else if reading.evaluation_firings() != 0 {
-        Some(ParityQualificationRefusal::NoMutationActivated {
-            firings: reading.evaluation_firings(),
-        })
-    } else if matches!(reading.conclusion(), TrialConclusion::Refused(_)) {
-        Some(ParityQualificationRefusal::MeaningsDisagreed)
-    } else {
-        None
-    };
+    let cause = super::qualify::first_refusal(
+        lens_verdict(reading.production_report()).map_err(|_| ()),
+        lens_verdict(reading.evaluation_report()).map_err(|_| ()),
+        reading.evaluation_firings(),
+        matches!(reading.conclusion(), TrialConclusion::Passed)
+            .then_some(())
+            .ok_or(()),
+    );
     match cause {
         Some(refusal) => {
             NoMutationParityStanding::Rejected(RejectedNoMutationParity::rejected(refusal, reading))

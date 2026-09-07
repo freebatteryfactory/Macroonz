@@ -66,7 +66,17 @@ use super::types::{
     SchemaField, SubjectRoute, SynthesisFacts, TrialCoordinates, generated_support_members,
     origin_declarations,
 };
-use crate::identity::{encode_bytes, encode_length};
+use crate::identity::{
+    ContentAddress, DomainTag, IdentityProfileVersion, encode_bytes, encode_length,
+};
+
+/// The domain a trial key is derived under.
+const TRIAL_KEY_DOMAIN: DomainTag =
+    DomainTag::declared("trial-key", IdentityProfileVersion::declared(1));
+
+pub(super) fn derive_trial_key(preimage: &[u8]) -> ContentAddress {
+    ContentAddress::derived(TRIAL_KEY_DOMAIN, preimage)
+}
 
 /// The version of the schema encoding itself.
 ///
@@ -317,11 +327,27 @@ impl<'classification> RowEncoding<'classification> {
 ///
 /// The execution suite is absent because two rows differing only by suite are one trial run under two seats, and nothing about where the row is written appears either, so the key survives a file move and a rename.
 pub(super) fn encode_trial_coordinates(coordinates: TrialCoordinates) -> Vec<u8> {
+    let parts = |name: NamespacedName| (name.namespace().written(), name.stem().written());
+    encode_trial_names(
+        parts(coordinates.claim().name()),
+        parts(coordinates.subject().name()),
+        parts(coordinates.check().name()),
+        parts(coordinates.population().name()),
+    )
+}
+
+/// Encode the four semantic roles of already admitted live or historical coordinates.
+pub(super) fn encode_trial_names(
+    claim: (&str, &str),
+    subject: (&str, &str),
+    check: (&str, &str),
+    population: (&str, &str),
+) -> Vec<u8> {
     let mut out = Vec::new();
-    coordinates.claim().name().encode_into(&mut out);
-    coordinates.subject().name().encode_into(&mut out);
-    coordinates.check().name().encode_into(&mut out);
-    coordinates.population().name().encode_into(&mut out);
+    encode_name(claim.0, claim.1, &mut out);
+    encode_name(subject.0, subject.1, &mut out);
+    encode_name(check.0, check.1, &mut out);
+    encode_name(population.0, population.1, &mut out);
     out
 }
 

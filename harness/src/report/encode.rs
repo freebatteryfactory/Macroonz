@@ -68,9 +68,14 @@ impl ReplayPosture {
 /// Nothing about where the trial is written appears in either member, which is the encoding half of the promise that a trial identity survives a move.
 #[must_use]
 pub fn trial_preimage(profiled: ProfiledTrial) -> Vec<u8> {
+    trial_claim_preimage(profiled.key().address().as_bytes(), profiled.profile())
+}
+
+/// Encode an admitted key's complete address under the report owner's profile coordinate.
+pub(crate) fn trial_claim_preimage(key: &[u8; 32], profile: TrialProfile) -> Vec<u8> {
     let mut bytes = Vec::new();
-    encode_bytes(profiled.key().address().as_bytes(), &mut bytes);
-    bytes.push(profiled.profile().slot());
+    encode_bytes(key, &mut bytes);
+    bytes.push(profile.slot());
     bytes
 }
 

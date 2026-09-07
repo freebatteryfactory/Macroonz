@@ -15,6 +15,14 @@ mod row;
 #[path = "guard_row.rs"]
 mod row_readers;
 
+#[path = "read_binding.rs"]
+mod binding;
+#[path = "guard_binding.rs"]
+mod binding_readers;
+
+pub use binding::read_binding;
+pub(crate) use binding::read_revision;
+
 pub use read::{read_candidate, retain_candidate};
 pub use row::{read_row, retain_row};
 
