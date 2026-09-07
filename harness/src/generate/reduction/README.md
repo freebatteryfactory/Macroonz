@@ -8,5 +8,8 @@ Owner-semantic candidates run before the generic byte search, and a finite probe
 The retained evidence keeps the reducers that actually ran, the work they offered, the reached input, the fingerprint it preserved, the stopping posture, and the replay ceiling earned across those participants.
 A replay capsule can be minted only from that completed evidence.
 
+The original report and the reached witness retain distinct roles: the report identifies the failure being reduced, while the witness contains the bytes the probe still refused.
+Fingerprint preservation does not make two different specimens the same execution.
+
 This home does not interpret input bytes, choose semantic candidates, execute a subject, or claim that the reached input is globally minimal.
 The exact plan fields, reducer contracts, refusal order, and evidence seats live with their public items.

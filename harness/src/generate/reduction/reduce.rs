@@ -7,9 +7,9 @@
 //! That pair is the realization of [`ByteReducerId::ChunkRemovalAndZeroing`](super::types::ByteReducerId::ChunkRemovalAndZeroing), the sole arm of a closed roster, which is why there is no dispatch here.
 
 use super::types::{
-    ByteReducerExecution, FingerprintProbe, ProbeOutcome, ReductionCensus, ReductionEvidence,
-    ReductionHalt, ReductionOutcome, ReductionPlan, ReductionProbeBinding, ReductionRefusal,
-    SemanticReducerExecution, ShrinkVerdict,
+    ByteReducerExecution, FingerprintProbe, ProbeOutcome, ReductionBaseline, ReductionCensus,
+    ReductionEvidence, ReductionHalt, ReductionOutcome, ReductionPlan, ReductionProbeBinding,
+    ReductionRefusal, SemanticReducerExecution, ShrinkVerdict,
 };
 use crate::report::{Fingerprint, ReplayCapsule, ReplayPosture};
 
@@ -98,7 +98,9 @@ pub fn shrink_verdict(
 
 /// Minimize one failing input under one report-bound probe while preserving its fingerprint.
 ///
-/// The first act is the baseline probe: the input handed in must still fail, and must fail under the fingerprint it was told to preserve.
+/// An input-bearing report first requires the starting bytes to name its original case under its input profile and byte budget.
+/// A unit-input report carries no case coordinate, so its compatibility road begins at the baseline probe.
+/// The probe must still reproduce the report's fingerprint before any candidate is offered.
 /// Every candidate afterwards is admitted by [`shrink_verdict`] and by nothing else, and every candidate is counted.
 ///
 /// Semantic reducers run first, in the plan's authored order, and the generic byte reducer follows when they leave probe budget.
@@ -111,30 +113,26 @@ pub fn shrink_verdict(
 ///
 /// # Errors
 ///
-/// Refuses an input that does not fail, then an input that fails under a different fingerprint than the report-derived one, then an invoked semantic reducer whose typed candidate sequence refuses.
+/// Refuses input-envelope admission or an original-case mismatch before invoking the baseline probe, then a baseline that does not fail or reproduces another fingerprint, then an invoked semantic reducer whose typed candidate sequence refuses.
 pub fn reduce(
     plan: &ReductionPlan,
     input: &[u8],
     binding: &ReductionProbeBinding,
 ) -> Result<ReductionEvidence, ReductionRefusal> {
-    let probe = binding.probe();
-    let preserved = binding.preserved();
-    let ProbeOutcome::Reproduced(baseline) = probe(input) else {
-        return Err(ReductionRefusal::BaselineDidNotFail);
-    };
-    if baseline != preserved {
-        return Err(ReductionRefusal::BaselineFingerprintDiffers { found: baseline });
-    }
+    let baseline = ReductionBaseline::admitted(input, binding)?;
+    let admitted_binding = baseline.binding();
+    let probe = admitted_binding.probe();
+    let preserved = admitted_binding.preserved();
 
     let mut state = Reduction {
-        best: input.to_vec(),
+        best: baseline.input().to_vec(),
         census: ReductionCensus::opening(),
         probes_left: plan.budget().probes(),
         preserved,
         probe,
     };
 
-    let semantic = semantic_phase(plan, &mut state, binding.replay_posture())?;
+    let semantic = semantic_phase(plan, &mut state, admitted_binding.replay_posture())?;
     let (halt, byte_reducer) = match semantic.budget {
         Budget::Spent => (
             ReductionHalt::BudgetExhausted,
@@ -148,7 +146,7 @@ pub fn reduce(
 
     let outcome = ReductionOutcome::reduced(state.best, preserved, state.census, halt);
     Ok(ReductionEvidence::recorded(
-        binding,
+        admitted_binding,
         plan.profile(),
         semantic.path,
         byte_reducer,

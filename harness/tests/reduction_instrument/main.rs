@@ -1,5 +1,7 @@
 //! Bound semantic and generic reducers retain their exact path, preservation evidence, and replay ceiling.
 
+mod input_lineage;
+
 use macroonz_harness::descriptor::{DerivedRevision, GeneratedSupportSchemaId, RevisionBinding};
 use macroonz_harness::generate::reduce::{capture_replay, reduce, shrink_verdict};
 use macroonz_harness::generate::types::{

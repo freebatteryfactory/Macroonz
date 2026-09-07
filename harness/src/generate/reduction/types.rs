@@ -3,6 +3,7 @@
 //! Construction and reading live in this module's own child `type_guard.rs`, which is where the private fields are reachable.
 
 use crate::descriptor::{GeneratedSupportSchemaId, NamespacedName, RevisionBinding};
+use crate::input::{InputCaseId, InputRefusal};
 use crate::report::{
     Fingerprint, GenerationProfile, MinimizationProfile, ReplayPosture, TrialRunStanding,
 };
@@ -133,6 +134,12 @@ pub struct ReductionProbeBinding {
     probe: FingerprintProbe,
 }
 
+/// A starting specimen joined to its report and reproduced by its bound probe.
+pub(super) struct ReductionBaseline<'input> {
+    input: &'input [u8],
+    binding: &'input ReductionProbeBinding,
+}
+
 /// Why one report could not open a reduction probe binding.
 #[must_use = "a refusal is the reason a reduction probe binding was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -258,12 +265,22 @@ pub struct ReductionEvidence {
     replay: ReplayPosture,
 }
 
-/// Why one reduction was refused before any candidate was offered.
-///
-/// The first two arms come from the baseline probe: a reduction that skipped it could shrink a passing input forever, or minimize a find into a bug it was never asked about.
+/// Why one reduction could not complete its search.
 #[must_use = "a refusal is the reason a reduction did not run"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReductionRefusal {
+    /// The starting specimen could not be admitted under the input-bearing report's byte budget.
+    BaselineInputRefused {
+        /// The input owner's admission refusal.
+        cause: InputRefusal,
+    },
+    /// The starting specimen names another case under the report's input profile.
+    BaselineCaseDiffers {
+        /// The original report's case.
+        expected: InputCaseId,
+        /// The case derived from the offered starting specimen.
+        found: InputCaseId,
+    },
     /// The input handed in does not fail at all, so there is no find to minimize.
     BaselineDidNotFail,
     /// The input handed in fails under a different fingerprint than the one it was told to preserve.

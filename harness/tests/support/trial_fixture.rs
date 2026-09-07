@@ -78,6 +78,16 @@ impl TrialFixture {
         call: fn(&Invocation) -> TrialConclusion,
         revision: RevisionBinding,
     ) -> Option<TrialReport> {
+        self.report_under(call, revision, &self.invocation())
+    }
+
+    /// Runs this fixture under the caller's supplied invocation.
+    pub(crate) fn report_under<Input>(
+        &self,
+        call: fn(&Invocation<Input>) -> TrialConclusion,
+        revision: RevisionBinding,
+        invocation: &Invocation<Input>,
+    ) -> Option<TrialReport> {
         let subject = self.row.subject();
         let check = self.row.check();
         let binding = Binding::bound(
@@ -86,7 +96,7 @@ impl TrialFixture {
             Provenance::Unproduced,
         )
         .ok()?;
-        Some(run_one(&binding, &self.invocation()))
+        Some(run_one(&binding, invocation))
     }
 
     /// Opens one reduction probe from a real report produced by this fixture.
@@ -103,7 +113,8 @@ impl TrialFixture {
         ReductionProbeBinding::bound(&report, generation, schema, probe_revision, probe).ok()
     }
 
-    fn invocation(&self) -> Invocation {
+    /// The shared invocation posture, ready to receive a lane-owned admitted input.
+    pub(crate) fn invocation(&self) -> Invocation {
         Invocation::declared(
             InvocationProfile::declared(
                 CaseBudget::declared(1),
