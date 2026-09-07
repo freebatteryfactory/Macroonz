@@ -3,9 +3,9 @@
 use super::{ArchiveLimits, ArchiveRefusal, ArchivedCapsule, CAPSULE_ARCHIVE_TAG, read_capsule};
 use crate::identity::{ContentAddress, encode_bytes};
 use crate::report::{
-    ExecutionInput, ExecutionKey, Fingerprint, GenerationProfile, MinimizationProfile,
-    ReplayCapsule, execution_key_preimage, fingerprint_preimage, input_execution_key_preimage,
-    replay_capsule_preimage,
+    ExecutionInput, ExecutionKey, FindingCause, Fingerprint, GenerationProfile,
+    MinimizationProfile, ReplayCapsule, execution_key_preimage, fingerprint_preimage,
+    input_execution_key_preimage, replay_capsule_preimage,
 };
 
 /// Retain an earned capsule as bounded historical data for caller-owned storage.
@@ -69,10 +69,7 @@ pub(crate) fn capsule_size(
     limits: ArchiveLimits,
 ) -> Result<usize, ArchiveRefusal> {
     let execution_size = execution_size(key, limits)?;
-    let cause = fingerprint.cause();
-    let family = bounded(cause.family().len(), limits)?;
-    let local = bounded(cause.local().len(), limits)?;
-    let fingerprint_size = bounded(sum(&[57, family, local])?, limits)?;
+    let fingerprint_size = fingerprint_size(fingerprint.cause(), limits)?;
     let input = bounded(input.len(), limits)?;
     let generation = bounded(generation.name().len(), limits)?;
     let minimization = bounded(minimization.name().len(), limits)?;
@@ -84,7 +81,16 @@ pub(crate) fn capsule_size(
     Ok(total)
 }
 
-pub(super) fn execution_size(
+pub(crate) fn fingerprint_size(
+    cause: FindingCause,
+    limits: ArchiveLimits,
+) -> Result<usize, ArchiveRefusal> {
+    let family = bounded(cause.family().len(), limits)?;
+    let local = bounded(cause.local().len(), limits)?;
+    bounded(sum(&[57, family, local])?, limits)
+}
+
+pub(crate) fn execution_size(
     key: &ExecutionKey,
     limits: ArchiveLimits,
 ) -> Result<usize, ArchiveRefusal> {
@@ -108,7 +114,7 @@ pub(super) fn execution_size(
     sum(&[9, key_size, metadata])
 }
 
-pub(super) fn write_execution(key: &ExecutionKey, body: &mut Vec<u8>) {
+pub(crate) fn write_execution(key: &ExecutionKey, body: &mut Vec<u8>) {
     let key_bytes = key.input().map_or_else(
         || {
             execution_key_preimage(

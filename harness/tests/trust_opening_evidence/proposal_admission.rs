@@ -1,5 +1,8 @@
 //! Outside claims over proposal offers, review custody, replay custody, admission, and proposal identity bytes.
 
+#[path = "proposal_archive.rs"]
+mod archive;
+
 use super::interpretation::interpreted_survivor;
 use super::support::{
     CompiledRosterMeaning, MutationRoadFailure, OWNER, REPLAY_SCHEMA_TAG, REVISION_TAG, check,

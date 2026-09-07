@@ -11,3 +11,5 @@ mod proposal_admission;
 mod proposal_input;
 mod specimen;
 mod support;
+#[path = "../support/archive_process.rs"]
+mod archive_process;

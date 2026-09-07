@@ -16,7 +16,9 @@
 pub use interpretation::interpret;
 #[path = "discovery/discover.rs"]
 pub mod discover;
+pub use proposal::archive as proposal_archive;
 pub use proposal::propose;
+pub use verdict::archive as verdict_archive;
 pub mod rewrite;
 pub mod specimen;
 pub use backend::wrap;

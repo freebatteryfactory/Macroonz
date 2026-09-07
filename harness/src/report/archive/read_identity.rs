@@ -28,7 +28,7 @@ pub(crate) fn frame<'body>(
     Ok(bytes)
 }
 
-pub(super) fn text<'body>(
+pub(crate) fn text<'body>(
     reader: &mut BodyReader<'body, ArchiveRefusal>,
     limits: ArchiveLimits,
 ) -> Result<&'body str, ArchiveRefusal> {
@@ -70,7 +70,7 @@ pub(super) fn profile(
     })
 }
 
-pub(super) fn execution(
+pub(crate) fn execution(
     bytes: &[u8],
     envelope: &mut BodyReader<'_, ArchiveRefusal>,
     limits: ArchiveLimits,
@@ -136,7 +136,7 @@ pub(super) fn input(
     })
 }
 
-pub(super) fn fingerprint(
+pub(crate) fn fingerprint(
     bytes: &[u8],
     limits: ArchiveLimits,
 ) -> Result<ArchivedFingerprint, ArchiveRefusal> {

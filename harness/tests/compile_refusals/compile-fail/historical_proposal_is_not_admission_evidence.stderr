@@ -1,0 +1,70 @@
+error[E0277]: the trait bound `ArchivedProposal: ProposalDocument` is not satisfied
+  --> tests/compile_refusals/compile-fail/historical_proposal_is_not_admission_evidence.rs:12:20
+   |
+12 |     needs_proposal(historical);
+   |     -------------- ^^^^^^^^^^ the trait `ProposalDocument` is not implemented for `ArchivedProposal`
+   |     |
+   |     required by a bound introduced by this call
+   |
+help: the following other types implement trait `ProposalDocument`
+  --> src/muterprater/proposal/guard_proposal.rs
+   |
+   | impl ProposalDocument for MutantKilledProposal {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `MutantKilledProposal`
+...
+   | impl ProposalDocument for ClaimPinnedProposal {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `ClaimPinnedProposal`
+...
+   | impl ProposalDocument for ObligationDischargedProposal {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `ObligationDischargedProposal`
+note: required by a bound in `needs_proposal`
+  --> tests/compile_refusals/compile-fail/historical_proposal_is_not_admission_evidence.rs:8:36
+   |
+ 8 | fn needs_proposal(_proposal: &impl ProposalDocument) {}
+   |                                    ^^^^^^^^^^^^^^^^ required by this bound in `needs_proposal`
+
+error[E0277]: the trait bound `ArchivedProposal: ReplayBearingProposal` is not satisfied
+  --> tests/compile_refusals/compile-fail/historical_proposal_is_not_admission_evidence.rs:13:18
+   |
+13 |     needs_replay(historical);
+   |     ------------ ^^^^^^^^^^ the trait `ReplayBearingProposal` is not implemented for `ArchivedProposal`
+   |     |
+   |     required by a bound introduced by this call
+   |
+help: the following other types implement trait `ReplayBearingProposal`
+  --> src/muterprater/proposal/guard_proposal.rs
+   |
+   | impl ReplayBearingProposal for MutantKilledProposal {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `MutantKilledProposal`
+...
+   | impl ReplayBearingProposal for ClaimPinnedProposal {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `ClaimPinnedProposal`
+note: required by a bound in `needs_replay`
+  --> tests/compile_refusals/compile-fail/historical_proposal_is_not_admission_evidence.rs:9:34
+   |
+ 9 | fn needs_replay(_proposal: &impl ReplayBearingProposal) {}
+   |                                  ^^^^^^^^^^^^^^^^^^^^^ required by this bound in `needs_replay`
+
+error[E0308]: mismatched types
+  --> tests/compile_refusals/compile-fail/historical_proposal_is_not_admission_evidence.rs:16:75
+   |
+16 | fn promote_target(historical: ArchivedMutationTarget) -> MutationTarget { historical }
+   |                                                          --------------   ^^^^^^^^^^ expected `MutationTarget`, found `ArchivedMutationTarget`
+   |                                                          |
+   |                                                          expected `MutationTarget` because of return type
+
+error[E0308]: mismatched types
+  --> tests/compile_refusals/compile-fail/historical_proposal_is_not_admission_evidence.rs:17:86
+   |
+17 | fn promote_activation(historical: ArchivedActivationReading) -> ActivationEvidence { historical }
+   |                                                                 ------------------   ^^^^^^^^^^ expected `ActivationEvidence`, found `ArchivedActivationReading`
+   |                                                                 |
+   |                                                                 expected `ActivationEvidence` because of return type
+
+error[E0308]: mismatched types
+  --> tests/compile_refusals/compile-fail/historical_proposal_is_not_admission_evidence.rs:18:68
+   |
+18 | fn promote_trial(historical: &ArchivedKillGround) -> TrialReport { historical.trial_report().clone() }
+   |                                                      -----------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `TrialReport`, found `ArchivedTrial`
+   |                                                      |
+   |                                                      expected `TrialReport` because of return type

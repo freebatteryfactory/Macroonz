@@ -9,6 +9,11 @@ mod read;
 pub use read::{read_candidate, retain_candidate};
 
 impl ArchivedName {
+    /// Append this historical name through the descriptor owner's canonical grammar.
+    pub(crate) fn encode_into(&self, into: &mut Vec<u8>) {
+        crate::descriptor::encode::encode_name(self.namespace(), self.stem(), into);
+    }
+
     /// Preserve caller-bounded name components without granting static-name authority.
     pub(crate) fn named(namespace: &str, stem: &str) -> Result<Self, NameRefusal> {
         if namespace.is_empty() {

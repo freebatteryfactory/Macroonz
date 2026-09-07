@@ -21,3 +21,6 @@ It establishes no new mutation activation or human admission.
 A proposal sink reports caller-owned review custody, and a replay depot reports caller-owned replay custody.
 
 Neither seam proves filesystem durability, creates canonical identity, or admits a proposal without the explicit human operation.
+
+The [archive](archive/) retains the three concrete offers as bounded historical data, preserving proposal identity separately from full evidence integrity.
+Its loaded records cannot reach the live proposal or human-admission seams.

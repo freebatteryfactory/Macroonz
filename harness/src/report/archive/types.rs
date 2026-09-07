@@ -13,7 +13,9 @@ mod guard;
 
 pub use guard::{read_capsule, read_run, read_trial};
 
-pub(crate) use guard::{claim, cursor, envelope, finish, frame, name, posture};
+pub(crate) use guard::{
+    claim, cursor, envelope, execution, fingerprint, finish, frame, name, posture, text,
+};
 
 /// The envelope domain for historical complete-run records.
 pub const RUN_ARCHIVE_TAG: DomainTag =

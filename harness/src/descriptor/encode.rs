@@ -383,9 +383,14 @@ impl NamespacedName {
     ///
     /// Seated with the type on purpose: five homes once restated these two lines, and one lawful edit to the spelling would have split the identity families of the homes that drifted from the homes that did not.
     pub fn encode_into(self, into: &mut Vec<u8>) {
-        encode_bytes(self.namespace().written().as_bytes(), into);
-        encode_bytes(self.stem().written().as_bytes(), into);
+        encode_name(self.namespace().written(), self.stem().written(), into);
     }
+}
+
+/// Append the components of an already admitted live or historical name.
+pub(super) fn encode_name(namespace: &str, stem: &str, into: &mut Vec<u8>) {
+    encode_bytes(namespace.as_bytes(), into);
+    encode_bytes(stem.as_bytes(), into);
 }
 
 /// Append one descriptor length after proving that its public encoding width can hold it.

@@ -1,6 +1,8 @@
 //! Report identities, source-site separation, and foreign material are observed from outside the crate.
 
 mod archive;
+#[path = "../support/archive_process.rs"]
+mod archive_process;
 
 use macroonz_harness::descriptor::{
     CheckRef, ClaimRef, Classification, DerivedRevision, ExecutionSuite, Origin, PopulationRef,

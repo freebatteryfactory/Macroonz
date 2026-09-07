@@ -38,7 +38,7 @@ pub(super) fn row_size(
     )
 }
 
-pub(super) fn encoded_size(
+pub(crate) fn encoded_size(
     report: &RunReport,
     limits: RunArchiveLimits,
 ) -> Result<usize, ArchiveRefusal> {

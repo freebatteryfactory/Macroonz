@@ -16,6 +16,8 @@ mod reduction_vector;
 mod reduction_hostile;
 mod candidates;
 mod candidate_vector;
+mod proposal_vector;
+mod proposals;
 
 use macroonz_harness::report::archive::{
     ArchiveLimits, ArchiveRefusal, read_capsule, retain_capsule,
