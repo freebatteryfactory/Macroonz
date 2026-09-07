@@ -71,13 +71,7 @@ pub(crate) fn name(
 ) -> Result<ArchivedName, ArchiveRefusal> {
     let namespace = text(reader, limits)?;
     let stem = text(reader, limits)?;
-    if namespace.is_empty() || stem.is_empty() {
-        return Err(ArchiveRefusal::InvalidText);
-    }
-    Ok(ArchivedName {
-        namespace: namespace.to_owned(),
-        stem: stem.to_owned(),
-    })
+    ArchivedName::named(namespace, stem).map_err(|_| ArchiveRefusal::InvalidText)
 }
 
 fn selection(slot: u8) -> Result<SelectionOutcome, ArchiveRefusal> {

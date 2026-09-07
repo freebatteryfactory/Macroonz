@@ -1,5 +1,7 @@
 //! Owned historical record vocabulary and bounded admission failures.
 
+pub use crate::descriptor::archive::ArchivedName;
+
 use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use crate::report::{
     FailureClass, InfrastructureFault, InvocationProfile, NotSelectedReason, ReplayPosture,
@@ -22,13 +24,6 @@ pub const RUN_ARCHIVE_TAG: DomainTag =
 pub struct RunArchiveLimits {
     bytes: ArchiveLimits,
     rows: usize,
-}
-
-/// An owned historical namespace and local spelling without a static-name mint.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ArchivedName {
-    namespace: String,
-    stem: String,
 }
 
 /// The historical table posture, retaining only the name the report actually holds.

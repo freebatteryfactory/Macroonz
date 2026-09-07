@@ -87,7 +87,7 @@ Selection slots are satisfied zero, unsatisfied by empty selection one, empty as
 Each row contains framed thirty-two-byte trial, row-revision, subject-revision and check-revision claims, then framed UTF-8 claim namespace and stem, then one disposition byte.
 Disposition zero is selected and adds the framed entire trial envelope, including its own integrity address.
 Disposition one is outside selection and two is suite not run, with no trial member.
-Required namespace and stem components are nonempty; historical names never become static descriptor names.
+Historical names use the [descriptor archive](../../descriptor/archive/)'s owned vocabulary and retain its name boundary.
 
 The reader refuses duplicate semantic trial claims, even if their row-revision claims differ.
 Selected trial, subject and check coordinates must match their census row.

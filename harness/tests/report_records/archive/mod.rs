@@ -14,6 +14,8 @@ mod replay_process;
 mod reductions;
 mod reduction_vector;
 mod reduction_hostile;
+mod candidates;
+mod candidate_vector;
 
 use macroonz_harness::report::archive::{
     ArchiveLimits, ArchiveRefusal, read_capsule, retain_capsule,

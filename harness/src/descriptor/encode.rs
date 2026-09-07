@@ -1,6 +1,7 @@
 //! The canonical bytes this home's preimage-bearing values commit to: one root schema declaration, one authored row, and one trial's coordinates.
 //!
-//! These bytes are preimages, never identities, and no reader is meant to parse meaning out of them.
+//! These bytes are preimages, never identities.
+//! The bounded [`archive`](super::archive) reader retains candidate row fields as historical data without creating a live row.
 //! They exist so that one value has exactly one byte string, and so that a change to any member of that value moves the identity derived from it.
 //! The encoding is a function of the value and of nothing else — no clock, no environment, no source text, no iteration order that is not the declared one.
 //! It is stated completely here, because an independent party re-deriving one of these identities writes its own encoder from this page and imports nothing.
@@ -75,7 +76,7 @@ const SCHEMA_ENCODING_VERSION: u32 = 1;
 /// The version of the row encoding itself.
 ///
 /// Its own constant rather than the schema encoding's: the two move for separate reasons, and a bump to one must rename nothing derived under the other.
-const ROW_ENCODING_VERSION: u32 = 2;
+pub(super) const ROW_ENCODING_VERSION: u32 = 2;
 
 impl AdmissionGround {
     /// The byte this ground is written as in a row's canonical preimage.

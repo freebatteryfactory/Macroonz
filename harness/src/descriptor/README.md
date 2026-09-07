@@ -93,6 +93,9 @@ Both spellings call the same engine, so a verdict cannot differ between them.
 
 ## What this home does not claim
 
+The [archive](archive/) retains bounded owned candidate descriptors for historical inspection, with no conversion into live rows or static names.
+Canonical material remains distinct from execution, mutation evidence and human admission.
+
 It imports no producer's types, so no producer's shape can quietly become the interface.
 It says nothing about what a trial concluded — a table that was never built ran nothing, and a verdict belongs to the record home.
 It reads no host fact: a target and a clock are declared at the invocation, because a cache key with a guessed toolchain in it is a lie with a digest.

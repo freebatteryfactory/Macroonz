@@ -27,20 +27,6 @@ impl RunArchiveLimits {
     }
 }
 
-impl ArchivedName {
-    /// The exact historical namespace.
-    #[must_use]
-    pub fn namespace(&self) -> &str {
-        &self.namespace
-    }
-
-    /// The exact historical local spelling.
-    #[must_use]
-    pub fn stem(&self) -> &str {
-        &self.stem
-    }
-}
-
 impl ArchivedAccounting {
     /// The semantic trial claim.
     #[must_use]
