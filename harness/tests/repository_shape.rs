@@ -208,6 +208,8 @@ fn assert_content_address_denominator(root: &Path) -> Result<(), std::io::Error>
             "descriptor/types.rs",
             "generate/generation/type_guard.rs",
             "generate/generation/types.rs",
+            "input/type_guard.rs",
+            "input/types.rs",
             "muterprater/backend/type_guard.rs",
             "muterprater/backend/type_guard.rs",
             "muterprater/backend/types.rs",

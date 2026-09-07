@@ -100,6 +100,7 @@ flowchart LR
 | `fault/` | Adversity the owner schedules: which fault, at which call. |
 | `clock/` | A clock the harness reads but never owns. Time is an input. |
 | `corpus/` | Warm starts from content-addressed seed packs. |
+| `input/` | Bounded specimen envelopes and typed admission under an independently expected profile and decoder revision. |
 | `fuzz/` | Thin safe-Rust composition over stable rustc coverage instrumentation and LLVM tools derived from that exact compiler: active informed readiness, root-independent coverage identity, deterministic neighboring inputs, novelty retention, safe isolated execution, and interesting-byte handoff into reduction and replay. |
 | `interleave/` | Deterministic exploration of how declared strands can merge, treating the schedule as generated input and retaining the exact order behind each reading. |
 | `network/` | A deterministic message-passing simulation over caller-declared topology, delivery, and fault facts, whose command-shaped deliveries can enter interleaving exploration. |
