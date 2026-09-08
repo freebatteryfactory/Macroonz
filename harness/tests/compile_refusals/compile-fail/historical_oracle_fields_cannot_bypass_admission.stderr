@@ -1,0 +1,45 @@
+error[E0451]: fields `encoded`, `address` and `verdict` of struct `ArchivedOracle` are private
+  --> tests/compile_refusals/compile-fail/historical_oracle_fields_cannot_bypass_admission.rs:12:9
+   |
+11 |     ArchivedOracle {
+   |     -------------- in this type
+12 |         encoded: vec![],
+   |         ^^^^^^^ private field
+13 |         address,
+   |         ^^^^^^^ private field
+14 |         verdict: ArchivedVerdict::VectorAgrees,
+   |         ^^^^^^^ private field
+
+error[E0451]: fields `expected`, `produced` and `difference` of struct `ArchivedVectorDisagreement` are private
+  --> tests/compile_refusals/compile-fail/historical_oracle_fields_cannot_bypass_admission.rs:20:9
+   |
+19 |     ArchivedVectorDisagreement {
+   |     -------------------------- in this type
+20 |         expected: vec![1],
+   |         ^^^^^^^^ private field
+21 |         produced: vec![1],
+   |         ^^^^^^^^ private field
+22 |         difference: ByteDifference::AtByte { at: 99 },
+   |         ^^^^^^^^^^ private field
+
+error[E0451]: fields `expected`, `produced` and `difference` of struct `VectorDisagreement` are private
+  --> tests/compile_refusals/compile-fail/historical_oracle_fields_cannot_bypass_admission.rs:28:9
+   |
+27 |     VectorDisagreement {
+   |     ------------------ in this type
+28 |         expected: vec![1],
+   |         ^^^^^^^^ private field
+29 |         produced: vec![1],
+   |         ^^^^^^^^ private field
+30 |         difference: ByteDifference::AtByte { at: 99 },
+   |         ^^^^^^^^^^ private field
+
+error[E0451]: fields `rederived` and `published` of struct `ArchivedTranscriptDisagreement` are private
+  --> tests/compile_refusals/compile-fail/historical_oracle_fields_cannot_bypass_admission.rs:36:9
+   |
+35 |     ArchivedTranscriptDisagreement {
+   |     ------------------------------ in this type
+36 |         rederived: claim,
+   |         ^^^^^^^^^ private field
+37 |         published: claim,
+   |         ^^^^^^^^^ private field

@@ -5,6 +5,8 @@
 //! Neither comparison subsumes the other and neither is a weaker version of the other.
 //! A verdict is method-specific, and reporting one as though it came from another is the collapse this home exists to refuse.
 
+pub mod archive;
+
 #[path = "compiled.rs"]
 pub mod compiled;
 pub mod parse;

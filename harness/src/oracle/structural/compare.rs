@@ -31,7 +31,7 @@ pub fn read(rendered: &str, declared: &DeclaredArtifact<'_>) -> StructuralVerdic
 /// Compare one reading against one declaration.
 ///
 /// The pure half of the lane: typed values on both sides, no text and no parser.
-/// It never states [`StructuralVerdict::Unparsable`], because a caller holding a reading is holding the proof a parse happened.
+/// It compares caller-supplied structural values and never invokes a parser or states [`StructuralVerdict::Unparsable`].
 pub fn compared(
     structure: &ArtifactStructure,
     declared: &DeclaredArtifact<'_>,

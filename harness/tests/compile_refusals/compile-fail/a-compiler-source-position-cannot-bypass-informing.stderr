@@ -1,4 +1,4 @@
-error[E0451]: fields `line` and `column` of struct `SourcePosition` are private
+error[E0451]: fields `line` and `column` of struct `macroonz_harness::oracle::SourcePosition` are private
  --> tests/compile_refusals/compile-fail/a-compiler-source-position-cannot-bypass-informing.rs:7:9
   |
 6 |     let _ = SourcePosition {

@@ -1,0 +1,53 @@
+error[E0277]: the trait bound `VectorVerdict: From<ArchivedVerdict>` is not satisfied
+  --> tests/compile_refusals/compile-fail/historical_oracle_has_no_current_judgment_conversion.rs:10:16
+   |
+10 |     historical.into()
+   |                ^^^^ the trait `From<ArchivedVerdict>` is not implemented for `VectorVerdict`
+   |
+   = note: required for `ArchivedVerdict` to implement `Into<VectorVerdict>`
+
+error[E0277]: the trait bound `TranscriptVerdict: From<ArchivedVerdict>` is not satisfied
+  --> tests/compile_refusals/compile-fail/historical_oracle_has_no_current_judgment_conversion.rs:14:16
+   |
+14 |     historical.into()
+   |                ^^^^ the trait `From<ArchivedVerdict>` is not implemented for `TranscriptVerdict`
+   |
+   = note: required for `ArchivedVerdict` to implement `Into<TranscriptVerdict>`
+
+error[E0277]: the trait bound `StructuralVerdict: From<ArchivedVerdict>` is not satisfied
+  --> tests/compile_refusals/compile-fail/historical_oracle_has_no_current_judgment_conversion.rs:18:16
+   |
+18 |     historical.into()
+   |                ^^^^ the trait `From<ArchivedVerdict>` is not implemented for `StructuralVerdict`
+   |
+   = note: required for `ArchivedVerdict` to implement `Into<StructuralVerdict>`
+
+error[E0277]: the trait bound `CompiledVerdict: From<ArchivedVerdict>` is not satisfied
+  --> tests/compile_refusals/compile-fail/historical_oracle_has_no_current_judgment_conversion.rs:22:16
+   |
+22 |     historical.into()
+   |                ^^^^ the trait `From<ArchivedVerdict>` is not implemented for `CompiledVerdict`
+   |
+   = note: required for `ArchivedVerdict` to implement `Into<CompiledVerdict>`
+
+error[E0277]: the trait bound `CompilationVerdict: From<ArchivedVerdict>` is not satisfied
+  --> tests/compile_refusals/compile-fail/historical_oracle_has_no_current_judgment_conversion.rs:26:16
+   |
+26 |     historical.into()
+   |                ^^^^ the trait `From<ArchivedVerdict>` is not implemented for `CompilationVerdict`
+   |
+   = note: required for `ArchivedVerdict` to implement `Into<CompilationVerdict>`
+
+error[E0277]: the trait bound `TrialConclusion: From<ArchivedOracle>` is not satisfied
+  --> tests/compile_refusals/compile-fail/historical_oracle_has_no_current_judgment_conversion.rs:30:16
+   |
+30 |     historical.into()
+   |                ^^^^ the trait `From<ArchivedOracle>` is not implemented for `TrialConclusion`
+   |
+   = note: required for `ArchivedOracle` to implement `Into<TrialConclusion>`
+
+error[E0599]: no method named `concluded` found for reference `&ArchivedVerdict` in the current scope
+  --> tests/compile_refusals/compile-fail/historical_oracle_has_no_current_judgment_conversion.rs:34:26
+   |
+34 |     historical.verdict().concluded(FindingLocation::at("declared.rs", 1))
+   |                          ^^^^^^^^^ method not found in `&ArchivedVerdict`

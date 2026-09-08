@@ -3,15 +3,51 @@
 //! The declaration and rendered artifact are authored independently, while hostile controls exercise the informed path and roster boundaries and the stable public operation mounts.
 
 use macroonz_harness::oracle::{
-    self, ConstantReading, DeclaredArtifact, DeclaredImplementation, DeclaredMember,
-    DeclaredMemberRoster, DeclaredMemberRosterRefusal, ORACLE_CAUSE_FAMILY, StructuralDisagreement,
-    StructuralPath, StructuralPathRefusal, StructuralPathRoot, StructuralPathSegment,
-    StructuralVerdict,
+    self, ArtifactStructure, ConstantReading, DeclaredArtifact, DeclaredImplementation,
+    DeclaredMember, DeclaredMemberRoster, DeclaredMemberRosterRefusal, ImplementationStructure,
+    ORACLE_CAUSE_FAMILY, StructuralDisagreement, StructuralPath, StructuralPathRefusal,
+    StructuralPathRoot, StructuralPathSegment, StructuralVerdict,
 };
 use macroonz_harness::report::{FailureClass, FindingCause, FindingLocation, TrialConclusion};
 use std::fmt;
 
 const RENDERED: &str = "#[cfg(any())]\nimpl crate::contract::Declared for ::outside::Subject {\n    const KIND: crate::value::Kind = crate::value::Kind::Ready;\n    const COUNT: u64 = 7;\n}\n";
+
+#[test]
+fn caller_constructed_structure_does_not_establish_parser_provenance()
+-> Result<(), StructuralRoadFailure> {
+    let target = StructuralPath::relative(&["not a Rust path"])?;
+    let members = DeclaredMemberRoster::declared(&[])?;
+    let implementations = [DeclaredImplementation {
+        target: &target,
+        trait_path: None,
+        postures: &[],
+        attributes: &[],
+        members,
+    }];
+    let declared = DeclaredArtifact {
+        implementations: &implementations,
+    };
+    let supplied = ArtifactStructure {
+        implementations: vec![ImplementationStructure {
+            target: target.clone(),
+            trait_path: None,
+            postures: vec![],
+            meaning_bearing_attributes: vec![],
+            members: vec![],
+        }],
+        other_items: 0,
+    };
+    assert_eq!(
+        oracle::structural::compared(&supplied, &declared),
+        StructuralVerdict::Conforms
+    );
+    assert_eq!(
+        oracle::structural::read("impl not a Rust path {}", &declared),
+        StructuralVerdict::Unparsable,
+    );
+    Ok(())
+}
 
 enum StructuralRoadFailure {
     Path(StructuralPathRefusal),
