@@ -64,9 +64,7 @@ pub fn retain_reduction(
 
 fn semantic(reducer: SemanticReducerExecution) -> Vec<u8> {
     let mut bytes = Vec::new();
-    let name = reducer.reducer().name();
-    encode_bytes(name.namespace().written().as_bytes(), &mut bytes);
-    encode_bytes(name.stem().written().as_bytes(), &mut bytes);
+    reducer.reducer().name().encode_into(&mut bytes);
     encode_bytes(reducer.revision().revision().as_bytes(), &mut bytes);
     bytes.push(
         ReplayPosture::ExactDerived

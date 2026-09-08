@@ -35,8 +35,7 @@ pub fn pack(
     }
     let mut body = Vec::new();
     body.extend_from_slice(&INPUT_FORMAT_VERSION.to_be_bytes());
-    encode_bytes(namespace, &mut body);
-    encode_bytes(stem, &mut body);
+    name.encode_into(&mut body);
     body.extend_from_slice(&profile.version().to_be_bytes());
     encode_bytes(profile.schema().as_bytes(), &mut body);
     encode_bytes(payload, &mut body);

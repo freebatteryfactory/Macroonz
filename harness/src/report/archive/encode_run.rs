@@ -6,7 +6,7 @@ use super::{
     ArchiveLimits, ArchiveRefusal, ArchivedRun, RUN_ARCHIVE_TAG, RunArchiveLimits, read_run,
     retain_trial,
 };
-use crate::descriptor::{NamespacedName, TablePosture};
+use crate::descriptor::TablePosture;
 use crate::identity::{ContentAddress, encode_bytes, encode_length};
 use crate::report::encode::{encode_context, encode_input};
 use crate::report::{
@@ -44,7 +44,7 @@ pub fn retain_run(
         TablePosture::Authored => body.push(0),
         TablePosture::Staged { parent } => {
             body.push(1);
-            name(parent.name(), &mut body);
+            parent.name().encode_into(&mut body);
         }
     }
     body.push(match report.selection() {
@@ -63,11 +63,6 @@ pub fn retain_run(
     read_run(&encoded, limits)
 }
 
-fn name(name: NamespacedName, body: &mut Vec<u8>) {
-    encode_bytes(name.namespace().written().as_bytes(), body);
-    encode_bytes(name.stem().written().as_bytes(), body);
-}
-
 fn accounting(row: &TrialAccounting, limits: ArchiveLimits) -> Result<Vec<u8>, ArchiveRefusal> {
     let mut body = Vec::with_capacity(row_size(row, limits)?);
     for address in [
@@ -78,7 +73,7 @@ fn accounting(row: &TrialAccounting, limits: ArchiveLimits) -> Result<Vec<u8>, A
     ] {
         encode_bytes(address.as_bytes(), &mut body);
     }
-    name(row.claim().name(), &mut body);
+    row.claim().name().encode_into(&mut body);
     match row.disposition() {
         SelectionDisposition::Selected(report) => {
             body.push(0);

@@ -138,8 +138,7 @@ pub(crate) fn write_execution(key: &ExecutionKey, body: &mut Vec<u8>) {
 
 pub(super) fn write_input_metadata(input: ExecutionInput, body: &mut Vec<u8>) {
     let profile = input.profile();
-    encode_bytes(profile.name().namespace().written().as_bytes(), body);
-    encode_bytes(profile.name().stem().written().as_bytes(), body);
+    profile.name().encode_into(body);
     body.extend_from_slice(&profile.version().to_be_bytes());
     encode_bytes(profile.schema().as_bytes(), body);
 }
