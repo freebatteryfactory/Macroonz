@@ -69,8 +69,8 @@ jobs:
       - name: Check every target and feature
         run: cargo +1.98.1 check --workspace --all-targets --all-features --locked
 
-      - name: Run the strict lint wall
-        run: cargo +1.98.1 clippy --workspace --all-targets --all-features --locked -- -D warnings
+      - name: Run the scoped lint wall
+        run: cargo +1.98.1 nextest run -j1 -p macroonz --no-default-features --test native_policy --locked --run-ignored only --no-tests fail -E 'test(=scoped_clippy_wall)'
 
       - name: Run the complete external test wall
         run: cargo +1.98.1 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast --no-tests fail
@@ -368,8 +368,8 @@ jobs:
       - name: Check every target and feature
         run: cargo +1.98.1 check --workspace --all-targets --all-features --locked
 
-      - name: Run the strict lint wall
-        run: cargo +1.98.1 clippy --workspace --all-targets --all-features --locked -- -D warnings
+      - name: Run the scoped lint wall
+        run: cargo +1.98.1 nextest run -j1 -p macroonz --no-default-features --test native_policy --locked --run-ignored only --no-tests fail -E 'test(=scoped_clippy_wall)'
 
       - name: Run the complete external test wall
         run: cargo +1.98.1 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast --no-tests fail
@@ -453,8 +453,8 @@ jobs:
       - name: Check every target and feature
         run: cargo +1.98.1 check --workspace --all-targets --all-features --locked
 
-      - name: Run the strict lint wall
-        run: cargo +1.98.1 clippy --workspace --all-targets --all-features --locked -- -D warnings
+      - name: Run the scoped lint wall
+        run: cargo +1.98.1 nextest run -j1 -p macroonz --no-default-features --test native_policy --locked --run-ignored only --no-tests fail -E 'test(=scoped_clippy_wall)'
 
       - name: Run the complete external test wall
         run: cargo +1.98.1 nextest run --profile ci -j1 --workspace --all-features --locked --no-fail-fast --no-tests fail

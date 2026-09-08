@@ -58,3 +58,6 @@ macro_rules! recipe {
 /// The independent test harness.
 #[cfg(feature = "harness")]
 pub use macroonz_harness as harness;
+
+#[cfg(feature = "native-tooling")]
+pub mod native_clock;

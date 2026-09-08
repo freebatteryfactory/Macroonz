@@ -7,6 +7,7 @@ It reports another evidence plane and never replaces the local enforcement surfa
 
 The primary Linux lane owns source-wide formatting, documentation, dependency-policy, and Wasm questions.
 Every native lane owns compilation, strict linting, external tests, doctests, explicit feature postures, and the stable-rustc coverage example.
+Its lint step invokes the [local wall's scoped Clippy target](../../CONTRIBUTING.md#local-wall), including the strict package and ordinary root selections, the derived native root profile, and independent refusal controls.
 Feature postures are checked package by package so an all-feature workspace build cannot hide a missing dependency in a lighter facade or compiler surface.
 The no-harness facade, recipe entrance, and mechanical carrier controls execute independently rather than borrowing the all-feature result.
 

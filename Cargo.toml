@@ -49,6 +49,7 @@ default = ["full"]
 harness = ["dep:macroonz-harness"]
 preemption = ["harness", "macroonz-harness/preemption"]
 full = ["harness", "preemption"]
+native-tooling = ["harness"]
 
 [dependencies]
 macroonz-compiler = { workspace = true, features = ["host"] }
@@ -74,6 +75,15 @@ required-features = ["harness"]
 name = "compile_contract"
 path = "examples/compile_contract.rs"
 required-features = ["harness"]
+
+[[test]]
+name = "native_clock"
+path = "tests/native_clock/main.rs"
+required-features = ["native-tooling"]
+
+[[test]]
+name = "native_policy"
+path = "tests/native_policy/main.rs"
 
 [lints]
 workspace = true

@@ -265,6 +265,10 @@ The `preemption` feature always implies `harness`.
 On a native target supported by the pinned Loom backend, enabling `preemption` installs that backend.
 On every other target, including Wasm, the same harness result plane remains available and reports typed backend unavailability instead of trying to compile Loom.
 
+The optional `native-tooling` feature adds the root [native clock source](src/native_clock/README.md) and implies `harness` without enabling preemption.
+It is independent of the default `full` posture.
+Pass `macroonz::native_clock::source()` to an existing harness runner or benchmark when native measurement is wanted; the harness retains its existing clock and measurement contracts.
+
 ---
 
 ## Working here
