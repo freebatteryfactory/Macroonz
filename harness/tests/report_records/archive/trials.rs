@@ -329,7 +329,7 @@ fn recomputed_integrity_cannot_hide_malformed_trials() -> Result<(), ()> {
         Err(ArchiveRefusal::TrailingBytes)
     );
     for (offset, value, refusal) in [
-        (0usize, 2u32, ArchiveRefusal::UnsupportedFormat { found: 2 }),
+        (0usize, 3u32, ArchiveRefusal::UnsupportedFormat { found: 3 }),
         (4, 1, ArchiveRefusal::WrongKind { found: 1 }),
         (8, 1, ArchiveRefusal::UnsupportedCustody { found: 1 }),
     ] {

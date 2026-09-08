@@ -4,6 +4,7 @@ use super::super::{
     ArchivedAttempt, ArchivedExecution, ArchivedFinding, ArchivedFingerprint, ArchivedForeignText,
     ArchivedMeasurement, ArchivedSite, ArchivedTrial, ArchivedTruncation,
 };
+use crate::clock::ClockAttribution;
 use crate::identity::ContentAddress;
 use crate::report::{ReplayPosture, TextFidelity};
 
@@ -120,5 +121,11 @@ impl ArchivedTrial {
     #[must_use]
     pub const fn measurement(&self) -> ArchivedMeasurement {
         self.measurement
+    }
+
+    /// The historical source classification, without current native-clock authority.
+    #[must_use]
+    pub const fn clock_attribution(&self) -> ClockAttribution {
+        self.clock_attribution
     }
 }

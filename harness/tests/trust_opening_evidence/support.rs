@@ -832,11 +832,18 @@ pub(super) fn qualified_no_mutation<'pair, 'input>(
     witness: MutationWitness<CompiledRosterMeaning>,
     input: &'input [u32; 3],
 ) -> Result<ParityStanding<'pair, 'input>, MutationRoadFailure> {
+    qualified_no_mutation_under(pair, witness, input, &invocation()?)
+}
+
+/// Observe and qualify the standard parity road under the supplied invocation.
+pub(super) fn qualified_no_mutation_under<'pair, 'input>(
+    pair: &'pair EvaluationPair<[u32; 3], CompiledRosterMeaning>,
+    witness: MutationWitness<CompiledRosterMeaning>,
+    input: &'input [u32; 3],
+    invocation: &Invocation,
+) -> Result<ParityStanding<'pair, 'input>, MutationRoadFailure> {
     Ok(qualify_no_mutation(observe_no_mutation(
-        pair,
-        witness,
-        input,
-        &invocation()?,
+        pair, witness, input, invocation,
     )?))
 }
 
@@ -858,13 +865,24 @@ pub(super) fn standard_projection<'parity, 'pair, 'input>(
     pair: &EvaluationPair<[u32; 3], CompiledRosterMeaning>,
     selection: ActiveSelection,
 ) -> Result<Projection<'parity, 'pair, 'input>, MutationRoadFailure> {
+    standard_projection_under(surface, qualification, pair, selection, &invocation()?)
+}
+
+/// Demonstrate the standard compiled projection under the supplied invocation.
+pub(super) fn standard_projection_under<'parity, 'pair, 'input>(
+    surface: &EvaluationSurface,
+    qualification: &'parity ParityQualification<'pair, 'input>,
+    pair: &EvaluationPair<[u32; 3], CompiledRosterMeaning>,
+    selection: ActiveSelection,
+    invocation: &Invocation,
+) -> Result<Projection<'parity, 'pair, 'input>, MutationRoadFailure> {
     let materializer = SpecimenMaterializerBinding::bound(pair, SPECIMEN_MATERIALIZER);
     Ok(demonstrate_compiled_projection(
         surface,
         qualification,
         &materializer,
         selection,
-        &invocation()?,
+        invocation,
         COMPILED_SPECIMEN_HOST,
     )?)
 }

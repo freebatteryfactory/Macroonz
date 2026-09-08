@@ -5,8 +5,9 @@ use super::support::{
     CompiledRosterMeaning, REVISION_TAG, SELECTED_OPERATION, SPECIMEN_HOST_CALLS,
     SPECIMEN_MATERIALIZER_CALLS, active_selection, compiled_suite_pressure, evaluation_counted,
     family, invocation, lock_specimen_tests, opened_trust, pair, qualification_of,
-    qualified_no_mutation, standard_projection, surface_with, witness,
+    qualified_no_mutation_under, standard_projection_under, surface_with, witness,
 };
+use macroonz_harness::clock::{ClockAttribution, HarnessClock};
 use macroonz_harness::descriptor::archive::BindingArchiveLimits;
 use macroonz_harness::descriptor::{NamespacedName, RevisionBinding};
 use macroonz_harness::identity::ContentAddress;
@@ -27,6 +28,7 @@ use macroonz_harness::muterprater::specimen_archive::{
 use macroonz_harness::muterprater::verdict_archive::{MutationRunArchiveLimits, retain_mutation};
 use macroonz_harness::report::ForeignText;
 use macroonz_harness::report::archive::{ArchiveLimits, ArchiveRefusal, retain_trial};
+use macroonz_harness::runner::Invocation;
 use std::error::Error;
 use std::io::Read as _;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -279,6 +281,16 @@ fn controls(evidence: &Evidence<'_, '_, '_, '_, '_, '_>) -> Result<[Vec<u8>; 2],
     reset(0, 0);
     let record = retain_interpreted(evidence, &input, &meaning, &LIMITS).map_err(failure)?;
     assert_eq!(ENCODER_CALLS.load(Ordering::SeqCst), 4);
+    let projection = record.trust().projection();
+    for report in [
+        projection.parity().production_report(),
+        projection.parity().evaluation_report(),
+        projection.baseline_report(),
+        projection.selected_report(),
+        record.report(),
+    ] {
+        assert_eq!(report.clock_attribution(), ClockAttribution::Synthetic);
+    }
     assert_eq!(record.meaning().bytes(), b"Unstated");
     assert_eq!(
         record.trust().projection().parity().production().bytes(),
@@ -337,16 +349,25 @@ fn actual_compiled_and_active_execution_retains_complete_evidence_once()
     let surface = surface_with(family, vec![SELECTED_OPERATION]).map_err(failure)?;
     let pair = pair(family, &surface, evaluation_counted).map_err(failure)?;
     let input = [1u32, 0, 0];
+    let base = invocation().map_err(failure)?;
+    let measured = Invocation::declared(
+        base.profile(),
+        base.target().clone(),
+        base.site(),
+        HarnessClock::reading_as(|| 0, ClockAttribution::Synthetic),
+    );
     let standing =
-        qualified_no_mutation(&pair, witness().map_err(failure)?, &input).map_err(failure)?;
+        qualified_no_mutation_under(&pair, witness().map_err(failure)?, &input, &measured)
+            .map_err(failure)?;
     let qualification = qualification_of(&standing).map_err(failure)?;
     SPECIMEN_MATERIALIZER_CALLS.store(0, Ordering::SeqCst);
     SPECIMEN_HOST_CALLS.store(0, Ordering::SeqCst);
-    let projection = standard_projection(
+    let projection = standard_projection_under(
         &surface,
         qualification,
         &pair,
         active_selection(&surface).map_err(failure)?,
+        &measured,
     )
     .map_err(failure)?;
     let suite = compiled_suite_pressure().map_err(failure)?;
@@ -357,7 +378,16 @@ fn actual_compiled_and_active_execution_retains_complete_evidence_once()
     ))
     .map_err(failure)?;
     CLAIM_MISMATCH_EVALUATION_CALLS.store(0, Ordering::SeqCst);
-    let evidence = execute_active(&trust, &invocation().map_err(failure)?).map_err(failure)?;
+    let evidence = execute_active(&trust, &measured).map_err(failure)?;
+    for report in [
+        qualification.reading().production_report(),
+        qualification.reading().evaluation_report(),
+        projection.baseline_report(),
+        projection.selected_report(),
+        evidence.report(),
+    ] {
+        assert_eq!(report.clock_attribution(), ClockAttribution::Synthetic);
+    }
     let records = controls(&evidence)?;
     assert_eq!(CLAIM_MISMATCH_EVALUATION_CALLS.load(Ordering::SeqCst), 1);
     assert_eq!(SPECIMEN_MATERIALIZER_CALLS.load(Ordering::SeqCst), 2);

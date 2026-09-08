@@ -90,3 +90,102 @@ fn unavailable_wall_readings_are_not_observed_zero() -> Result<(), BenchRoadFail
     )));
     Ok(())
 }
+
+#[test]
+fn source_attribution_keeps_preflight_and_secondary_independent_of_work()
+-> Result<(), BenchRoadFailure> {
+    use macroonz_harness::clock::{
+        ClockAttribution, ClockFailure, ClockReadRefusal, RecordedDuration,
+    };
+    let preflight = fixture::preflight_with_clock(
+        PreflightRef::named("harness.bench.consumer", "correctness-preflight")?,
+        fixture::preflight_passes,
+        fixture::target(),
+        HarnessClock::fallible_as(
+            || Err(ClockReadRefusal::Refused),
+            ClockAttribution::Monotonic,
+        ),
+    )?;
+    let binding = BenchBinding::bound(
+        fixture::lawful_row()?,
+        fixture::lawful_attachment(
+            fixture::measured,
+            fixture::planted_worse,
+            fixture::lawful_judge,
+        )?,
+        preflight,
+    )
+    .map_err(BenchStampRefusal::from)?;
+    let table = table_with(binding)?;
+    let baseline = run_all(
+        &table,
+        &fixture::invocation_with(HarnessClock::unavailable()),
+    )?;
+    let baseline_reading = first_reading(&baseline)?;
+    let BenchOutcome::Qualified {
+        measured,
+        planted_worse,
+        judgment,
+        secondary,
+        ..
+    } = baseline_reading.outcome()
+    else {
+        return Err(BenchRoadFailure::MissingReading);
+    };
+    for (clock, attribution, expected) in [
+        (
+            HarnessClock::unavailable(),
+            ClockAttribution::Unspecified,
+            MeasurementReading::Unavailable,
+        ),
+        (
+            HarnessClock::reading_as(zero_clock, ClockAttribution::Synthetic),
+            ClockAttribution::Synthetic,
+            MeasurementReading::Observed(RecordedDuration::recorded(0)),
+        ),
+        (
+            HarnessClock::fallible_as(
+                || Err(ClockReadRefusal::Refused),
+                ClockAttribution::Monotonic,
+            ),
+            ClockAttribution::Monotonic,
+            MeasurementReading::Failed(ClockFailure::OpeningRefused),
+        ),
+    ] {
+        let report = run_all(&table, &fixture::invocation_with(clock))?;
+        bench_verdict(&report)?;
+        let reading = first_reading(&report)?;
+        assert_eq!(
+            reading.preflight().clock_attribution(),
+            ClockAttribution::Monotonic
+        );
+        assert_eq!(
+            reading.preflight().measurement(),
+            MeasurementReading::Failed(ClockFailure::OpeningRefused)
+        );
+        let BenchOutcome::Qualified {
+            measured: found_work,
+            planted_worse: found_control,
+            judgment: found_judgment,
+            secondary: found_secondary,
+            ..
+        } = reading.outcome()
+        else {
+            return Err(BenchRoadFailure::MissingReading);
+        };
+        assert_eq!(found_work, measured);
+        assert_eq!(found_control, planted_worse);
+        assert_eq!(found_judgment, judgment);
+        assert_eq!(found_secondary.work(), secondary.work());
+        assert_eq!(found_secondary.judgment(), secondary.judgment());
+        assert_eq!(found_secondary.clock_attribution(), attribution);
+        assert_eq!(found_secondary.measurements().len(), 6);
+        assert!(
+            found_secondary
+                .measurements()
+                .iter()
+                .all(|value| *value == expected)
+        );
+    }
+    Ok(())
+}

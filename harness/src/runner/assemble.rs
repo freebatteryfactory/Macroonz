@@ -6,7 +6,7 @@
 use super::resolve::{execution_key, execution_revisions, row_revision, trial_identity};
 use super::select::admission;
 use super::types::{Admission, Invocation, SelectionPlan, TrialBinding, TrialTableView};
-use crate::clock::MeasurementReading;
+use crate::clock::{ClockAttribution, MeasurementReading};
 use crate::report::{
     RunAttempt, RunReport, SelectionDisposition, SelectionOutcome, TrialAccounting, TrialReport,
     TrialRunStanding, attachment_replay_posture,
@@ -18,6 +18,7 @@ pub(super) fn trial_report<Input>(
     invocation: &Invocation<Input>,
     attempt: RunAttempt,
     measurement: MeasurementReading,
+    clock_attribution: ClockAttribution,
 ) -> TrialReport {
     let attachment = binding.attachment();
     let mut replay = attachment_replay_posture(
@@ -28,7 +29,13 @@ pub(super) fn trial_report<Input>(
         replay = replay.meet_revision(input.posture());
     }
     let standing = TrialRunStanding::derived(execution_key(binding, invocation), replay);
-    TrialReport::recorded(standing, invocation.site(), attempt, measurement)
+    TrialReport::recorded(
+        standing,
+        invocation.site(),
+        attempt,
+        measurement,
+        clock_attribution,
+    )
 }
 
 /// Assemble one complete report through the selected-row adapter its caller supplies.

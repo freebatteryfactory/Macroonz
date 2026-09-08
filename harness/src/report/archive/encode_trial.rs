@@ -3,7 +3,7 @@
 use super::encode::write_execution;
 use super::size_trial::encoded_size;
 use super::{ArchiveLimits, ArchiveRefusal, ArchivedTrial, TRIAL_ARCHIVE_TAG, read_trial};
-use crate::clock::{ClockFailure, MeasurementReading};
+use crate::clock::{ClockAttribution, ClockFailure, MeasurementReading};
 use crate::identity::{ContentAddress, encode_bytes, encode_length};
 use crate::report::{
     ForeignText, InfrastructureFault, RunAttempt, SkipReason, TextFidelity, TrialConclusion,
@@ -21,7 +21,11 @@ pub fn retain_trial(
 ) -> Result<ArchivedTrial, ArchiveRefusal> {
     let total = encoded_size(report, limits)?;
     let mut body = Vec::with_capacity(total.saturating_sub(32));
-    body.extend_from_slice(&1u32.to_be_bytes());
+    let format = match report.clock_attribution() {
+        ClockAttribution::Unspecified => 1u32,
+        ClockAttribution::Synthetic | ClockAttribution::Monotonic => 2u32,
+    };
+    body.extend_from_slice(&format.to_be_bytes());
     body.extend_from_slice(&2u32.to_be_bytes());
     body.extend_from_slice(&0u32.to_be_bytes());
     write_execution(report.standing().key(), &mut body);
@@ -33,6 +37,11 @@ pub fn retain_trial(
     encode_bytes(site.name().as_bytes(), &mut body);
     attempt(report.trial(), report.attempt(), &mut body);
     measurement(report.measurement(), &mut body);
+    match report.clock_attribution() {
+        ClockAttribution::Unspecified => {}
+        ClockAttribution::Synthetic => body.push(1),
+        ClockAttribution::Monotonic => body.push(2),
+    }
     let mut encoded = Vec::with_capacity(total);
     encoded.extend_from_slice(ContentAddress::derived(TRIAL_ARCHIVE_TAG, &body).as_bytes());
     encoded.extend_from_slice(&body);

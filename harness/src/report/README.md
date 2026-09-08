@@ -64,6 +64,14 @@ It counts exercise rather than correctness, so a trial that ran and refused is e
 
 Neither reading observes the host or reconstructs facts absent from its input.
 
+## Secondary measurement
+
+Each trial keeps the clock owner's [declared source classification](../clock/README.md#composition-and-ceiling) alongside its reading.
+The in-process runner records the source it offers; an input-budget skip offers no source and leaves attribution unspecified.
+A host record supplies its own attribution, and the join never infers that fact from the invocation's clock.
+The existing host constructor leaves attribution unspecified.
+Neither the reading nor its source label enters execution identity, replay standing, semantic comparison or conclusion.
+
 ## Historical retention
 
 The [archive](archive/README.md) home retains bounded owned capsule, trial and complete-run data through the canonical identity preimages and complete census.

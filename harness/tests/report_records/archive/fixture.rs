@@ -1,7 +1,7 @@
 //! Actual typed execution and reduction provide the earned writer specimen.
 
 use arbitrary::Unstructured;
-use macroonz_harness::clock::{HarnessClock, MeasurementReading};
+use macroonz_harness::clock::{ClockAttribution, HarnessClock, MeasurementReading};
 use macroonz_harness::descriptor::{
     Binding, DerivedRevision, ExecutableAttachment, GeneratedSupportSchemaId, NamespacedName,
     Provenance, RevisionBinding, Row,
@@ -97,8 +97,21 @@ pub(super) fn host_report(
     attempt: RunAttempt,
     measurement: MeasurementReading,
 ) -> Result<TrialReport, ()> {
+    host_report_as(attempt, measurement, ClockAttribution::Unspecified)
+}
+
+pub(super) fn host_report_as(
+    attempt: RunAttempt,
+    measurement: MeasurementReading,
+    attribution: ClockAttribution,
+) -> Result<TrialReport, ()> {
     let binding = binding(|_| TrialConclusion::Passed)?;
-    let record = HostTrialRecord::recorded(trial_identity(binding.row()), attempt, measurement);
+    let record = HostTrialRecord::recorded_with_attribution(
+        trial_identity(binding.row()),
+        attempt,
+        measurement,
+        attribution,
+    );
     record_one(&binding, &invocation(), record).map_err(|_| ())
 }
 
@@ -124,6 +137,10 @@ pub(super) fn decoder() -> Result<InputBinding<Vec<u8>>, ()> {
 }
 
 pub(super) fn invocation() -> Invocation {
+    invocation_with(HarnessClock::unavailable())
+}
+
+pub(super) fn invocation_with(clock: HarnessClock) -> Invocation {
     Invocation::declared(
         InvocationProfile::declared(
             CaseBudget::declared(1),
@@ -135,7 +152,7 @@ pub(super) fn invocation() -> Invocation {
             ToolchainIdentity::declared("declared-fixture-toolchain"),
         ),
         TrialSite::located(module_path!(), file!(), line!(), "archive subject"),
-        HarnessClock::unavailable(),
+        clock,
     )
 }
 

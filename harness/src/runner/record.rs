@@ -27,8 +27,14 @@ pub fn record_one(
     if expected != recorded {
         return Err(ReportRecordingRefusal::TrialMismatch { expected, recorded });
     }
-    let (_, attempt, measurement) = record.into_parts();
-    Ok(trial_report(binding, invocation, attempt, measurement))
+    let (_, attempt, measurement, clock_attribution) = record.into_parts();
+    Ok(trial_report(
+        binding,
+        invocation,
+        attempt,
+        measurement,
+        clock_attribution,
+    ))
 }
 
 /// Record host observations over one selection and the complete table view they ran against.

@@ -80,10 +80,11 @@ impl<Input, Meaning> ObservationSeat<'_, '_, Input, Meaning> {
         record_one(
             self.witness.binding(),
             self.invocation,
-            HostTrialRecord::recorded(
+            HostTrialRecord::recorded_with_attribution(
                 trial_identity(self.witness.binding().row()),
                 RunAttempt::Executed(self.witness.conclude(&meaning)),
                 measurement.finish(),
+                self.invocation.clock().attribution(),
             ),
         )
         .map_err(ObservationRefusal::Report)

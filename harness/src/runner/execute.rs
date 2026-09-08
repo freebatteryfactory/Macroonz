@@ -6,7 +6,7 @@
 use super::assemble::{run_report, trial_report};
 use super::catch::caught_conclusion;
 use super::types::{Invocation, SelectionPlan, TrialBinding, TrialTableView};
-use crate::clock::MeasurementReading;
+use crate::clock::{ClockAttribution, MeasurementReading};
 use crate::report::{RunAttempt, RunReport, TrialReport};
 use core::convert::Infallible;
 
@@ -30,6 +30,7 @@ pub fn run_one<Input>(
             invocation,
             RunAttempt::SkippedWithReason(reason),
             MeasurementReading::Unavailable,
+            ClockAttribution::Unspecified,
         );
     }
     let measurement = invocation.clock().begin();
@@ -39,6 +40,7 @@ pub fn run_one<Input>(
         invocation,
         RunAttempt::Executed(conclusion),
         measurement.finish(),
+        invocation.clock().attribution(),
     )
 }
 

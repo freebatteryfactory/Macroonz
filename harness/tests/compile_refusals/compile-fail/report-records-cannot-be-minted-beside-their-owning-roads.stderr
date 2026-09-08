@@ -28,6 +28,7 @@ error[E0624]: associated function `recorded` is private
    | |         site: TrialSite,
    | |         attempt: RunAttempt,
    | |         measurement: MeasurementReading,
+   | |         clock_attribution: ClockAttribution,
    | |     ) -> Self {
    | |_____________- private associated function defined here
 

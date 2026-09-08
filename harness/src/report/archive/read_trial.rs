@@ -5,7 +5,8 @@ use super::super::{
     ArchivedFinding, ArchivedForeignText, ArchivedMeasurement, ArchivedSite, ArchivedTrial,
     ArchivedTruncation, TRIAL_ARCHIVE_TAG,
 };
-use super::identity::{envelope, execution, fingerprint, finish, frame, posture, text};
+use super::identity::{execution, fingerprint, finish, frame, posture, text, versioned_envelope};
+use crate::clock::ClockAttribution;
 use crate::identity::BodyReader;
 use crate::report::{FOREIGN_TEXT_MAX_BYTES, InfrastructureFault, SkipReason, TextFidelity};
 
@@ -16,7 +17,8 @@ use crate::report::{FOREIGN_TEXT_MAX_BYTES, InfrastructureFault, SkipReason, Tex
 /// Refuses malformed, oversized, unsupported or internally contradictory records.
 /// Admission establishes integrity and grants no current execution or writer authority.
 pub fn read_trial(encoded: &[u8], limits: ArchiveLimits) -> Result<ArchivedTrial, ArchiveRefusal> {
-    let (address, mut reader) = envelope(encoded, TRIAL_ARCHIVE_TAG, 2, limits)?;
+    let (address, mut reader, format) =
+        versioned_envelope(encoded, TRIAL_ARCHIVE_TAG, 2, &[1, 2], limits)?;
     let key_bytes = frame(&mut reader, limits)?;
     let key = execution(key_bytes, &mut reader, limits)?;
     let posture = posture(reader.byte()?)?;
@@ -39,6 +41,15 @@ pub fn read_trial(encoded: &[u8], limits: ArchiveLimits) -> Result<ArchivedTrial
         return Err(ArchiveRefusal::IdentityJoinMismatch);
     }
     let measurement = measurement(&mut reader)?;
+    let clock_attribution = if format == 1 {
+        ClockAttribution::Unspecified
+    } else {
+        match reader.byte()? {
+            1 => ClockAttribution::Synthetic,
+            2 => ClockAttribution::Monotonic,
+            _ => return Err(ArchiveRefusal::InvalidSlot),
+        }
+    };
     finish(&reader)?;
     Ok(ArchivedTrial {
         encoded: encoded.to_vec(),
@@ -48,6 +59,7 @@ pub fn read_trial(encoded: &[u8], limits: ArchiveLimits) -> Result<ArchivedTrial
         site,
         attempt,
         measurement,
+        clock_attribution,
     })
 }
 

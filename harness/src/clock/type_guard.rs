@@ -1,24 +1,39 @@
 //! Declaring a clock, admitting a tick, and reading a finished measurement.
 
 use super::{
-    ClockFailure, ClockReadRefusal, HarnessClock, MeasurementReading, MeasurementTick, Reader,
-    RecordedDuration, Source,
+    ClockAttribution, ClockFailure, ClockReadRefusal, HarnessClock, MeasurementReading,
+    MeasurementTick, Reader, RecordedDuration, Source,
 };
 
 impl HarnessClock {
     /// Declare an infallible caller function as the source.
     #[must_use]
     pub const fn reading(read: fn() -> u64) -> Self {
+        Self::reading_as(read, ClockAttribution::Unspecified)
+    }
+
+    /// Declare an infallible source with its caller-stated origin.
+    #[must_use]
+    pub const fn reading_as(read: fn() -> u64, attribution: ClockAttribution) -> Self {
         Self {
-            source: Source::Available(Reader::Infallible(read)),
+            source: Source::Available(Reader::Infallible(read), attribution),
         }
     }
 
     /// Declare a caller function that may refuse a read instead of unwinding.
     #[must_use]
     pub const fn fallible(read: fn() -> Result<u64, ClockReadRefusal>) -> Self {
+        Self::fallible_as(read, ClockAttribution::Unspecified)
+    }
+
+    /// Declare a fallible source with its caller-stated origin.
+    #[must_use]
+    pub const fn fallible_as(
+        read: fn() -> Result<u64, ClockReadRefusal>,
+        attribution: ClockAttribution,
+    ) -> Self {
         Self {
-            source: Source::Available(Reader::Fallible(read)),
+            source: Source::Available(Reader::Fallible(read), attribution),
         }
     }
 
@@ -27,6 +42,15 @@ impl HarnessClock {
     pub const fn unavailable() -> Self {
         Self {
             source: Source::Unavailable,
+        }
+    }
+
+    /// The declared origin, without evidence that the reader executed.
+    #[must_use]
+    pub const fn attribution(self) -> ClockAttribution {
+        match self.source {
+            Source::Unavailable => ClockAttribution::Unspecified,
+            Source::Available(_, attribution) => attribution,
         }
     }
 }

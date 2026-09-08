@@ -60,7 +60,7 @@ impl HarnessClock {
     pub fn begin(self) -> MeasurementStart {
         let opening = match self.source {
             Source::Unavailable => Opening::Unavailable,
-            Source::Available(reader) => match read_once(reader) {
+            Source::Available(reader, _) => match read_once(reader) {
                 ReadOutcome::Tick(tick) => Opening::Opened { reader, tick },
                 ReadOutcome::Refused => Opening::Failed(ClockFailure::OpeningRefused),
                 ReadOutcome::Unwound => Opening::Failed(ClockFailure::OpeningUnwound),

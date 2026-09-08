@@ -7,7 +7,7 @@ use super::super::declaration::{
     ComplexityClaimRef, DeclaredBudgets, PlantedWorseRef, WorkFormula, WorkObservationRef,
     WorkloadRef,
 };
-use crate::clock::MeasurementReading;
+use crate::clock::{ClockAttribution, MeasurementReading};
 use crate::descriptor::NameRefusal;
 use crate::report::FindingCause;
 
@@ -107,6 +107,7 @@ pub struct SecondaryObservation {
     work: WorkCurve,
     judgment: WorkJudgment,
     measurements: Vec<MeasurementReading>,
+    clock_attribution: ClockAttribution,
 }
 
 /// The counter a benchmark callable writes through, scoped to its binding's observations.

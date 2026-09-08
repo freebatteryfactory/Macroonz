@@ -168,6 +168,17 @@ pub(crate) fn envelope(
     expected_kind: u32,
     limits: ArchiveLimits,
 ) -> Result<(ContentAddress, BodyReader<'_, ArchiveRefusal>), ArchiveRefusal> {
+    let (address, reader, _) = versioned_envelope(encoded, tag, expected_kind, &[1], limits)?;
+    Ok((address, reader))
+}
+
+pub(super) fn versioned_envelope<'body>(
+    encoded: &'body [u8],
+    tag: DomainTag,
+    expected_kind: u32,
+    versions: &[u32],
+    limits: ArchiveLimits,
+) -> Result<(ContentAddress, BodyReader<'body, ArchiveRefusal>, u32), ArchiveRefusal> {
     if encoded.len() > limits.envelope() {
         return Err(ArchiveRefusal::EnvelopeTooLarge);
     }
@@ -180,7 +191,7 @@ pub(crate) fn envelope(
     )?;
     let mut reader = cursor(body);
     let format = reader.u32()?;
-    if format != 1 {
+    if !versions.contains(&format) {
         return Err(ArchiveRefusal::UnsupportedFormat { found: format });
     }
     let kind = reader.u32()?;
@@ -191,5 +202,5 @@ pub(crate) fn envelope(
     if custody != 0 {
         return Err(ArchiveRefusal::UnsupportedCustody { found: custody });
     }
-    Ok((address, reader))
+    Ok((address, reader, format))
 }

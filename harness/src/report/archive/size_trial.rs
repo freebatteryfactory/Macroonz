@@ -2,7 +2,7 @@
 
 use super::encode::{bounded, execution_size, fingerprint_size, sum};
 use super::{ArchiveLimits, ArchiveRefusal};
-use crate::clock::{ClockFailure, MeasurementReading};
+use crate::clock::{ClockAttribution, ClockFailure, MeasurementReading};
 use crate::report::{
     ForeignText, RunAttempt, TrialConclusion, TrialFinding, TrialReport, Truncation,
 };
@@ -31,7 +31,20 @@ pub(crate) fn encoded_size(
             | ClockFailure::ClosingUnwound,
         ) => 2,
     };
-    let total = sum(&[73, key, module, file, name, attempt, measurement])?;
+    let attribution = match report.clock_attribution() {
+        ClockAttribution::Unspecified => 0,
+        ClockAttribution::Synthetic | ClockAttribution::Monotonic => 1,
+    };
+    let total = sum(&[
+        73,
+        key,
+        module,
+        file,
+        name,
+        attempt,
+        measurement,
+        attribution,
+    ])?;
     if total > limits.envelope() {
         return Err(ArchiveRefusal::EnvelopeTooLarge);
     }

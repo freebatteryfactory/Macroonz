@@ -3,7 +3,7 @@
 //! Declarations only.
 //! The roads that reach a private field are in `type_guard.rs` and its subject files, the canonical preimages are in `encode.rs`, and the readings are their own pure-function files.
 
-use crate::clock::MeasurementReading;
+use crate::clock::{ClockAttribution, MeasurementReading};
 use crate::descriptor::{
     AuthoredTableName, ClaimRef, GeneratedSupportSchemaId, RevisionPosture, TablePosture, TrialKey,
 };
@@ -410,6 +410,7 @@ pub struct HostTrialRecord {
     trial: TrialId,
     attempt: RunAttempt,
     measurement: MeasurementReading,
+    clock_attribution: ClockAttribution,
 }
 
 /// The exact semantic and revision standing one admitted trial report ran under.
@@ -428,6 +429,7 @@ pub struct TrialReport {
     site: TrialSite,
     attempt: RunAttempt,
     measurement: MeasurementReading,
+    clock_attribution: ClockAttribution,
 }
 
 // One run's complete-table accounting.

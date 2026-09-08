@@ -9,7 +9,7 @@ use super::{
 use crate::bench::declaration::{
     ComplexityClaimRef, DeclaredBudgets, PlantedWorseRef, WorkFormula, WorkloadRef,
 };
-use crate::clock::MeasurementReading;
+use crate::clock::{ClockAttribution, MeasurementReading};
 use std::collections::BTreeMap;
 
 impl WorkJudgmentInput<'_> {
@@ -182,6 +182,7 @@ impl SecondaryObservation {
         work: WorkCurve,
         judgment: WorkJudgment,
         measurements: Vec<MeasurementReading>,
+        clock_attribution: ClockAttribution,
     ) -> Result<Self, SecondaryObservationRefusal> {
         judgment
             .qualification()
@@ -190,6 +191,7 @@ impl SecondaryObservation {
             work,
             judgment,
             measurements,
+            clock_attribution,
         })
     }
 
@@ -207,6 +209,12 @@ impl SecondaryObservation {
     /// The clock readings, in axis order and then sample order.
     pub fn measurements(&self) -> &[MeasurementReading] {
         &self.measurements
+    }
+
+    /// The declared source classification shared by the ordered measurements.
+    #[must_use]
+    pub const fn clock_attribution(&self) -> ClockAttribution {
+        self.clock_attribution
     }
 }
 

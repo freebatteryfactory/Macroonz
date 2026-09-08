@@ -32,13 +32,14 @@ Historical profile names retain their exact spelling without creating static des
 ## Trial envelope
 
 The trial envelope derives its leading address under `historical-trial-report/v1`.
-It uses format one, kind two and historical custody zero, followed by the same execution preimage and input metadata as the capsule envelope.
+It uses format one for unspecified clock attribution or format two for an explicitly attributed clock, with kind two and historical custody zero, followed by the same execution preimage and input metadata as the capsule envelope.
 The remaining fields occur in this order:
 
 - One replay-ceiling byte using `ReplayPosture::slot`.
 - Framed UTF-8 module path, framed UTF-8 file, `u32be` line and framed UTF-8 display name.
 - One attempt byte and its arm's members.
 - One measurement byte and its arm's members.
+- In format two only, one clock-attribution byte: synthetic one or monotonic two.
 
 Attempt zero is executed/pass and has no members.
 Attempt one is executed/refusal: framed canonical fingerprint preimage, framed UTF-8 refusal file, `u32be` refusal line and optional foreign material.
@@ -61,6 +62,10 @@ Clock failure slots are opening refused zero, closing refused one, opening unwou
 Regression additionally retains `u64be` opening and closing readings and requires closing to precede opening.
 No reader calls a clock or constructs a current measurement tick.
 Measurement is retained independently of the attempt and never upgrades its conclusion.
+Clock attribution carries the [clock owner's caller-declared classification](../../clock/README.md#composition-and-ceiling), not authenticated native execution.
+Format one retains no classification and always reads as unspecified.
+Format two refuses unspecified and unknown attribution slots, so a record without attribution has only the format-one representation.
+The writer preserves format-one bytes when attribution is unspecified, and every full-trial consumer retains the nested envelope without changing its own outer grammar.
 The envelope address covers retained bytes for integrity; adding a measurement or foreign-text field does not change the canonical execution key or failure fingerprint.
 
 The reader rejects undeclared trailing material and every unknown discriminant.

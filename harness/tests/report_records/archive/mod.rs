@@ -1,6 +1,7 @@
 //! Historical capsule integrity, authority separation and independent byte controls.
 
 mod fixture;
+mod clock_attribution;
 mod process;
 mod vector;
 mod trials;

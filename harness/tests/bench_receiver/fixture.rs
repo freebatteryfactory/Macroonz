@@ -275,10 +275,27 @@ pub(super) fn preflight_with(
     call: fn(&Invocation) -> TrialConclusion,
     preflight_target: TargetBinding,
 ) -> Result<PreflightTrial, BenchStampRefusal> {
+    preflight_with_clock(
+        reference,
+        call,
+        preflight_target,
+        HarnessClock::unavailable(),
+    )
+}
+
+pub(super) fn preflight_with_clock(
+    reference: PreflightRef,
+    call: fn(&Invocation) -> TrialConclusion,
+    preflight_target: TargetBinding,
+    clock: HarnessClock,
+) -> Result<PreflightTrial, BenchStampRefusal> {
+    let base = preflight_invocation(preflight_target);
+    let invocation =
+        Invocation::declared(base.profile(), base.target().clone(), base.site(), clock);
     Ok(PreflightTrial::bound(
         reference,
         trial_binding(call)?,
-        preflight_invocation(preflight_target),
+        invocation,
     ))
 }
 

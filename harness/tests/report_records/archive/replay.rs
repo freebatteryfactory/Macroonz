@@ -2,7 +2,9 @@
 
 use super::{LIMITS, fixture};
 use arbitrary::Unstructured;
-use macroonz_harness::clock::{ClockReadRefusal, HarnessClock, MeasurementReading};
+use macroonz_harness::clock::{
+    ClockAttribution, ClockReadRefusal, HarnessClock, MeasurementReading,
+};
 use macroonz_harness::descriptor::{DerivedRevision, RevisionBinding};
 use macroonz_harness::input::{BoundInput, InputBinding, InputLimits, InputRefusal, pack};
 use macroonz_harness::report::archive::{ArchivedCapsule, retain_capsule};
@@ -294,7 +296,7 @@ fn replay_budget_skips_before_clock_and_subject_without_disguising_a_pass() -> R
             ),
             base.target().clone(),
             base.site(),
-            HarnessClock::fallible(clock_refuses),
+            HarnessClock::fallible_as(clock_refuses, ClockAttribution::Synthetic),
         );
         let result = replay(
             &capsule,
@@ -312,6 +314,10 @@ fn replay_budget_skips_before_clock_and_subject_without_disguising_a_pass() -> R
         assert_eq!(
             result.report().measurement(),
             MeasurementReading::Unavailable
+        );
+        assert_eq!(
+            result.report().clock_attribution(),
+            ClockAttribution::Unspecified
         );
         assert_eq!(
             reading(&result)?.outcome(),
@@ -332,11 +338,11 @@ fn current_clock_failure_and_observed_zero_remain_separate_from_reproduction() -
     for (clock, expected) in [
         (HarnessClock::unavailable(), MeasurementReading::Unavailable),
         (
-            HarnessClock::reading(|| 7),
+            HarnessClock::reading_as(|| 7, ClockAttribution::Synthetic),
             MeasurementReading::Observed(macroonz_harness::clock::RecordedDuration::recorded(0)),
         ),
         (
-            HarnessClock::fallible(clock_refuses),
+            HarnessClock::fallible_as(clock_refuses, ClockAttribution::Monotonic),
             MeasurementReading::Failed(macroonz_harness::clock::ClockFailure::OpeningRefused),
         ),
     ] {
@@ -356,6 +362,7 @@ fn current_clock_failure_and_observed_zero_remain_separate_from_reproduction() -
         )
         .map_err(|_| ())?;
         assert_eq!(result.report().measurement(), expected);
+        assert_eq!(result.report().clock_attribution(), clock.attribution());
         assert_eq!(reading(&result)?.outcome(), ReplayOutcome::DefectReproduced);
         assert_eq!(observations().0, 1);
         assert_eq!(observations().1, vec![vec![1]]);

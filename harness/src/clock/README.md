@@ -26,6 +26,11 @@ Those properties remain the caller's evidence.
 
 ## Composition and ceiling
 
+`ClockAttribution` records the caller's source classification independently of the reading.
+Unspecified, synthetic and monotonic are declared origins; a label neither authenticates a source nor proves that its reader executed.
+The ordinary constructors leave attribution unspecified, while `reading_as` and `fallible_as` carry an explicit classification through the same source boundary.
+An unavailable source has unspecified attribution.
+
 Runner, benchmark, and mutation operations may record the reading beside their own evidence.
 The reading never enters an identity, selection, conclusion, budget decision, mutation classification, or owner judgment.
 

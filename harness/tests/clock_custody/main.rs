@@ -1,7 +1,7 @@
 //! The public one-shot measurement road retains its declared source across both reads.
 
 use macroonz_harness::clock::{
-    HarnessClock, MeasurementReading, MeasurementStart, RecordedDuration,
+    ClockAttribution, HarnessClock, MeasurementReading, MeasurementStart, RecordedDuration,
 };
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -24,7 +24,7 @@ fn one_start_finishes_against_its_retained_source_only() {
     RETAINED_READS.store(0u64, Ordering::SeqCst);
     FOREIGN_READS.store(0u64, Ordering::SeqCst);
 
-    let start = HarnessClock::reading(retained_source).begin();
+    let start = HarnessClock::reading_as(retained_source, ClockAttribution::Synthetic).begin();
     let _unrelated = HarnessClock::reading(foreign_source);
     let reading = FINISH(start);
 

@@ -2,6 +2,7 @@
 
 pub use crate::descriptor::archive::ArchivedName;
 
+use crate::clock::ClockAttribution;
 use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use crate::report::{
     FailureClass, InfrastructureFault, InvocationProfile, NotSelectedReason, ReplayPosture,
@@ -194,6 +195,7 @@ pub struct ArchivedTrial {
     site: ArchivedSite,
     attempt: ArchivedAttempt,
     measurement: ArchivedMeasurement,
+    clock_attribution: ClockAttribution,
 }
 
 /// Independent byte ceilings for the complete envelope and each framed member.

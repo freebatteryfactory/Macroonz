@@ -119,10 +119,11 @@ pub fn observe_no_mutation<'pair, 'input, Input, Meaning>(
     let production_report = record_one(
         witness.binding(),
         invocation,
-        HostTrialRecord::recorded(
+        HostTrialRecord::recorded_with_attribution(
             trial,
             RunAttempt::Executed(production_conclusion),
             production_measurement.finish(),
+            invocation.clock().attribution(),
         ),
     )
     .map_err(NoMutationObservationRefusal::ProductionReport)?;
@@ -137,10 +138,11 @@ pub fn observe_no_mutation<'pair, 'input, Input, Meaning>(
     let evaluation_report = record_one(
         witness.binding(),
         invocation,
-        HostTrialRecord::recorded(
+        HostTrialRecord::recorded_with_attribution(
             trial,
             RunAttempt::Executed(evaluation_conclusion),
             evaluation_measurement.finish(),
+            invocation.clock().attribution(),
         ),
     )
     .map_err(NoMutationObservationRefusal::EvaluationReport)?;
@@ -283,10 +285,11 @@ pub fn execute_active<'surface, 'suite, 'projection, 'parity, 'pair, 'input, Inp
     let report = record_one(
         witness.binding(),
         invocation,
-        HostTrialRecord::recorded(
+        HostTrialRecord::recorded_with_attribution(
             trial,
             RunAttempt::Executed(conclusion.clone()),
             measurement.finish(),
+            invocation.clock().attribution(),
         ),
     )
     .map_err(InterpretedExecutionRefusal::Report)?;
