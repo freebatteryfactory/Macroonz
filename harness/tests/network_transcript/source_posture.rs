@@ -20,7 +20,7 @@ fn a_live_record_is_replayable_but_not_reproducible() -> Result<(), LaneFailure>
     )?;
     assert_eq!(pack.source_claim(), TranscriptSourceClaim::RecordedLive);
     assert!(pack.simulation_manifest().is_none());
-    let reread = read_recorded_live(&topology, pack.encoded())?;
+    let reread = read_recorded_live(&topology, pack.encoded(), READ_LIMITS)?;
     assert_eq!(reread, pack);
     assert_eq!(
         reproduce(&reread).err(),
@@ -41,7 +41,7 @@ fn readers_do_not_upgrade_or_relabel_source_material() -> Result<(), LaneFailure
     let topology = pair_topology()?;
     let (_rows, schedule, simulated_pack, _standing) = packed_run(0usize)?;
     assert_eq!(
-        read_recorded_live(&topology, simulated_pack.encoded()).err(),
+        read_recorded_live(&topology, simulated_pack.encoded(), READ_LIMITS).err(),
         Some(TranscriptRefusal::SourceClaimMismatch {
             expected: TranscriptSourceClaim::RecordedLive,
             found: TranscriptSourceClaim::Simulated,
@@ -49,7 +49,7 @@ fn readers_do_not_upgrade_or_relabel_source_material() -> Result<(), LaneFailure
     );
     let live = recorded_live(&topology, vec![live_entry(b"live", 0u32, 1u64)?])?;
     assert_eq!(
-        read_simulated(&topology, &schedule, live.encoded()).err(),
+        read_simulated(&topology, &schedule, live.encoded(), READ_LIMITS).err(),
         Some(TranscriptRefusal::SourceClaimMismatch {
             expected: TranscriptSourceClaim::Simulated,
             found: TranscriptSourceClaim::RecordedLive,
@@ -57,7 +57,7 @@ fn readers_do_not_upgrade_or_relabel_source_material() -> Result<(), LaneFailure
     );
     let other = NetworkSchedule::declared(name("other")?, Vec::new())?;
     assert_eq!(
-        read_simulated(&topology, &other, simulated_pack.encoded()).err(),
+        read_simulated(&topology, &other, simulated_pack.encoded(), READ_LIMITS).err(),
         Some(TranscriptRefusal::ScheduleMismatch)
     );
     Ok(())
@@ -79,7 +79,7 @@ fn addressed_bytes_do_not_impersonate_reproduction() -> Result<(), LaneFailure> 
     let byte = altered.get_mut(last).ok_or(LaneFailure::Standing)?;
     *byte = b'x';
     readdress(&mut altered)?;
-    let decoded = read_simulated(&topology, &schedule, &altered)?;
+    let decoded = read_simulated(&topology, &schedule, &altered, READ_LIMITS)?;
     assert_eq!(
         reproduce(&decoded).err(),
         Some(TranscriptRefusal::SimulationRowsDiverge { at: 1usize })

@@ -6,6 +6,7 @@ use super::super::simulation::{
     DeliveryCopy, Link, NetworkSchedule, SendOrdinal, SendRefusal, SimNetRefusal, Tick, Topology,
 };
 use crate::identity::{DomainTag, IdentityProfileVersion};
+use crate::report::archive::ArchiveLimits;
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -116,10 +117,26 @@ pub struct TranscriptPack {
     encoded: Vec<u8>,
 }
 
+/// Independent byte, simulation-action and delivery-row ceilings for transcript reading.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TranscriptLimits {
+    bytes: ArchiveLimits,
+    actions: usize,
+    entries: usize,
+}
+
 /// Why one transcript was not written, or not read.
 #[must_use = "a refusal is the reason a transcript was not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TranscriptRefusal {
+    /// The complete envelope exceeds its independently supplied byte ceiling.
+    EnvelopeTooLarge,
+    /// A framed name or payload exceeds its independently supplied byte ceiling.
+    FieldTooLarge,
+    /// The simulation action roster exceeds its independently supplied count ceiling.
+    TooManyActions,
+    /// The delivery roster exceeds its independently supplied count ceiling.
+    TooManyEntries,
     /// The transcript holds no delivery, and an empty transcript replays nothing.
     NoDelivery,
     /// An entry travels a link the topology never declared.

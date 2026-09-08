@@ -9,6 +9,6 @@ pub use super::simulation::{
 pub use super::transcript::{
     Replay, ReplayExhaustion, ReplayIncomplete, ReproducedReplay, ReproducedReplayRefusal,
     SimulationAction, SimulationManifest, SimulationReproduction, TRANSCRIPT_FORMAT_VERSION,
-    TRANSCRIPT_TAG, TranscriptAddress, TranscriptEntry, TranscriptPack, TranscriptRefusal,
-    TranscriptSourceClaim,
+    TRANSCRIPT_TAG, TranscriptAddress, TranscriptEntry, TranscriptLimits, TranscriptPack,
+    TranscriptRefusal, TranscriptSourceClaim,
 };

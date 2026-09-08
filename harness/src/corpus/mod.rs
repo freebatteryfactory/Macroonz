@@ -9,6 +9,6 @@ pub use decode::read;
 pub use encode::pack;
 pub use types::{
     SEED_PACK_FORMAT_VERSION, SEED_PACK_TAG, SeedInput, SeedInputRefusal, SeedPack,
-    SeedPackAddress, SeedPackRefusal,
+    SeedPackAddress, SeedPackLimits, SeedPackRefusal,
 };
 pub use warm_start::warm_start;

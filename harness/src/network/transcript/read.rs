@@ -4,14 +4,15 @@ use super::admit::lawful_entries;
 use super::encode::{copy_of, source_of};
 use super::{
     SimulationAction, SimulationManifest, TRANSCRIPT_FORMAT_VERSION, TRANSCRIPT_TAG,
-    TranscriptAddress, TranscriptEntry, TranscriptMaterial, TranscriptPack, TranscriptRefusal,
-    TranscriptSourceClaim,
+    TranscriptAddress, TranscriptEntry, TranscriptLimits, TranscriptMaterial, TranscriptPack,
+    TranscriptRefusal, TranscriptSourceClaim,
 };
 use crate::descriptor::NamespacedName;
 use crate::identity::{BodyReader as IdentityBodyReader, addressed_body};
 use crate::network::simulation::{
     Link, LinkDiscipline, LinkFault, NetworkSchedule, NodeRef, SendOrdinal, Tick, Topology,
 };
+use crate::report::archive::ArchiveLimits;
 
 type BodyReader<'body> = IdentityBodyReader<'body, TranscriptRefusal>;
 
@@ -21,12 +22,19 @@ type BodyReader<'body> = IdentityBodyReader<'body, TranscriptRefusal>;
 ///
 /// # Errors
 ///
-/// Refuses every malformed envelope in reading order and a body whose source claim is not live-recorded.
+/// Refuses the envelope ceiling before hashing, then malformed framing, member or delivery-count ceilings and a body whose source claim is not live-recorded.
 pub fn read_recorded_live(
     expected: &Topology,
     encoded: &[u8],
+    limits: TranscriptLimits,
 ) -> Result<TranscriptPack, TranscriptRefusal> {
-    read_as(expected, None, TranscriptSourceClaim::RecordedLive, encoded)
+    read_as(
+        expected,
+        None,
+        TranscriptSourceClaim::RecordedLive,
+        encoded,
+        limits,
+    )
 }
 
 /// Read one simulated transcript envelope for the topology and selected schedule the caller expects.
@@ -36,17 +44,19 @@ pub fn read_recorded_live(
 ///
 /// # Errors
 ///
-/// Refuses every malformed envelope in reading order, a body whose source claim is not simulated, or a schedule different from the owner-built expected value.
+/// Refuses the envelope ceiling before hashing, then malformed framing, member, action or delivery-count ceilings, a different source posture or a schedule different from the independently supplied value.
 pub fn read_simulated(
     expected: &Topology,
     schedule: &NetworkSchedule,
     encoded: &[u8],
+    limits: TranscriptLimits,
 ) -> Result<TranscriptPack, TranscriptRefusal> {
     read_as(
         expected,
         Some(schedule),
         TranscriptSourceClaim::Simulated,
         encoded,
+        limits,
     )
 }
 
@@ -56,7 +66,11 @@ fn read_as(
     schedule: Option<&NetworkSchedule>,
     source: TranscriptSourceClaim,
     encoded: &[u8],
+    limits: TranscriptLimits,
 ) -> Result<TranscriptPack, TranscriptRefusal> {
+    if encoded.len() > limits.bytes().envelope() {
+        return Err(TranscriptRefusal::EnvelopeTooLarge);
+    }
     let (address, body) = addressed_body(
         encoded,
         TRANSCRIPT_TAG,
@@ -64,7 +78,7 @@ fn read_as(
         TranscriptRefusal::Truncated,
         |derived| TranscriptRefusal::AddressMismatch { derived },
     )?;
-    let (material, entries) = read_body(expected, schedule, source, body)?;
+    let (material, entries) = read_body(expected, schedule, source, body, limits)?;
     lawful_entries(expected, &entries)?;
     Ok(TranscriptPack::assembled(
         expected.clone(),
@@ -81,6 +95,7 @@ fn read_body(
     expected_schedule: Option<&NetworkSchedule>,
     expected_source: TranscriptSourceClaim,
     body: &[u8],
+    limits: TranscriptLimits,
 ) -> Result<(TranscriptMaterial, Vec<TranscriptEntry>), TranscriptRefusal> {
     let mut reader = BodyReader::over(body, TranscriptRefusal::Truncated, |declared| {
         TranscriptRefusal::LengthOutsidePlatform { declared }
@@ -96,9 +111,9 @@ fn read_body(
             found: source,
         });
     }
-    read_topology(expected, &mut reader)?;
-    let material = read_material(source, expected, expected_schedule, &mut reader)?;
-    let entries = read_entries(expected, &mut reader)?;
+    read_topology(expected, &mut reader, limits.bytes())?;
+    let material = read_material(source, expected, expected_schedule, &mut reader, limits)?;
+    let entries = read_entries(expected, &mut reader, limits)?;
     let trailing = reader.remaining();
     if trailing != 0usize {
         return Err(TranscriptRefusal::TrailingBytes { count: trailing });
@@ -112,6 +127,7 @@ fn read_material(
     expected: &Topology,
     expected_schedule: Option<&NetworkSchedule>,
     reader: &mut BodyReader<'_>,
+    limits: TranscriptLimits,
 ) -> Result<TranscriptMaterial, TranscriptRefusal> {
     match source {
         TranscriptSourceClaim::RecordedLive => Ok(TranscriptMaterial::RecordedLive),
@@ -119,8 +135,8 @@ fn read_material(
             let Some(schedule) = expected_schedule else {
                 return Err(TranscriptRefusal::ScheduleMismatch);
             };
-            read_schedule(schedule, reader)?;
-            let actions = read_actions(expected, reader)?;
+            read_schedule(schedule, reader, limits.bytes())?;
+            let actions = read_actions(expected, reader, limits)?;
             Ok(TranscriptMaterial::Simulated(SimulationManifest::captured(
                 schedule.clone(),
                 actions,
@@ -133,20 +149,26 @@ fn read_material(
 fn read_topology(
     expected: &Topology,
     reader: &mut BodyReader<'_>,
+    limits: ArchiveLimits,
 ) -> Result<(), TranscriptRefusal> {
     let nodes = reader.count()?;
     if nodes != expected.nodes().len() {
         return Err(TranscriptRefusal::TopologyMismatch);
     }
     for node in expected.nodes() {
-        read_expected_name(node.name(), reader, TranscriptRefusal::TopologyMismatch)?;
+        read_expected_name(
+            node.name(),
+            reader,
+            TranscriptRefusal::TopologyMismatch,
+            limits,
+        )?;
     }
     let links = reader.count()?;
     if links != expected.links().len() {
         return Err(TranscriptRefusal::TopologyMismatch);
     }
     for link in expected.links() {
-        read_expected_link(*link, reader, TranscriptRefusal::TopologyMismatch)?;
+        read_expected_link(*link, reader, TranscriptRefusal::TopologyMismatch, limits)?;
     }
     Ok(())
 }
@@ -155,14 +177,20 @@ fn read_topology(
 fn read_schedule(
     expected: &NetworkSchedule,
     reader: &mut BodyReader<'_>,
+    limits: ArchiveLimits,
 ) -> Result<(), TranscriptRefusal> {
-    read_expected_name(expected.name(), reader, TranscriptRefusal::ScheduleMismatch)?;
+    read_expected_name(
+        expected.name(),
+        reader,
+        TranscriptRefusal::ScheduleMismatch,
+        limits,
+    )?;
     let count = reader.count()?;
     if count != expected.disciplines().len() {
         return Err(TranscriptRefusal::ScheduleMismatch);
     }
     for discipline in expected.disciplines() {
-        read_discipline(discipline, reader)?;
+        read_discipline(discipline, reader, limits)?;
     }
     Ok(())
 }
@@ -171,8 +199,14 @@ fn read_schedule(
 fn read_discipline(
     expected: &LinkDiscipline,
     reader: &mut BodyReader<'_>,
+    limits: ArchiveLimits,
 ) -> Result<(), TranscriptRefusal> {
-    read_expected_link(expected.link(), reader, TranscriptRefusal::ScheduleMismatch)?;
+    read_expected_link(
+        expected.link(),
+        reader,
+        TranscriptRefusal::ScheduleMismatch,
+        limits,
+    )?;
     let count = reader.count()?;
     if count != expected.faults().len() {
         return Err(TranscriptRefusal::ScheduleMismatch);
@@ -223,14 +257,17 @@ fn read_fault(expected: LinkFault, reader: &mut BodyReader<'_>) -> Result<(), Tr
 fn read_actions(
     expected: &Topology,
     reader: &mut BodyReader<'_>,
+    limits: TranscriptLimits,
 ) -> Result<Vec<SimulationAction>, TranscriptRefusal> {
-    let count = reader.count()?;
+    let count = reader.bounded_count(limits.actions(), TranscriptRefusal::TooManyActions)?;
     let mut actions = Vec::new();
     for at in 0..count {
         match reader.u32()? {
             0u32 => {
-                let link = read_action_link(expected, at, reader)?;
-                let payload = reader.bytes()?.to_vec();
+                let link = read_action_link(expected, at, reader, limits.bytes())?;
+                let payload = reader
+                    .bounded_bytes(limits.bytes().field(), TranscriptRefusal::FieldTooLarge)?
+                    .to_vec();
                 actions.push(SimulationAction::Send { link, payload });
             }
             1u32 => actions.push(SimulationAction::Advance),
@@ -244,13 +281,16 @@ fn read_actions(
 fn read_entries(
     expected: &Topology,
     reader: &mut BodyReader<'_>,
+    limits: TranscriptLimits,
 ) -> Result<Vec<TranscriptEntry>, TranscriptRefusal> {
-    let count = reader.count()?;
+    let count = reader.bounded_count(limits.entries(), TranscriptRefusal::TooManyEntries)?;
     let mut entries = Vec::new();
     for at in 0..count {
-        let link = read_entry_link(expected, at, reader)?;
+        let link = read_entry_link(expected, at, reader, limits.bytes())?;
         let ordinal = SendOrdinal::at(reader.u32()?);
-        let payload = reader.bytes()?.to_vec();
+        let payload = reader
+            .bounded_bytes(limits.bytes().field(), TranscriptRefusal::FieldTooLarge)?
+            .to_vec();
         let sent_at = Tick::at(reader.u64()?);
         let delivered_at = Tick::at(reader.u64()?);
         let copy = copy_of(reader.u32()?)?;
@@ -271,9 +311,10 @@ fn read_expected_name(
     expected: NamespacedName,
     reader: &mut BodyReader<'_>,
     mismatch: TranscriptRefusal,
+    limits: ArchiveLimits,
 ) -> Result<(), TranscriptRefusal> {
-    let namespace = reader.bytes()?;
-    let stem = reader.bytes()?;
+    let namespace = reader.bounded_bytes(limits.field(), TranscriptRefusal::FieldTooLarge)?;
+    let stem = reader.bounded_bytes(limits.field(), TranscriptRefusal::FieldTooLarge)?;
     if namespace != expected.namespace().written().as_bytes()
         || stem != expected.stem().written().as_bytes()
     {
@@ -287,9 +328,10 @@ fn read_expected_link(
     expected: Link,
     reader: &mut BodyReader<'_>,
     mismatch: TranscriptRefusal,
+    limits: ArchiveLimits,
 ) -> Result<(), TranscriptRefusal> {
-    read_expected_name(expected.from().name(), reader, mismatch)?;
-    read_expected_name(expected.to().name(), reader, mismatch)
+    read_expected_name(expected.from().name(), reader, mismatch, limits)?;
+    read_expected_name(expected.to().name(), reader, mismatch, limits)
 }
 
 /// Resolve one action link from encoded name bytes.
@@ -297,8 +339,10 @@ fn read_action_link(
     expected: &Topology,
     at: usize,
     reader: &mut BodyReader<'_>,
+    limits: ArchiveLimits,
 ) -> Result<Link, TranscriptRefusal> {
-    read_link(expected, reader)?.ok_or(TranscriptRefusal::SimulationActionForeignLink { at })
+    read_link(expected, reader, limits)?
+        .ok_or(TranscriptRefusal::SimulationActionForeignLink { at })
 }
 
 /// Resolve one delivery-entry link from encoded name bytes.
@@ -306,25 +350,27 @@ fn read_entry_link(
     expected: &Topology,
     at: usize,
     reader: &mut BodyReader<'_>,
+    limits: ArchiveLimits,
 ) -> Result<Link, TranscriptRefusal> {
-    read_link(expected, reader)?.ok_or(TranscriptRefusal::ForeignLink { at })
+    read_link(expected, reader, limits)?.ok_or(TranscriptRefusal::ForeignLink { at })
 }
 
 /// Read four name parts and resolve them against the expected topology's links.
 fn read_link(
     expected: &Topology,
     reader: &mut BodyReader<'_>,
+    limits: ArchiveLimits,
 ) -> Result<Option<Link>, TranscriptRefusal> {
-    let from_namespace = reader.bytes()?.to_vec();
-    let from_stem = reader.bytes()?.to_vec();
-    let to_namespace = reader.bytes()?.to_vec();
-    let to_stem = reader.bytes()?.to_vec();
+    let from_namespace = reader.bounded_bytes(limits.field(), TranscriptRefusal::FieldTooLarge)?;
+    let from_stem = reader.bounded_bytes(limits.field(), TranscriptRefusal::FieldTooLarge)?;
+    let to_namespace = reader.bounded_bytes(limits.field(), TranscriptRefusal::FieldTooLarge)?;
+    let to_stem = reader.bounded_bytes(limits.field(), TranscriptRefusal::FieldTooLarge)?;
     Ok(expected
         .links()
         .iter()
         .find(|link| {
-            spells(link.from(), &from_namespace, &from_stem)
-                && spells(link.to(), &to_namespace, &to_stem)
+            spells(link.from(), from_namespace, from_stem)
+                && spells(link.to(), to_namespace, to_stem)
         })
         .copied())
 }

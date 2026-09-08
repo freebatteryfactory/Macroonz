@@ -1,7 +1,30 @@
-use super::{SeedInput, SeedInputRefusal, SeedPack, SeedPackAddress, SeedPackRefusal};
+use super::{
+    SeedInput, SeedInputRefusal, SeedPack, SeedPackAddress, SeedPackLimits, SeedPackRefusal,
+};
 use crate::descriptor::PopulationRef;
 use crate::identity::ContentAddress;
+use crate::report::archive::ArchiveLimits;
 use std::collections::BTreeMap;
+
+impl SeedPackLimits {
+    /// The independently selected envelope, member and seed-count ceilings.
+    #[must_use]
+    pub const fn declared(bytes: ArchiveLimits, seeds: usize) -> Self {
+        Self { bytes, seeds }
+    }
+
+    /// The envelope and per-member byte ceilings.
+    #[must_use]
+    pub const fn bytes(self) -> ArchiveLimits {
+        self.bytes
+    }
+
+    /// The maximum number of retained seeds.
+    #[must_use]
+    pub const fn seeds(self) -> usize {
+        self.seeds
+    }
+}
 
 impl SeedInput {
     /// One exact caller-supplied input.

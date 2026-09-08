@@ -21,11 +21,7 @@ pub(crate) fn frame<'body>(
     reader: &mut BodyReader<'body, ArchiveRefusal>,
     limits: ArchiveLimits,
 ) -> Result<&'body [u8], ArchiveRefusal> {
-    let bytes = reader.bytes()?;
-    if bytes.len() > limits.field() {
-        return Err(ArchiveRefusal::FieldTooLarge);
-    }
-    Ok(bytes)
+    reader.bounded_bytes(limits.field(), ArchiveRefusal::FieldTooLarge)
 }
 
 pub(crate) fn text<'body>(

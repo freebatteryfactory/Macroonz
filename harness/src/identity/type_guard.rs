@@ -174,6 +174,32 @@ impl<'body, Refusal: Copy> BodyReader<'body, Refusal> {
             .map_err(|_beyond_platform| (self.length_outside_platform)(declared))
     }
 
+    /// Read a population count under the caller's independent ceiling.
+    pub(crate) fn bounded_count(
+        &mut self,
+        limit: usize,
+        oversized: Refusal,
+    ) -> Result<usize, Refusal> {
+        let count = self.count()?;
+        if count > limit {
+            return Err(oversized);
+        }
+        Ok(count)
+    }
+
+    /// Read a framed member under the caller's independent byte ceiling.
+    pub(crate) fn bounded_bytes(
+        &mut self,
+        limit: usize,
+        oversized: Refusal,
+    ) -> Result<&'body [u8], Refusal> {
+        let bytes = self.bytes()?;
+        if bytes.len() > limit {
+            return Err(oversized);
+        }
+        Ok(bytes)
+    }
+
     /// Read one length-prefixed byte string.
     pub(crate) fn bytes(&mut self) -> Result<&'body [u8], Refusal> {
         let length = self.count()?;

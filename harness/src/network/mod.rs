@@ -12,6 +12,6 @@ pub use types::{
     ReproducedReplay, ReproducedReplayRefusal, SendFate, SendOrdinal, SendReceipt, SendRefusal,
     SimNet, SimNetRefusal, SimulationAction, SimulationManifest, SimulationReproduction,
     TRANSCRIPT_FORMAT_VERSION, TRANSCRIPT_TAG, Tick, TickSpan, TickSpanRefusal, Topology,
-    TopologyRefusal, TranscriptAddress, TranscriptEntry, TranscriptPack, TranscriptRefusal,
-    TranscriptSourceClaim,
+    TopologyRefusal, TranscriptAddress, TranscriptEntry, TranscriptLimits, TranscriptPack,
+    TranscriptRefusal, TranscriptSourceClaim,
 };

@@ -5,10 +5,16 @@ pub(super) use macroonz_harness::network::{
     NetworkCampaignRefusal, NetworkSchedule, NetworkScheduleRefusal, NetworkSelectionRefusal,
     NodeRef, Replay, ReplayIncomplete, ReproducedReplay, ReproducedReplayRefusal, SendOrdinal,
     SendRefusal, SimNet, SimNetRefusal, SimulationReproduction, TRANSCRIPT_FORMAT_VERSION,
-    TRANSCRIPT_TAG, Tick, Topology, TopologyRefusal, TranscriptEntry, TranscriptPack,
-    TranscriptRefusal, TranscriptSourceClaim, read_recorded_live, read_simulated, recorded_live,
-    reproduce, simulated,
+    TRANSCRIPT_TAG, Tick, Topology, TopologyRefusal, TranscriptEntry, TranscriptLimits,
+    TranscriptPack, TranscriptRefusal, TranscriptSourceClaim, read_recorded_live, read_simulated,
+    recorded_live, reproduce, simulated,
 };
+
+pub(super) const READ_LIMITS: TranscriptLimits = TranscriptLimits::declared(
+    macroonz_harness::report::archive::ArchiveLimits::declared(4_194_304, 1_024),
+    4_096,
+    4_096,
+);
 
 /// Everything a lane road can refuse, carried as itself.
 pub(super) enum LaneFailure {

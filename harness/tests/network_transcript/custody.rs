@@ -19,7 +19,7 @@ fn a_simulated_run_reproduces_and_replays_under_one_address() -> Result<(), Lane
     assert_eq!(written_reproduction.address(), pack.address());
     assert_eq!(written_reproduction.rows(), 2usize);
 
-    let reread = read_simulated(&pair_topology()?, &schedule, pack.encoded())?;
+    let reread = read_simulated(&pair_topology()?, &schedule, pack.encoded(), READ_LIMITS)?;
     assert_eq!(reread, pack);
     let decoded_reproduction = reproduce(&reread)?;
     assert_eq!(decoded_reproduction, written_reproduction);
@@ -97,7 +97,7 @@ fn tick_zero_is_part_of_the_exhaustion_denominator() -> Result<(), LaneFailure> 
         DeliveryCopy::Original,
     );
     let pack = recorded_live(&topology, vec![entry])?;
-    let reread = read_recorded_live(&topology, pack.encoded())?;
+    let reread = read_recorded_live(&topology, pack.encoded(), READ_LIMITS)?;
     let (replay, opening) = Replay::opened(&reread);
     assert_eq!(opening.len(), 1usize);
     assert_eq!(replay.remaining(), 0usize);
@@ -198,7 +198,7 @@ fn a_long_network_campaign_reproduces_and_exhausts_exactly() -> Result<(), LaneF
     assert_eq!(first.delivered_at(), second.delivered_at());
     assert_eq!(third.ordinal(), SendOrdinal::at(2u32));
 
-    let reread = read_simulated(&pair_topology()?, &schedule, pack.encoded())?;
+    let reread = read_simulated(&pair_topology()?, &schedule, pack.encoded(), READ_LIMITS)?;
     let decoded_reproduction = reproduce(&reread)?;
     assert_eq!(decoded_reproduction, written_reproduction);
     let (mut replay, opening) = Replay::opened(&reread);

@@ -3,6 +3,7 @@ mod guard;
 
 use crate::descriptor::PopulationRef;
 use crate::identity::{DomainTag, IdentityProfileVersion};
+use crate::report::archive::ArchiveLimits;
 
 /// The body format this reader understands.
 pub const SEED_PACK_FORMAT_VERSION: u32 = 1;
@@ -47,10 +48,23 @@ pub struct SeedPack {
     encoded: Vec<u8>,
 }
 
+/// Independent byte and seed-roster ceilings for reading a seed pack.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SeedPackLimits {
+    bytes: ArchiveLimits,
+    seeds: usize,
+}
+
 /// Why one pack was not written, or not read.
 #[must_use = "a refusal is the reason a seed pack was not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SeedPackRefusal {
+    /// The complete envelope exceeds its independently supplied byte ceiling.
+    EnvelopeTooLarge,
+    /// A framed name or seed exceeds its independently supplied byte ceiling.
+    FieldTooLarge,
+    /// The seed roster exceeds its independently supplied count ceiling.
+    TooManySeeds,
     /// The pack declares no seed, and an empty pack warm-starts nothing.
     NoSeed,
     /// Two seeds carry exactly the same bytes, which would narrow the roster in silence.
