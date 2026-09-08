@@ -19,6 +19,11 @@ mod members;
 #[path = "read_material.rs"]
 mod material;
 pub use read::read_backend;
+#[path = "guard_suite.rs"]
+mod suite;
+#[path = "read_suite.rs"]
+mod suite_read;
+pub use suite_read::read_suite_pressure;
 
 impl BackendArchiveLimits {
     /// Declare independent byte and population ceilings.

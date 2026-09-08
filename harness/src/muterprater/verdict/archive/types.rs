@@ -92,6 +92,8 @@ pub enum MutationArchiveRefusal {
     BaselineNotQualified,
     /// The declared report population exceeds its independent ceiling.
     TooManyReports,
+    /// A composed interpreted record disagreed with its complete trial or required axes.
+    InterpretedTrialMismatch,
 }
 
 /// The historical identity of a damaged subject.

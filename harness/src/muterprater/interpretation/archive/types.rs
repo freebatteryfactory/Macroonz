@@ -7,6 +7,16 @@ use crate::descriptor::archive::{
 use crate::descriptor::{NamespacedName, RevisionBinding};
 use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use crate::muterprater::ParityQualificationRefusal;
+use crate::muterprater::backend_archive::{
+    ArchivedSuitePressure, SuitePressureArchiveLimits, SuitePressureArchiveRefusal,
+};
+use crate::muterprater::discovery_archive::{
+    ArchivedEvaluationSurface, SurfaceArchiveLimits, SurfaceArchiveRefusal,
+};
+use crate::muterprater::specimen_archive::{
+    ArchivedProjectionPressure, ProjectionArchiveLimits, ProjectionArchiveRefusal,
+};
+use crate::muterprater::verdict_archive::{ArchivedMutation, MutationArchiveRefusal};
 use crate::report::ForeignText;
 use crate::report::archive::{
     AddressClaim, ArchiveLimits, ArchiveRefusal, ArchivedConclusion, ArchivedTrial,
@@ -14,6 +24,7 @@ use crate::report::archive::{
 
 #[path = "type_guard.rs"]
 mod guard;
+pub use guard::read_interpreted;
 pub use guard::read_parity;
 
 /// The historical no-mutation parity envelope domain.
@@ -156,4 +167,69 @@ pub enum ParityArchiveRefusal {
     ReportJoinMismatch,
     /// The recorded qualification disposition contradicted its underlying facts.
     DispositionMismatch,
+}
+
+/// The complete historical interpreted-evidence envelope domain.
+pub const INTERPRETED_ARCHIVE_TAG: DomainTag = DomainTag::declared(
+    "historical-interpreted-evidence",
+    IdentityProfileVersion::declared(1),
+);
+
+/// Independent outer, nested surface, suite, projection, report and active-value ceilings.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct InterpretedArchiveLimits {
+    bytes: ArchiveLimits,
+    surface: SurfaceArchiveLimits,
+    suite: SuitePressureArchiveLimits,
+    projection: ProjectionArchiveLimits,
+    trial: ArchiveLimits,
+    mutation: ArchiveLimits,
+    active: usize,
+}
+
+/// The complete historical surface and both pressure books without current trust authority.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArchivedInterpretedTrust {
+    surface: ArchivedEvaluationSurface,
+    suite: ArchivedSuitePressure,
+    projection: ArchivedProjectionPressure,
+}
+
+/// Complete owned interpreted evidence without callable meanings or current execution authority.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArchivedInterpretedEvidence {
+    encoded: Vec<u8>,
+    address: ContentAddress,
+    trust: ArchivedInterpretedTrust,
+    meaning: ArchivedValue,
+    report: ArchivedTrial,
+    mutation: ArchivedMutation,
+}
+
+/// Why complete historical interpreted evidence could not be retained or read.
+#[must_use = "a refusal explains why historical interpreted evidence was not admitted"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum InterpretedArchiveRefusal {
+    /// A common field or envelope refused.
+    Record(ArchiveRefusal),
+    /// The complete nested surface refused.
+    Surface(SurfaceArchiveRefusal),
+    /// The complete nested generic suite pressure refused.
+    Suite(SuitePressureArchiveRefusal),
+    /// The complete nested projection pressure refused.
+    Projection(ProjectionArchiveRefusal),
+    /// The nested mutation or its relationship to the active trial refused.
+    Mutation(MutationArchiveRefusal),
+    /// The caller encoder refused the active meaning after the parity value roles.
+    ActiveEncoder(ValueEncodingRefusal),
+    /// Active meaning bytes exceeded their independent ceiling.
+    ActiveValueTooLarge,
+    /// The retained surface disagreed with the pair or selected membership.
+    SurfaceJoinMismatch,
+    /// A compiled or active target disagreed with its retained surface point and alternative.
+    TargetJoinMismatch,
+    /// The active report disagreed with the projection's execution or replay posture.
+    ReportJoinMismatch,
+    /// Positive activation disagreed with the exact selection or witness.
+    ActivationJoinMismatch,
 }

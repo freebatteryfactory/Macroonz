@@ -8,7 +8,8 @@ use super::{
 use crate::descriptor::archive::{retain_binding, write_revision};
 use crate::identity::{ContentAddress, encode_bytes, encode_length};
 use crate::muterprater::{
-    NoMutationParityReading, NoMutationParityStanding, ParityQualificationRefusal,
+    NoMutationParityQualification, NoMutationParityReading, NoMutationParityStanding,
+    ParityQualificationRefusal,
 };
 use crate::properties::SharedSubstrate;
 use crate::report::TrialConclusion;
@@ -62,6 +63,21 @@ pub fn retain_parity_standing<Input, Meaning>(
             limits,
         ),
     }
+}
+
+pub(crate) fn retain_qualified<Input, Meaning>(
+    qualified: &NoMutationParityQualification<'_, '_, Input, Meaning>,
+    input: &ValueEncoder<Input>,
+    meaning: &ValueEncoder<Meaning>,
+    limits: ParityArchiveLimits,
+) -> Result<ArchivedParity, ParityArchiveRefusal> {
+    retain(
+        qualified.reading(),
+        input,
+        meaning,
+        ArchivedParityDisposition::Qualified,
+        limits,
+    )
 }
 
 fn retain<Input, Meaning>(

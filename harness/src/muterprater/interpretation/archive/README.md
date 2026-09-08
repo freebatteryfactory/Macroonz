@@ -1,6 +1,6 @@
 # archive
 
-Owned historical no-mutation comparisons through explicit caller encodings.
+Owned historical no-mutation comparisons and interpreted evidence through explicit caller encodings.
 
 `retain_parity` borrows a complete reading and records its raw disposition.
 `retain_parity_standing` borrows a qualified or rejected standing and retains its actual disposition and entire reading.
@@ -13,10 +13,10 @@ The result owns its data independently of the source reading and byte buffer.
 Input uses one binding; production and evaluation meanings share another binding whose metadata is encoded once.
 This convention is separate from the [input](../../../input/README.md) owner's admitted case format and earns no input identity.
 An encoder returns exact owned bytes or `ValueEncodingRefusal`, retaining its caller-owned cause and optional report-owned `ForeignText`.
-The archive adds the input, production or evaluation role to a refusal without turning it into a trial finding.
+Parity retention adds the input, production or evaluation role to a refusal without turning it into a trial finding.
 
 Known metadata, nested-record and roster bounds are checked before any encoder call.
-Reached encoders run once each, in input, production and evaluation order.
+Parity retention runs reached encoders once each, in input, production and evaluation order.
 Each returned buffer is bounded before copying, and the complete envelope size is checked before its allocation.
 A later refusal returns no partial archive and does not consume the original reading.
 Empty and repeated encodings are lawful; the caller's convention owns what those bytes mean.
@@ -79,3 +79,36 @@ No function addresses or reconstruction handles are serialized.
 The value ceiling and outer field ceiling both apply to each value.
 The reader bounds the complete envelope before hashing, names and values before copying, and substrate counts before walking them.
 It reserves no storage from untrusted counts, consumes all members and refuses unknown formats, kinds, custody claims, slots and trailing material.
+
+## Complete interpreted evidence
+
+`retain_interpreted` retains the full historical surface, generic suite pressure, exact compiled projection pressure, active meaning encoding, active trial and active mutation.
+`retain_interpreted_with_material` additionally retains caller-supplied backend console and source originals under the [backend archive](../../backend/archive/README.md)'s complete-or-absent custody rule.
+The [projection archive](../../specimen/archive/README.md) retains qualified parity, both exact compiled source buffers and all compiled reports.
+No current host, materializer, evaluation, witness or equivalence callback is run by these retention operations.
+
+The input and meaning encoders are the same bindings used for the nested parity.
+The active meaning uses that same meaning convention, encoded once in parity and shared by the historical value projections.
+Reached values are encoded once in input, production, evaluation and active order.
+`InterpretedArchiveRefusal::ActiveEncoder` identifies a callback refusal at the active role and preserves its complete `ValueEncodingRefusal`.
+The independent active byte ceiling is separate from parity's per-value limit.
+Empty active bytes remain lawful under the caller's convention and have no added semantic or snapshot authority.
+
+`read_interpreted` creates only owned historical data and invokes no callback.
+The complete retained surface resolves the projection's historical selection and verifies the compiled and active target's point, alternative, family, activation site and owner claim.
+Pair family and surface agree with that retained surface.
+Active execution and replay posture agree with the projection, but the active invocation site may differ from all previous phases.
+The active mutation retains positive activation for exactly that selection and witness.
+The [verdict archive](../../verdict/archive/README.md) owns the inverse consistency check joining the complete active trial, finding and mutation axes.
+The backend suite remains an independent evidence book; its context need not equal the projection context.
+None of these internal joins supplies missing full-policy or discovery-denominator preimages, current trust, authenticity or execution authority.
+
+The interpreted envelope starts with the thirty-two-byte body address under `INTERPRETED_ARCHIVE_TAG`.
+Its body contains format `u32(1)`, kind `u32(1)`, historical custody `u32(0)`, then six framed members: complete surface archive, complete suite-pressure archive, complete projection archive, active meaning bytes, complete active trial archive and complete active mutation archive.
+Nested formats are unchanged.
+
+`InterpretedArchiveLimits` independently bounds outer envelope and fields, nested surface, suite, projection, active trial, active mutation and active meaning bytes.
+All known metadata and nested limits are preflighted before record encoding or generic callbacks.
+Complete projected-value size is checked before the active callback, and the final envelope size is checked after the bounded active result.
+Loading bounds the envelope before hashing, every field before copying and all nested populations through their existing readers.
+Malformed slots, identities, inconsistent joins, excess bounds and trailing material refuse.

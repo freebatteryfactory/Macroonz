@@ -4,7 +4,7 @@ use super::{MutationArchiveRefusal, activation_size, target_size};
 use crate::muterprater::{IntendedRejection, MutationOutcome, MutationReport};
 use crate::report::archive::{ArchiveLimits, ArchiveRefusal, finding_size, foreign_size, sum};
 
-pub(super) fn encoded_size(
+pub(crate) fn encoded_size(
     report: &MutationReport,
     limits: ArchiveLimits,
 ) -> Result<usize, MutationArchiveRefusal> {

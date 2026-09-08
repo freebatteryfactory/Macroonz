@@ -15,6 +15,13 @@ mod members;
 mod readings;
 
 pub use read::read_parity;
+#[path = "read_interpreted.rs"]
+mod interpreted;
+#[path = "guard_interpreted.rs"]
+mod interpreted_readings;
+#[path = "join_interpreted.rs"]
+mod interpreted_joins;
+pub use interpreted::read_interpreted;
 
 impl<Value> ValueEncoder<Value> {
     /// Bind a caller encoder to its explicit convention, schema and executable revision.

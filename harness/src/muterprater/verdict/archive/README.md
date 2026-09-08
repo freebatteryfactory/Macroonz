@@ -31,6 +31,10 @@ A historical survivor requires qualified baseline, built materialization, observ
 Inconclusive records retain every supplied axis and cause without imposing a new correspondence between them.
 Target, activation and rejection coordinates establish no extra joins beyond the live verdict owner's constructors.
 
+Composed interpreted archives additionally join the retained trial to the mutation through this owner's inverse consistency check.
+That check preserves the [live interpreted constructor](../type_guard.rs)'s baseline, materialization, observed activation, execution, outcome and equivalence relationship, including the entire demonstrated finding.
+It reads existing claims and constructs no new live mutation outcome.
+
 Independent complete-envelope and field ceilings apply before allocation, including each framed target, activation and fingerprint preimage.
 The writer preflights all fields before allocating preimages; the reader bounds the complete envelope before hashing and each field before copying.
 Unknown slots, unsupported framing, absent required rejection text and undeclared trailing bytes refuse.

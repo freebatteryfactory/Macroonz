@@ -3,6 +3,7 @@
 mod encode;
 mod encode_record;
 mod encode_run;
+mod join_interpreted;
 mod size_record;
 mod type_contract;
 mod types;
@@ -11,6 +12,8 @@ pub(crate) use encode::{activation_size, target_size, write_activation, write_ta
 pub use encode_record::retain_mutation;
 pub(crate) use encode_run::encoded_size as mutation_run_size;
 pub use encode_run::retain_mutation_run;
+pub(crate) use join_interpreted::interpreted_trial_join;
+pub(crate) use size_record::encoded_size as mutation_size;
 pub use types::{
     ArchivedActivation, ArchivedActivationReading, ArchivedMutationIdentity, ArchivedMutationSite,
     ArchivedMutationTarget,

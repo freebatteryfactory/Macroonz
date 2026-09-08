@@ -13,6 +13,7 @@
 //! This home invokes the caller's production, evaluation, materializer, and host callables at their typed operations, and nothing else.
 //! Trial judgment and execution evidence stay with [`crate::runner::TrialBinding`] and [`crate::report`], so mutation-specific control never becomes a second general runner.
 
+pub use discovery::archive as discovery_archive;
 pub use interpretation::archive as interpretation_archive;
 pub use interpretation::interpret;
 #[path = "discovery/discover.rs"]
@@ -24,6 +25,7 @@ pub mod rewrite;
 pub mod specimen;
 pub use backend::archive as backend_archive;
 pub use backend::wrap;
+pub use specimen::archive as specimen_archive;
 
 mod backend;
 mod discovery;

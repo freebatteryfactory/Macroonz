@@ -53,9 +53,25 @@ pub(super) fn alternative_preimage(
     family: OperatorFamilyRef,
     operation: &[u8],
 ) -> Vec<u8> {
+    alternative_claim_preimage(
+        point.name().namespace().written(),
+        point.name().stem().written(),
+        family.slug(),
+        operation,
+    )
+}
+
+/// The existing alternative preimage over admitted historical name and family components.
+pub(super) fn alternative_claim_preimage(
+    namespace: &str,
+    stem: &str,
+    family: &str,
+    operation: &[u8],
+) -> Vec<u8> {
     let mut bytes = Vec::new();
-    push_name(&mut bytes, point.name());
-    encode_bytes(family.slug().as_bytes(), &mut bytes);
+    encode_bytes(namespace.as_bytes(), &mut bytes);
+    encode_bytes(stem.as_bytes(), &mut bytes);
+    encode_bytes(family.as_bytes(), &mut bytes);
     encode_bytes(operation, &mut bytes);
     bytes
 }

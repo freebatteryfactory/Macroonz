@@ -21,6 +21,8 @@ mod binding_vector;
 mod bindings;
 mod parity_vector;
 mod parity;
+mod surface_vector;
+mod surfaces;
 mod proposal_vector;
 mod proposals;
 mod mutation_vector;
@@ -31,6 +33,15 @@ mod backend_vector;
 mod backends;
 mod backend_hostile;
 mod backend_claims;
+mod suite_vector;
+mod suites;
+mod suite_hostile;
+mod projection_vector;
+mod projections;
+mod interpreted_vector;
+mod interpreted;
+mod interpreted_joins;
+mod interpreted_hostile;
 
 use macroonz_harness::report::archive::{
     ArchiveLimits, ArchiveRefusal, read_capsule, retain_capsule,

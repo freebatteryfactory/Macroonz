@@ -14,6 +14,8 @@ mod proposal_admission;
 mod proposal_input;
 mod specimen;
 mod specimen_retention;
+mod projection_archive;
+mod interpreted_archive;
 mod support;
 #[path = "../support/archive_process.rs"]
 mod archive_process;

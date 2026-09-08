@@ -4,7 +4,7 @@ Interpretation owns production and evaluation call types and bindings, observati
 
 The private noun home and the public verb are distinct: this home defines no public `muterprater::interpretation` ontology.
 Its values remain on the existing `muterprater::*` surface, while `muterprater::interpret` is the narrow public operation over them.
-The [archive](archive/README.md), exposed as `muterprater::interpretation_archive`, retains complete historical no-mutation readings through explicit typed caller encodings.
+The [archive](archive/README.md), exposed as `muterprater::interpretation_archive`, retains complete historical no-mutation readings and interpreted evidence through explicit typed caller encodings.
 Loaded records preserve their historical authority ceiling and cannot become current qualification or trust.
 
 ## Dependencies

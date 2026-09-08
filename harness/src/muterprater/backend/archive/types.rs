@@ -2,21 +2,60 @@
 
 use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use crate::muterprater::verdict_archive::{
-    ArchivedMutationRun, MutationArchiveRefusal, MutationRunArchiveLimits,
+    ArchivedMutation, ArchivedMutationRun, MutationArchiveRefusal, MutationRunArchiveLimits,
 };
 use crate::muterprater::{AnnouncedRoster, GrammarVersion, ReadingSource, WrappedBackend};
 use crate::report::TargetBinding;
-use crate::report::archive::{AddressClaim, ArchiveRefusal, ArchivedForeignText};
+use crate::report::archive::{AddressClaim, ArchiveLimits, ArchiveRefusal, ArchivedForeignText};
 
 #[path = "type_guard.rs"]
 mod guard;
 pub use guard::read_backend;
+pub use guard::read_suite_pressure;
 
 /// The complete historical backend manifest envelope domain.
 pub const BACKEND_ARCHIVE_TAG: DomainTag = DomainTag::declared(
     "historical-backend-manifest",
     IdentityProfileVersion::declared(1),
 );
+
+/// The historical compiled-suite pressure envelope domain.
+pub const SUITE_PRESSURE_ARCHIVE_TAG: DomainTag = DomainTag::declared(
+    "historical-compiled-suite-pressure",
+    IdentityProfileVersion::declared(1),
+);
+
+/// Independent outer-envelope and nested backend-record bounds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SuitePressureArchiveLimits {
+    bytes: ArchiveLimits,
+    backend: BackendArchiveLimits,
+}
+
+/// Historical grammar qualification and its manifest's first complete backend-reported kill.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArchivedSuitePressure {
+    encoded: Vec<u8>,
+    address: ContentAddress,
+    checked_version: String,
+    manifest: ArchivedBackendManifest,
+    kill_ordinal: u64,
+    kill: ArchivedMutation,
+}
+
+/// Why complete historical suite pressure could not be retained or read.
+#[must_use = "a refusal explains why no historical suite pressure was admitted"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SuitePressureArchiveRefusal {
+    /// The outer envelope, fields or framing refused.
+    Record(ArchiveRefusal),
+    /// The complete nested manifest or original material refused.
+    Backend(BackendArchiveRefusal),
+    /// The checked grammar version or profile contradicted the retained manifest.
+    QualificationMismatch,
+    /// The retained run had no kill or the selected ordinal was not its first kill.
+    FirstKillMismatch,
+}
 
 /// Independent byte, report, command, source and unread-line ceilings.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -113,7 +152,7 @@ pub enum BackendArchiveRefusal {
 }
 
 #[derive(Clone, Copy)]
-pub(super) struct OriginalMaterial<'material> {
-    pub(super) console: &'material str,
-    pub(super) sources: &'material [(&'material str, &'material [u8])],
+pub(crate) struct OriginalMaterial<'material> {
+    pub(crate) console: &'material str,
+    pub(crate) sources: &'material [(&'material str, &'material [u8])],
 }

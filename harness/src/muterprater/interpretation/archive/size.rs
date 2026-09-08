@@ -4,10 +4,27 @@ use super::{
     ArchivedParityDisposition, ParityArchiveLimits, ParityArchiveRefusal, ValueEncoder, ValueRole,
 };
 use crate::descriptor::archive::binding_size;
-use crate::muterprater::{NoMutationParityReading, ParityQualificationRefusal};
+use crate::muterprater::{
+    NoMutationParityQualification, NoMutationParityReading, ParityQualificationRefusal,
+};
 use crate::properties::SharedSubstrate;
 use crate::report::TrialConclusion;
 use crate::report::archive::{ArchiveRefusal, bounded, finding_size, name_size, sum, trial_size};
+
+pub(crate) fn qualified_size<Input, Meaning>(
+    qualified: &NoMutationParityQualification<'_, '_, Input, Meaning>,
+    input: &ValueEncoder<Input>,
+    meaning: &ValueEncoder<Meaning>,
+    limits: ParityArchiveLimits,
+) -> Result<usize, ParityArchiveRefusal> {
+    known_size(
+        qualified.reading(),
+        input,
+        meaning,
+        ArchivedParityDisposition::Qualified,
+        limits,
+    )
+}
 
 pub(super) fn known_size<Input, Meaning>(
     reading: &NoMutationParityReading<'_, '_, Input, Meaning>,

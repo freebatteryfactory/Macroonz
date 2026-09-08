@@ -45,7 +45,7 @@ pub fn retain_backend_with_material(
     )
 }
 
-fn retained(
+pub(super) fn retained(
     manifest: &CompiledSuiteArtifactManifest,
     original: Option<OriginalMaterial<'_>>,
     limits: BackendArchiveLimits,

@@ -54,3 +54,18 @@ The remaining members occur in this order:
 
 Unknown slots, unsupported versions or custody, noncanonical rosters, invalid text, malformed nested records, contradictory joins, truncated members and trailing bytes refuse.
 The nested verdict owner derives the mutation census; no separate summary is encoded.
+
+## Historical suite pressure
+
+`retain_suite_pressure` and `retain_suite_pressure_with_material` preserve complete generic compiled-suite pressure through the same backend-manifest archive.
+`read_suite_pressure` owns that manifest, its checked grammar-version claim and the first killed report in the original run order.
+The qualification and manifest share one profile, encoded once in the manifest; the checked version must equal that profile's stated version.
+The selected ordinal must be the run's first kill, even when later reports also retain lawful kills.
+The complete ordered run, source roster, output, invocation, announcement and unread lines remain available, and optional original material follows the same complete-or-absent rule above.
+
+The pressure envelope's address is derived under `SUITE_PRESSURE_ARCHIVE_TAG`.
+Its body is format `u32(1)`, kind `u32(1)`, historical custody `u32(0)`, checked-grammar byte `1`, framed checked-version text, framed complete backend-manifest envelope and a `u64` first-kill ordinal.
+`SuitePressureArchiveLimits` independently bounds the outer envelope and fields and every nested backend limit.
+Retention preflights all known sizes before nested encoding; loading applies each owning bound before copying or walking its material.
+Loading creates no current adapter qualification, source custody, suite pressure, trust or execution.
+Historical grammar-check and source-currency claims establish no fact about today's backend, files or processes.
