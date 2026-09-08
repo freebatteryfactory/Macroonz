@@ -25,15 +25,19 @@ pub fn retain_binding<Invocation, Conclusion>(
     attachment.check().name().encode_into(&mut bytes);
     write_revision(attachment.subject_revision(), &mut bytes);
     write_revision(attachment.check_revision(), &mut bytes);
-    match binding.provenance() {
+    write_provenance(binding.provenance(), &mut bytes);
+    read_binding(&bytes, limits)
+}
+
+pub(crate) fn write_provenance(provenance: Provenance, bytes: &mut Vec<u8>) {
+    match provenance {
         Provenance::Unproduced => bytes.push(0),
         Provenance::Produced { producer, schema } => {
             bytes.push(1);
-            producer.name().encode_into(&mut bytes);
-            encode_bytes(schema.address().as_bytes(), &mut bytes);
+            producer.name().encode_into(bytes);
+            encode_bytes(schema.address().as_bytes(), bytes);
         }
     }
-    read_binding(&bytes, limits)
 }
 
 pub(crate) fn binding_size<Invocation, Conclusion>(
@@ -51,15 +55,9 @@ pub(crate) fn binding_size<Invocation, Conclusion>(
     // The row reader checks every retained origin/name using the same limits before any caller encoder runs.
     super::retain_row(row, limits).map_err(BindingArchiveRefusal::Row)?;
     let attachment = binding.attachment();
-    let producer = match binding.provenance() {
-        Provenance::Unproduced => 0,
-        Provenance::Produced {
-            producer,
-            schema: _,
-        } => sum(&[40, name_size(producer.name(), limits)?])?,
-    };
+    let producer = provenance_size(binding.provenance(), limits)?;
     let total = sum(&[
-        111,
+        110,
         row.canonical_bytes().as_bytes().len(),
         name_size(attachment.subject().name(), limits)?,
         name_size(attachment.check().name(), limits)?,
@@ -69,6 +67,26 @@ pub(crate) fn binding_size<Invocation, Conclusion>(
         return Err(Canonical(CandidateArchiveRefusal::BytesTooLarge));
     }
     Ok(total)
+}
+
+pub(crate) fn provenance_size(
+    provenance: Provenance,
+    limits: BindingArchiveLimits,
+) -> Result<usize, BindingArchiveRefusal> {
+    match provenance {
+        Provenance::Unproduced => Ok(1),
+        Provenance::Produced {
+            producer,
+            schema: _,
+        } => {
+            if limits.field() < 32 {
+                return Err(BindingArchiveRefusal::Canonical(
+                    CandidateArchiveRefusal::FieldTooLarge,
+                ));
+            }
+            sum(&[41, name_size(producer.name(), limits)?])
+        }
+    }
 }
 
 fn name_size(

@@ -44,11 +44,11 @@ pub fn read_trial(encoded: &[u8], limits: ArchiveLimits) -> Result<ArchivedTrial
     let clock_attribution = if format == 1 {
         ClockAttribution::Unspecified
     } else {
-        match reader.byte()? {
-            1 => ClockAttribution::Synthetic,
-            2 => ClockAttribution::Monotonic,
-            _ => return Err(ArchiveRefusal::InvalidSlot),
+        let attribution = read_attribution(reader.byte()?)?;
+        if attribution == ClockAttribution::Unspecified {
+            return Err(ArchiveRefusal::InvalidSlot);
         }
+        attribution
     };
     finish(&reader)?;
     Ok(ArchivedTrial {
@@ -61,6 +61,15 @@ pub fn read_trial(encoded: &[u8], limits: ArchiveLimits) -> Result<ArchivedTrial
         measurement,
         clock_attribution,
     })
+}
+
+pub(crate) const fn read_attribution(slot: u8) -> Result<ClockAttribution, ArchiveRefusal> {
+    match slot {
+        0 => Ok(ClockAttribution::Unspecified),
+        1 => Ok(ClockAttribution::Synthetic),
+        2 => Ok(ClockAttribution::Monotonic),
+        _ => Err(ArchiveRefusal::InvalidSlot),
+    }
 }
 
 fn attempt(
@@ -159,7 +168,7 @@ pub(crate) fn foreign(
     }))
 }
 
-fn measurement(
+pub(crate) fn measurement(
     reader: &mut BodyReader<'_, ArchiveRefusal>,
 ) -> Result<ArchivedMeasurement, ArchiveRefusal> {
     match reader.byte()? {

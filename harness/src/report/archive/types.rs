@@ -15,8 +15,8 @@ mod guard;
 pub use guard::{read_capsule, read_run, read_trial};
 
 pub(crate) use guard::{
-    claim, cursor, envelope, execution, finding, fingerprint, finish, foreign, frame, name,
-    posture, text,
+    claim, cursor, envelope, execution, finding, fingerprint, finish, foreign, frame, measurement,
+    name, posture, read_attribution, text,
 };
 
 /// The envelope domain for historical complete-run records.
@@ -179,7 +179,7 @@ pub enum ArchivedClockFailure {
 pub enum ArchivedMeasurement {
     /// An observed elapsed duration in nanoseconds, including zero.
     Observed(u64),
-    /// No clock was declared.
+    /// No wall measurement was offered for the attempt.
     Unavailable,
     /// An offered measurement failed at this boundary.
     Failed(ArchivedClockFailure),

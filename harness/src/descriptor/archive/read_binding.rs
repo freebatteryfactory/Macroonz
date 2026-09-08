@@ -41,14 +41,7 @@ pub fn read_binding(
     let check = name(&mut reader, limits).map_err(Canonical)?;
     let subject_revision = read_revision(reader.bytes().map_err(Canonical)?, limits.field())?;
     let check_revision = read_revision(reader.bytes().map_err(Canonical)?, limits.field())?;
-    let provenance = match reader.byte().map_err(Canonical)? {
-        0 => ArchivedProvenance::Unproduced,
-        1 => ArchivedProvenance::Produced {
-            producer: name(&mut reader, limits).map_err(Canonical)?,
-            schema: address(&mut reader, limits.field())?,
-        },
-        _ => return Err(BindingArchiveRefusal::InvalidSlot),
-    };
+    let provenance = provenance(&mut reader, limits)?;
     finish(&reader).map_err(Canonical)?;
     if &subject != row.subject() {
         return Err(BindingArchiveRefusal::SubjectMismatch);
@@ -70,6 +63,35 @@ pub fn read_binding(
         check_revision,
         provenance,
     })
+}
+
+pub(crate) fn read_provenance(
+    encoded: &[u8],
+    limits: BindingArchiveLimits,
+) -> Result<ArchivedProvenance, BindingArchiveRefusal> {
+    use BindingArchiveRefusal::Canonical;
+    if encoded.len() > limits.bytes() {
+        return Err(Canonical(CandidateArchiveRefusal::BytesTooLarge));
+    }
+    let mut reader = cursor(encoded);
+    let value = provenance(&mut reader, limits)?;
+    finish(&reader).map_err(Canonical)?;
+    Ok(value)
+}
+
+fn provenance(
+    reader: &mut BodyReader<'_, CandidateArchiveRefusal>,
+    limits: BindingArchiveLimits,
+) -> Result<ArchivedProvenance, BindingArchiveRefusal> {
+    use BindingArchiveRefusal::Canonical;
+    match reader.byte().map_err(Canonical)? {
+        0 => Ok(ArchivedProvenance::Unproduced),
+        1 => Ok(ArchivedProvenance::Produced {
+            producer: name(reader, limits).map_err(Canonical)?,
+            schema: address(reader, limits.field())?,
+        }),
+        _ => Err(BindingArchiveRefusal::InvalidSlot),
+    }
 }
 
 pub(crate) fn read_revision(

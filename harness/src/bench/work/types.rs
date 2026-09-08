@@ -11,6 +11,14 @@ use crate::clock::{ClockAttribution, MeasurementReading};
 use crate::descriptor::NameRefusal;
 use crate::report::FindingCause;
 
+/// The stage derived from the three work readings, without their cause payloads.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::bench) enum WorkStage {
+    ControlNotDistinguished,
+    MeasuredRefused,
+    Qualified,
+}
+
 /// One benchmark callable, taking an input size and the recorder it may count through.
 ///
 /// A function pointer excludes captured state; it does not make the caller's function pure, deterministic, or unwind-safe.

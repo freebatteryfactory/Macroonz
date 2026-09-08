@@ -1,0 +1,17 @@
+error[E0451]: fields `encoded`, `address`, `table`, `provenance` and `readings` of struct `ArchivedBenchReport` are private
+ --> tests/compile_refusals/compile-fail/a-historical-benchmark-cannot-bypass-its-reader.rs:8:37
+  |
+8 |     let _ = ArchivedBenchReport { ..report };
+  |                                     ^^^^^^ fields `encoded`, `address`, `table`, `provenance` and `readings` are private
+
+error[E0451]: fields `canonical`, `key`, `workload`, `preflight`, `planted_worse`, `complexity` and `measurement` of struct `ArchivedBenchRow` are private
+ --> tests/compile_refusals/compile-fail/a-historical-benchmark-cannot-bypass-its-reader.rs:9:34
+  |
+9 |     let _ = ArchivedBenchRow { ..row };
+  |                                  ^^^ fields `canonical`, `key`, `workload`, `preflight`, `planted_worse`, `complexity` and `measurement` are private
+
+error[E0451]: fields `measured`, `planted_worse` and `gap` of struct `ArchivedWorkJudgment` are private
+  --> tests/compile_refusals/compile-fail/a-historical-benchmark-cannot-bypass-its-reader.rs:10:38
+   |
+10 |     let _ = ArchivedWorkJudgment { ..judgment };
+   |                                      ^^^^^^^^ fields `measured`, `planted_worse` and `gap` are private

@@ -37,15 +37,21 @@ pub fn retain_trial(
     encode_bytes(site.name().as_bytes(), &mut body);
     attempt(report.trial(), report.attempt(), &mut body);
     measurement(report.measurement(), &mut body);
-    match report.clock_attribution() {
-        ClockAttribution::Unspecified => {}
-        ClockAttribution::Synthetic => body.push(1),
-        ClockAttribution::Monotonic => body.push(2),
+    if report.clock_attribution() != ClockAttribution::Unspecified {
+        body.push(attribution_slot(report.clock_attribution()));
     }
     let mut encoded = Vec::with_capacity(total);
     encoded.extend_from_slice(ContentAddress::derived(TRIAL_ARCHIVE_TAG, &body).as_bytes());
     encoded.extend_from_slice(&body);
     read_trial(&encoded, limits)
+}
+
+pub(crate) const fn attribution_slot(attribution: ClockAttribution) -> u8 {
+    match attribution {
+        ClockAttribution::Unspecified => 0,
+        ClockAttribution::Synthetic => 1,
+        ClockAttribution::Monotonic => 2,
+    }
 }
 
 fn attempt(trial: TrialId, attempt: &RunAttempt, body: &mut Vec<u8>) {
@@ -111,7 +117,7 @@ pub(crate) fn foreign(foreign: Option<&ForeignText>, body: &mut Vec<u8>) {
     });
 }
 
-fn measurement(reading: MeasurementReading, body: &mut Vec<u8>) {
+pub(crate) fn measurement(reading: MeasurementReading, body: &mut Vec<u8>) {
     match reading {
         MeasurementReading::Observed(duration) => {
             body.push(0);

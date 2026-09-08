@@ -17,20 +17,7 @@ pub(crate) fn encoded_size(
     let file = bounded(site.file().len(), limits)?;
     let name = bounded(site.name().len(), limits)?;
     let attempt = attempt_size(report.attempt(), limits)?;
-    let measurement = match report.measurement() {
-        MeasurementReading::Observed(_) => 9,
-        MeasurementReading::Unavailable => 1,
-        MeasurementReading::Failed(ClockFailure::Regressed {
-            opened: _,
-            closed: _,
-        }) => 18,
-        MeasurementReading::Failed(
-            ClockFailure::OpeningRefused
-            | ClockFailure::ClosingRefused
-            | ClockFailure::OpeningUnwound
-            | ClockFailure::ClosingUnwound,
-        ) => 2,
-    };
+    let measurement = measurement_size(report.measurement());
     let attribution = match report.clock_attribution() {
         ClockAttribution::Unspecified => 0,
         ClockAttribution::Synthetic | ClockAttribution::Monotonic => 1,
@@ -49,6 +36,23 @@ pub(crate) fn encoded_size(
         return Err(ArchiveRefusal::EnvelopeTooLarge);
     }
     Ok(total)
+}
+
+pub(crate) const fn measurement_size(reading: MeasurementReading) -> usize {
+    match reading {
+        MeasurementReading::Observed(_) => 9,
+        MeasurementReading::Unavailable => 1,
+        MeasurementReading::Failed(ClockFailure::Regressed {
+            opened: _,
+            closed: _,
+        }) => 18,
+        MeasurementReading::Failed(
+            ClockFailure::OpeningRefused
+            | ClockFailure::ClosingRefused
+            | ClockFailure::OpeningUnwound
+            | ClockFailure::ClosingUnwound,
+        ) => 2,
+    }
 }
 
 fn attempt_size(attempt: &RunAttempt, limits: ArchiveLimits) -> Result<usize, ArchiveRefusal> {

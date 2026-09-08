@@ -4,12 +4,12 @@ mod types;
 mod encode_binding;
 
 pub use encode_binding::retain_binding;
-pub(crate) use encode_binding::{binding_size, write_revision};
-pub(crate) use types::read_revision;
+pub(crate) use encode_binding::{binding_size, provenance_size, write_provenance, write_revision};
 pub use types::{
     ArchivedBinding, ArchivedProvenance, ArchivedRevisionBinding, BindingArchiveLimits,
     BindingArchiveRefusal, read_binding,
 };
+pub(crate) use types::{read_provenance, read_revision};
 
 pub use types::{
     ArchivedCandidate, ArchivedName, ArchivedSynthesis, CandidateArchiveLimits,

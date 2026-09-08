@@ -9,8 +9,28 @@ use super::{
 use crate::bench::declaration::{
     ComplexityClaimRef, DeclaredBudgets, PlantedWorseRef, WorkFormula, WorkloadRef,
 };
+use crate::bench::work::{WorkStage, qualification_stage};
 use crate::clock::{ClockAttribution, MeasurementReading};
+use crate::report::FindingCause;
 use std::collections::BTreeMap;
+
+impl WorkConclusion {
+    const fn reading(&self) -> Result<(), &FindingCause> {
+        match self {
+            Self::Satisfied => Ok(()),
+            Self::Refused(cause) => Err(cause),
+        }
+    }
+}
+
+impl WorkGapStanding {
+    const fn reading(&self) -> Result<(), &FindingCause> {
+        match self {
+            Self::Distinguished => Ok(()),
+            Self::NotDistinguished(cause) => Err(cause),
+        }
+    }
+}
 
 impl WorkJudgmentInput<'_> {
     pub(in crate::bench) const fn over<'reading>(
@@ -116,18 +136,22 @@ impl WorkJudgment {
     ///
     /// Refuses an inactive control before it looks at the measured curve at all.
     pub const fn qualification(self) -> Result<(), WorkQualificationRefusal> {
-        if !matches!(self.planted_worse, WorkConclusion::Refused(_))
-            || !matches!(self.gap, WorkGapStanding::Distinguished)
-        {
-            return Err(WorkQualificationRefusal::PlantedWorseNotDistinguished {
-                planted_worse: self.planted_worse,
-                gap: self.gap,
-            });
+        match qualification_stage(
+            self.measured.reading(),
+            self.planted_worse.reading(),
+            self.gap.reading(),
+        ) {
+            WorkStage::ControlNotDistinguished => {
+                Err(WorkQualificationRefusal::PlantedWorseNotDistinguished {
+                    planted_worse: self.planted_worse,
+                    gap: self.gap,
+                })
+            }
+            WorkStage::MeasuredRefused => {
+                Err(WorkQualificationRefusal::MeasuredRefused(self.measured))
+            }
+            WorkStage::Qualified => Ok(()),
         }
-        if !matches!(self.measured, WorkConclusion::Satisfied) {
-            return Err(WorkQualificationRefusal::MeasuredRefused(self.measured));
-        }
-        Ok(())
     }
 
     /// The same reading as [`qualification`](Self::qualification), without the reason.

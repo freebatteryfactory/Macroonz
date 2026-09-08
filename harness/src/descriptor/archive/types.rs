@@ -4,8 +4,8 @@
 mod guard;
 
 pub use guard::read_binding;
-pub(crate) use guard::read_revision;
 pub use guard::{read_candidate, read_row, retain_candidate, retain_row};
+pub(crate) use guard::{read_provenance, read_revision};
 
 /// Independent binding-byte, name/address-field and per-row-label ceilings.
 pub type BindingArchiveLimits = RowArchiveLimits;

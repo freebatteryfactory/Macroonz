@@ -26,7 +26,7 @@ mod read;
 pub use read::read_capsule;
 pub use run::read_run;
 pub use trial::read_trial;
-pub(crate) use trial::{finding, foreign};
+pub(crate) use trial::{finding, foreign, measurement, read_attribution};
 
 pub(crate) use identity::{
     claim, cursor, envelope, execution, fingerprint, finish, frame, posture, text,

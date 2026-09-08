@@ -21,7 +21,7 @@ mod binding;
 mod binding_readers;
 
 pub use binding::read_binding;
-pub(crate) use binding::read_revision;
+pub(crate) use binding::{read_provenance, read_revision};
 
 pub use read::{read_candidate, retain_candidate};
 pub use row::{read_row, retain_row};
