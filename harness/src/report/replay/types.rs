@@ -61,6 +61,8 @@ pub enum WitnessLineage {
 pub enum HistoricalReplayRefusal {
     /// No original input standing was retained.
     InputUnrecorded,
+    /// Sparse legacy claims omit the complete historical execution and fingerprint preimages.
+    IncompleteLegacyRecord,
     /// At least one participating executable has untracked standing.
     Untracked,
 }
@@ -105,4 +107,42 @@ pub struct ReplayReading {
     lineage: WitnessLineage,
     standing: HistoricalReplayStanding,
     outcome: ReplayOutcome,
+}
+
+/// A supplied legacy coordinate's relation to current evidence, without authenticating the claim.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LegacyClaimRelation {
+    /// The historical member was omitted.
+    Missing,
+    /// The historical member explicitly contained null.
+    Null,
+    /// The containing profile object was omitted.
+    ParentMissing,
+    /// The containing profile object was null, with no leaf supplied.
+    ParentNull,
+    /// The supplied value is retained without assigning current identity or outcome meaning.
+    Uninterpreted,
+    /// The supplied claim equals the current coordinate.
+    SameClaim,
+    /// The supplied claim differs from the current coordinate.
+    MovedClaim,
+    /// Current execution earned no counterpart, such as a refusal fingerprint.
+    CurrentUnavailable,
+}
+
+/// Why a sparse historical witness cannot be joined to a current report.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LegacyJoinRefusal {
+    /// No witness member was recorded.
+    MissingWitness,
+    /// The witness member was null.
+    NullWitness,
+    /// The current report and admitted envelope did not join the saved bytes.
+    Current(ReplayJoinRefusal),
+}
+
+/// A complete field-presence account over a joined legacy witness and current report.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LegacyReading {
+    claims: std::collections::BTreeMap<crate::report::legacy::LegacyField, LegacyClaimRelation>,
 }

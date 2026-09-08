@@ -187,6 +187,8 @@ dependencies = [
  "blake3",
  "loom",
  "macroonz-compiler",
+ "serde",
+ "serde_json",
  "syn",
  "trybuild",
 ]

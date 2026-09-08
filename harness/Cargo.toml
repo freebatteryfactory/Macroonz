@@ -16,6 +16,8 @@ all-features = true
 workspace = true
 
 [dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
 arbitrary = { workspace = true }
 blake3 = { workspace = true }
 syn = { workspace = true }

@@ -1,6 +1,11 @@
 //! Historical capsule integrity, authority separation and independent byte controls.
 
 mod fixture;
+mod legacy;
+mod legacy_claims;
+mod legacy_execution;
+mod legacy_hostile;
+mod legacy_process;
 mod clock_attribution;
 mod process;
 mod vector;

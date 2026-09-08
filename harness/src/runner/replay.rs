@@ -18,12 +18,48 @@ pub fn replay<Input>(
     invocation: Invocation,
     limits: InputLimits,
 ) -> Result<ReplayedTrial, InputRefusal> {
-    let envelope = pack(decoder.profile(), historical.input(), limits)?;
+    let (report, witness) =
+        execute_saved(historical.input(), binding, decoder, invocation, limits)?;
+    Ok(ReplayedTrial::earned(historical, report, witness))
+}
+
+/// Execute a sparse source's witness using independently supplied current bindings.
+///
+/// # Errors
+///
+/// Preserves missing and null witnesses separately, then preserves the input owner's admission refusal.
+pub fn replay_legacy<Input>(
+    historical: &crate::report::legacy::LegacyRecord,
+    binding: &TrialBinding<BoundInput<Input>>,
+    decoder: &InputBinding<Input>,
+    invocation: Invocation,
+    limits: InputLimits,
+) -> Result<super::LegacyReplayedTrial, super::LegacyReplayRefusal> {
+    let bytes = match historical.witness() {
+        crate::report::legacy::LegacyPresence::Missing => {
+            return Err(super::LegacyReplayRefusal::MissingWitness);
+        }
+        crate::report::legacy::LegacyPresence::Null => {
+            return Err(super::LegacyReplayRefusal::NullWitness);
+        }
+        crate::report::legacy::LegacyPresence::Present(bytes) => bytes,
+    };
+    let (report, witness) = execute_saved(bytes, binding, decoder, invocation, limits)
+        .map_err(super::LegacyReplayRefusal::Input)?;
+    Ok(super::LegacyReplayedTrial::earned(
+        historical, report, witness,
+    ))
+}
+
+fn execute_saved<Input>(
+    bytes: &[u8],
+    binding: &TrialBinding<BoundInput<Input>>,
+    decoder: &InputBinding<Input>,
+    invocation: Invocation,
+    limits: InputLimits,
+) -> Result<(crate::report::TrialReport, crate::input::InputEnvelope), InputRefusal> {
+    let envelope = pack(decoder.profile(), bytes, limits)?;
     let invocation = invocation.with_input(decoder.decode(envelope)?);
     let report = run_one(binding, &invocation);
-    Ok(ReplayedTrial::earned(
-        historical,
-        report,
-        invocation.input().envelope().clone(),
-    ))
+    Ok((report, invocation.input().envelope().clone()))
 }

@@ -81,6 +81,11 @@ The decoder remains caller-owned code under the [input contract](../input/README
 Historical source claims do not choose the current binding, and changing that binding never erases the report it actually earned.
 This operation performs no reduction, mints no live replay capsule and establishes no human admission.
 
+`replay_legacy` admits a sparse historical record's present witness through the same packing, decoding and execution operation.
+Missing and null witnesses refuse separately before current decoding, while an empty witness remains eligible for the caller's decoder.
+`LegacyReplayedTrial` retains the exact source address, admitted witness, complete current report and sparse-claim comparison.
+Matching source claims do not supply the missing historical preimages or earn a reproduced-defect or fixed-on-witness claim.
+
 ## The complete table is the denominator
 
 A selection chooses from the authored world and never shrinks it.

@@ -32,3 +32,15 @@ Historical input absence and untracked executable standing remain separate reaso
 Otherwise the reading carries the weaker of the historical claimed ceiling and the current earned ceiling.
 Even an exact-derived ceiling does not establish unchanged execution when coordinates moved, and no ceiling authenticates the historical author.
 The current report preserves its own conclusion, finding, source site and measurement regardless of that historical limitation.
+
+## Sparse legacy claims
+
+`compare_legacy` requires the same exact witness, profile and case join for a bounded `LegacyRecord`.
+It accounts for every supported historical field, preserving missing, null and uninterpreted values.
+A missing or null profile parent remains distinct from an omitted or null leaf inside a present object.
+Only target and toolchain spellings, the execution digest claim, and an available refusal fingerprint claim are compared to current coordinates.
+An absent current fingerprint remains unavailable rather than different or equal.
+Opaque numeric revisions, free-form names, profile fragments, header labels, witness data and outcome prose do not acquire current identity or conclusion meaning.
+
+The historical standing is always unverifiable because the sparse record lacks complete execution and fingerprint preimages.
+Even matching claims cannot establish reproduction or repair, and the runner's complete current report remains independently inspectable.

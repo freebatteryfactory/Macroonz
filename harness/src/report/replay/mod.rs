@@ -4,8 +4,9 @@ mod compare;
 mod read;
 mod types;
 
-pub use compare::compare;
+pub use compare::{compare, compare_legacy};
 pub use types::{
-    HistoricalReplayRefusal, HistoricalReplayStanding, ReplayCoordinate, ReplayJoinRefusal,
-    ReplayMovement, ReplayNonReproduction, ReplayOutcome, ReplayReading, WitnessLineage,
+    HistoricalReplayRefusal, HistoricalReplayStanding, LegacyClaimRelation, LegacyJoinRefusal,
+    LegacyReading, ReplayCoordinate, ReplayJoinRefusal, ReplayMovement, ReplayNonReproduction,
+    ReplayOutcome, ReplayReading, WitnessLineage,
 };

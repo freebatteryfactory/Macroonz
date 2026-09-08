@@ -40,7 +40,7 @@ pub(crate) fn claim(
     limits: ArchiveLimits,
 ) -> Result<AddressClaim, ArchiveRefusal> {
     <[u8; 32]>::try_from(frame(reader, limits)?)
-        .map(AddressClaim)
+        .map(AddressClaim::stated)
         .map_err(|_wrong_width| ArchiveRefusal::InvalidAddressWidth)
 }
 

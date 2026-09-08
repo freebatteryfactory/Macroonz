@@ -1,6 +1,7 @@
 #![doc = include_str!("README.md")]
 
 pub mod archive;
+pub mod legacy;
 pub mod replay;
 
 mod compare;

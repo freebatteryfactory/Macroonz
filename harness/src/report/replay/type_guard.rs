@@ -17,20 +17,7 @@ impl ReplayReading {
         current: &TrialReport,
         witness: &InputEnvelope,
     ) -> Result<Self, ReplayJoinRefusal> {
-        if historical.input() != witness.payload() {
-            return Err(ReplayJoinRefusal::WitnessBytesDiffer);
-        }
-        let input = current
-            .standing()
-            .key()
-            .input()
-            .ok_or(ReplayJoinRefusal::CurrentInputUnrecorded)?;
-        if input.profile() != witness.profile() {
-            return Err(ReplayJoinRefusal::CurrentProfileDiffers);
-        }
-        if input.case() != witness.case() {
-            return Err(ReplayJoinRefusal::CurrentCaseDiffers);
-        }
+        let input = joined_input(historical.input(), current, witness)?;
         let movement = ReplayMovement::between(historical.key(), current.standing().key(), input);
         let standing = super::super::read::standing(historical, current);
         Ok(Self {
@@ -65,3 +52,28 @@ impl ReplayReading {
         self.outcome
     }
 }
+
+fn joined_input(
+    saved: &[u8],
+    current: &TrialReport,
+    witness: &InputEnvelope,
+) -> Result<crate::report::ExecutionInput, ReplayJoinRefusal> {
+    if saved != witness.payload() {
+        return Err(ReplayJoinRefusal::WitnessBytesDiffer);
+    }
+    let input = current
+        .standing()
+        .key()
+        .input()
+        .ok_or(ReplayJoinRefusal::CurrentInputUnrecorded)?;
+    if input.profile() != witness.profile() {
+        return Err(ReplayJoinRefusal::CurrentProfileDiffers);
+    }
+    if input.case() != witness.case() {
+        return Err(ReplayJoinRefusal::CurrentCaseDiffers);
+    }
+    Ok(input)
+}
+
+#[path = "guard_legacy.rs"]
+mod legacy;

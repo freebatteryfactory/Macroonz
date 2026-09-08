@@ -1,0 +1,23 @@
+error[E0451]: fields `source`, `kind`, `schema`, `witness`, `input_profile`, `trial_name`, `subject_name`, `check_name`, `subject_revision`, `check_revision`, `target`, `toolchain`, `execution_digest`, `fingerprint_digest` and `reported_outcome` of struct `LegacyRecord` are private
+ --> tests/compile_refusals/compile-fail/a-legacy-record-cannot-bypass-admission.rs:8:30
+  |
+8 |     let _ = LegacyRecord { ..record };
+  |                              ^^^^^^ fields `source`, `kind`, `schema`, `witness`, `input_profile`, `trial_name`, `subject_name`, `check_name`, `subject_revision`, `check_revision`, `target`, `toolchain`, `execution_digest`, `fingerprint_digest` and `reported_outcome` are private
+
+error[E0451]: fields `name` and `revision` of struct `LegacyInputProfile` are private
+ --> tests/compile_refusals/compile-fail/a-legacy-record-cannot-bypass-admission.rs:9:36
+  |
+9 |     let _ = LegacyInputProfile { ..profile };
+  |                                    ^^^^^^^ fields `name` and `revision` are private
+
+error[E0451]: field `claims` of struct `LegacyReading` is private
+  --> tests/compile_refusals/compile-fail/a-legacy-record-cannot-bypass-admission.rs:10:31
+   |
+10 |     let _ = LegacyReading { ..reading };
+   |                               ^^^^^^^ field `claims` is private
+
+error[E0451]: fields `historical`, `witness`, `report` and `comparison` of struct `LegacyReplayedTrial` are private
+  --> tests/compile_refusals/compile-fail/a-legacy-record-cannot-bypass-admission.rs:11:37
+   |
+11 |     let _ = LegacyReplayedTrial { ..run };
+   |                                     ^^^ fields `historical`, `witness`, `report` and `comparison` are private

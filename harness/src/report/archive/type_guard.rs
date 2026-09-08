@@ -54,6 +54,11 @@ impl ArchiveLimits {
 }
 
 impl AddressClaim {
+    /// A historical digest without its preimage or a content-address mint.
+    pub(in crate::report) const fn stated(bytes: [u8; 32]) -> Self {
+        Self(bytes)
+    }
+
     /// The claimed bytes, without a content-address mint.
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8; 32] {

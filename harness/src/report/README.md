@@ -79,6 +79,9 @@ Loading produces historical claims with explicit unauthenticated custody; only i
 Its original execution key and reduced witness remain separate coordinates.
 The [replay comparison](replay/README.md) joins that witness to a current report and keeps outcome, coordinate movement, lineage and historical standing separate.
 
+The [legacy reader](legacy/README.md) admits sparse historical JSON with explicit missing, null and present fields.
+It retains only supplied claims and exact source bytes, without synthesizing a complete capsule.
+
 ## Foreign material
 
 Text arriving from a subject, decoder, or external tool is bounded and carries whether bytes were cut or cannot render exactly as text.

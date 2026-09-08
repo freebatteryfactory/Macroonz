@@ -33,6 +33,8 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/freebatteryfactory/Macroonz"
 
 [workspace.dependencies]
+serde = { version = "=1.0.229", default-features = false, features = ["alloc"] }
+serde_json = { version = "=1.0.151", default-features = false, features = ["alloc"] }
 arbitrary = { version = "=1.4.2", default-features = false }
 syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }
 blake3 = { version = "=1.8.6", default-features = false }

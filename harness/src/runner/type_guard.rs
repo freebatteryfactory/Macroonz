@@ -228,3 +228,44 @@ impl From<TrialTableRefusal> for SeatRefusal {
         Self::TableNotBuilt(refusal)
     }
 }
+
+impl super::LegacyReplayedTrial {
+    pub(in crate::runner) fn earned(
+        historical: &crate::report::legacy::LegacyRecord,
+        report: TrialReport,
+        witness: InputEnvelope,
+    ) -> Self {
+        Self {
+            historical: historical.source_address(),
+            comparison: crate::report::replay::compare_legacy(historical, &report, &witness),
+            report,
+            witness,
+        }
+    }
+
+    /// The address of the exact sparse historical source.
+    #[must_use]
+    pub const fn historical(&self) -> ContentAddress {
+        self.historical
+    }
+
+    /// The independently admitted current witness.
+    #[must_use]
+    pub const fn witness(&self) -> &InputEnvelope {
+        &self.witness
+    }
+
+    /// The complete report earned by the existing runner.
+    #[must_use]
+    pub const fn report(&self) -> &TrialReport {
+        &self.report
+    }
+
+    /// The report owner's sparse-claim comparison, without complete reproduction standing.
+    pub const fn comparison(
+        &self,
+    ) -> &Result<crate::report::replay::LegacyReading, crate::report::replay::LegacyJoinRefusal>
+    {
+        &self.comparison
+    }
+}

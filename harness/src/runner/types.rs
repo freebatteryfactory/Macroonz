@@ -211,3 +211,24 @@ pub enum SeatRefusal {
         denominator: usize,
     },
 }
+
+/// A sparse historical witness beside the full report earned by current execution.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LegacyReplayedTrial {
+    historical: ContentAddress,
+    witness: InputEnvelope,
+    report: TrialReport,
+    comparison:
+        Result<crate::report::replay::LegacyReading, crate::report::replay::LegacyJoinRefusal>,
+}
+
+/// Why a sparse source could not enter the current input and execution road.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LegacyReplayRefusal {
+    /// The source omitted witness bytes.
+    MissingWitness,
+    /// The source explicitly carried a null witness.
+    NullWitness,
+    /// The independently supplied current input decoder or envelope refused.
+    Input(crate::input::InputRefusal),
+}

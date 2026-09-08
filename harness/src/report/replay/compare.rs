@@ -16,3 +16,16 @@ pub fn compare(
 ) -> Result<ReplayReading, ReplayJoinRefusal> {
     ReplayReading::joined(historical, current, witness)
 }
+
+/// Read sparse historical claims against the report earned on their saved witness.
+///
+/// # Errors
+///
+/// Refuses an absent witness or a current report/envelope that does not name those saved bytes.
+pub fn compare_legacy(
+    historical: &crate::report::legacy::LegacyRecord,
+    current: &TrialReport,
+    witness: &InputEnvelope,
+) -> Result<super::LegacyReading, super::LegacyJoinRefusal> {
+    super::LegacyReading::joined(historical, current, witness)
+}
