@@ -14,7 +14,7 @@ fn target() -> Result<&'static Path, String> {
         .ok_or_else(|| "Cargo supplied no target parent".to_owned())
 }
 
-fn scratch() -> Result<PathBuf, String> {
+pub(super) fn scratch() -> Result<PathBuf, String> {
     let parent = target()?.join("qualification/native-policy");
     std::fs::create_dir_all(&parent).map_err(|error| error.to_string())?;
     for _attempt in 0u16..1_024 {

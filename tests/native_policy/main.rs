@@ -2,8 +2,18 @@
 
 mod check;
 mod consumer;
+#[cfg(all(feature = "native-tooling", any(unix, windows)))]
+mod inventory;
+#[cfg(all(feature = "native-tooling", any(unix, windows)))]
+mod ownership;
 mod probes;
+#[cfg(all(feature = "native-tooling", any(unix, windows)))]
+mod storage;
+#[cfg(all(feature = "native-tooling", any(unix, windows)))]
+mod transaction;
 mod types;
+#[cfg(feature = "harness")]
+mod workflow;
 
 use types::PolicyProfiles;
 
@@ -40,4 +50,9 @@ fn missing_duplicated_or_reframed_permission_refuses_derivation() {
 #[ignore = "Runs the required scoped Clippy wall and independent refusal subjects."]
 fn scoped_clippy_wall() -> Result<(), String> {
     check::qualify()
+}
+
+#[test]
+fn native_storage_dependencies_require_the_native_feature_and_target() -> Result<(), String> {
+    consumer::qualify_graphs()
 }

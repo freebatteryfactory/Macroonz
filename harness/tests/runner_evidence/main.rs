@@ -3,5 +3,6 @@
 mod assembly;
 mod input;
 mod input_execution;
+mod input_record;
 mod panic_boundary;
 mod support;

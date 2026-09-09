@@ -403,14 +403,15 @@ pub enum RunAttempt {
 
 /// One external host's typed input about a selected trial.
 ///
-/// A host can establish an attempt and a wall-measurement reading the in-process runner cannot, and that is the whole of what it may state.
-/// The semantic standing, the site, the census, the selection outcome, and the table posture are derived at the join that admits this value, never accepted from it.
+/// Input-bearing observations carry decoder-admitted coordinates through [`HostTrialRecord::with_input`].
+/// Admission and authority belong to the [runner contract](crate::runner#one-meaning-two-admission-roads).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct HostTrialRecord {
+pub struct HostTrialRecord<Input = ()> {
     trial: TrialId,
     attempt: RunAttempt,
     measurement: MeasurementReading,
     clock_attribution: ClockAttribution,
+    input: Input,
 }
 
 /// The exact semantic and revision standing one admitted trial report ran under.

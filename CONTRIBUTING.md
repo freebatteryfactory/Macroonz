@@ -29,13 +29,14 @@ cargo +1.98.1 check -j1 --workspace --all-targets --all-features --locked
 cargo +1.98.1 nextest run -j1 -p macroonz --no-default-features --test native_policy --locked --run-ignored only --no-tests fail -E 'test(=scoped_clippy_wall)'
 cargo +1.98.1 nextest run -j1 --workspace --all-features --locked --no-fail-fast --no-tests fail
 cargo +1.98.1 test -j1 --doc --workspace --all-features --locked
-cargo deny --workspace check
+cargo deny --workspace --all-features check
 cargo +1.98.1 doc -j1 --workspace --all-features --no-deps --locked
 cargo +1.98.1 check -j1 --workspace --all-features --target wasm32-unknown-unknown --locked
 cargo +1.98.1 run -j1 --example rustc_coverage --features harness --locked
 ```
 
 Set `RUSTDOCFLAGS` to `-Dwarnings` for the documentation command so rustdoc warnings are part of the wall.
+Dependency policy checks select all features so optional native dependencies are included.
 The scoped Clippy target derives a disposable profile from the canonical `clippy.toml` by removing only its `std::time::Instant` entry.
 It checks compiler, proc and harness packages with the strict profile, checks the ordinary root feature postures separately with that strict profile, and checks the opt-in native root posture with the derived profile over the same source checkout.
 Independent compiler subjects must distinguish that permission from strict clock refusal and still-forbidden SystemTime and environment reads.

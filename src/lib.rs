@@ -61,3 +61,9 @@ pub use macroonz_harness as harness;
 
 #[cfg(feature = "native-tooling")]
 pub mod native_clock;
+
+#[cfg(feature = "native-tooling")]
+pub mod native_storage;
+
+#[cfg(feature = "harness")]
+pub mod workflow;

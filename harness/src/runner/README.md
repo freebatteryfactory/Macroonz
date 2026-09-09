@@ -48,9 +48,14 @@ flowchart LR
 An in-process call and an external host observation are two ways to establish the attempt axis, not two report engines.
 Both roads enter one assembler, which derives the standing a host cannot author from the binding, invocation, table, and selection.
 
-A host may state only the semantic trial it ran, what became of the attempt, and the wall reading it observed.
+A host states the semantic trial it ran, what became of the attempt, and the wall reading and source it observed.
 The join refuses records that are duplicated, outside the table, outside the selection, or absent for a selected trial.
-The host-record road accepts unit-input invocations only; those records establish no individual specimen join.
+`record_one` and `record_all` accept unit-input invocations only; those records establish no individual specimen join.
+`HostTrialRecord::with_input` attaches the profile, case and decoder standing from a decoder-admitted specimen.
+`record_input_one` and `record_input_all` require that standing to equal the independently supplied typed invocation's standing before entering the shared assembler.
+A different trial refuses before input mismatch; complete-table admission refuses duplicate and inadmissible roster entries before walking selected rows in table order.
+Within that walk, each missing record or refused join stops admission without returning a partial report.
+The join does not execute the subject or authenticate the host's claim that it used those bytes; native execution custody belongs to the host.
 
 ## Typed input
 
@@ -68,6 +73,10 @@ Before calling it, the runner requires room for one case and the specimen's actu
 An exceeded bound records a budget skip with no clock reading and cannot pass either verdict fold.
 Envelope admission limits remain the input owner's separate resource bounds.
 The unit-input road leaves case and byte consumption to its check, and no elapsed measurement is interpreted as a timeout.
+
+A host reads `Invocation::input_budget_refusal` before starting input-bearing work.
+When the specimen exceeds that bound, host admission permits only the corresponding budget skip with unavailable measurement and unspecified clock attribution.
+Any contradictory attempt or measurement refuses the join rather than being relabeled as an execution under that budget.
 
 ## Saved-witness replay
 

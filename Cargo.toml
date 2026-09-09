@@ -40,6 +40,7 @@ syn = { version = "=3.0.3", default-features = false, features = ["full", "parsi
 blake3 = { version = "=1.8.6", default-features = false }
 ra-ap-rustc_lexer = { version = "=0.174.0", default-features = false }
 trybuild = "=1.0.120"
+cap-std = { version = "=3.4.6", default-features = false }
 macroonz-compiler = { path = "macros/compiler", version = "=0.2.0" }
 macroonz-harness = { path = "harness", version = "=0.2.0", default-features = false }
 macroonz-macros = { path = "macros/proc", version = "=0.2.0" }
@@ -49,12 +50,15 @@ default = ["full"]
 harness = ["dep:macroonz-harness"]
 preemption = ["harness", "macroonz-harness/preemption"]
 full = ["harness", "preemption"]
-native-tooling = ["harness"]
+native-tooling = ["harness", "dep:cap-std"]
 
 [dependencies]
 macroonz-compiler = { workspace = true, features = ["host"] }
 macroonz-harness = { workspace = true, optional = true }
 macroonz-macros = { workspace = true }
+
+[target.'cfg(any(unix, windows))'.dependencies]
+cap-std = { workspace = true, optional = true }
 
 [[test]]
 name = "facade_harness_surface"

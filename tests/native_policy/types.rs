@@ -7,3 +7,9 @@ pub(super) struct PolicyProfiles {
     strict: String,
     native: String,
 }
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum StorageDependencies {
+    Absent,
+    Native,
+}

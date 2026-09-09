@@ -155,7 +155,7 @@ jobs:
         run: cargo +1.98.1 test -j1 --doc --workspace --all-features --locked
 
       - name: Check dependency policy
-        run: cargo deny --workspace check
+        run: cargo deny --workspace --all-features check
 
       - name: Build warnings-denied documentation
         run: cargo +1.98.1 doc --workspace --all-features --no-deps --locked

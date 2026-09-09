@@ -2,6 +2,7 @@
 
 use crate::clock::{ClockAttribution, MeasurementReading};
 use crate::descriptor::{ClaimRef, TablePosture};
+use crate::input::BoundInput;
 use crate::report::{
     CacheEligibility, ExecutionInput, ExecutionKey, ExecutionRevisions, Exercise, ForeignText,
     HostTrialRecord, InfrastructureFailure, InfrastructureFault, InvocationProfile,
@@ -50,7 +51,28 @@ impl HostTrialRecord {
             attempt,
             measurement,
             clock_attribution,
+            input: (),
         }
+    }
+
+    /// The host observation joined to the specimen coordinates admitted by its decoder.
+    #[must_use]
+    pub fn with_input<Input>(self, input: &BoundInput<Input>) -> HostTrialRecord<ExecutionInput> {
+        HostTrialRecord {
+            trial: self.trial,
+            attempt: self.attempt,
+            measurement: self.measurement,
+            clock_attribution: self.clock_attribution,
+            input: ExecutionInput::of(input),
+        }
+    }
+}
+
+impl<Input> HostTrialRecord<Input> {
+    /// The specimen standing attached to the host observation, or the explicit unit value.
+    #[must_use]
+    pub const fn input(&self) -> &Input {
+        &self.input
     }
 
     /// The semantic trial the host says this input belongs to.

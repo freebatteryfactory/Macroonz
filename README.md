@@ -243,6 +243,7 @@ For a specific task, start at its owner:
 | Invoke deferred test or benchmark cargo | [Support carrier](macros/compiler/src/support/README.md) |
 | Add an independent judgment | [Handwritten property](harness/README.md#direct-handwritten-property) or [Oracle](harness/src/oracle/README.md) |
 | Replay a retained witness against current code | [Saved-witness execution](harness/src/runner/README.md#saved-witness-replay) and [Historical comparison](harness/src/report/replay/README.md) |
+| Execute declared input, retain a complete run and replay saved witnesses | [Root workflow](src/workflow/README.md) |
 | Interpret a refusal and its location | [Diagnostic](macros/compiler/src/diagnostic/README.md) |
 
 The shipped [Macroonz agent skill](skills/macroonz/SKILL.md) is a one-page routing surface for agents authoring recipes from the packaged facade.
@@ -263,10 +264,11 @@ Cargo features are additive, so the lighter postures are selected by turning off
 | **diet** | `cargo add macroonz --no-default-features` | Recipe entrance, compiler, and proc declarations; harness-owned evidence bakes are typed unavailable. |
 
 The `preemption` feature always implies `harness`.
+The `harness` feature also supplies [root input execution](src/workflow/README.md#execute), composing the existing decoder and complete-table runner.
 On a native target supported by the pinned Loom backend, enabling `preemption` installs that backend.
 On every other target, including Wasm, the same harness result plane remains available and reports typed backend unavailability instead of trying to compile Loom.
 
-The optional `native-tooling` feature adds the root [native clock source](src/native_clock/README.md) and implies `harness` without enabling preemption.
+The optional `native-tooling` feature adds the root [native clock source](src/native_clock/README.md) and [bounded native storage](src/native_storage/README.md), and implies `harness` without enabling preemption.
 It is independent of the default `full` posture.
 Pass `macroonz::native_clock::source()` to an existing harness runner or benchmark when native measurement is wanted; the harness retains its existing clock and measurement contracts.
 

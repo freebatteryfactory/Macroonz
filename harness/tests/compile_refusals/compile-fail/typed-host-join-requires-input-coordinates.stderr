@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+ --> tests/compile_refusals/compile-fail/typed-host-join-requires-input-coordinates.rs:8:61
+  |
+8 |     let _unjoined = record_input_one(&binding, &invocation, record);
+  |                     ----------------                        ^^^^^^ expected `HostTrialRecord<ExecutionInput>`, found `HostTrialRecord`
+  |                     |
+  |                     arguments to this function are incorrect
+  |
+  = note: expected struct `HostTrialRecord<ExecutionInput>`
+             found struct `HostTrialRecord<()>`
+note: function defined here
+ --> src/runner/record.rs
+  |
+  | pub fn record_input_one<Input>(
+  |        ^^^^^^^^^^^^^^^^

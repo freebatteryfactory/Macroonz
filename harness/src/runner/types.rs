@@ -108,6 +108,10 @@ pub enum ReportRecordingRefusal {
     RecordForUnselectedTrial(TrialId),
     /// The selection named a trial for which the host supplied no record.
     MissingSelectedRecord(TrialId),
+    /// The host's specimen profile, case or decoder standing differs from the invocation's.
+    InputMismatch(TrialId),
+    /// An input-budget refusal was paired with something other than an unmeasured budget skip.
+    InputBudgetMismatch(TrialId),
 }
 
 /// The callable one executable attachment carries, at the types this engine runs.

@@ -107,7 +107,8 @@ impl<Input> Invocation<Input> {
     }
 
     /// Whether the one admitted specimen exceeds a declared execution budget.
-    pub(in crate::runner) fn input_budget_refusal(&self) -> Option<SkipReason> {
+    #[must_use]
+    pub fn input_budget_refusal(&self) -> Option<SkipReason> {
         self.input_standing?;
         let bytes = u64::try_from(self.input_bytes).ok();
         if self.profile.cases().cases() == 0

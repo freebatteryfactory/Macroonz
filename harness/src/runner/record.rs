@@ -1,7 +1,4 @@
-//! The external-host adapter: typed host observations become evidence only after they join the binding, invocation, table, and selection that own their missing facts.
-//!
-//! A host knows which trial it ran, what the attempt did, and what the wall read.
-//! Everything else on a report is derived here from the world the caller declared, so a host cannot author evidence it never observed.
+//! Host observations join their independently supplied execution and selection standing.
 
 use super::assemble::{run_report, trial_report};
 use super::resolve::trial_identity;
@@ -9,7 +6,9 @@ use super::select::admission;
 use super::types::{
     Admission, Invocation, ReportRecordingRefusal, SelectionPlan, TrialBinding, TrialTableView,
 };
-use crate::report::{HostTrialRecord, RunReport, TrialId, TrialReport};
+use crate::clock::{ClockAttribution, MeasurementReading};
+use crate::input::BoundInput;
+use crate::report::{ExecutionInput, HostTrialRecord, RunAttempt, RunReport, TrialId, TrialReport};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// Record one host-observed attempt under one bound trial and invocation.
@@ -22,10 +21,43 @@ pub fn record_one(
     invocation: &Invocation,
     record: HostTrialRecord,
 ) -> Result<TrialReport, ReportRecordingRefusal> {
+    join_one(binding, invocation, record, None)
+}
+
+/// Record one host observation against an independently admitted typed invocation.
+///
+/// # Errors
+///
+/// Refuses a different trial, then mismatched input standing, then a contradictory input-budget observation.
+pub fn record_input_one<Input>(
+    binding: &TrialBinding<BoundInput<Input>>,
+    invocation: &Invocation<BoundInput<Input>>,
+    record: HostTrialRecord<ExecutionInput>,
+) -> Result<TrialReport, ReportRecordingRefusal> {
+    let input = *record.input();
+    join_one(binding, invocation, record, Some(input))
+}
+
+fn join_one<Input, RecordedInput>(
+    binding: &TrialBinding<Input>,
+    invocation: &Invocation<Input>,
+    record: HostTrialRecord<RecordedInput>,
+    input: Option<ExecutionInput>,
+) -> Result<TrialReport, ReportRecordingRefusal> {
     let expected = trial_identity(binding.row());
     let recorded = record.trial();
     if expected != recorded {
         return Err(ReportRecordingRefusal::TrialMismatch { expected, recorded });
+    }
+    if input != invocation.input_standing() {
+        return Err(ReportRecordingRefusal::InputMismatch(recorded));
+    }
+    if let Some(reason) = invocation.input_budget_refusal()
+        && (record.attempt() != &RunAttempt::SkippedWithReason(reason)
+            || record.measurement() != MeasurementReading::Unavailable
+            || record.clock_attribution() != ClockAttribution::Unspecified)
+    {
+        return Err(ReportRecordingRefusal::InputBudgetMismatch(recorded));
     }
     let (_, attempt, measurement, clock_attribution) = record.into_parts();
     Ok(trial_report(
@@ -51,6 +83,34 @@ pub fn record_all(
     invocation: &Invocation,
     records: Vec<HostTrialRecord>,
 ) -> Result<RunReport, ReportRecordingRefusal> {
+    join_all(view, selection, invocation, records, record_one)
+}
+
+/// Record input-bearing host observations over a selection and its complete table.
+///
+/// # Errors
+///
+/// Applies [`record_all`]'s roster precedence, then admits selected rows in table order through [`record_input_one`].
+pub fn record_input_all<Input>(
+    view: &TrialTableView<'_, BoundInput<Input>>,
+    selection: &SelectionPlan,
+    invocation: &Invocation<BoundInput<Input>>,
+    records: Vec<HostTrialRecord<ExecutionInput>>,
+) -> Result<RunReport, ReportRecordingRefusal> {
+    join_all(view, selection, invocation, records, record_input_one)
+}
+
+fn join_all<Input, RecordedInput>(
+    view: &TrialTableView<'_, Input>,
+    selection: &SelectionPlan,
+    invocation: &Invocation<Input>,
+    records: Vec<HostTrialRecord<RecordedInput>>,
+    record_one: impl Fn(
+        &TrialBinding<Input>,
+        &Invocation<Input>,
+        HostTrialRecord<RecordedInput>,
+    ) -> Result<TrialReport, ReportRecordingRefusal>,
+) -> Result<RunReport, ReportRecordingRefusal> {
     let mut host = HostRecords::indexed(records)?;
     host.admissible_against(view, selection)?;
     run_report(view, selection, invocation, |binding| {
@@ -66,18 +126,18 @@ pub fn record_all(
 /// The host's records under the trials they name, plus the order the caller handed them over in.
 ///
 /// The order is kept because a refusal names the first record that did not hold, and "first" is the caller's word rather than the index's.
-struct HostRecords {
-    by_trial: BTreeMap<TrialId, HostTrialRecord>,
+struct HostRecords<Input> {
+    by_trial: BTreeMap<TrialId, HostTrialRecord<Input>>,
     order: Vec<TrialId>,
 }
 
-impl HostRecords {
+impl<Input> HostRecords<Input> {
     /// Index the caller's records.
     ///
     /// # Errors
     ///
     /// Refuses two records naming one trial, which is the one shape an index cannot hold.
-    fn indexed(records: Vec<HostTrialRecord>) -> Result<Self, ReportRecordingRefusal> {
+    fn indexed(records: Vec<HostTrialRecord<Input>>) -> Result<Self, ReportRecordingRefusal> {
         let mut by_trial = BTreeMap::new();
         let mut order = Vec::new();
         for record in records {
@@ -95,9 +155,9 @@ impl HostRecords {
     /// # Errors
     ///
     /// Refuses a record naming no row of the table, then a record naming a row this selection passed over.
-    fn admissible_against(
+    fn admissible_against<InvocationInput>(
         &self,
-        view: &TrialTableView<'_>,
+        view: &TrialTableView<'_, InvocationInput>,
         selection: &SelectionPlan,
     ) -> Result<(), ReportRecordingRefusal> {
         let mut table = BTreeSet::new();
