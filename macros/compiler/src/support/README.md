@@ -48,6 +48,29 @@ The proc host only emits the resulting declaration-site unit beside the item it 
 At the consumption boundary, the harness gate proves that the supplied harness path reaches the publishing crate and that the producer's schema expectation matches the published one before either seat reaches type checking.
 The gate transports opaque cargo without interpreting it.
 
+## Invocation
+
+Invoke the declaration's chosen support address from the consuming test or benchmark target.
+Recipe-produced carriers begin with these comma-terminated bindings, followed by the clauses required by their cargo:
+
+```text
+chosen_support! {
+    declaring: adopter,
+    harness: macroonz::harness,
+    ...
+}
+```
+
+`adopter` is the consuming target's path to the declaring crate, and the harness path may use a renamed dependency or facade re-export.
+Both paths contain identifier segments separated by `::`.
+A carrier that requires no declaring-crate items asks only for `harness`; use the matcher emitted for that declaration rather than adding an unused binding.
+Recipe compile-contract and declaration-conformance cargo, and the declared-order mutation carrier, need no further target clauses.
+
+The [trial](../descriptor/trial/README.md#carrier-arguments) and [benchmark](../descriptor/bench/README.md#carrier-arguments) owners specify the additional target expressions and their order.
+
+The [renamed facade specimen](../../../proc/tests/recipe_facade_crossing/support/renamed_facade.rs) contains complete declarations and consuming invocations for these forms.
+Its [executable crossing](../../../proc/tests/recipe_facade_crossing/renamed_facade.rs) compiles the generated targets and executes their checks.
+
 ## Evidence ceiling
 
 An assembled carrier establishes producer-side parentage, singular delivery, one declaration, one form, and the published expectation used to render the shell.

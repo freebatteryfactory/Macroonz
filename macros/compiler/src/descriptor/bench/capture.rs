@@ -1,48 +1,6 @@
 //! Reading one authored bench declaration out of a typed token tree.
 //!
-//! # The authored grammar
-//!
-//! ```text
-//! #[<helper>(
-//!     support = <exported name>,
-//!     table_function = <table function name>,
-//!     table = named("<namespace>", "<stem>"),
-//!     reporter = <reporter module name>,
-//!
-//!     <lens> {
-//!         workload = named("<namespace>", "<stem>"),
-//!         preflight = named("<namespace>", "<stem>"),
-//!         planted_worse = named("<namespace>", "<stem>"),
-//!         complexity = named("<namespace>", "<stem>"),
-//!         axis = [<size>, <size>, ...],
-//!         samples = <count>,
-//!         warmups = <count>,
-//!         ratio_numerator = <count>,
-//!         ratio_denominator = <count>,
-//!         formula = "<work formula>",
-//!         observe = [named("<namespace>", "<stem>"), ...],
-//!     },
-//! )]
-//! ```
-//!
-//! The helper's own spelling is the caller's, which is why `<helper>` stands where a word would: a door registers the attribute it wants and hands the same [`Grammar`] to this reading, so a refusal names the word an author actually wrote.
-//!
-//! `formula` may be left out; every other row clause is required.
-//! An operation that declares no work formula states that by carrying none.
-//!
-//! Every count is one unsuffixed decimal literal, because a count that arrives typed, based, or separated is a spelling this reading would have to interpret, and interpreting a spelling is deciding what an author meant by a value it could not read.
-//!
-//! Callables, the judge, the complete preflight, and the report reader are target-owned expressions and therefore are not authored here.
-//!
-//! # What has no clause, and why
-//!
-//! The contention posture has none, because one arm is all the declared facts support and a clause with one lawful value is a sentence that says what silence already says.
-//! The producer's own act and the consumption target's host facts have none, on the trial grammar's own terms: the first is composed inside the rendering from the emitter the caller declares, and the second arrives as expressions at the carrier's invocation.
-//!
-//! # Order
-//!
-//! Clause order inside a body is free and is read by key.
-//! Order between ROSTER members is meaning and is preserved: the rows in the order they were written, each axis in the order its sizes were written, and each observation roster in the order its references were written.
+//! The [authored grammar](super#authored-grammar) belongs to this home's public documentation.
 
 use super::{
     BenchCaptureError, BenchmarkDeclaration, Budgets, ContentionPosture, Measurement, References,

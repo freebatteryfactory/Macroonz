@@ -8,7 +8,7 @@ The ordinary build therefore compiles the exported carrier and not the stamp gra
 ## Authority in
 
 An author names the carrier, the stamped table, the suite groups, and the semantic rows the harness will receive.
-The exact grammar and construction contracts live beside their capture and public type operations.
+The [authored grammar](#authored-grammar) gives the clause forms, while public type operations own construction contracts.
 
 The helper attribute is the caller's word rather than a spelling owned here.
 A door supplies one [`Grammar`](crate::descriptor::Grammar) to the reading, so a refusal names what the author actually typed.
@@ -41,3 +41,60 @@ The generated-support gate checks the published schema pair before forwarding th
 
 This home captures declaration meaning and renders destination-shaped tokens.
 It does not judge a trial, derive host facts, prove a published schema is current, or execute the generated table.
+
+## Authored grammar
+
+```text
+#[<helper>(
+    support = <exported name>,
+    module = <stamped module name>,
+    table = named("<namespace>", "<stem>"),
+
+    suite <seat> = named("<namespace>", "<stem>") {
+        <lens> {
+            claim = named("<namespace>", "<stem>"),
+            roles = [named("<namespace>", "<stem>"), ...],
+            tags = [named("<namespace>", "<stem>"), ...],
+            subject = named("<namespace>", "<stem>"),
+            check = named("<namespace>", "<stem>"),
+            population = named("<namespace>", "<stem>"),
+        },
+    },
+)]
+```
+
+The helper's own spelling is the caller's, which is why `<helper>` stands where a word would: a door registers the attribute it wants and hands the same [`Grammar`](crate::descriptor::Grammar) to this reading, so a refusal names the word an author actually wrote.
+
+`roles` and `tags` are rosters and may be left out; the other four row clauses are required.
+A row that classifies itself with nothing is a lawful row, and requiring an author to write `roles = []` would be requiring a sentence that says what silence already says.
+
+### Clauses owned elsewhere
+
+The producer's own act — the door, the producer's name, and the projection that emitted the rows — is composed inside the rendering from the emitter the caller declares.
+An author who could state one would be signing an act these services performed.
+
+The consumption target's host facts — the two revision commitments, the callable that reaches a row's conclusion, the declared budgets, the target and toolchain, and the clock — arrive as expressions at the carrier's own invocation, inside the test target that owns them.
+
+Every one of those keys reaches [`CaptureCause::ClauseUndeclared`](crate::descriptor::CaptureCause::ClauseUndeclared).
+
+### Ordering
+
+Clause order inside a body is free and is read by key.
+Order between ROSTER members is meaning and is preserved: the suites in the order they were written, the rows under each seat in the order they were written, and each row's roles and tags in the order they were written.
+
+## Carrier arguments
+
+After the [support bindings](../../support/README.md#invocation), the carrier takes these expressions in the written order:
+
+```text
+invocation: invocation_profile_expression,
+target: target_binding_expression,
+clock: harness_clock_expression,
+<lens>_subject_revision: subject_revision_expression,
+<lens>_check_revision: check_revision_expression,
+<lens>_call: trial_callable_expression,
+```
+
+Repeat the three `<lens>` clauses for every declared row, in suite and row declaration order, replacing `<lens>` with that row's lens identifier.
+The `invocation` expression supplies the report owner's `InvocationProfile`; the carrier supplies the invocation site when it constructs the runner invocation.
+Revision expressions supply descriptor `RevisionBinding` values and the callable supplies the runner's `TrialCall`.

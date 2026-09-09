@@ -241,7 +241,8 @@ For a specific task, start at its owner:
 | Generate canonical encode and decode methods | [Codec](macros/compiler/src/codec/README.md) |
 | Declare trial, benchmark or mutation material | [Descriptor adapter](macros/compiler/src/descriptor/README.md) |
 | Invoke deferred test or benchmark cargo | [Support carrier](macros/compiler/src/support/README.md) |
-| Add an independent judgment or replay a retained witness | [Harness](harness/README.md) |
+| Add an independent judgment | [Handwritten property](harness/README.md#direct-handwritten-property) or [Oracle](harness/src/oracle/README.md) |
+| Replay a retained witness against current code | [Saved-witness execution](harness/src/runner/README.md#saved-witness-replay) and [Historical comparison](harness/src/report/replay/README.md) |
 | Interpret a refusal and its location | [Diagnostic](macros/compiler/src/diagnostic/README.md) |
 
 The shipped [Macroonz agent skill](skills/macroonz/SKILL.md) is a one-page routing surface for agents authoring recipes from the packaged facade.

@@ -24,3 +24,21 @@ It does not own name admission, exploration bounds, schedule semantics, transiti
 Values that only the harness can judge reach its public guards and return the harness's typed refusals without being reinterpreted here.
 
 No thread, clock, scheduler backend, or subject policy enters this projection.
+
+## Authored grammar
+
+```text
+<helper>! {
+    harness = <dependency path>,
+    module = <ident>,
+    namespace = "<owner>",
+    <row name> {
+        population = "<stem>",
+        interleavings = <n>,
+        samples = <n>,
+        seed = <n>,
+    },
+}
+```
+
+Clause order is free and is read by key, inside a row and outside one; row order is meaning and is preserved.

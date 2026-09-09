@@ -72,7 +72,9 @@ The assembly clause is `assembly(method, total);` or `assembly(method, checked(R
 A member is `field: TypePath => shape(cardinality);`, with shape `count`, `bytes`, `text`, `closed_choice`, or `nested`, and cardinality `required`, `optional`, or `repeated`.
 The [codec owner](../codec/README.md) owns the methods each type must supply and their byte semantics.
 
-Evidence bodies use the existing [trial](../descriptor/trial/README.md), [mutation](../descriptor/mutation/README.md), [benchmark](../descriptor/bench/README.md), [network](../descriptor/network/README.md), and [concurrency](../descriptor/concurrency/README.md) grammars.
+Evidence bodies use the existing [trial](../descriptor/trial/README.md#authored-grammar), [mutation](../descriptor/mutation/README.md#authored-grammar), [benchmark](../descriptor/bench/README.md#authored-grammar), [network](../descriptor/network/README.md#authored-grammar), and [concurrency](../descriptor/concurrency/README.md#authored-grammar) grammars.
+Place the clauses inside the corresponding evidence block without the enclosing helper attribute or macro invocation shown by those grammars.
+The [support invocation](../support/README.md#invocation) supplies the target-owned expressions after declaration.
 An explicit unavailable entry is `trials unavailable;`, `mutation unavailable;`, `benchmarks unavailable;`, `network unavailable;`, or `concurrency unavailable;` in the evidence block.
 It carries no body or target argument and does not establish execution.
 

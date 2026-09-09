@@ -1,32 +1,6 @@
 //! Reading one authored mutation-policy declaration out of a typed token tree.
 //!
-//! # The authored grammar
-//!
-//! ```text
-//! #[<helper>(
-//!     module = <module name>,
-//!     refusal = <refusal type name>,
-//!     support = <exported name>,
-//!     family = named("<namespace>", "<stem>"),
-//!     point = named("<namespace>", "<stem>"),
-//!     fact = named("<namespace>", "<stem>"),
-//!
-//!     map named("<namespace>", "<fact>") = named("<namespace>", "<claim>"),
-//!     permit named("<namespace>", "<claim>") = ["<family slug>", ...],
-//! )]
-//! ```
-//!
-//! `support` is the one optional clause: a declaration whose carrier another helper already addressed states none.
-//!
-//! # Names, not a sealed roster
-//!
-//! An owner fact and an operator family are the CONSUMER's declarations. This reading resolves neither against a roster it owns, because a producer that knew which facts exist would be a producer that knew what the consumer's declaration means.
-//! What it checks is shape: a mapping is one fact and one claim, a permission is one claim and a non-empty roster of family slugs, and nothing states one fact or one claim twice.
-//!
-//! # What the helper cannot state
-//!
-//! The site's own material — the type its alternatives are values of, the production the unchanged declaration answers with, the operation bytes, and the alternatives themselves — is computed by the door that captured the declaration this helper sits on.
-//! [`Declaration::completed`] is where the two meet.
+//! The [authored grammar](super#authored-grammar) belongs to this home's public documentation.
 
 use super::{
     Address, Declaration, FactMapping, FamilySlug, MutationCaptureError, Permission, Policy,

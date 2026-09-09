@@ -1,20 +1,6 @@
 //! Reading one authored network declaration out of a typed token tree.
 //!
-//! # The authored grammar
-//!
-//! ```text
-//! <helper>! {
-//!     harness = <dependency path>,
-//!     module = <ident>,
-//!     namespace = "<owner>",
-//!     nodes = [<ident>, ...],
-//!     link <ident> = <node> to <node>,
-//!     schedule <ident> = [<fault phrase>, ...],
-//! }
-//! ```
-//!
-//! Clause order is free and is read by key; roster order is meaning and is preserved.
-//! The reading walks the clauses in passes — the names first, then the links against the nodes, then the schedules against the links — so every clause may stand wherever its author put it.
+//! The [authored grammar](super#authored-grammar) belongs to this home's public documentation.
 
 use super::render::RESERVED;
 use super::{

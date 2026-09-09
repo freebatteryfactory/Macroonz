@@ -1,43 +1,6 @@
 //! Reading one authored trial declaration out of a typed token tree.
 //!
-//! # The authored grammar
-//!
-//! ```text
-//! #[<helper>(
-//!     support = <exported name>,
-//!     module = <stamped module name>,
-//!     table = named("<namespace>", "<stem>"),
-//!
-//!     suite <seat> = named("<namespace>", "<stem>") {
-//!         <lens> {
-//!             claim = named("<namespace>", "<stem>"),
-//!             roles = [named("<namespace>", "<stem>"), ...],
-//!             tags = [named("<namespace>", "<stem>"), ...],
-//!             subject = named("<namespace>", "<stem>"),
-//!             check = named("<namespace>", "<stem>"),
-//!             population = named("<namespace>", "<stem>"),
-//!         },
-//!     },
-//! )]
-//! ```
-//!
-//! The helper's own spelling is the caller's, which is why `<helper>` stands where a word would: a door registers the attribute it wants and hands the same [`Grammar`] to this reading, so a refusal names the word an author actually wrote.
-//!
-//! `roles` and `tags` are rosters and may be left out; the other four row clauses are required.
-//! A row that classifies itself with nothing is a lawful row, and requiring an author to write `roles = []` would be requiring a sentence that says what silence already says.
-//!
-//! # What has no clause, and why
-//!
-//! The producer's own act — the door, the producer's name, and the projection that emitted the rows — is composed inside the rendering from the emitter the caller declares. An author who could state one would be signing an act these services performed.
-//!
-//! The consumption target's host facts — the two revision commitments, the callable that reaches a row's conclusion, the declared budgets, the target and toolchain, and the clock — arrive as expressions at the carrier's own invocation, inside the test target that owns them.
-//!
-//! Every one of those keys reaches [`CaptureCause::ClauseUndeclared`].
-//!
-//! # Order
-//!
-//! Clause order inside a body is free and is read by key.
-//! Order between ROSTER members is meaning and is preserved: the suites in the order they were written, the rows under each seat in the order they were written, and each row's roles and tags in the order they were written.
+//! The [authored grammar](super#authored-grammar) belongs to this home's public documentation.
 
 use super::{References, Row, SuiteGroup, TrialCaptureError, Trials};
 use crate::descriptor::clause::{
