@@ -210,6 +210,15 @@ fn workflow_surface(
             "fn main() { let _record = Option::<macroonz::workflow::StoredRun>::None; }\n",
             retained_refusal,
         ),
+        (
+            "benchmark",
+            "fn main() { let _load = macroonz::workflow::benchmark::load; }\n",
+            if storage == StorageDependencies::Native {
+                None
+            } else {
+                Some("E0433")
+            },
+        ),
     ] {
         std::fs::write(subject.join("main.rs"), source).map_err(|error| error.to_string())?;
         let output = cargo(

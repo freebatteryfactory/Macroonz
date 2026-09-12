@@ -1,6 +1,9 @@
 #![doc = include_str!("README.md")]
 
 #[cfg(feature = "native-tooling")]
+pub mod benchmark;
+
+#[cfg(feature = "native-tooling")]
 mod load;
 #[cfg(feature = "native-tooling")]
 mod retain;

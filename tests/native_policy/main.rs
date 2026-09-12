@@ -1,6 +1,8 @@
 //! Exact policy derivation and the explicitly invoked scoped Clippy wall.
 
 mod check;
+#[cfg(feature = "harness")]
+mod benchmark;
 mod consumer;
 #[cfg(all(feature = "native-tooling", any(unix, windows)))]
 mod inventory;

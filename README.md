@@ -225,6 +225,7 @@ Runnable examples cross distinct public roads:
 | Direct handwritten property | `cargo run -p macroonz-harness --example temporal_property` | Caller-owned state and transitions enter a temporal contract without a macro or subject trait. |
 | Exact compile contract | `cargo run --example compile_contract` | A caller-stated compiler observation is compared with an independently declared exact outcome. |
 | Stable coverage composition | `cargo run --example rustc_coverage` | Stable rustc instrumentation supplies source-region novelty to corpus, reduction, and replay composition. |
+| Retained benchmark | `cargo run --example benchmark_workflow --features native-tooling` | Real counted work and an executed worse control enter a complete benchmark report and bounded historical storage. |
 
 The compile-contract example is intentionally the pure comparison half.
 The caller that actually runs rustc or Cargo owns that effect, structured diagnostic extraction, and the provenance of the observation it supplies.
@@ -244,6 +245,7 @@ For a specific task, start at its owner:
 | Add an independent judgment | [Handwritten property](harness/README.md#direct-handwritten-property) or [Oracle](harness/src/oracle/README.md) |
 | Replay a retained witness against current code | [Saved-witness execution](harness/src/runner/README.md#saved-witness-replay) and [Historical comparison](harness/src/report/replay/README.md) |
 | Execute declared input, retain a complete run and replay saved witnesses | [Root workflow](src/workflow/README.md) |
+| Run a benchmark and retain every reached outcome | [Benchmark workflow](src/workflow/benchmark/README.md) |
 | Interpret a refusal and its location | [Diagnostic](macros/compiler/src/diagnostic/README.md) |
 
 The shipped [Macroonz agent skill](skills/macroonz/SKILL.md) is a one-page routing surface for agents authoring recipes from the packaged facade.

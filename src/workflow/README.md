@@ -1,7 +1,8 @@
-# Input execution and retained replay
+# Execution and retained evidence
 
 This home composes the existing input, runner and archive owners through the root library.
 The `harness` feature supplies `workflow::run`; `native-tooling` additionally supplies retention, loading and stored-witness replay.
+The [benchmark workflow](benchmark/README.md) connects the existing benchmark report to the same native storage owner.
 
 ## Execute
 

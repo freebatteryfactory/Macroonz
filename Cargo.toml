@@ -80,6 +80,11 @@ name = "compile_contract"
 path = "examples/compile_contract.rs"
 required-features = ["harness"]
 
+[[example]]
+name = "benchmark_workflow"
+path = "examples/benchmark_workflow/main.rs"
+required-features = ["native-tooling"]
+
 [[test]]
 name = "native_clock"
 path = "tests/native_clock/main.rs"

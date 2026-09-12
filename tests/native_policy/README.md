@@ -29,6 +29,11 @@ Root workflow controls compare composition with explicit input/runner/archive ca
 The complete census, original input and earned reached witness survive one native batch; fresh child processes independently select defective and fixed implementations and execute the saved witness once.
 Corrupt records, valid but unrelated inputs/capsules, write failure and interrupted retention preserve their separate refusal planes.
 
+Benchmark controls execute the public example's actual counted work and repeated-scan control, with independent expected counts and hostile preflight, recorder and judgment cases.
+Complete report storage preserves refused rows, simultaneous judgment failures, and unavailable, zero or failed secondary readings.
+Loading does not call executable attachments, and bounded write refusal, collision, recovery and corruption remain independent of benchmark conclusions.
+The example's declaration and subject are shared caller material; expected stages, counts and damage controls are separately authored in the lane.
+
 This is repository qualification through an existing package test target.
 Derived configuration and compiler subjects remain disposable under target/qualification.
 The lane recreates them from repository source and requires no preserved campaign output after cargo clean.
