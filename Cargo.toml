@@ -41,6 +41,9 @@ blake3 = { version = "=1.8.6", default-features = false }
 ra-ap-rustc_lexer = { version = "=0.174.0", default-features = false }
 trybuild = "=1.0.120"
 cap-std = { version = "=3.4.6", default-features = false }
+process-wrap = { version = "=10.0.0", default-features = false, features = ["std", "creation-flags", "job-object"] }
+rustix = { version = "=1.1.4", default-features = false, features = ["std", "process"] }
+windows = { version = "=0.62.2", default-features = false, features = ["Win32_System_Threading"] }
 macroonz-compiler = { path = "macros/compiler", version = "=0.2.0" }
 macroonz-harness = { path = "harness", version = "=0.2.0", default-features = false }
 macroonz-macros = { path = "macros/proc", version = "=0.2.0" }
@@ -50,7 +53,7 @@ default = ["full"]
 harness = ["dep:macroonz-harness"]
 preemption = ["harness", "macroonz-harness/preemption"]
 full = ["harness", "preemption"]
-native-tooling = ["harness", "dep:cap-std"]
+native-tooling = ["harness", "dep:cap-std", "dep:process-wrap", "dep:rustix", "dep:windows"]
 
 [dependencies]
 macroonz-compiler = { workspace = true, features = ["host"] }
@@ -59,6 +62,13 @@ macroonz-macros = { workspace = true }
 
 [target.'cfg(any(unix, windows))'.dependencies]
 cap-std = { workspace = true, optional = true }
+
+[target.'cfg(windows)'.dependencies]
+process-wrap = { workspace = true, optional = true }
+windows = { workspace = true, optional = true }
+
+[target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
+rustix = { workspace = true, optional = true }
 
 [[test]]
 name = "facade_harness_surface"

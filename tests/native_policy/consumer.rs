@@ -53,6 +53,7 @@ pub(super) fn observe(root: &Path, scratch: &Path, strict: &Path) -> Result<(), 
             StorageDependencies::Absent
         };
         dependency_graph(&subject, scratch, strict, name, storage)?;
+        super::dependency::observe(&subject, scratch, strict, name, storage)?;
         let output = cargo(
             &subject,
             strict,
@@ -172,8 +173,10 @@ pub(super) fn qualify_graphs() -> Result<(), String> {
             ));
         }
         dependency_graph(&subject, &scratch, root, name, storage)?;
+        super::dependency::observe(&subject, &scratch, root, name, storage)?;
         workflow_surface(&subject, &scratch, root, name, storage)?;
     }
+    super::dependency::refuse_injected(root, &subject, &scratch)?;
     if std::fs::read(root.join("Cargo.lock")).map_err(|error| error.to_string())? != root_lock {
         return Err("the root lock changed during graph qualification".to_owned());
     }
@@ -218,6 +221,24 @@ fn workflow_surface(
             } else {
                 Some("E0433")
             },
+        ),
+        (
+            "process",
+            "fn main() { let _run = macroonz::native_process::run; }\n",
+            if storage == StorageDependencies::Native {
+                None
+            } else {
+                Some("E0433")
+            },
+        ),
+        (
+            "process-invariant",
+            "fn main() { let _limits = macroonz::native_process::ProcessLimits { execution: std::time::Duration::ZERO, cleanup: std::time::Duration::ZERO, stdout: 0, stderr: 0 }; }\n",
+            Some(if storage == StorageDependencies::Native {
+                "E0451"
+            } else {
+                "E0433"
+            }),
         ),
     ] {
         std::fs::write(subject.join("main.rs"), source).map_err(|error| error.to_string())?;

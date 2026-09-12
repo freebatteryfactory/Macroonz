@@ -4,11 +4,32 @@ mod check;
 #[cfg(feature = "harness")]
 mod benchmark;
 mod consumer;
+mod dependency;
 #[cfg(all(feature = "native-tooling", any(unix, windows)))]
 mod inventory;
 #[cfg(all(feature = "native-tooling", any(unix, windows)))]
 mod ownership;
 mod probes;
+#[cfg(all(
+    feature = "native-tooling",
+    any(windows, target_os = "linux", target_os = "macos")
+))]
+mod process;
+#[cfg(all(
+    feature = "native-tooling",
+    any(windows, target_os = "linux", target_os = "macos")
+))]
+mod process_child;
+#[cfg(all(
+    feature = "native-tooling",
+    any(windows, target_os = "linux", target_os = "macos")
+))]
+mod process_group;
+#[cfg(all(
+    feature = "native-tooling",
+    any(windows, target_os = "linux", target_os = "macos")
+))]
+mod process_environment;
 #[cfg(all(feature = "native-tooling", any(unix, windows)))]
 mod storage;
 #[cfg(all(feature = "native-tooling", any(unix, windows)))]
