@@ -14,14 +14,20 @@ pub struct ProcessLimits {
     stderr: usize,
 }
 
+/// An explicitly selected tool, working directory, environment and resource policy.
+#[derive(Clone, Debug)]
+pub struct ProcessTool {
+    executable: PathBuf,
+    directory: PathBuf,
+    environment: Vec<(String, String)>,
+    limits: ProcessLimits,
+}
+
 /// A process invocation with an absolute executable and directory and no inherited environment.
 #[derive(Clone, Debug)]
 pub struct ProcessRequest {
-    executable: PathBuf,
-    directory: PathBuf,
+    tool: ProcessTool,
     arguments: Vec<String>,
-    environment: Vec<(String, String)>,
-    limits: ProcessLimits,
 }
 
 /// A requested resource mechanism whose absence must refuse before execution.

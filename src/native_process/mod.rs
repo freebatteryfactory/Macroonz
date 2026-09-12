@@ -9,5 +9,5 @@ mod types;
 pub use execute::run;
 pub use types::{
     CaptureEnd, CapturedOutput, PendingProcess, ProcessError, ProcessLimits, ProcessOutput,
-    ProcessRequest, ProcessRun, ProcessStop, ResourceControl,
+    ProcessRequest, ProcessRun, ProcessStop, ProcessTool, ResourceControl,
 };

@@ -1,6 +1,6 @@
 use super::{
     CapturedOutput, PendingProcess, ProcessError, ProcessLimits, ProcessOutput, ProcessRequest,
-    ProcessRun, ProcessStop, ResourceControl,
+    ProcessRun, ProcessStop, ProcessTool, ResourceControl,
 };
 use std::path::PathBuf;
 use std::time::Duration;
@@ -56,15 +56,14 @@ impl ProcessLimits {
     }
 }
 
-impl ProcessRequest {
-    /// Admits explicitly supplied process inputs without consulting the host.
+impl ProcessTool {
+    /// Admits a reusable tool selection without consulting the host.
     ///
     /// # Errors
     /// Refuses relative paths, NULs, invalid or duplicate environment keys and unsupported resource controls.
     pub fn informed(
         executable: PathBuf,
         directory: PathBuf,
-        arguments: Vec<String>,
         environment: Vec<(String, String)>,
         limits: ProcessLimits,
         resources: &[ResourceControl],
@@ -76,10 +75,9 @@ impl ProcessRequest {
             || !directory.is_absolute()
             || executable.as_os_str().as_encoded_bytes().contains(&0)
             || directory.as_os_str().as_encoded_bytes().contains(&0)
-            || arguments.iter().any(|argument| argument.contains('\0'))
         {
             return Err(ProcessError::InvalidRequest(
-                "absolute paths and NUL-free arguments are required".to_owned(),
+                "absolute NUL-free paths are required".to_owned(),
             ));
         }
         let mut keys = std::collections::BTreeSet::new();
@@ -107,21 +105,60 @@ impl ProcessRequest {
         Ok(Self {
             executable,
             directory,
-            arguments,
             environment,
             limits,
         })
     }
 
+    /// Binds one ordered argument list to this tool's explicit execution policy.
+    ///
+    /// # Errors
+    /// Refuses arguments containing NUL.
+    pub fn invocation(&self, arguments: Vec<String>) -> Result<ProcessRequest, ProcessError> {
+        if arguments.iter().any(|argument| argument.contains('\0')) {
+            return Err(ProcessError::InvalidRequest(
+                "NUL in process argument".to_owned(),
+            ));
+        }
+        Ok(ProcessRequest {
+            tool: self.clone(),
+            arguments,
+        })
+    }
+
+    /// The working directory shared by invocations of this selected tool.
+    #[must_use]
+    pub fn directory(&self) -> &std::path::Path {
+        &self.directory
+    }
+}
+
+impl ProcessRequest {
+    /// Admits explicitly supplied process inputs without consulting the host.
+    ///
+    /// # Errors
+    /// Refuses relative paths, NULs, invalid or duplicate environment keys and unsupported resource controls.
+    pub fn informed(
+        executable: PathBuf,
+        directory: PathBuf,
+        arguments: Vec<String>,
+        environment: Vec<(String, String)>,
+        limits: ProcessLimits,
+        resources: &[ResourceControl],
+    ) -> Result<Self, ProcessError> {
+        ProcessTool::informed(executable, directory, environment, limits, resources)?
+            .invocation(arguments)
+    }
+
     /// Returns the selected executable path.
     #[must_use]
     pub fn executable(&self) -> &std::path::Path {
-        &self.executable
+        &self.tool.executable
     }
     /// Returns the selected working directory.
     #[must_use]
     pub fn directory(&self) -> &std::path::Path {
-        &self.directory
+        &self.tool.directory
     }
     /// Returns the ordered process arguments.
     #[must_use]
@@ -131,12 +168,12 @@ impl ProcessRequest {
     /// Returns the complete caller-supplied environment.
     #[must_use]
     pub fn environment(&self) -> &[(String, String)] {
-        &self.environment
+        &self.tool.environment
     }
     /// Returns the selected process bounds.
     #[must_use]
     pub const fn limits(&self) -> ProcessLimits {
-        self.limits
+        self.tool.limits
     }
 }
 

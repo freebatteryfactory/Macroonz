@@ -202,6 +202,16 @@ fn workflow_surface(
     } else {
         Some("E0425")
     };
+    let native_refusal = if storage == StorageDependencies::Native {
+        None
+    } else {
+        Some("E0433")
+    };
+    let private_field = Some(if storage == StorageDependencies::Native {
+        "E0616"
+    } else {
+        "E0433"
+    });
     for (name, source, expected) in [
         (
             "execute",
@@ -216,20 +226,32 @@ fn workflow_surface(
         (
             "benchmark",
             "fn main() { let _load = macroonz::workflow::benchmark::load; }\n",
-            if storage == StorageDependencies::Native {
-                None
-            } else {
-                Some("E0433")
-            },
+            native_refusal,
         ),
         (
             "process",
             "fn main() { let _run = macroonz::native_process::run; }\n",
-            if storage == StorageDependencies::Native {
-                None
-            } else {
-                Some("E0433")
-            },
+            native_refusal,
+        ),
+        (
+            "compiler",
+            "fn main() { let _compile = macroonz::native_compiler::compile; }\n",
+            native_refusal,
+        ),
+        (
+            "process-tool-invariant",
+            "fn main() { let _forge = |tool: &mut macroonz::native_process::ProcessTool| { tool.directory = \"relative\".into(); }; }\n",
+            private_field,
+        ),
+        (
+            "compiler-invariant",
+            "fn main() { let _forge = |request: &macroonz::native_compiler::CompilerRequest| { let _locus = &request.locus; }; }\n",
+            private_field,
+        ),
+        (
+            "compiler-observation-invariant",
+            "fn main() { let _forge = |output: &macroonz::native_compiler::CompilerOutput| { let _raw = &output.observation; }; }\n",
+            private_field,
         ),
         (
             "process-invariant",
@@ -241,26 +263,42 @@ fn workflow_surface(
             }),
         ),
     ] {
-        std::fs::write(subject.join("main.rs"), source).map_err(|error| error.to_string())?;
-        let output = cargo(
+        surface(
             subject,
-            profile,
             scratch,
+            profile,
             &format!("{posture}-workflow-{name}"),
-            &["check", "-j1", "--locked", "--offline"],
+            source,
+            expected,
         )?;
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        match expected {
-            None if output.status.success() => {}
-            Some(code) if output.status.code() == Some(101_i32) && stderr.contains(code) => {}
-            _ => {
-                return Err(format!(
-                    "{posture}/{name}: unexpected workflow feature posture\n{stderr}"
-                ));
-            }
-        }
     }
     Ok(())
+}
+
+fn surface(
+    subject: &Path,
+    scratch: &Path,
+    profile: &Path,
+    name: &str,
+    source: &str,
+    expected: Option<&str>,
+) -> Result<(), String> {
+    std::fs::write(subject.join("main.rs"), source).map_err(|error| error.to_string())?;
+    let output = cargo(
+        subject,
+        profile,
+        scratch,
+        name,
+        &["check", "-j1", "--locked", "--offline"],
+    )?;
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    match expected {
+        None if output.status.success() => Ok(()),
+        Some(code) if output.status.code() == Some(101_i32) && stderr.contains(code) => Ok(()),
+        _ => Err(format!(
+            "{name}: unexpected workflow feature posture\n{stderr}"
+        )),
+    }
 }
 
 fn observe_native(subject: &Path, scratch: &Path, strict: &Path) -> Result<(), String> {

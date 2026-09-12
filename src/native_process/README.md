@@ -2,6 +2,7 @@
 
 This home executes explicitly declared commands with monotonic deadlines, bounded pipe capture and retained cleanup ownership.
 Enable the root `native-tooling` feature and call `run` with an informed `ProcessRequest` and either an already opened stdin file or `None` for null input.
+`ProcessTool` binds a reusable explicit tool configuration to individual argument lists through `invocation`; `ProcessRequest::informed` is the equivalent single-invocation entrance.
 The existing compiler, coverage, mutation and publication owners interpret the observations; this home supplies no semantic verdict, tool discovery, command shell, runner or measurement clock.
 
 ## Declared inputs

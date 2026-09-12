@@ -224,11 +224,12 @@ Runnable examples cross distinct public roads:
 | Callable compiler | `cargo run -p macroonz-compiler --example callable_compiler` | One public compiler request plans, renders, closes, explains, binds, and emits a unit. |
 | Direct handwritten property | `cargo run -p macroonz-harness --example temporal_property` | Caller-owned state and transitions enter a temporal contract without a macro or subject trait. |
 | Exact compile contract | `cargo run --example compile_contract` | A caller-stated compiler observation is compared with an independently declared exact outcome. |
+| Real compiler and read-back | `cargo run --example compiler_workflow --features native-tooling` with [explicit stdin configuration](examples/compiler_workflow/README.md) | A selected rustc builds a binary whose actual read-back is compared with an independent expected count. |
 | Stable coverage composition | `cargo run --example rustc_coverage` | Stable rustc instrumentation supplies source-region novelty to corpus, reduction, and replay composition. |
 | Retained benchmark | `cargo run --example benchmark_workflow --features native-tooling` | Real counted work and an executed worse control enter a complete benchmark report and bounded historical storage. |
 
 The compile-contract example is intentionally the pure comparison half.
-The caller that actually runs rustc or Cargo owns that effect, structured diagnostic extraction, and the provenance of the observation it supplies.
+The optional [native compiler host](src/native_compiler/README.md) executes explicitly configured rustc or Cargo fixtures, extracts structured diagnostics and connects compiled read-back to those same comparators.
 
 For a specific task, start at its owner:
 
@@ -246,6 +247,7 @@ For a specific task, start at its owner:
 | Replay a retained witness against current code | [Saved-witness execution](harness/src/runner/README.md#saved-witness-replay) and [Historical comparison](harness/src/report/replay/README.md) |
 | Execute declared input, retain a complete run and replay saved witnesses | [Root workflow](src/workflow/README.md) |
 | Run a benchmark and retain every reached outcome | [Benchmark workflow](src/workflow/benchmark/README.md) |
+| Execute compiler fixtures and compare exact diagnostics or compiled values | [Native compiler fixtures](src/native_compiler/README.md) |
 | Interpret a refusal and its location | [Diagnostic](macros/compiler/src/diagnostic/README.md) |
 
 The shipped [Macroonz agent skill](skills/macroonz/SKILL.md) is a one-page routing surface for agents authoring recipes from the packaged facade.
@@ -270,7 +272,7 @@ The `harness` feature also supplies [root input execution](src/workflow/README.m
 On a native target supported by the pinned Loom backend, enabling `preemption` installs that backend.
 On every other target, including Wasm, the same harness result plane remains available and reports typed backend unavailability instead of trying to compile Loom.
 
-The optional `native-tooling` feature adds the root [native clock source](src/native_clock/README.md), [bounded native storage](src/native_storage/README.md) and [native process execution](src/native_process/README.md), and implies `harness` without enabling preemption.
+The optional `native-tooling` feature adds the root [native clock source](src/native_clock/README.md), [bounded native storage](src/native_storage/README.md), [native process execution](src/native_process/README.md) and [compiler fixtures](src/native_compiler/README.md), and implies `harness` without enabling preemption.
 It is independent of the default `full` posture.
 Pass `macroonz::native_clock::source()` to an existing harness runner or benchmark when native measurement is wanted; the harness retains its existing clock and measurement contracts.
 
