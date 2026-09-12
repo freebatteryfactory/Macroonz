@@ -116,6 +116,11 @@ required-features = ["native-tooling"]
 name = "native_policy"
 path = "tests/native_policy/main.rs"
 
+[[example]]
+name = "mutation_workflow"
+path = "examples/mutation_workflow/main.rs"
+required-features = ["native-tooling"]
+
 [lints]
 workspace = true
 

@@ -23,6 +23,11 @@ Public storage controls independently exercise whole-batch readback, aggregate b
 A child process writes the first payload through the public transaction API, then the parent terminates it and requires explicit recovery before readback.
 The ignored child entry is invoked only by that control and is not a standalone campaign.
 These controls observe process interruption, not power-loss durability.
+Native mutation controls execute cargo-mutants against independently tested Cargo subjects, distinguish caught and inconclusive readings, and refuse failed baselines.
+Exact source selection excludes a nested file with the same basename.
+Version/query failures, pending cleanup, floods, deadlines, source bounds, link escapes, unreported source movement and historical/current comparisons cross the root API.
+The public mutation example executes and retains a separately authored subject through canonical storage.
+Independent feature consumers refuse access to mutation tooling without the native feature and refuse rewriting its admitted requests, finished context and historical source comparison.
 An independent compiler consumer accepts the public constructors and one consuming commit, then refuses forged names, unadmitted batches and reuse after commit.
 
 Root workflow controls compare composition with explicit input/runner/archive calls while independently observing decoder, subject and reduction-probe counts.

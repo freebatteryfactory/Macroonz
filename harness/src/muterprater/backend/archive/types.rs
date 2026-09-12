@@ -4,7 +4,9 @@ use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use crate::muterprater::verdict_archive::{
     ArchivedMutation, ArchivedMutationRun, MutationArchiveRefusal, MutationRunArchiveLimits,
 };
-use crate::muterprater::{AnnouncedRoster, GrammarVersion, ReadingSource, WrappedBackend};
+use crate::muterprater::{
+    AnnouncedRoster, GrammarVersion, MutationSourceRevision, ReadingSource, WrappedBackend,
+};
 use crate::report::TargetBinding;
 use crate::report::archive::{AddressClaim, ArchiveLimits, ArchiveRefusal, ArchivedForeignText};
 
@@ -113,6 +115,26 @@ pub struct ArchivedBackendManifest {
     announced: AnnouncedRoster,
     unparsed: Vec<ArchivedUnparsedLine>,
     original: Option<Vec<u8>>,
+}
+
+/// An exact source comparison that preserves the manifest's historical standing.
+#[derive(Debug)]
+pub struct BackendSourceComparison<'archive> {
+    manifest: &'archive ArchivedBackendManifest,
+    current: Vec<MutationSourceRevision>,
+}
+
+/// Why separately supplied current sources do not match a historical backend manifest.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BackendSourceRefusal {
+    /// A current source file repeats.
+    Duplicate(String),
+    /// A historical source has no current counterpart.
+    Missing(String),
+    /// A current source is outside the historical roster.
+    Unexpected(String),
+    /// The source bytes no longer match the historical revision claim.
+    Moved(String),
 }
 
 /// Why bounded historical backend retention refused.

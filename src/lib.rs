@@ -69,6 +69,9 @@ pub mod native_compiler;
 pub mod native_coverage;
 
 #[cfg(feature = "native-tooling")]
+pub mod native_mutation;
+
+#[cfg(feature = "native-tooling")]
 pub mod native_process;
 
 #[cfg(feature = "native-tooling")]

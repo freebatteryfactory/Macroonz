@@ -13,7 +13,7 @@ pub(crate) use types::OriginalMaterial;
 pub use types::{
     ArchivedAdapterProfile, ArchivedBackendInvocation, ArchivedBackendManifest,
     ArchivedBackendSource, ArchivedUnparsedLine, BACKEND_ARCHIVE_TAG, BackendArchiveLimits,
-    BackendArchiveRefusal, read_backend,
+    BackendArchiveRefusal, BackendSourceComparison, BackendSourceRefusal, read_backend,
 };
 pub use types::{
     ArchivedSuitePressure, SUITE_PRESSURE_ARCHIVE_TAG, SuitePressureArchiveLimits,

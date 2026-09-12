@@ -277,7 +277,62 @@ fn workflow_surface(
             expected,
         )?;
     }
-    coverage_invariants(subject, scratch, profile, posture, private_field)
+    coverage_invariants(subject, scratch, profile, posture, private_field)?;
+    mutation_invariants(
+        subject,
+        scratch,
+        profile,
+        posture,
+        native_refusal,
+        private_field,
+    )
+}
+
+fn mutation_invariants(
+    subject: &Path,
+    scratch: &Path,
+    profile: &Path,
+    posture: &str,
+    native_refusal: Option<&str>,
+    private_field: Option<&str>,
+) -> Result<(), String> {
+    for (name, source, expected) in [
+        (
+            "mutation",
+            "fn main() { let _run = macroonz::native_mutation::run; }\n",
+            native_refusal,
+        ),
+        (
+            "mutation-request",
+            "fn main() { let _forge = |request: &mut macroonz::native_mutation::MutationRequest| { request.target = \"relabel\".to_owned(); }; }\n",
+            private_field,
+        ),
+        (
+            "mutation-output",
+            "fn main() { let _forge = |output: &mut macroonz::native_mutation::MutationOutput| { let _context = &mut output.context; }; }\n",
+            private_field,
+        ),
+        (
+            "mutation-observation",
+            "fn main() { let _forge = |output: &mut macroonz::native_mutation::MutationOutput| { let _observation = &mut output.observation; }; }\n",
+            private_field,
+        ),
+        (
+            "historical-comparison",
+            "fn main() { let _forge = |value: &macroonz::harness::muterprater::backend_archive::BackendSourceComparison<'_>| { let _current = &value.current; }; }\n",
+            Some(if posture == "diet" { "E0433" } else { "E0616" }),
+        ),
+    ] {
+        surface(
+            subject,
+            scratch,
+            profile,
+            &format!("{posture}-{name}"),
+            source,
+            expected,
+        )?;
+    }
+    Ok(())
 }
 
 fn coverage_invariants(

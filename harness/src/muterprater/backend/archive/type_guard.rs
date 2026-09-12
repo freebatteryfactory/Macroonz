@@ -2,12 +2,14 @@
 
 use super::{
     ArchivedAdapterProfile, ArchivedBackendInvocation, ArchivedBackendManifest,
-    ArchivedBackendSource, ArchivedUnparsedLine, BackendArchiveLimits,
+    ArchivedBackendSource, ArchivedUnparsedLine, BackendArchiveLimits, BackendSourceComparison,
+    BackendSourceRefusal,
 };
 use crate::identity::ContentAddress;
 use crate::muterprater::verdict_archive::{ArchivedMutationRun, MutationRunArchiveLimits};
 use crate::muterprater::{
-    AnnouncedRoster, ClaimCeiling, GrammarVersion, ReadingSource, WrappedBackend,
+    AnnouncedRoster, ClaimCeiling, GrammarVersion, MutationSourceRevision, ReadingSource,
+    WrappedBackend,
 };
 use crate::report::TargetBinding;
 use crate::report::archive::{AddressClaim, ArchiveLimits, ArchivedForeignText};
@@ -174,6 +176,44 @@ impl ArchivedUnparsedLine {
 }
 
 impl ArchivedBackendManifest {
+    /// Compares separately supplied source revisions while retaining historical authority.
+    ///
+    /// # Errors
+    /// Refuses duplicate, missing, unexpected and moved current sources, in that order.
+    pub fn compared_sources(
+        &self,
+        current: Vec<MutationSourceRevision>,
+    ) -> Result<BackendSourceComparison<'_>, BackendSourceRefusal> {
+        let current = crate::muterprater::backend::roster::collected(
+            current,
+            MutationSourceRevision::file,
+            BackendSourceRefusal::Duplicate,
+        )?;
+        let expected = self
+            .sources
+            .iter()
+            .map(ArchivedBackendSource::file)
+            .collect();
+        crate::muterprater::backend::roster::matched(
+            &current,
+            &expected,
+            BackendSourceRefusal::Missing,
+            BackendSourceRefusal::Unexpected,
+        )?;
+        for saved in &self.sources {
+            let found = current
+                .get(saved.file())
+                .ok_or_else(|| BackendSourceRefusal::Missing(saved.file().to_owned()))?;
+            if saved.revision().as_bytes() != found.revision().address().as_bytes() {
+                return Err(BackendSourceRefusal::Moved(saved.file().to_owned()));
+            }
+        }
+        Ok(BackendSourceComparison {
+            manifest: self,
+            current: current.into_values().collect(),
+        })
+    }
+
     /// The complete bounded historical envelope.
     #[must_use]
     pub fn encoded(&self) -> &[u8] {
@@ -232,5 +272,19 @@ impl ArchivedBackendManifest {
     #[must_use]
     pub fn original_console(&self) -> Option<&[u8]> {
         self.original.as_deref()
+    }
+}
+
+impl BackendSourceComparison<'_> {
+    /// The unchanged historical manifest involved in this comparison.
+    #[must_use]
+    pub const fn manifest(&self) -> &ArchivedBackendManifest {
+        self.manifest
+    }
+
+    /// The independently supplied current revisions in file order.
+    #[must_use]
+    pub fn current_sources(&self) -> &[MutationSourceRevision] {
+        &self.current
     }
 }

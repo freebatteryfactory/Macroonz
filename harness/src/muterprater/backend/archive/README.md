@@ -69,3 +69,10 @@ Its body is format `u32(1)`, kind `u32(1)`, historical custody `u32(0)`, checked
 Retention preflights all known sizes before nested encoding; loading applies each owning bound before copying or walking its material.
 Loading creates no current adapter qualification, source custody, suite pressure, trust or execution.
 Historical grammar-check and source-currency claims establish no fact about today's backend, files or processes.
+
+## Current-source comparison
+
+`ArchivedBackendManifest::compared_sources` compares a separately supplied complete source roster against the retained revision claims through the backend's shared roster owner.
+Duplicate, missing, unexpected and moved sources refuse in that order.
+The returned `BackendSourceComparison` borrows the unchanged historical manifest and retains the supplied current revisions.
+It supplies no adapter qualification, current artifact custody, pressure or native execution authority, and does not call an owner or family lookup.
