@@ -66,6 +66,9 @@ pub mod native_clock;
 pub mod native_compiler;
 
 #[cfg(feature = "native-tooling")]
+pub mod native_coverage;
+
+#[cfg(feature = "native-tooling")]
 pub mod native_process;
 
 #[cfg(feature = "native-tooling")]

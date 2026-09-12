@@ -8,11 +8,11 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Duration;
 
-pub(super) fn root() -> Result<PathBuf, String> {
+pub(crate) fn root() -> Result<PathBuf, String> {
     super::super::check::scratch()
 }
 
-pub(super) fn bounds() -> Result<ProcessLimits, String> {
+pub(crate) fn bounds() -> Result<ProcessLimits, String> {
     ProcessLimits::informed(
         Duration::from_secs(60),
         Duration::from_secs(5),
@@ -22,7 +22,7 @@ pub(super) fn bounds() -> Result<ProcessLimits, String> {
     .map_err(|error| error.to_string())
 }
 
-pub(super) fn host(root: &Path) -> Result<Host, String> {
+pub(crate) fn host(root: &Path) -> Result<Host, String> {
     let rustc = which("rustc")?;
     let cargo = which("cargo")?;
     let helper = root.join(format!(
@@ -117,7 +117,7 @@ fn which(tool: &str) -> Result<PathBuf, String> {
     ))
 }
 
-pub(super) fn tool(
+pub(crate) fn tool(
     host: &Host,
     executable: &Path,
     root: &Path,
@@ -133,7 +133,7 @@ pub(super) fn tool(
     .map_err(|error| error.to_string())
 }
 
-pub(super) fn finish(run: CompilerRun) -> Result<CompilerOutput, String> {
+pub(crate) fn finish(run: CompilerRun) -> Result<CompilerOutput, String> {
     match run {
         CompilerRun::Finished(output) => Ok(*output),
         CompilerRun::Pending(pending) => {
@@ -144,11 +144,11 @@ pub(super) fn finish(run: CompilerRun) -> Result<CompilerOutput, String> {
     }
 }
 
-pub(super) fn locus() -> Result<RelativeSourcePath, String> {
+pub(crate) fn locus() -> Result<RelativeSourcePath, String> {
     RelativeSourcePath::informed("fixture.rs").map_err(|error| format!("{error:?}"))
 }
 
-pub(super) fn anchor(code: &str, end: u64) -> Result<DiagnosticAnchor, String> {
+pub(crate) fn anchor(code: &str, end: u64) -> Result<DiagnosticAnchor, String> {
     let code = RustcErrorCode::informed(code).map_err(|error| format!("{error:?}"))?;
     let start = SourcePosition::informed(2, 21).map_err(|error| format!("{error:?}"))?;
     let end = SourcePosition::informed(2, end).map_err(|error| format!("{error:?}"))?;
@@ -157,13 +157,13 @@ pub(super) fn anchor(code: &str, end: u64) -> Result<DiagnosticAnchor, String> {
     Ok(DiagnosticAnchor::at(code, span))
 }
 
-pub(super) fn spelling(path: &Path) -> Result<String, String> {
+pub(crate) fn spelling(path: &Path) -> Result<String, String> {
     path.to_str()
         .map(str::to_owned)
         .ok_or_else(|| "non-Unicode fixture path".to_owned())
 }
 
-pub(super) fn target() -> Result<PathBuf, String> {
+pub(crate) fn target() -> Result<PathBuf, String> {
     Path::new(env!("CARGO_TARGET_TMPDIR"))
         .parent()
         .map(Path::to_path_buf)

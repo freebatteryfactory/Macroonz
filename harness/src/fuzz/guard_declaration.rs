@@ -5,8 +5,59 @@ use crate::fuzz::types::{
     AbsolutePath, CoverageBudgetRefusal, CoverageBudgets, CoverageCampaign, CoverageProfile,
     CoverageSource, CoverageSourceRoot, CoverageSourceRootRefusal, CoverageStanding,
 };
+use crate::fuzz::types::{CoverageRootsRefusal, CoverageSourceRoots};
 use crate::report::{ByteBudget, CaseBudget, TargetBinding};
 use std::path::{Component, Path, PathBuf};
+
+impl CoverageSourceRoots {
+    /// Admits a nonempty set with distinct logical names and nonoverlapping path spellings.
+    ///
+    /// # Errors
+    /// Refuses empty input, duplicate logical names or a path at or beneath another declared root.
+    pub fn declared(roots: Vec<CoverageSourceRoot>) -> Result<Self, CoverageRootsRefusal> {
+        for (right, root) in roots.iter().enumerate() {
+            for (left, other) in roots.iter().take(right).enumerate() {
+                distinct_roots((left, other), (right, root))?;
+            }
+        }
+        let mut roots = roots.into_iter();
+        let first = roots.next().ok_or(CoverageRootsRefusal::Empty)?;
+        Ok(Self {
+            first,
+            additional: roots.collect(),
+        })
+    }
+
+    pub(crate) const fn single(first: CoverageSourceRoot) -> Self {
+        Self {
+            first,
+            additional: Vec::new(),
+        }
+    }
+
+    /// The roots in their declared order.
+    pub fn iter(&self) -> impl Iterator<Item = &CoverageSourceRoot> {
+        std::iter::once(&self.first).chain(self.additional.iter())
+    }
+}
+
+fn distinct_roots(
+    left: (usize, &CoverageSourceRoot),
+    right: (usize, &CoverageSourceRoot),
+) -> Result<(), CoverageRootsRefusal> {
+    let (left_index, left) = left;
+    let (right_index, right) = right;
+    if left.logical == right.logical {
+        return Err(CoverageRootsRefusal::DuplicateName(right.logical));
+    }
+    if left.checkout.starts_with(&right.checkout) || right.checkout.starts_with(&left.checkout) {
+        return Err(CoverageRootsRefusal::OverlappingPaths {
+            left: left_index,
+            right: right_index,
+        });
+    }
+    Ok(())
+}
 
 impl AbsolutePath {
     pub(super) fn informed<Refusal>(

@@ -181,7 +181,7 @@ fn cargo_library_compiles_without_inventing_an_executable() -> Result<(), String
     Ok(())
 }
 
-pub(super) fn package(root: &Path, selection: &str) -> Result<(String, PathBuf), String> {
+pub(crate) fn package(root: &Path, selection: &str) -> Result<(String, PathBuf), String> {
     let suffix = root
         .file_name()
         .and_then(|name| name.to_str())

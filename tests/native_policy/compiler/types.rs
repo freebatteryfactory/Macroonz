@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-pub(super) struct Host {
+pub(crate) struct Host {
     pub rustc: PathBuf,
     pub cargo: PathBuf,
     pub triple: String,

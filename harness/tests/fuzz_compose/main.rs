@@ -7,6 +7,7 @@ mod budget;
 mod compose;
 mod frontier;
 mod lcov;
+mod mapped;
 mod preflight;
 mod recipe_compilation;
 mod recipe_control;

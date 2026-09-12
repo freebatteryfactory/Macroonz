@@ -79,7 +79,11 @@ fn registry_recipe_retains_authored_primary_span_and_a_lawful_read_back_twin() -
     Ok(())
 }
 
-fn registry_graph(root: &Path, host: &Host, manifest: &Path) -> Result<(), String> {
+pub(crate) fn registry_graph(
+    root: &Path,
+    host: &Host,
+    manifest: &Path,
+) -> Result<Vec<(&'static str, std::path::PathBuf)>, String> {
     let selected = tool(host, &host.cargo, root, bounds()?)?;
     let manifest = spelling(manifest)?;
     for arguments in [
@@ -130,6 +134,7 @@ fn registry_graph(root: &Path, host: &Host, manifest: &Path) -> Result<(), Strin
         .get("packages")
         .and_then(serde_json::Value::as_array)
         .ok_or("no Cargo package roster")?;
+    let mut roots = Vec::new();
     for name in ["macroonz", "macroonz-compiler", "macroonz-macros"] {
         let package = packages
             .iter()
@@ -148,6 +153,17 @@ fn registry_graph(root: &Path, host: &Host, manifest: &Path) -> Result<(), Strin
             package.get("source").and_then(serde_json::Value::as_str),
             Some("registry+https://github.com/rust-lang/crates.io-index")
         );
+        let package_manifest = package
+            .get("manifest_path")
+            .and_then(serde_json::Value::as_str)
+            .ok_or("missing registry source manifest")?;
+        roots.push((
+            name,
+            Path::new(package_manifest)
+                .parent()
+                .ok_or("missing registry source directory")?
+                .to_path_buf(),
+        ));
     }
-    Ok(())
+    Ok(roots)
 }

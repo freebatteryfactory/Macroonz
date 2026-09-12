@@ -46,6 +46,49 @@ impl CargoFixture {
 }
 
 impl CompilerRequest {
+    /// Selects Rust source-coverage instrumentation for this compiler invocation.
+    ///
+    /// Cargo receives an explicit encoded flag selection for the target and its Rust dependencies.
+    ///
+    /// # Errors
+    /// Refuses conflicting caller Rust flag entries or an unrepresentable process request.
+    pub fn instrumented(mut self) -> Result<Self, CompilerError> {
+        let mut arguments = self.process.arguments().to_vec();
+        let mut environment = self.process.environment().to_vec();
+        match self.protocol {
+            Protocol::Rustc { .. } => {
+                let flag = "-Cinstrument-coverage";
+                if !arguments.iter().any(|argument| argument == flag) {
+                    arguments.insert(0, flag.to_owned());
+                }
+            }
+            Protocol::Cargo(_) => {
+                if environment.iter().any(|(key, _)| {
+                    key.eq_ignore_ascii_case("RUSTFLAGS")
+                        || key.eq_ignore_ascii_case("CARGO_ENCODED_RUSTFLAGS")
+                }) {
+                    return Err(CompilerError::Configuration(
+                        "coverage instrumentation owns the explicit Rust flag selection".to_owned(),
+                    ));
+                }
+                environment.push((
+                    "CARGO_ENCODED_RUSTFLAGS".to_owned(),
+                    "-Cinstrument-coverage".to_owned(),
+                ));
+            }
+        }
+        self.process = ProcessRequest::informed(
+            self.process.executable().to_path_buf(),
+            self.process.directory().to_path_buf(),
+            arguments,
+            environment,
+            self.process.limits(),
+            &[],
+        )
+        .map_err(CompilerError::Process)?;
+        Ok(self)
+    }
+
     /// Builds a Rust 2024 binary fixture with structured diagnostics and artifact notifications.
     ///
     /// # Errors

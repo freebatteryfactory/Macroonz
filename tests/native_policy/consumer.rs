@@ -239,6 +239,11 @@ fn workflow_surface(
             native_refusal,
         ),
         (
+            "coverage",
+            "fn main() { let _preflight = macroonz::native_coverage::preflight; }\n",
+            native_refusal,
+        ),
+        (
             "process-tool-invariant",
             "fn main() { let _forge = |tool: &mut macroonz::native_process::ProcessTool| { tool.directory = \"relative\".into(); }; }\n",
             private_field,
@@ -261,6 +266,43 @@ fn workflow_surface(
             } else {
                 "E0433"
             }),
+        ),
+    ] {
+        surface(
+            subject,
+            scratch,
+            profile,
+            &format!("{posture}-workflow-{name}"),
+            source,
+            expected,
+        )?;
+    }
+    coverage_invariants(subject, scratch, profile, posture, private_field)
+}
+
+fn coverage_invariants(
+    subject: &Path,
+    scratch: &Path,
+    profile: &Path,
+    posture: &str,
+    native_field: Option<&str>,
+) -> Result<(), String> {
+    let harness_field = Some(if posture == "diet" { "E0433" } else { "E0616" });
+    for (name, source, expected) in [
+        (
+            "coverage-invariant",
+            "fn main() { let _forge = |coverage: &macroonz::native_coverage::NativeCoverage| { let _ready = &coverage.ready; }; }\n",
+            native_field,
+        ),
+        (
+            "coverage-cleanup-invariant",
+            "fn main() { let _forge = |cleanup: &macroonz::harness::fuzz::CoverageCaseCleanup| { let _path = &cleanup.directory; }; }\n",
+            harness_field,
+        ),
+        (
+            "coverage-roots-invariant",
+            "fn main() { let _forge = |roots: &macroonz::harness::fuzz::CoverageSourceRoots| { let _root = &roots.first; }; }\n",
+            harness_field,
         ),
     ] {
         surface(

@@ -351,7 +351,12 @@ fn writer(payload: &str, stream: &str, code: u8) -> String {
     )
 }
 
-fn standin(root: &Path, host: &Host, name: &str, source: &str) -> Result<PathBuf, String> {
+pub(crate) fn standin(
+    root: &Path,
+    host: &Host,
+    name: &str,
+    source: &str,
+) -> Result<PathBuf, String> {
     let filename = format!("{name}.rs");
     std::fs::write(root.join(&filename), source).map_err(|error| error.to_string())?;
     let executable = root.join(format!("{name}{}", std::env::consts::EXE_SUFFIX));

@@ -10,6 +10,11 @@ mod dependency;
     any(windows, target_os = "linux", target_os = "macos")
 ))]
 mod compiler;
+#[cfg(all(
+    feature = "native-tooling",
+    any(windows, target_os = "linux", target_os = "macos")
+))]
+mod coverage;
 #[cfg(all(feature = "native-tooling", any(unix, windows)))]
 mod inventory;
 #[cfg(all(feature = "native-tooling", any(unix, windows)))]

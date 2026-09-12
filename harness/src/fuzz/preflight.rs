@@ -1,9 +1,11 @@
 //! Active readiness for the stable rustc coverage road.
 
+use super::CoverageSourceRoots;
 use super::types::RustcCoverageTools;
 use super::{
-    CoverageSourceRoot, CoverageStanding, CoverageTool, PreflightIncomplete,
-    RUSTC_COVERAGE_TOOLCHAIN, ReadyPreflight, RustcCommand, RustcField, RustcProfileRequest,
+    CoverageCommand, CoverageHostFailure, CoverageInvocation, CoverageReply, CoverageSourceRoot,
+    CoverageStanding, CoverageTool, PreflightIncomplete, RUSTC_COVERAGE_TOOLCHAIN, ReadyPreflight,
+    RustcCommand, RustcField, RustcProfileRequest,
 };
 use crate::report::{TargetBinding, TargetTriple, ToolchainIdentity};
 use std::path::{Path, PathBuf};
@@ -19,42 +21,99 @@ use std::process::{Command, Output};
 pub fn preflight_ready(
     request: RustcProfileRequest,
 ) -> Result<ReadyPreflight, PreflightIncomplete> {
-    target_available(&request)?;
-    let source_root = canonical_source_root(&request)?;
+    preflight_ready_with(request, |mut invocation| {
+        let path = PathBuf::from(invocation.command.get_program());
+        invocation
+            .command
+            .output()
+            .map(CoverageReply::Output)
+            .map_err(|error| (path, error))
+    })
+    .map_err(|failure| match failure {
+        CoverageHostFailure::Refused(refusal) => refusal,
+        CoverageHostFailure::Executor {
+            operation,
+            error: (path, error),
+            ..
+        } => match operation {
+            CoverageCommand::Rustc(command) => PreflightIncomplete::StartRustc {
+                command,
+                error: error.to_string(),
+            },
+            CoverageCommand::Version(tool) => PreflightIncomplete::StartLlvmTool {
+                tool,
+                path,
+                error: error.to_string(),
+            },
+            CoverageCommand::Target | CoverageCommand::Merge | CoverageCommand::Export => {
+                PreflightIncomplete::UnexpectedExecutorReply
+            }
+        },
+    })
+}
 
-    let verbose = rustc_output(&request, &["-vV"], RustcCommand::VerboseVersion)?;
+/// Establishes the existing coverage standing through an explicitly supplied process executor.
+///
+/// # Errors
+/// Retains executor failures separately from compiler, tool and source-root refusals.
+pub fn preflight_ready_with<E>(
+    request: RustcProfileRequest,
+    mut execute: impl FnMut(CoverageInvocation) -> Result<CoverageReply, E>,
+) -> Result<ReadyPreflight, CoverageHostFailure<E, PreflightIncomplete>> {
+    target_available(&request)?;
+    let source_roots = request
+        .source_roots()
+        .iter()
+        .map(canonical_source_root)
+        .collect::<Result<Vec<_>, _>>()?;
+    let source_roots =
+        CoverageSourceRoots::declared(source_roots).map_err(PreflightIncomplete::SourceRoots)?;
+
+    let verbose = rustc_output(
+        &request,
+        &["-vV"],
+        RustcCommand::VerboseVersion,
+        &mut execute,
+    )?;
     let verbose = rustc_text(verbose, RustcCommand::VerboseVersion)?;
     let release = required_field(&verbose, "release: ", RustcField::Release)?;
     if release != RUSTC_COVERAGE_TOOLCHAIN {
         return Err(PreflightIncomplete::RustcRelease {
             required: RUSTC_COVERAGE_TOOLCHAIN,
             observed: release.to_owned(),
-        });
+        }
+        .into());
     }
     let host = required_field(&verbose, "host: ", RustcField::Host)?;
     let rustc_llvm = required_field(&verbose, "LLVM version: ", RustcField::LlvmVersion)?;
 
-    let sysroot = rustc_output(&request, &["--print", "sysroot"], RustcCommand::Sysroot)?;
+    let sysroot = rustc_output(
+        &request,
+        &["--print", "sysroot"],
+        RustcCommand::Sysroot,
+        &mut execute,
+    )?;
     let sysroot = rustc_text(sysroot, RustcCommand::Sysroot)?;
     let sysroot = sysroot.trim();
     if sysroot.is_empty() {
-        return Err(PreflightIncomplete::MissingRustcField(RustcField::Sysroot));
+        return Err(PreflightIncomplete::MissingRustcField(RustcField::Sysroot).into());
     }
     let sysroot = PathBuf::from(sysroot);
     if !sysroot.is_absolute() {
-        return Err(PreflightIncomplete::RelativeRustcSysroot(sysroot));
+        return Err(PreflightIncomplete::RelativeRustcSysroot(sysroot).into());
     }
 
     let directory = sysroot.join("lib").join("rustlib").join(host).join("bin");
     let profdata = directory.join(format!("llvm-profdata{}", std::env::consts::EXE_SUFFIX));
     let cov = directory.join(format!("llvm-cov{}", std::env::consts::EXE_SUFFIX));
-    let profdata_version = llvm_tool_version(CoverageTool::Profdata, &profdata)?;
-    let cov_version = llvm_tool_version(CoverageTool::Cov, &cov)?;
+    let profdata_version = llvm_tool_version(CoverageTool::Profdata, &profdata, &mut execute)?;
+    let cov_version = llvm_tool_version(CoverageTool::Cov, &cov, &mut execute)?;
     if profdata_version != cov_version {
         return Err(PreflightIncomplete::LlvmToolVersionsDiffer {
             profdata: profdata_version,
             cov: cov_version,
-        });
+        }
+        .into());
     }
     let tool_llvm = profdata_version
         .split_once('-')
@@ -63,7 +122,8 @@ pub fn preflight_ready(
         return Err(PreflightIncomplete::RustcLlvmVersion {
             rustc: rustc_llvm.to_owned(),
             tools: profdata_version,
-        });
+        }
+        .into());
     }
 
     let tools = RustcCoverageTools::established(profdata, cov);
@@ -76,7 +136,7 @@ pub fn preflight_ready(
     Ok(ReadyPreflight {
         request,
         tools,
-        source_root,
+        source_roots,
         standing,
         sysroot,
         release: release.to_owned(),
@@ -100,9 +160,9 @@ fn target_available(request: &RustcProfileRequest) -> Result<(), PreflightIncomp
 }
 
 fn canonical_source_root(
-    request: &RustcProfileRequest,
+    root: &CoverageSourceRoot,
 ) -> Result<CoverageSourceRoot, PreflightIncomplete> {
-    let path = request.source_root().checkout();
+    let path = root.checkout();
     let metadata =
         std::fs::metadata(path).map_err(|error| PreflightIncomplete::SourceRootUnavailable {
             path: path.to_path_buf(),
@@ -115,7 +175,7 @@ fn canonical_source_root(
                 error: error.to_string(),
             }
         })?;
-        CoverageSourceRoot::declared(request.source_root().logical(), canonical)
+        CoverageSourceRoot::declared(root.logical(), canonical)
             .map_err(PreflightIncomplete::SourceRootIdentity)
     } else {
         Err(PreflightIncomplete::SourceRootNotDirectory(
@@ -124,25 +184,23 @@ fn canonical_source_root(
     }
 }
 
-fn rustc_output(
+fn rustc_output<E>(
     request: &RustcProfileRequest,
     arguments: &[&str],
     command: RustcCommand,
-) -> Result<Output, PreflightIncomplete> {
-    let output = Command::new(request.rustc())
-        .args(arguments)
-        .output()
-        .map_err(|error| PreflightIncomplete::StartRustc {
-            command,
-            error: error.to_string(),
-        })?;
+    execute: &mut impl FnMut(CoverageInvocation) -> Result<CoverageReply, E>,
+) -> Result<Output, CoverageHostFailure<E, PreflightIncomplete>> {
+    let mut selected = Command::new(request.rustc());
+    selected.args(arguments);
+    let output = tool_output(CoverageCommand::Rustc(command), selected, execute)?;
     if output.status.success() {
         Ok(output)
     } else {
         Err(PreflightIncomplete::RustcFailed {
             command,
             code: output.status.code(),
-        })
+        }
+        .into())
     }
 }
 
@@ -162,20 +220,20 @@ fn required_field<'text>(
         .ok_or(PreflightIncomplete::MissingRustcField(field))
 }
 
-fn llvm_tool_version(tool: CoverageTool, path: &Path) -> Result<String, PreflightIncomplete> {
-    let output = Command::new(path)
-        .arg("--version")
-        .output()
-        .map_err(|error| PreflightIncomplete::StartLlvmTool {
-            tool,
-            path: path.to_path_buf(),
-            error: error.to_string(),
-        })?;
+fn llvm_tool_version<E>(
+    tool: CoverageTool,
+    path: &Path,
+    execute: &mut impl FnMut(CoverageInvocation) -> Result<CoverageReply, E>,
+) -> Result<String, CoverageHostFailure<E, PreflightIncomplete>> {
+    let mut command = Command::new(path);
+    command.arg("--version");
+    let output = tool_output(CoverageCommand::Version(tool), command, execute)?;
     if !output.status.success() {
         return Err(PreflightIncomplete::LlvmToolFailed {
             tool,
             code: output.status.code(),
-        });
+        }
+        .into());
     }
     let text = String::from_utf8(output.stdout)
         .map_err(|_error| PreflightIncomplete::LlvmToolOutputNotUtf8(tool))?;
@@ -183,5 +241,27 @@ fn llvm_tool_version(tool: CoverageTool, path: &Path) -> Result<String, Prefligh
         .find_map(|line| line.trim().strip_prefix("LLVM version "))
         .filter(|version| !version.is_empty())
         .map(str::to_owned)
-        .ok_or(PreflightIncomplete::MissingLlvmToolVersion(tool))
+        .ok_or_else(|| PreflightIncomplete::MissingLlvmToolVersion(tool).into())
+}
+
+fn tool_output<E>(
+    operation: CoverageCommand,
+    command: Command,
+    execute: &mut impl FnMut(CoverageInvocation) -> Result<CoverageReply, E>,
+) -> Result<Output, CoverageHostFailure<E, PreflightIncomplete>> {
+    let invocation = CoverageInvocation {
+        operation,
+        command,
+        input: None,
+        output_bound: None,
+    };
+    match execute(invocation) {
+        Ok(CoverageReply::Output(output)) => Ok(output),
+        Ok(CoverageReply::Target(_)) => Err(PreflightIncomplete::UnexpectedExecutorReply.into()),
+        Err(error) => Err(CoverageHostFailure::Executor {
+            operation,
+            error,
+            cleanup: None,
+        }),
+    }
 }

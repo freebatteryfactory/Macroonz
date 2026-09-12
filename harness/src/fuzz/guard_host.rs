@@ -1,10 +1,61 @@
 //! The host roads: the tools derived from one sysroot, the instrumented target, the profile request, and the ready preflight that joins them.
 
+use crate::fuzz::types::CoverageSourceRoots;
 use crate::fuzz::types::{
-    AbsolutePath, CoverageCampaign, CoverageSourceRoot, CoverageStanding, InstrumentedTarget,
-    ReadyPreflight, RustcCoverageTools, RustcProfileRequest, RustcProfileRequestRefusal,
+    AbsolutePath, CoverageCampaign, CoverageCaseCleanup, CoverageCommand, CoverageInvocation,
+    CoverageSourceRoot, CoverageStanding, InstrumentedTarget, ReadyPreflight, RustcCoverageTools,
+    RustcProfileRequest, RustcProfileRequestRefusal,
 };
 use std::path::{Path, PathBuf};
+
+impl CoverageInvocation {
+    /// The semantic role of this invocation.
+    #[must_use]
+    pub const fn operation(&self) -> CoverageCommand {
+        self.operation
+    }
+
+    /// The coverage owner's exact program, arguments and explicit environment additions.
+    #[must_use]
+    pub const fn command(&self) -> &std::process::Command {
+        &self.command
+    }
+
+    /// The coverage-export ceiling, when the operation has one.
+    #[must_use]
+    pub const fn output_bound(&self) -> Option<u64> {
+        self.output_bound
+    }
+
+    /// Consumes the invocation and transfers its already-materialized target input.
+    #[must_use]
+    pub fn into_input(self) -> Option<std::fs::File> {
+        self.input
+    }
+}
+
+impl CoverageCaseCleanup {
+    pub(crate) const fn retained(directory: PathBuf) -> Self {
+        Self { directory }
+    }
+
+    /// The exact case directory awaiting cleanup.
+    #[must_use]
+    pub fn directory(&self) -> &Path {
+        &self.directory
+    }
+
+    /// Removes this task-created case after the executor has finished with its files.
+    ///
+    /// # Errors
+    /// Retains this cleanup value with the filesystem error when removal fails.
+    pub fn remove(self) -> Result<(), (Self, std::io::Error)> {
+        match std::fs::remove_dir_all(&self.directory) {
+            Ok(()) => Ok(()),
+            Err(error) => Err((self, error)),
+        }
+    }
+}
 
 impl RustcCoverageTools {
     pub(crate) const fn established(profdata: PathBuf, cov: PathBuf) -> Self {
@@ -64,6 +115,26 @@ impl RustcProfileRequest {
         scratch: PathBuf,
         campaign: CoverageCampaign,
     ) -> Result<Self, RustcProfileRequestRefusal> {
+        Self::mapped(
+            rustc,
+            target,
+            CoverageSourceRoots::single(source_root),
+            scratch,
+            campaign,
+        )
+    }
+
+    /// Declares one coverage request with an explicitly admitted source-root map.
+    ///
+    /// # Errors
+    /// Refuses empty or relative compiler and scratch paths.
+    pub fn mapped(
+        rustc: PathBuf,
+        target: InstrumentedTarget,
+        source_roots: CoverageSourceRoots,
+        scratch: PathBuf,
+        campaign: CoverageCampaign,
+    ) -> Result<Self, RustcProfileRequestRefusal> {
         let rustc = AbsolutePath::informed(
             rustc,
             RustcProfileRequestRefusal::Rustc,
@@ -79,13 +150,15 @@ impl RustcProfileRequest {
         Ok(Self {
             rustc,
             target,
-            source_root,
+            source_roots,
             scratch,
             campaign,
         })
     }
 
-    pub(crate) fn rustc(&self) -> &Path {
+    /// The compiler explicitly selected for readiness queries.
+    #[must_use]
+    pub fn rustc(&self) -> &Path {
         &self.rustc
     }
 
@@ -93,8 +166,8 @@ impl RustcProfileRequest {
         &self.target
     }
 
-    pub(crate) const fn source_root(&self) -> &CoverageSourceRoot {
-        &self.source_root
+    pub(crate) const fn source_roots(&self) -> &CoverageSourceRoots {
+        &self.source_roots
     }
 
     pub(crate) const fn campaign(&self) -> CoverageCampaign {
@@ -111,8 +184,10 @@ impl ReadyPreflight {
         &self.tools
     }
 
-    pub(crate) const fn source_root(&self) -> &CoverageSourceRoot {
-        &self.source_root
+    /// The canonical physical roots and caller-declared logical identities used for coverage mapping.
+    #[must_use]
+    pub const fn source_roots(&self) -> &CoverageSourceRoots {
+        &self.source_roots
     }
 
     pub(crate) fn scratch(&self) -> &Path {

@@ -2,6 +2,7 @@
 
 use super::{
     CoverageObservation, CoveragePoint, CoverageReadRefusal, CoverageSource, CoverageSourceRoot,
+    CoverageSourceRoots,
 };
 use std::borrow::Cow;
 use std::collections::BTreeSet;
@@ -19,6 +20,17 @@ pub fn read_lcov(
     root: &CoverageSourceRoot,
     bytes: &[u8],
 ) -> Result<CoverageObservation, CoverageReadRefusal> {
+    read_lcov_mapped(&CoverageSourceRoots::single(root.clone()), bytes)
+}
+
+/// Reads covered points through the caller's admitted source mappings.
+///
+/// # Errors
+/// Refuses the malformed records described by [`read_lcov`] and any source that matches multiple normalized roots.
+pub fn read_lcov_mapped(
+    roots: &CoverageSourceRoots,
+    bytes: &[u8],
+) -> Result<CoverageObservation, CoverageReadRefusal> {
     let text = std::str::from_utf8(bytes).map_err(|_error| CoverageReadRefusal::NonUtf8)?;
     let mut source: Option<CoverageSource> = None;
     let mut points = BTreeSet::new();
@@ -28,7 +40,7 @@ pub fn read_lcov(
             if path.is_empty() {
                 return Err(CoverageReadRefusal::EmptySource { record });
             }
-            source = Some(read_source(root, path, record)?);
+            source = Some(read_source(roots, path, record)?);
             continue;
         }
         if row == "end_of_record" {
@@ -99,15 +111,11 @@ fn read_branch(
 }
 
 fn read_source(
-    root: &CoverageSourceRoot,
+    roots: &CoverageSourceRoots,
     spelling: &str,
     record: usize,
 ) -> Result<CoverageSource, CoverageReadRefusal> {
     let spelling = comparable_path(spelling);
-    let Some(checkout) = root.checkout().to_str() else {
-        return Err(CoverageReadRefusal::NonUtf8);
-    };
-    let checkout = comparable_path(checkout);
     let path = Path::new(spelling.as_ref());
     if path
         .components()
@@ -118,9 +126,29 @@ fn read_source(
     if !path.is_absolute() {
         return Err(CoverageReadRefusal::RelativeSource { record });
     }
-    let relative = path
-        .strip_prefix(Path::new(checkout.as_ref()))
-        .map_err(|_error| CoverageReadRefusal::SourceOutsideRoot { record })?;
+    let mut matched = None;
+    for root in roots.iter() {
+        let checkout = root
+            .checkout()
+            .to_str()
+            .ok_or(CoverageReadRefusal::NonUtf8)?;
+        let checkout = comparable_path(checkout);
+        if let Ok(relative) = path.strip_prefix(Path::new(checkout.as_ref())) {
+            if matched.is_some() {
+                return Err(CoverageReadRefusal::AmbiguousSource { record });
+            }
+            matched = Some((root, relative));
+        }
+    }
+    let (root, relative) = matched.ok_or(CoverageReadRefusal::SourceOutsideRoot { record })?;
+    source_member(root, relative, record)
+}
+
+fn source_member(
+    root: &CoverageSourceRoot,
+    relative: &Path,
+    record: usize,
+) -> Result<CoverageSource, CoverageReadRefusal> {
     let mut canonical = String::new();
     for component in relative.components() {
         let Component::Normal(segment) = component else {

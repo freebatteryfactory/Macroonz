@@ -2,6 +2,8 @@
 
 mod configuration;
 mod types;
+#[path = "../support/native_input/mod.rs"]
+mod input;
 
 use macroonz::harness::oracle::{
     CompilationVerdict, CompiledVerdict, DeclaredBehavior, DeclaredCompilation, DeclaredReadBack,

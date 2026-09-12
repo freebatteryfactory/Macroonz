@@ -12,6 +12,9 @@ The Cargo entrance builds one selected package library or binary with an explici
 The caller supplies the lockfile and all required compiler, linker and environment configuration through the process owner.
 Cargo's offline resolution is not a network sandbox for build scripts or compiler plugins.
 Every effective command remains available through the request and result.
+`CompilerRequest::instrumented` explicitly selects Rust source coverage without changing diagnostic or artifact interpretation.
+For Cargo it supplies `CARGO_ENCODED_RUSTFLAGS` for the target and its Rust dependencies, refusing caller `RUSTFLAGS` or `CARGO_ENCODED_RUSTFLAGS` entries in any letter case instead of silently replacing them.
+This encoded selection takes precedence over Cargo-configured Rust flags; project configuration and compiler wrappers remain caller trust inputs.
 
 The process working directory is the declared physical root for relative diagnostic paths.
 For Cargo it must match the workspace root used as rustc's path basis, even when the selected manifest is below that root.

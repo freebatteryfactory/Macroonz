@@ -57,6 +57,24 @@ impl ProcessLimits {
 }
 
 impl ProcessTool {
+    /// The explicitly selected executable.
+    #[must_use]
+    pub fn executable(&self) -> &std::path::Path {
+        &self.executable
+    }
+
+    /// The complete explicit environment shared by this tool's invocations.
+    #[must_use]
+    pub fn environment(&self) -> &[(String, String)] {
+        &self.environment
+    }
+
+    /// The execution, cleanup and capture bounds shared by this tool's invocations.
+    #[must_use]
+    pub const fn limits(&self) -> ProcessLimits {
+        self.limits
+    }
+
     /// Admits a reusable tool selection without consulting the host.
     ///
     /// # Errors
