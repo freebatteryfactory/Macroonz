@@ -13,6 +13,28 @@ use crate::render::Output;
 use crate::token::{GeneratedTree, SpanHandle};
 
 impl EffectiveProjection {
+    pub(in crate::recipe) fn with_consuming(
+        subject: Option<String>,
+        consuming: super::ConsumingProjection,
+        at: SpanHandle,
+    ) -> Self {
+        let mut effective = Self::effective(
+            RecipeRole::Typestate,
+            None,
+            subject,
+            LoweringSource::Configuration,
+            at,
+        );
+        effective.consuming = Some(Box::new(consuming));
+        effective
+    }
+
+    /// Reads the explicit runtime bindings of the consuming typestate form.
+    #[must_use]
+    pub fn consuming(&self) -> Option<&super::ConsumingProjection> {
+        self.consuming.as_deref()
+    }
+
     pub(in crate::recipe) fn effective(
         role: RecipeRole,
         name: Option<String>,
@@ -30,6 +52,7 @@ impl EffectiveProjection {
             exact_dispatch_binding_names: None,
             exact_dispatch_imports: None,
             relation_tables: None,
+            consuming: None,
             at,
         }
     }
@@ -52,6 +75,7 @@ impl EffectiveProjection {
             exact_dispatch_binding_names: Some(Box::new(binding_names)),
             exact_dispatch_imports: Some(imports),
             relation_tables: None,
+            consuming: None,
             at,
         }
     }
@@ -70,6 +94,7 @@ impl EffectiveProjection {
             exact_dispatch_binding_names: None,
             exact_dispatch_imports: None,
             relation_tables: Some(Box::new(tables)),
+            consuming: None,
             at,
         }
     }

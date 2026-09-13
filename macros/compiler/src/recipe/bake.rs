@@ -18,7 +18,6 @@ use crate::support::{
 };
 use crate::token::{
     CapturedInput, GeneratedDelimiter, GeneratedToken, GeneratedTree, SpanTable, documentation,
-    group,
 };
 
 /// Bake one recipe through the standard projector catalog.
@@ -286,13 +285,13 @@ fn final_tree(
         }
     }
     let mut body = recipe.authored_body().clone();
-    let mut companions = Vec::new();
+    let mut companions = GeneratedTree::assembled(Vec::new())?;
     for role in RecipeRole::roles_at(RecipeRolePlacement::BakedModule) {
         if let Some(unit) = projection.closure().rendered().under(role) {
-            companions.extend(unit.tree().tokens().iter().cloned());
+            companions = companions.joined(&recipe.restore_projected_unit(unit.tree(), role))?;
         }
     }
-    if !companions.is_empty() {
+    if !companions.tokens().is_empty() {
         let mut generated = documentation(
             "Generated companions selected by this recipe's informed projection account.",
         )?;
@@ -300,9 +299,10 @@ fn final_tree(
             GeneratedToken::word("pub"),
             GeneratedToken::word("mod"),
             GeneratedToken::word("baked"),
-            group(GeneratedDelimiter::Brace, companions)?,
         ]);
-        body = body.joined(&GeneratedTree::assembled(generated)?)?;
+        let baked = GeneratedTree::assembled(generated)?
+            .joined(&companions.grouped(GeneratedDelimiter::Brace, None)?)?;
+        body = body.joined(&baked)?;
     }
     let grouped = body.grouped(GeneratedDelimiter::Brace, recipe.module_body_at())?;
     let module = recipe.module_head().joined(&grouped)?;

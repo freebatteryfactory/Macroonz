@@ -2,6 +2,7 @@
 
 mod codec;
 mod companions;
+mod consuming;
 mod dispatch;
 mod evidence;
 mod project;

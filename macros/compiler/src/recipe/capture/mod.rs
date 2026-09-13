@@ -16,6 +16,7 @@ use crate::token::{
 
 mod bake;
 mod codec;
+mod consuming;
 mod dispatch;
 mod evidence;
 mod module;
@@ -67,6 +68,7 @@ struct RequestedProjection {
     exact: Option<CapturedInput>,
     dispatch_bindings: Option<[String; 2]>,
     relation_tables: Option<Vec<RequestedRelationTable>>,
+    consuming: Option<CapturedInput>,
     at: crate::token::SpanHandle,
 }
 

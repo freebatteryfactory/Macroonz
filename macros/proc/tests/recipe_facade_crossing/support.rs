@@ -16,8 +16,11 @@ mod no_harness;
 mod renamed_facade;
 #[path = "support/catalogue.rs"]
 mod catalogue;
+#[path = "support/consuming.rs"]
+mod consuming;
 
 pub(super) use catalogue::observe_catalogue;
+pub(super) use consuming::observe_consuming;
 
 use effect_execution::{EFFECT_CONSUMER, EFFECT_PRODUCER};
 use generic_recipe::{GENERIC_CONSUMER, GENERIC_PRODUCER, GENERIC_REFUSALS};

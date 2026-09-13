@@ -43,7 +43,7 @@ The caller owns every coherence claim, qualifier, bound, predicate, item body an
 Ordinary and raw identifiers, punctuation adjacency, all captured literal forms, written groups, and invisible compiler groups remain distinct.
 [`GeneratedLiteral`](crate::token::GeneratedLiteral) guards the exact literal forms whose older semantic constructors deliberately canonicalize differently.
 
-The private provenance operation restores caller spans only onto exact fragments, external paths, caller-named generated items, and the binding coupled to an exact effect body, while keeping every other generated binding under one consistent Rust hygiene context.
+The private provenance operation restores caller spans onto exact fragments, external paths, caller-named generated items, bindings coupled to exact effect bodies, and explicitly declared value bindings within their owning generated unit, while keeping other generated bindings under one consistent Rust hygiene context.
 Those spans move no canonical bytes or identity and exist only for compiler diagnostics and editor projection.
 Template restoration leaves macro metavariable markers and names under generated hygiene so they still match the carrier's declarations.
 Restoration matches repeated material by spelling rather than carrying an origin coordinate through every projector, so a diagnostic may select a same-spelled sibling occurrence while preserving Rust resolution context.

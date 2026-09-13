@@ -31,7 +31,7 @@ pub(super) fn read_projection(
     match role {
         RecipeRole::RelationTables => read_relation_tables(cursor, issued, at),
         RecipeRole::Dispatch => read_dispatch(cursor, issued, at),
-        RecipeRole::Typestate => read_typestate(cursor, at),
+        RecipeRole::Typestate => read_typestate(cursor, issued, at),
         RecipeRole::Companions
         | RecipeRole::CompileContract
         | RecipeRole::DeclarationConformance
@@ -70,6 +70,7 @@ fn read_relation_tables(
         exact: None,
         dispatch_bindings: None,
         relation_tables: Some(tables),
+        consuming: None,
         at,
     })
 }
@@ -286,6 +287,7 @@ fn read_selected_dispatch_signature(
 
 fn read_typestate(
     cursor: &mut CaptureCursor<'_>,
+    issued: usize,
     at: SpanHandle,
 ) -> Result<RequestedProjection, CaptureReadRefusal> {
     let subject = if cursor.next_token().is_some_and(|next| {
@@ -304,15 +306,23 @@ fn read_typestate(
     } else {
         LoweringSource::Preset
     };
-    Ok(requested(
-        RecipeRole::Typestate,
-        None,
-        subject,
-        source,
-        None,
-        None,
-        at,
-    ))
+    let mut requested = requested(RecipeRole::Typestate, None, subject, source, None, None, at);
+    if let Some(fragment) = cursor
+        .next_token()
+        .and_then(|token| token.group_fragment(CapturedDelimiter::Brace))
+    {
+        cursor.token()?;
+        requested.consuming = Some(CapturedInput::selected(fragment, issued).map_err(|_| {
+            CaptureReadRefusal::projected(
+                crate::token::CaptureReadIssue::SequenceUnbounded {
+                    limit: crate::token::CAPTURED_TOKEN_LIMIT,
+                },
+                Some(at),
+            )
+        })?);
+        requested.source = LoweringSource::Configuration;
+    }
+    Ok(requested)
 }
 
 fn requested(
@@ -332,6 +342,7 @@ fn requested(
         exact,
         dispatch_bindings,
         relation_tables: None,
+        consuming: None,
         at,
     }
 }
@@ -446,6 +457,15 @@ fn standing(
     if role == RecipeRole::RelationTables {
         return relation_table_standing(row, relations);
     }
+    if let Some(input) = row.consuming.as_ref() {
+        return Ok(ProjectionStanding::Generated(Box::new(
+            EffectiveProjection::with_consuming(
+                row.subject.clone(),
+                super::consuming::read(input)?,
+                row.at,
+            ),
+        )));
+    }
     if let Some(exact) = row.exact.as_ref() {
         let exact = exact_dispatch(
             exact,
@@ -453,7 +473,7 @@ fn standing(
             transition_subject,
             row.dispatch_bindings.as_ref(),
         )?;
-        return Ok(ProjectionStanding::Generated(
+        return Ok(ProjectionStanding::Generated(Box::new(
             EffectiveProjection::exact_dispatch(
                 exact.name,
                 exact.signature,
@@ -462,9 +482,9 @@ fn standing(
                 exact.imports,
                 exact.name_at,
             ),
-        ));
+        )));
     }
-    Ok(ProjectionStanding::Generated(
+    Ok(ProjectionStanding::Generated(Box::new(
         EffectiveProjection::effective(
             role,
             row.name.clone(),
@@ -472,7 +492,7 @@ fn standing(
             row.source,
             row.at,
         ),
-    ))
+    )))
 }
 
 fn relation_table_standing(
@@ -545,7 +565,7 @@ fn relation_table_standing(
             Some(requested.at),
         )
     })?;
-    Ok(ProjectionStanding::Generated(
+    Ok(ProjectionStanding::Generated(Box::new(
         EffectiveProjection::with_relation_tables(tables, requested.at),
-    ))
+    )))
 }

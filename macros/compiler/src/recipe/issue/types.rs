@@ -214,6 +214,13 @@ pub(in crate::recipe) enum RecipeIssue {
         /// The structural subject family the projection requires.
         expected: &'static str,
     },
+    /// One consuming projection binding contradicts its declared structural contract.
+    ConsumingBinding {
+        /// The caller-owned binding whose contract was not met.
+        name: String,
+        /// The structural binding requirement.
+        expected: &'static str,
+    },
     /// Sparse dispatch cannot infer what an allowed absent row means.
     AllowedAbsenceNeedsFallback,
     /// A harness-owned role was requested from a facade posture without the harness.

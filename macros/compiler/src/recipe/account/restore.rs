@@ -6,6 +6,26 @@ use super::{
 };
 use crate::token::GeneratedTree;
 
+/// Restore declared value bindings only within the configured projection's own unit.
+pub(super) fn restore_projection_bindings(
+    tree: &GeneratedTree,
+    effective: &EffectiveProjection,
+) -> GeneratedTree {
+    let Some(config) = effective.consuming() else {
+        return tree.clone();
+    };
+    let bindings = [config.resource(), config.runtime()]
+        .into_iter()
+        .chain(
+            config
+                .methods()
+                .filter_map(crate::recipe::ConsumingMethod::payload),
+        )
+        .map(|binding| (binding.name_token(), binding.at()))
+        .collect::<Vec<_>>();
+    tree.restored_bindings(&bindings)
+}
+
 /// Restore every exact caller fragment retained by one relation.
 pub(super) fn restore_relation_references(
     tree: &GeneratedTree,

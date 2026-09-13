@@ -3,6 +3,8 @@
 
 mod caller_rust;
 mod codec_projection;
+mod consuming;
+mod consuming_compatibility;
 mod diagnostic_custody;
 mod diagnostic_matrix;
 mod dispatch_contract;

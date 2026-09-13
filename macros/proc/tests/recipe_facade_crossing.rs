@@ -8,6 +8,8 @@ mod carrier_contract;
 mod generic_recipe;
 #[path = "recipe_facade_crossing/effect_execution.rs"]
 mod effect_execution;
+#[path = "recipe_facade_crossing/consuming.rs"]
+mod consuming;
 #[path = "recipe_facade_crossing/harness_posture.rs"]
 mod harness_posture;
 #[path = "recipe_facade_crossing/historical_subjects.rs"]

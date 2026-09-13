@@ -141,7 +141,7 @@ dispatch {
 }; // exact caller-authored Rust; Macroonz supplies only the checked body
 ```
 
-Parentheses carry flat configuration names, while braces carry exact Rust material.
+Parentheses carry flat configuration names; braced seats carry the role's explicit bindings or exact Rust material.
 An exact dispatch signature remains caller-authored Rust, including additional parameters when `dispatch(state_binding, event_binding) { exact signature };` selects the two bindings consumed by the generated match.
 The compiler's [projection disclosure contract](macros/compiler/src/recipe/README.md#projection-disclosure) owns the exact-signature rules.
 The standard projector owns the complete row-accounted match; individual rows may carry exact behavior through `with(target) { exact Rust }`, while a custom whole-function body belongs on the custom-projector road.
@@ -221,6 +221,7 @@ Runnable examples cross distinct public roads:
 | Journey | Command | What it establishes |
 | --- | --- | --- |
 | First recipe | `cargo run --example recipe` | Conventional, configured, and exact projection levels through the root facade entrance. |
+| Consuming transitions | `cargo run --example consuming_workflow --no-default-features` | [Owned resources and checked restoration](macros/compiler/src/recipe/README.md#consuming-transitions) through caller-declared runtime validation and effects. |
 | Declared typed trials | `cargo run --example trial_workflow --features harness` | [Co-located bindings and typed input](examples/trial_workflow/README.md) execute through table-derived selection and versioned mechanical defaults, displaying complete results and an independent disagreement in JSON, Markdown and HTML. |
 | Callable compiler | `cargo run -p macroonz-compiler --example callable_compiler` | One public compiler request plans, renders, closes, explains, binds, and emits a unit. |
 | Direct handwritten property | `cargo run -p macroonz-harness --example temporal_property` | Caller-owned state and transitions enter a temporal contract without a macro or subject trait. |
@@ -240,6 +241,7 @@ For a specific task, start at its owner:
 | Task | Start here |
 | --- | --- |
 | Write a recipe clause or configure a projection | [Recipe clause forms](macros/compiler/src/recipe/README.md#clause-forms) |
+| Generate consuming phase methods over caller-owned resources | [Consuming transitions](macros/compiler/src/recipe/README.md#consuming-transitions) |
 | Replace a projection algorithm | [Callable projector](macros/compiler/README.md#raw-callable-road) |
 | Define a kind, role or complete disposition set | [Kind](macros/compiler/src/kind/README.md) |
 | Publish a shared macro definition and its adoption sites | [Runnable publication](macros/compiler/src/stamp/README.md#runnable-publication) |
