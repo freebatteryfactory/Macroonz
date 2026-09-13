@@ -36,9 +36,9 @@ Reading one axis as another is how a harness grades itself green on a question i
 Pressure arrives by four roads, and none of them can be relabelled into another after the fact.
 
 - **A wrapped external backend** (`wrap`) reads `cargo-mutants` console output into the axis-composed record. It mutates real source and runs the test command itself, outside the wall. Persistent pressure carries one typed artifact manifest retaining backend, version, command tokens, target and toolchain, exact output identity, parser profile, and the exact revision of every source file named by a parsed report. Source currency is admitted only after those artifact revisions equal a complete caller-supplied current roster. Its ceiling remains witness rejection, because a console stream carries no channel that could watch a damage fire.
-- **A separately compiled projection** (`specimen`) renders unchanged and selected source as bytes, hands both to a caller-owned compiler host, and requires the unchanged report to pass and the selected report to refuse.
+- **A separately compiled projection** (`specimen`) renders unchanged and selected source as bytes and retains both caller-owned host results. Its strict rejection operation additionally requires the unchanged report to pass and the selected report to refuse.
 - **An in-process evaluation callable** (`interpret`) is the rapid loop this instrument is named for: one compile, then selection among damages an owner already admitted.
-- **Structural rewrites** (`rewrite`) are descriptors — a pattern and what it rewrites to — planned as audit candidates and admitted last.
+- **Structural rewrites** (`rewrite`) are descriptors — a pattern and what it rewrites to — planned as audit candidates under a declared selection.
 
 Nothing here executes a subject on its own initiative.
 Every one of those roads ends at the harness's ordinary trial binding and report vocabulary, so mutation pressure never becomes a second runner with opinions of its own.
@@ -61,15 +61,23 @@ Neither is a guess dressed as an answer.
 
 ---
 
-## The order trust opens in
+## Observation and qualified assessment
 
-An in-process mutation result is the cheapest evidence to produce and the easiest to fool yourself with, so it is admitted last and only behind three earlier facts:
+`interpret::observe_mutation` admits a pair and exact selection, then retains production, unchanged evaluation and selected evaluation results on one input.
+`specimen::observe_mutation` retains the corresponding exact compiled source and both host results.
+Neither operation depends on a future witness or an earlier kill.
 
-1. **A qualified adapter.** Somebody states that the console grammar this harness reads was checked against real output of the exact backend version a reading names. Nobody having checked is an honest posture to hold, and it opens no gate.
-2. **A generic suite bite.** At least one lawful kill, read out of a current-source-qualified artifact under that qualified profile.
-3. **Exact projection pressure.** One separately compiled selected artifact that a real witness really rejected — carrying with it the mandatory no-mutation parity, where production and the evaluation callable must agree on the same input before either is believed about a mutant.
+`interpret::qualify_execution` requires unchanged evaluation and separately compiled baseline to agree with production, selected evaluation to agree with separately compiled selected execution, and positive selected activation.
+The caller owns the comparison relation and declares the roads' shared foundations.
+`interpret::observe_witness` runs an authored check against all retained meanings without rerunning the subject.
+`interpret::qualify_witness` requires that check's unchanged baselines to pass and its selected compiled and interpreted conclusions to agree before deriving the mutation report.
+An incomplete check can therefore survive a real observed change; a separately authored check can judge the same retained execution.
+An observed difference refutes equivalence only in the stated scope, while an agreeing pair does not prove global equivalence.
 
-Only then does interpreted execution run, and only for the one selection that pressure already covers.
+The stricter `availability` and `execute_active` composition requires a version-qualified backend suite bite and exact compiled rejection by the retained witness.
+It retains those pressure books and active judgment but does not compare compiled and interpreted selected meanings.
+Its evidence ceiling is distinct from the directly compared `MutationAssessment` road.
+Neither composition authenticates a caller's host, evaluator, comparison or check.
 
 ---
 

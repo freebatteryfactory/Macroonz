@@ -13,10 +13,19 @@ pub(crate) fn interpreted_trial_join(
     trial: &ArchivedTrial,
     mutation: &ArchivedMutation,
 ) -> Result<(), MutationArchiveRefusal> {
+    if mutation.equivalence() != EquivalenceAxis::NotAssessed {
+        return Err(MutationArchiveRefusal::InterpretedTrialMismatch);
+    }
+    assessed_trial_join(trial, mutation)
+}
+
+pub(crate) fn assessed_trial_join(
+    trial: &ArchivedTrial,
+    mutation: &ArchivedMutation,
+) -> Result<(), MutationArchiveRefusal> {
     if mutation.baseline() != BaselineAxis::Qualified
         || mutation.materialization() != MaterializationAxis::Built
         || !matches!(mutation.activation(), ArchivedActivation::Observed(_))
-        || mutation.equivalence() != EquivalenceAxis::NotAssessed
     {
         return Err(MutationArchiveRefusal::InterpretedTrialMismatch);
     }

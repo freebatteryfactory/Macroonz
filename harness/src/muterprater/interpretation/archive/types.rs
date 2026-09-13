@@ -6,10 +6,12 @@ use crate::descriptor::archive::{
 };
 use crate::descriptor::{NamespacedName, RevisionBinding};
 use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use crate::muterprater::ArtifactContent;
 use crate::muterprater::ParityQualificationRefusal;
 use crate::muterprater::backend_archive::{
     ArchivedSuitePressure, SuitePressureArchiveLimits, SuitePressureArchiveRefusal,
 };
+use crate::muterprater::discovery_archive::ArchivedSelection;
 use crate::muterprater::discovery_archive::{
     ArchivedEvaluationSurface, SurfaceArchiveLimits, SurfaceArchiveRefusal,
 };
@@ -17,6 +19,7 @@ use crate::muterprater::specimen_archive::{
     ArchivedProjectionPressure, ProjectionArchiveLimits, ProjectionArchiveRefusal,
 };
 use crate::muterprater::verdict_archive::{ArchivedMutation, MutationArchiveRefusal};
+use crate::properties::Agreement;
 use crate::report::ForeignText;
 use crate::report::archive::{
     AddressClaim, ArchiveLimits, ArchiveRefusal, ArchivedConclusion, ArchivedTrial,
@@ -24,8 +27,64 @@ use crate::report::archive::{
 
 #[path = "type_guard.rs"]
 mod guard;
+pub use guard::read_assessment;
 pub use guard::read_interpreted;
 pub use guard::read_parity;
+
+/// The domain of complete historical mutation assessments with retained cross-road meanings.
+pub const ASSESSMENT_ARCHIVE_TAG: DomainTag = DomainTag::declared(
+    "historical-mutation-assessment",
+    IdentityProfileVersion::declared(1),
+);
+
+/// Independent byte, surface, binding, report, source, value and substrate ceilings.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AssessmentArchiveLimits {
+    bytes: ArchiveLimits,
+    surface: SurfaceArchiveLimits,
+    binding: BindingArchiveLimits,
+    reports: ArchiveLimits,
+    source: usize,
+    value: usize,
+    substrates: usize,
+}
+
+/// A historically qualified assessment with complete selected source and witness judgments.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArchivedAssessment {
+    encoded: Vec<u8>,
+    address: ContentAddress,
+    surface: ArchivedEvaluationSurface,
+    pair: ArchivedEvaluationPair,
+    selection: ArchivedSelection,
+    baseline_content: ArtifactContent,
+    selected_content: ArtifactContent,
+    witness: ArchivedBinding,
+    input: ArchivedValue,
+    meanings: [ArchivedValue; 5],
+    reports: [ArchivedTrial; 5],
+    substrate: ArchivedSubstrate,
+    difference: Agreement,
+    mutation: ArchivedMutation,
+}
+
+/// Why a complete historical assessment was refused.
+#[must_use = "a refusal explains why the assessment was not retained"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AssessmentArchiveRefusal {
+    /// A common bounded field or envelope refused.
+    Record(ArchiveRefusal),
+    /// The complete surface refused.
+    Surface(SurfaceArchiveRefusal),
+    /// A value, witness, comparison declaration or report join refused.
+    Parity(ParityArchiveRefusal),
+    /// Exact source content refused its existing specimen owner.
+    Specimen(ProjectionArchiveRefusal),
+    /// The mutation report or trial relationship refused.
+    Mutation(MutationArchiveRefusal),
+    /// Retained selection, pair, witness, activation or comparison claims disagreed.
+    JoinMismatch,
+}
 
 /// The historical no-mutation parity envelope domain.
 pub const PARITY_ARCHIVE_TAG: DomainTag = DomainTag::declared(
@@ -58,6 +117,14 @@ pub enum ValueRole {
     Production,
     /// The meaning returned by evaluation.
     Evaluation,
+    /// The unchanged evaluation meaning in a complete mutation assessment.
+    BaselineEvaluation,
+    /// The unchanged separately compiled meaning.
+    CompiledBaseline,
+    /// The selected separately compiled meaning.
+    CompiledSelected,
+    /// The selected evaluation meaning.
+    SelectedEvaluation,
 }
 
 /// Independent complete-envelope, nested-record, value and substrate ceilings.

@@ -40,9 +40,10 @@ pub use diagnostic::compiler_diagnostic;
 pub use historical::{archived_capsule, archived_run, archived_trial};
 pub use legacy::{legacy_comparison, legacy_join_refusal, legacy_record};
 pub use mutation::{
-    archived_backend, archived_interpreted, archived_mutation, archived_mutation_run,
-    archived_parity, archived_projection, backend_manifest, backend_manifest_refusal,
-    backend_reading, backend_reading_refusal, mutation_discovery, mutation_record, mutation_run,
+    archived_assessment, archived_backend, archived_interpreted, archived_mutation,
+    archived_mutation_run, archived_parity, archived_projection, backend_manifest,
+    backend_manifest_refusal, backend_reading, backend_reading_refusal, mutation_discovery,
+    mutation_record, mutation_run,
 };
 #[cfg(feature = "native-tooling")]
 pub use native::{

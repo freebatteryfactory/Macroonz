@@ -401,8 +401,10 @@ fn assert_compiler_test_support_debt_is_closed(root: &Path) -> Result<(), std::i
         root,
         &support_module,
         &[
+            "codec_mutation/main.rs",
             "declared_modules/main.rs",
             "published_stamps/main.rs",
+            "recipe_mutation/main.rs",
             "structural_token_projection/main.rs",
         ],
     )?;

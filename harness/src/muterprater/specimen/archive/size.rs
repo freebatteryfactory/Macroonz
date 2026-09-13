@@ -56,7 +56,7 @@ pub(crate) fn known_size<Input, Meaning>(
     )
 }
 
-pub(super) fn source_size(
+pub(crate) fn source_size(
     length: usize,
     limits: ProjectionArchiveLimits,
 ) -> Result<usize, ProjectionArchiveRefusal> {

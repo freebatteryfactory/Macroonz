@@ -98,7 +98,7 @@ pub(crate) const UNCHANGED_SPECIMEN_MATERIALIZER: MaterializerFn = |_directive| 
 
 fn specimen_path(extension: &str) -> PathBuf {
     let ordinal = SPECIMEN_ORDINAL.fetch_add(1, Ordering::SeqCst);
-    std::env::temp_dir().join(format!(
+    PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!(
         "macroonz_harness_specimen_{}_{ordinal}{extension}",
         std::process::id()
     ))
@@ -122,9 +122,11 @@ fn specimen_hosted(
     SPECIMEN_HOST_CALLS.fetch_add(1, Ordering::SeqCst);
     let source = specimen_path(".rs");
     let executable = specimen_path(std::env::consts::EXE_SUFFIX);
+    std::fs::create_dir_all(PathBuf::from(env!("CARGO_TARGET_TMPDIR")))
+        .map_err(|error| compilation_failure(error.to_string().as_bytes()))?;
     std::fs::write(&source, request.content().bytes())
         .map_err(|error| compilation_failure(error.to_string().as_bytes()))?;
-    let target = request.execution().target();
+    let target = request.target();
     let compiled = Command::new("rustup")
         .arg("run")
         .arg(target.toolchain().spelling())

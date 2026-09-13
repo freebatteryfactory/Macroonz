@@ -15,6 +15,7 @@ use crate::report::archive::{ArchiveLimits, ArchivedExecution, ArchivedTrial};
 mod read;
 #[path = "read_joins.rs"]
 mod joins;
+pub(crate) use read::artifact;
 pub use read::read_projection;
 
 impl ProjectionArchiveLimits {

@@ -22,3 +22,7 @@ Display invokes no encoder, equivalence or witness and does not assert that reta
 `archived_interpreted` composes that pressure with the complete historical executable surface, backend manifest and first-kill ordinal, active meaning, trial and mutation report.
 The surface is an executable subset; its historical policy address supplies neither the missing permission roster nor the original discovery denominator.
 Recorded trust inputs remain historical, and absent compiled meanings or source material are never reconstructed.
+
+`archived_assessment` displays the distinct historical assessment format, including exact source buffers, selected membership, pair and witness revisions, input, all five retained meanings and their actual witness reports.
+The unchanged-versus-selected relation and mutation outcome remain separate fields, so a surviving witness cannot hide a recorded behavioral difference.
+Its historical standing grants no live execution qualification or proposal admission.

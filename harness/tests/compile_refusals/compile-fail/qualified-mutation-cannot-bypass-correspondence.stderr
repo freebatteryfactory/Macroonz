@@ -1,0 +1,21 @@
+error[E0451]: fields `compiled`, `baseline`, `selected`, `compiled_baseline`, `compiled_selected`, `firings`, `substrate` and `difference` of struct `QualifiedMutation` are private
+  --> tests/compile_refusals/compile-fail/qualified-mutation-cannot-bypass-correspondence.rs:9:9
+   |
+ 8 |     QualifiedMutation {
+   |     ----------------- in this type
+ 9 |         compiled,
+   |         ^^^^^^^^ private field
+10 |         baseline: meaning,
+   |         ^^^^^^^^ private field
+11 |         selected: meaning,
+   |         ^^^^^^^^ private field
+12 |         compiled_baseline: meaning,
+   |         ^^^^^^^^^^^^^^^^^ private field
+13 |         compiled_selected: meaning,
+   |         ^^^^^^^^^^^^^^^^^ private field
+14 |         firings,
+   |         ^^^^^^^ private field
+15 |         substrate,
+   |         ^^^^^^^^^ private field
+16 |         difference: Agreement::Differs,
+   |         ^^^^^^^^^^ private field

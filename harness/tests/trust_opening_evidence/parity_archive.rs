@@ -351,6 +351,10 @@ fn each_callback_refusal_and_oversize_stops_at_its_role_without_consuming_eviden
             ValueRole::Input => &input,
             ValueRole::Production => reading.production(),
             ValueRole::Evaluation => reading.evaluation(),
+            ValueRole::BaselineEvaluation
+            | ValueRole::CompiledBaseline
+            | ValueRole::CompiledSelected
+            | ValueRole::SelectedEvaluation => return Err(()),
         };
         selected.mode.set(mode);
         let result = retain_parity(&reading, &encoder, &encoder, LIMITS);
@@ -372,6 +376,10 @@ fn each_callback_refusal_and_oversize_stops_at_its_role_without_consuming_eviden
             ValueRole::Input => (1, 0, 0),
             ValueRole::Production => (1, 1, 0),
             ValueRole::Evaluation => (1, 1, 1),
+            ValueRole::BaselineEvaluation
+            | ValueRole::CompiledBaseline
+            | ValueRole::CompiledSelected
+            | ValueRole::SelectedEvaluation => return Err(()),
         };
         assert_eq!(
             (

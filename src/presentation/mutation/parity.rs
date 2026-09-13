@@ -78,7 +78,7 @@ pub(super) fn encoded_value(record: &ArchivedValue) -> Value {
     ])
 }
 
-fn substrate(record: &ArchivedSubstrate) -> Value {
+pub(super) fn substrate(record: &ArchivedSubstrate) -> Value {
     match record {
         ArchivedSubstrate::DeclaredIndependent => tagged("declared-independent", Value::Null),
         ArchivedSubstrate::Standing(roster) => tagged(

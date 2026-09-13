@@ -7,7 +7,8 @@ use super::types::{
 };
 use super::{
     ConfiguredEvidence, EvidenceCompiler, HarnessPosture, PROJECTION_LIMIT, ProjectionSink,
-    ProjectorReplacement, Recipe, RecipeBake, RecipeProjection, RecipeProjector, RecipeRole,
+    ProjectorReplacement, Recipe, RecipeBake, RecipeEdit, RecipeEditError, RecipeProjection,
+    RecipeProjector, RecipeRole,
 };
 use crate::closure::PartitionCargo;
 use crate::diagnostic::{Diagnostic, Placement, Refused};
@@ -64,15 +65,49 @@ pub fn bake_with(
     walked(capture, harness, door, replacements)
 }
 
+/// Bake one explicit transition re-declaration through the ordinary recipe account and projectors.
+///
+/// The [recipe owner](super) defines the selected material, re-admission and identity contract.
+///
+/// # Errors
+///
+/// Returns [`RecipeEditError`] when the selected material is absent or either recipe is refused.
+pub fn bake_edited(
+    capture: &CapturedInput,
+    harness: HarnessPosture,
+    edit: &RecipeEdit,
+    door: &Door,
+) -> Result<RecipeBake, RecipeEditError> {
+    let recipe = read_recipe(capture, harness, door).map_err(RecipeEditError::Compiler)?;
+    let changed = recipe.edited(edit, door)?;
+    bake_informed(capture, &changed, door, &[]).map_err(RecipeEditError::Compiler)
+}
+
+pub(crate) fn read_recipe(
+    capture: &CapturedInput,
+    harness: HarnessPosture,
+    door: &Door,
+) -> Result<Recipe, Diagnostic> {
+    Recipe::read(capture, harness).map_err(|refusal| recipe_refused(&refusal, door))
+}
+
 fn walked(
     capture: &CapturedInput,
     harness: HarnessPosture,
     door: &Door,
     replacements: &[ProjectorReplacement<'_>],
 ) -> Result<RecipeBake, Diagnostic> {
-    let recipe =
-        Recipe::read(capture, harness).map_err(|refusal| recipe_refused(&refusal, door))?;
-    validate_replacements(&recipe, replacements)
+    let recipe = read_recipe(capture, harness, door)?;
+    bake_informed(capture, &recipe, door, replacements)
+}
+
+pub(crate) fn bake_informed(
+    capture: &CapturedInput,
+    recipe: &Recipe,
+    door: &Door,
+    replacements: &[ProjectorReplacement<'_>],
+) -> Result<RecipeBake, Diagnostic> {
+    validate_replacements(recipe, replacements)
         .map_err(|refusal| recipe_refused(&refusal, door))?;
     let selected = recipe.selected_roles().collect::<Vec<_>>();
     let Some((&first, rest)) = selected.split_first() else {
@@ -85,7 +120,7 @@ fn walked(
         .iter()
         .map(|replacement| replacement.role())
         .collect::<Vec<_>>();
-    let prepared = ConfiguredEvidence::prepared(capture, &recipe, door, replaced.as_slice())?;
+    let prepared = ConfiguredEvidence::prepared(capture, recipe, door, replaced.as_slice())?;
     let standard = StandardProjector::over(&prepared);
     let projection = Request::<RecipeProjection>::over(capture.clone(), recipe.clone(), door)
         .selecting(first, rest.to_vec())
@@ -100,17 +135,12 @@ fn walked(
                     Some(replacement) => replacement.projector(),
                     None => &standard,
                 };
-                render::project(
-                    &recipe,
-                    role,
-                    ProjectionSink::bound(output, role),
-                    projector,
-                )?;
+                render::project(recipe, role, ProjectionSink::bound(output, role), projector)?;
             }
             Ok(())
         })?;
-    let support = support(capture, &recipe, &projection, door)?;
-    let emitted = final_emission(capture, &recipe, &projection, support.as_ref(), door)?;
+    let support = support(capture, recipe, &projection, door)?;
+    let emitted = final_emission(capture, recipe, &projection, support.as_ref(), door)?;
     Ok(RecipeBake::baked(projection, emitted))
 }
 
@@ -310,7 +340,7 @@ fn final_tree(
     Ok(recipe.restore_authored_references(&assembled))
 }
 
-fn recipe_refused(refusal: &RecipeError, door: &Door) -> Diagnostic {
+pub(in crate::recipe) fn recipe_refused(refusal: &RecipeError, door: &Door) -> Diagnostic {
     match refusal.token() {
         Some(token) => Diagnostic::refused(
             refusal,

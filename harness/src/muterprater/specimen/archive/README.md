@@ -6,6 +6,7 @@ Owned historical compiled projection pressure through specimen's existing conten
 It invokes the declared input encoder once and the meaning encoder once for each parity meaning reached.
 It invokes no materializer, compiler host or witness.
 The compiled meanings themselves were consumed by the live operation and are not reconstructed.
+Complete compared meanings from the independent observation road are retained by the [assessment archive](../../interpretation/archive/README.md#complete-mutation-assessment).
 `read_projection` owns its complete data without callbacks or conversions into live pressure, parity qualification, selection or execution.
 
 ## Consistency and authority

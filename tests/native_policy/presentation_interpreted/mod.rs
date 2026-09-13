@@ -1,6 +1,7 @@
 #![doc = include_str!("README.md")]
 
 mod fixture;
+mod assessment;
 mod proposal;
 mod proposal_fixture;
 

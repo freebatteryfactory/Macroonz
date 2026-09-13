@@ -41,7 +41,7 @@ pub(super) fn projection(record: &ArchivedProjectionPressure) -> Value {
     ])
 }
 
-fn content(record: &ArtifactContent) -> Value {
+pub(super) fn content(record: &ArtifactContent) -> Value {
     object([
         ("identity", hex(record.identity().address().as_bytes())),
         ("bytes", hex(record.bytes())),

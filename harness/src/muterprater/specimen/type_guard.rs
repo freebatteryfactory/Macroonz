@@ -2,13 +2,66 @@
 
 use super::{
     ARTIFACT_CONTENT_TAG, ActiveSelection, ArtifactContent, ArtifactContentId, CheckRef,
-    CompiledProjectionPressure, CompiledSpecimenObservation, CompiledSpecimenObservationMismatch,
-    CompiledSpecimenRequest, CompiledSpecimenRole, CompiledSpecimenStanding,
-    EvaluationPairStanding, ExecutionKey, MutationReport, NoMutationParityQualification,
-    SpecimenMaterializerBinding, SpecimenMaterializerCall, TrialReport,
+    CompiledProjectionPressure, CompiledSpecimenContext, CompiledSpecimenObservation,
+    CompiledSpecimenObservationMismatch, CompiledSpecimenRequest, CompiledSpecimenRole,
+    CompiledSpecimenStanding, EvaluationPairStanding, ExecutionKey, MutationReport,
+    NoMutationParityQualification, SpecimenMaterializerBinding, SpecimenMaterializerCall,
+    TrialReport,
 };
+use super::{CompiledMutationObservation, MutationObservation, SpecimenObservationRefusal};
 use crate::identity::ContentAddress;
 use crate::muterprater::EvaluationPair;
+use crate::report::{InvocationProfile, TargetBinding};
+use crate::runner::Invocation;
+
+impl<'scope, Input, Meaning> CompiledMutationObservation<'scope, Input, Meaning> {
+    pub(in crate::muterprater) fn observed(
+        observation: &'scope MutationObservation<'scope, Input, Meaning>,
+        contents: (ArtifactContent, ArtifactContent),
+        results: (
+            Result<Meaning, SpecimenObservationRefusal>,
+            Result<Meaning, SpecimenObservationRefusal>,
+        ),
+    ) -> Self {
+        let (baseline_content, selected_content) = contents;
+        let (baseline, selected) = results;
+        Self {
+            observation,
+            baseline_content,
+            selected_content,
+            baseline,
+            selected,
+        }
+    }
+
+    /// The in-process observation this compiled execution compared.
+    #[must_use]
+    pub const fn observation(&self) -> &'scope MutationObservation<'scope, Input, Meaning> {
+        self.observation
+    }
+
+    /// The exact unchanged source handed to the host.
+    #[must_use]
+    pub const fn baseline_content(&self) -> &ArtifactContent {
+        &self.baseline_content
+    }
+
+    /// The exact selected source handed to the host.
+    #[must_use]
+    pub const fn selected_content(&self) -> &ArtifactContent {
+        &self.selected_content
+    }
+
+    /// The unchanged compiled meaning or observed failure.
+    pub const fn baseline(&self) -> &Result<Meaning, SpecimenObservationRefusal> {
+        &self.baseline
+    }
+
+    /// The selected compiled meaning or observed failure.
+    pub const fn selected(&self) -> &Result<Meaning, SpecimenObservationRefusal> {
+        &self.selected
+    }
+}
 impl ArtifactContentId {
     /// Derive the identity of exact compiler-source bytes.
     pub(in crate::muterprater) fn derived(bytes: &[u8]) -> Self {
@@ -74,16 +127,14 @@ impl<'content, 'input, Input> CompiledSpecimenRequest<'content, 'input, Input> {
         role: CompiledSpecimenRole,
         operation: &'content [u8],
         input: &'input Input,
-        execution: &'content ExecutionKey,
-        check: CheckRef,
+        standing: &'content CompiledSpecimenContext,
     ) -> Self {
         Self {
             content,
             role,
             operation,
             input,
-            execution,
-            check,
+            context: standing,
         }
     }
 
@@ -105,22 +156,53 @@ impl<'content, 'input, Input> CompiledSpecimenRequest<'content, 'input, Input> {
         self.operation
     }
 
-    /// The exact parity-qualified input the host must exercise.
+    /// The supplied input the host must exercise.
     #[must_use]
     pub const fn input(&self) -> &'input Input {
         self.input
     }
 
-    /// The execution key the recovered meaning will be judged under.
+    /// The declared execution context, independent of any later judgment.
     #[must_use]
-    pub const fn execution(&self) -> &'content ExecutionKey {
-        self.execution
+    pub const fn context(&self) -> &'content CompiledSpecimenContext {
+        self.context
     }
 
-    /// The declared check identity that will judge the recovered meaning.
+    /// The target the host must execute for.
     #[must_use]
-    pub const fn check(&self) -> CheckRef {
-        self.check
+    pub const fn target(&self) -> &TargetBinding {
+        self.context.target()
+    }
+}
+
+impl CompiledSpecimenContext {
+    pub(in crate::muterprater) fn recorded(
+        pair: EvaluationPairStanding,
+        invocation: &Invocation,
+    ) -> Self {
+        Self {
+            pair,
+            profile: invocation.profile(),
+            target: invocation.target().clone(),
+        }
+    }
+
+    /// The declared production and evaluation pair.
+    #[must_use]
+    pub const fn pair(&self) -> EvaluationPairStanding {
+        self.pair
+    }
+
+    /// The declared invocation profile.
+    #[must_use]
+    pub const fn profile(&self) -> InvocationProfile {
+        self.profile
+    }
+
+    /// The declared execution target.
+    #[must_use]
+    pub const fn target(&self) -> &TargetBinding {
+        &self.target
     }
 }
 
@@ -136,8 +218,7 @@ impl<Meaning> CompiledSpecimenObservation<Meaning> {
         Self {
             content: request.content().identity(),
             role: request.role(),
-            execution: request.execution().clone(),
-            check: request.check(),
+            context: request.context().clone(),
             meaning,
         }
     }
@@ -154,16 +235,10 @@ impl<Meaning> CompiledSpecimenObservation<Meaning> {
         self.role
     }
 
-    /// The execution key retained from the request.
+    /// The execution context retained from the request.
     #[must_use]
-    pub const fn execution(&self) -> &ExecutionKey {
-        &self.execution
-    }
-
-    /// The declared check identity retained from the request.
-    #[must_use]
-    pub const fn check(&self) -> CheckRef {
-        self.check
+    pub const fn context(&self) -> &CompiledSpecimenContext {
+        &self.context
     }
 
     /// Compare the copied request standing before this observation supplies a meaning.
@@ -171,8 +246,7 @@ impl<Meaning> CompiledSpecimenObservation<Meaning> {
         &self,
         content: ArtifactContentId,
         role: CompiledSpecimenRole,
-        execution: &ExecutionKey,
-        check: CheckRef,
+        standing: &CompiledSpecimenContext,
     ) -> Option<CompiledSpecimenObservationMismatch> {
         if self.content != content {
             return Some(CompiledSpecimenObservationMismatch::Content {
@@ -183,11 +257,8 @@ impl<Meaning> CompiledSpecimenObservation<Meaning> {
         if self.role != role {
             return Some(CompiledSpecimenObservationMismatch::Role);
         }
-        if &self.execution != execution {
-            return Some(CompiledSpecimenObservationMismatch::Execution);
-        }
-        if self.check != check {
-            return Some(CompiledSpecimenObservationMismatch::Check);
+        if &self.context != standing {
+            return Some(CompiledSpecimenObservationMismatch::Context);
         }
         None
     }

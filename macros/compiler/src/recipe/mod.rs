@@ -12,19 +12,19 @@ mod stamp;
 mod type_contract;
 mod types;
 
-pub(crate) use bake::generated_name_collision;
+pub(crate) use bake::{bake_informed, generated_name_collision, read_recipe};
 pub(crate) use evidence::evidence_position;
 pub(crate) use types::{ConfiguredEvidence, EvidenceCompiler, PreparedEvidence};
 
-pub use bake::{bake, bake_with, bake_wrapped};
+pub use bake::{bake, bake_edited, bake_with, bake_wrapped};
 pub use types::{
     CODEC_LIMIT, ConsumingMethod, ConsumingParameter, ConsumingProjection, EVIDENCE_LIMIT,
     EffectiveProjection, EvidenceTarget, HarnessPosture, LoweringSource, PROJECTION_CLAUSE_LIMIT,
     PROJECTION_LIMIT, ProjectionDisposition, ProjectionError, ProjectionOffered, ProjectionRequest,
     ProjectionSink, ProjectorReplacement, RELATION_LIMIT, RELATION_QUESTION_LIMIT,
-    RELATION_ROW_LIMIT, RELATION_TABLE_LIMIT, Recipe, RecipeBake, RecipeCodec, RecipeEvidence,
-    RecipeMember, RecipeProjection, RecipeProjector, RecipeRelation, RecipeRelationPayload,
-    RecipeRelationPayloadKind, RecipeRelationRequirements, RecipeRelationRow, RecipeRole,
-    RecipeTransitionEffect, RecipeView, RecipeVocabulary, RelationTableProjection,
-    TRANSITION_LIMIT, VOCABULARY_LIMIT,
+    RELATION_ROW_LIMIT, RELATION_TABLE_LIMIT, Recipe, RecipeBake, RecipeCodec, RecipeEdit,
+    RecipeEditError, RecipeEvidence, RecipeMember, RecipeProjection, RecipeProjector,
+    RecipeRelation, RecipeRelationPayload, RecipeRelationPayloadKind, RecipeRelationRequirements,
+    RecipeRelationRow, RecipeRole, RecipeTransitionEffect, RecipeView, RecipeVocabulary,
+    RelationTableProjection, TRANSITION_LIMIT, VOCABULARY_LIMIT,
 };

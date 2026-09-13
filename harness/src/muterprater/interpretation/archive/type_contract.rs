@@ -1,5 +1,6 @@
 //! Error conversion preserves the semantic owner of each refusal.
 
+use super::AssessmentArchiveRefusal;
 use super::InterpretedArchiveRefusal;
 use super::ParityArchiveRefusal;
 use crate::descriptor::archive::BindingArchiveRefusal;
@@ -8,6 +9,37 @@ use crate::muterprater::discovery_archive::SurfaceArchiveRefusal;
 use crate::muterprater::specimen_archive::ProjectionArchiveRefusal;
 use crate::muterprater::verdict_archive::MutationArchiveRefusal;
 use crate::report::archive::ArchiveRefusal;
+
+impl From<ArchiveRefusal> for AssessmentArchiveRefusal {
+    fn from(cause: ArchiveRefusal) -> Self {
+        Self::Record(cause)
+    }
+}
+impl From<ParityArchiveRefusal> for AssessmentArchiveRefusal {
+    fn from(cause: ParityArchiveRefusal) -> Self {
+        Self::Parity(cause)
+    }
+}
+impl From<BindingArchiveRefusal> for AssessmentArchiveRefusal {
+    fn from(cause: BindingArchiveRefusal) -> Self {
+        Self::Parity(cause.into())
+    }
+}
+impl From<SurfaceArchiveRefusal> for AssessmentArchiveRefusal {
+    fn from(cause: SurfaceArchiveRefusal) -> Self {
+        Self::Surface(cause)
+    }
+}
+impl From<ProjectionArchiveRefusal> for AssessmentArchiveRefusal {
+    fn from(cause: ProjectionArchiveRefusal) -> Self {
+        Self::Specimen(cause)
+    }
+}
+impl From<MutationArchiveRefusal> for AssessmentArchiveRefusal {
+    fn from(cause: MutationArchiveRefusal) -> Self {
+        Self::Mutation(cause)
+    }
+}
 
 impl From<ArchiveRefusal> for ParityArchiveRefusal {
     fn from(cause: ArchiveRefusal) -> Self {

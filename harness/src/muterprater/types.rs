@@ -42,18 +42,22 @@ pub use super::interpretation::{
     EvaluationPairRefusal, EvaluationPairStanding, EvaluationPairStandingMismatch,
     InterpretedExecutionRefusal, InterpretedMutationEvidence, InterpretedTrust,
     InterpreterAvailability, MUTERPRATER_NAMESPACE, MeaningCheck, MissingTrustEvidence,
-    MutationWitness, MutationWitnessRefusal, NO_MUTATION_PAIRING, NoMutationObservationRefusal,
-    NoMutationParityQualification, NoMutationParityReading, NoMutationParityStanding,
-    NoMutationResults, PARITY_DECLARATION_SUBSTRATE, PARITY_RENDERING_SUBSTRATE,
-    ParityQualificationRefusal, ParityRefusal, ProductionBinding, ProductionCall,
+    MutationAssessment, MutationObservation, MutationObservationRefusal,
+    MutationQualificationRefusal, MutationWitness, MutationWitnessObservationRefusal,
+    MutationWitnessQualificationRefusal, MutationWitnessReading, MutationWitnessRefusal,
+    NO_MUTATION_PAIRING, NoMutationObservationRefusal, NoMutationParityQualification,
+    NoMutationParityReading, NoMutationParityStanding, NoMutationResults,
+    PARITY_DECLARATION_SUBSTRATE, PARITY_RENDERING_SUBSTRATE, ParityQualificationRefusal,
+    ParityRefusal, ProductionBinding, ProductionCall, QualifiedMutation, RejectedMutationWitness,
     RejectedNoMutationParity,
 };
 pub use super::specimen::types::{
-    ARTIFACT_CONTENT_TAG, ArtifactContent, ArtifactContentId, CompiledProjectionPressure,
-    CompiledProjectionRefusal, CompiledSpecimenHost, CompiledSpecimenHostRefusal,
-    CompiledSpecimenObservation, CompiledSpecimenObservationMismatch, CompiledSpecimenRequest,
-    CompiledSpecimenRole, CompiledSpecimenStanding, SpecimenMaterializerBinding,
-    SpecimenMaterializerCall, SpecimenMaterializerRefusal,
+    ARTIFACT_CONTENT_TAG, ArtifactContent, ArtifactContentId, CompiledMutationObservation,
+    CompiledProjectionPressure, CompiledProjectionRefusal, CompiledSpecimenContext,
+    CompiledSpecimenHost, CompiledSpecimenHostRefusal, CompiledSpecimenObservation,
+    CompiledSpecimenObservationMismatch, CompiledSpecimenRequest, CompiledSpecimenRole,
+    CompiledSpecimenStanding, SpecimenMaterializerBinding, SpecimenMaterializerCall,
+    SpecimenMaterializerRefusal, SpecimenObservationRefusal,
 };
 
 pub use super::rewrite::types::{

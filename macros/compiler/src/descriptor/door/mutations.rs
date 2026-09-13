@@ -37,7 +37,7 @@ pub fn mutations(
     let surface = mutation::completed(read, &item_trees, grammar)
         .map_err(|refusal| helper_refused(&refusal, refusal.refusal().at(), door))?;
     drop(item_trees);
-    delivered_surface(body, item, surface, grammar, DeclaringBinding::Absent, door)
+    mutations_from_surface(body, item, surface, grammar, door)
 }
 
 /// Walk one mutation declaration over an already informed authored order.
@@ -58,7 +58,7 @@ pub fn mutations_from_order(
     let read = read(body, grammar, door)?;
     let surface = mutation::completed_from_order(read, order, at, grammar)
         .map_err(|refusal| helper_refused(&refusal, refusal.refusal().at(), door))?;
-    delivered_surface(body, item, surface, grammar, DeclaringBinding::Absent, door)
+    mutations_from_surface(body, item, surface, grammar, door)
 }
 
 /// Walk one recipe-composed mutation declaration over an informed order while requiring its consumer to state the declaring crate path.
@@ -89,6 +89,23 @@ fn read(body: &CapturedInput, grammar: Grammar, door: &Door) -> Result<Declarati
         .map_err(|refusal| helper_refused(&refusal, refusal.refusal().at(), door))?;
     drop(trees);
     Ok(read)
+}
+
+/// Deliver an informed mutation surface through the ordinary sealed helper carrier.
+///
+/// The [door owner](super) defines the captures and standalone support-address contract.
+///
+/// # Errors
+///
+/// Returns the missing support-address or compiler diagnostic before partial carrier delivery.
+pub fn mutations_from_surface(
+    body: &CapturedInput,
+    item: &CapturedInput,
+    surface: Surface,
+    grammar: Grammar,
+    door: &Door,
+) -> Result<Expansion<SupportCarrier>, Diagnostic> {
+    delivered_surface(body, item, surface, grammar, DeclaringBinding::Absent, door)
 }
 
 fn delivered_surface(

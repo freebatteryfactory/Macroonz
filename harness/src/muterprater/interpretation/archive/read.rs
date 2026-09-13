@@ -104,7 +104,7 @@ pub fn read_parity(
     })
 }
 
-fn joined_reports(
+pub(super) fn joined_reports(
     witness: &ArchivedBinding,
     production: &ArchivedTrial,
     evaluation: &ArchivedTrial,

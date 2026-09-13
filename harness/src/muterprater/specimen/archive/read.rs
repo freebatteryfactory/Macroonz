@@ -63,7 +63,7 @@ pub fn read_projection(
     })
 }
 
-fn artifact(
+pub(crate) fn artifact(
     reader: &mut BodyReader<'_, ArchiveRefusal>,
     limits: ProjectionArchiveLimits,
 ) -> Result<ArtifactContent, ProjectionArchiveRefusal> {

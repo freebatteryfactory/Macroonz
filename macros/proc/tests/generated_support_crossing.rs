@@ -6,14 +6,22 @@
 #[path = "support/scratch.rs"]
 mod scratch;
 
+#[path = "generated_support_crossing/structural.rs"]
+mod structural;
+
 use scratch::{
-    cargo, command_refusal, lock_from_repository, manifest_path, observed_in_scratch_for,
-    repository_root,
+    cargo, cargo_with_target, command_refusal, lock_from_repository, manifest_path,
+    observed_in_scratch_for, repository_root,
 };
 use std::path::Path;
 
 /// Write the fixed producer library and downstream consumer.
-fn write_specimen(scratch: &Path) -> Result<(), String> {
+fn write_specimen(
+    scratch: &Path,
+    producer: &str,
+    consumer: &str,
+    dependency: &str,
+) -> Result<(), String> {
     let repository = repository_root()?;
     let proc_package = manifest_path(&repository.join("macros/proc"))?;
     let harness_package = manifest_path(&repository.join("harness"))?;
@@ -41,6 +49,7 @@ path = "tests/crossing.rs"
 
 [dependencies]
 macroonz-macros = {{ path = "{proc_package}" }}
+{dependency}
 
 [dev-dependencies]
 macroonz-harness = {{ path = "{harness_package}" }}
@@ -53,8 +62,8 @@ unsafe_code = "forbid"
 "#
     );
     std::fs::write(scratch.join("Cargo.toml"), manifest).map_err(|error| error.to_string())?;
-    std::fs::write(scratch.join("src/lib.rs"), PRODUCER).map_err(|error| error.to_string())?;
-    std::fs::write(scratch.join("tests/crossing.rs"), CONSUMER).map_err(|error| error.to_string())
+    std::fs::write(scratch.join("src/lib.rs"), producer).map_err(|error| error.to_string())?;
+    std::fs::write(scratch.join("tests/crossing.rs"), consumer).map_err(|error| error.to_string())
 }
 
 /// TOML path spelling preserves host separators and escapes syntax and control characters without lossy substitution.
@@ -135,7 +144,7 @@ fn a_downstream_crate_invokes_the_proc_emitted_mutation_carrier() -> Result<(), 
 
 /// Build and execute the downstream crossing inside one exclusively owned scratch root.
 fn observe_crossing(scratch: &Path) -> Result<(), String> {
-    write_specimen(scratch)?;
+    write_specimen(scratch, PRODUCER, CONSUMER, "")?;
     let locked = lock_from_repository(scratch)?;
     if !locked.status.success() {
         return Err(command_refusal("scratch lock generation", &locked));
@@ -150,6 +159,38 @@ fn observe_crossing(scratch: &Path) -> Result<(), String> {
         return Err(command_refusal("downstream carrier qualification", &tested));
     }
     Ok(())
+}
+
+/// Structural source material and owner permissions cross the sealed carrier through a renamed facade.
+#[test]
+fn structural_sources_cross_the_facade_without_granting_behavioral_evidence() -> Result<(), String>
+{
+    observed_in_scratch_for("structural_support", |scratch| {
+        let repository = repository_root()?;
+        let facade = manifest_path(repository)?;
+        let dependency = format!(
+            "bakery = {{ package = \"macroonz\", path = \"{facade}\", default-features = false, features = [\"harness\"] }}"
+        );
+        write_specimen(
+            scratch,
+            &structural::producer()?,
+            include_str!("generated_support_crossing/consumer.rs"),
+            &dependency,
+        )?;
+        let locked = lock_from_repository(scratch)?;
+        if !locked.status.success() {
+            return Err(command_refusal("structural carrier lock", &locked));
+        }
+        let tested = cargo_with_target(
+            scratch,
+            &repository.join("target"),
+            &["test", "-j1", "--locked", "--offline"],
+        )?;
+        if !tested.status.success() {
+            return Err(command_refusal("structural facade carrier", &tested));
+        }
+        Ok(())
+    })
 }
 
 /// Cargo may prune unreachable packages, but every retained external identity stays in the seed.

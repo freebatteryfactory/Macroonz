@@ -223,6 +223,20 @@ Test and benchmark cargo remain separate because the harness gates them under di
 The compiler may render calls to public harness constructors and carry target-owned callables, but it never invokes them or decides what their result means.
 An external target invokes the carrier and the harness owns the resulting judgment, report, corpus, reduction, replay, mutation, benchmark, and failure standing.
 
+## Explicit transition re-declarations
+
+The callable [`bake_edited`] road applies one explicit [`RecipeEdit`] to a transition row before projecting it.
+A target edit selects a member from that relation's source vocabulary; an effect edit selects the complete path or exact Rust effect, including its target binding, from another authored row.
+Row positions are zero-based authored positions and are meaningful only against the supplied recipe.
+Missing rows, missing targets and absent transition structure refuse explicitly.
+The changed parts pass through the same recipe constructor, structural requirements, consuming bindings and name checks as an authored recipe, then the standard projectors render the result.
+No edit bypasses an invariant or assigns meaning to the changed target or effect.
+
+The original captured declaration remains the source binding, while the actual changed structural account enters canonical content and moves its identity when meaning-bearing declared material changes.
+An edit that states the existing target or an identical effect retains that same content.
+Authored Rust items and nonselected structural seats are preserved; rustc still judges whether a substituted effect resolves and type-checks in its new context.
+The edit road is callable compiler composition and adds no recipe grammar or proc-host policy.
+
 ## Caller-owned projectors
 
 A caller-owned projector implements `RecipeProjector` and is bound to one already requested role through `ProjectorReplacement` and `bake_with`.

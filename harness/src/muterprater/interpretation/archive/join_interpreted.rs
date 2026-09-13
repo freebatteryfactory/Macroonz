@@ -63,7 +63,7 @@ pub(super) fn active(
     Ok(())
 }
 
-fn target(
+pub(super) fn target(
     target: &ArchivedMutationTarget,
     point: &ArchivedMutationPoint,
     alternative: &ArchivedAlternative,

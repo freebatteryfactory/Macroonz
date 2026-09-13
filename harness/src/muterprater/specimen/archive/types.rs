@@ -12,6 +12,7 @@ use crate::report::archive::{ArchiveLimits, ArchiveRefusal, ArchivedExecution, A
 
 #[path = "type_guard.rs"]
 mod guard;
+pub(crate) use guard::artifact;
 pub use guard::read_projection;
 
 /// The historical compiled-projection-pressure envelope domain.

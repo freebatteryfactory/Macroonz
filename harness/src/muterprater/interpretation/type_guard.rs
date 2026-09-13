@@ -1,12 +1,15 @@
 //! The invariant nucleus of evaluation pairs, parity, and interpreted evidence.
 
+#[path = "guard_mutation.rs"]
+mod mutation;
+
 use super::{
     EvaluationBinding, EvaluationCall, EvaluationObservation, EvaluationPair,
     EvaluationPairRefusal, EvaluationPairStanding, EvaluationPairStandingMismatch,
-    InterpretedMutationEvidence, InterpretedTrust, MeaningCheck, MutationWitness,
-    MutationWitnessRefusal, NoMutationParityQualification, NoMutationParityReading,
-    NoMutationParityStanding, NoMutationReports, NoMutationResults, ParityQualificationRefusal,
-    ProductionBinding, ProductionCall, RejectedNoMutationParity,
+    InterpretedMutationEvidence, InterpretedTrust, MeaningCheck, MutationObservation,
+    MutationWitness, MutationWitnessRefusal, NoMutationParityQualification,
+    NoMutationParityReading, NoMutationParityStanding, NoMutationReports, NoMutationResults,
+    ParityQualificationRefusal, ProductionBinding, ProductionCall, RejectedNoMutationParity,
 };
 use crate::descriptor::{CheckRef, RevisionBinding};
 use crate::muterprater::{
@@ -17,6 +20,98 @@ use crate::muterprater::{
 use crate::properties::{Equivalence, SharedSubstrate};
 use crate::report::{TrialConclusion, TrialReport};
 use crate::runner::TrialBinding;
+
+impl<'scope, Input, Meaning> MutationObservation<'scope, Input, Meaning> {
+    pub(in crate::muterprater) fn observed(
+        surface: &'scope EvaluationSurface,
+        pair: &'scope EvaluationPair<Input, Meaning>,
+        input: &'scope Input,
+        selected_point: (
+            ActiveSelection,
+            &'scope crate::muterprater::MutationPoint,
+            &'scope crate::muterprater::AdmittedAlternative,
+        ),
+        context: crate::muterprater::CompiledSpecimenContext,
+        production: Meaning,
+        evaluations: (
+            Result<EvaluationObservation<Meaning>, EvaluationCallRefusal>,
+            Result<EvaluationObservation<Meaning>, EvaluationCallRefusal>,
+        ),
+    ) -> Self {
+        let (baseline, selected) = evaluations;
+        let (selection, point, alternative) = selected_point;
+        Self {
+            surface,
+            pair,
+            input,
+            selection,
+            point,
+            alternative,
+            context,
+            production,
+            baseline,
+            selected,
+        }
+    }
+
+    /// The surface that admitted the selected operation.
+    #[must_use]
+    pub const fn surface(&self) -> &'scope EvaluationSurface {
+        self.surface
+    }
+
+    /// The declared production and evaluation pair.
+    #[must_use]
+    pub const fn pair(&self) -> &'scope EvaluationPair<Input, Meaning> {
+        self.pair
+    }
+
+    /// The input supplied to every reached call.
+    #[must_use]
+    pub const fn input(&self) -> &'scope Input {
+        self.input
+    }
+
+    /// The exact selected mutation.
+    #[must_use]
+    pub const fn selection(&self) -> ActiveSelection {
+        self.selection
+    }
+
+    /// The point that owns the selected operation.
+    #[must_use]
+    pub const fn point(&self) -> &'scope crate::muterprater::MutationPoint {
+        self.point
+    }
+
+    /// The admitted operation selected on that point.
+    #[must_use]
+    pub const fn alternative(&self) -> &'scope crate::muterprater::AdmittedAlternative {
+        self.alternative
+    }
+
+    /// The declared execution context.
+    #[must_use]
+    pub const fn context(&self) -> &crate::muterprater::CompiledSpecimenContext {
+        &self.context
+    }
+
+    /// The ordinary production result.
+    #[must_use]
+    pub const fn production(&self) -> &Meaning {
+        &self.production
+    }
+
+    /// The unchanged evaluation result or its call refusal.
+    pub const fn baseline(&self) -> &Result<EvaluationObservation<Meaning>, EvaluationCallRefusal> {
+        &self.baseline
+    }
+
+    /// The selected evaluation result or its call refusal.
+    pub const fn selected(&self) -> &Result<EvaluationObservation<Meaning>, EvaluationCallRefusal> {
+        &self.selected
+    }
+}
 
 impl<Meaning> EvaluationObservation<Meaning> {
     /// Raw output from one evaluation call.

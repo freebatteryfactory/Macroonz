@@ -57,7 +57,7 @@ pub fn retain_projection<Input, Meaning>(
     read_projection(&encoded, limits)
 }
 
-fn write_artifact(content: &ArtifactContent, body: &mut Vec<u8>) {
+pub(crate) fn write_artifact(content: &ArtifactContent, body: &mut Vec<u8>) {
     encode_bytes(content.identity().address().as_bytes(), body);
     encode_bytes(content.bytes(), body);
 }

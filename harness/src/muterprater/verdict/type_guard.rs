@@ -13,6 +13,7 @@ use super::{
 use crate::depot::operator_families::OPERATOR_FAMILIES;
 use crate::identity::ContentAddress;
 use crate::report::{RunAttempt, TrialConclusion, TrialReport, encode_bytes};
+use core::num::NonZeroU32;
 /// The version of the external-mutant identity encoding.
 ///
 /// It rides the preimage, so changing how the bytes are cut renames every mutant derived under the old cut rather than letting two encodings be mistaken for one another.
@@ -242,14 +243,19 @@ impl ActivationEvidence {
         witness: TrialId,
         firings: u32,
     ) -> Option<Self> {
-        if firings == 0_u32 {
-            return None;
-        }
-        Some(Self {
+        NonZeroU32::new(firings).map(|count| Self::reported(selection, witness, count))
+    }
+
+    pub(in crate::muterprater) fn reported(
+        selection: ActiveSelection,
+        witness: TrialId,
+        firings: NonZeroU32,
+    ) -> Self {
+        Self {
             selection,
             witness,
-            firings,
-        })
+            firings: firings.get(),
+        }
     }
 
     /// The point whose selected damage received the positive-count report.
@@ -437,6 +443,15 @@ impl MutationReport {
         activation: ActivationEvidence,
         report: &TrialReport,
     ) -> Self {
+        Self::assessed(target, activation, report, EquivalenceAxis::NotAssessed)
+    }
+
+    pub(in crate::muterprater) fn assessed(
+        target: MutationTarget,
+        activation: ActivationEvidence,
+        report: &TrialReport,
+        equivalence: EquivalenceAxis,
+    ) -> Self {
         let (execution, outcome) = match report.attempt() {
             RunAttempt::Executed(TrialConclusion::Passed) => {
                 (ExecutionAxis::Completed, MutationOutcome::Survived)
@@ -468,7 +483,7 @@ impl MutationReport {
             activation: ActivationDisposition::Observed(activation),
             execution,
             outcome,
-            equivalence: EquivalenceAxis::NotAssessed,
+            equivalence,
         }
     }
 

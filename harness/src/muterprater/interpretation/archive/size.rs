@@ -78,7 +78,7 @@ pub(super) fn known_size<Input, Meaning>(
     admit_total(total, limits)
 }
 
-fn convention_size<Value>(
+pub(super) fn convention_size<Value>(
     encoder: &ValueEncoder<Value>,
     limits: ParityArchiveLimits,
 ) -> Result<usize, ParityArchiveRefusal> {
@@ -88,7 +88,7 @@ fn convention_size<Value>(
     ])?)
 }
 
-fn substrate_size(
+pub(super) fn substrate_size(
     substrate: &SharedSubstrate,
     limits: ParityArchiveLimits,
 ) -> Result<usize, ParityArchiveRefusal> {

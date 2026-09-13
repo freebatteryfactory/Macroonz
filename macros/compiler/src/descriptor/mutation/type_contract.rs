@@ -1,6 +1,9 @@
 //! The mutation home's stated tables: what the kind is, where its one unit lands, and how its grammar refuses.
 
-use super::{Address, MutationCaptureError, MutationSurface, Policy, Site, Surface, SurfaceRole};
+use super::{
+    Address, CodecMutationError, MutationCaptureError, MutationSurface, Policy, Site, Surface,
+    SurfaceRole,
+};
 use crate::descriptor::Name;
 use crate::diagnostic::SECOND_HELPER_FAMILY;
 use crate::identity::{encode_bytes, encode_length};
@@ -103,3 +106,34 @@ impl Role for SurfaceRole {
 }
 
 crate::descriptor::impl_helper_capture_contract!(MutationCaptureError, SECOND_HELPER_FAMILY, none);
+
+impl core::fmt::Display for CodecMutationError {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::NoAdjacentMembers => {
+                formatter.write_str("codec pressure requires an adjacent member pair")
+            }
+            Self::Codec(refusal) => core::fmt::Display::fmt(refusal, formatter),
+            Self::Declaration(refusal) => core::fmt::Display::fmt(refusal, formatter),
+            Self::Tokens(refusal) => core::fmt::Display::fmt(refusal, formatter),
+        }
+    }
+}
+
+impl std::error::Error for CodecMutationError {}
+
+impl core::fmt::Display for super::RecipeMutationError {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::NoAlternative => {
+                formatter.write_str("the selected row has no distinct declared alternative")
+            }
+            Self::Compiler(refusal) => formatter.write_str(refusal.summary()),
+            Self::Edit(refusal) => core::fmt::Display::fmt(refusal, formatter),
+            Self::Declaration(refusal) => core::fmt::Display::fmt(refusal, formatter),
+            Self::SourceAbsent => formatter.write_str("the completed recipe carries no source"),
+        }
+    }
+}
+
+impl std::error::Error for super::RecipeMutationError {}

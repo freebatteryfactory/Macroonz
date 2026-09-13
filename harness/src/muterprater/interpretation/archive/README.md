@@ -1,6 +1,38 @@
 # archive
 
-Owned historical no-mutation comparisons and interpreted evidence through explicit caller encodings.
+Owned historical no-mutation comparisons, mutation assessments and strict interpreted evidence through explicit caller encodings.
+
+## Complete mutation assessment
+
+`retain_assessment` retains a `MutationAssessment` with its full surface, exact unchanged and selected source, pair standing, selection, witness binding, encoded input, all compared meanings and all actual witness judgments.
+No backend suite bite or prior rejecting witness is required.
+The resulting `ArchivedAssessment` records a historical qualification claim and cannot construct a current observation, qualified execution, witness assessment or human admission.
+The reader verifies internal joins; it invokes no compiler, evaluator, equivalence, witness or encoder.
+
+The retained meanings and reports have one fixed role order: ordinary production, unchanged evaluation, unchanged compiled execution, selected compiled execution, selected evaluation.
+All unchanged reports must pass, and the selected reports must carry identical attempts.
+Every report must join the complete witness's trial, revisions, execution profile, target, site and replay posture.
+The full surface resolves the exact selection and joins its pair family, owner claim, alternative, mutation family and activation site.
+The mutation must retain that selection's positive firing count under the actually judged witness trial and match its selected report.
+The observed difference slot must agree with the mutation's scoped equivalence axis.
+The three qualified road comparisons are historical claims; generic encoded bytes do not supply a current equivalence relation or authenticate those comparisons.
+
+The assessment envelope uses `ASSESSMENT_ARCHIVE_TAG`, distinct from the strict interpreted and parity domains.
+Its body contains these members in order:
+
+1. Format `u32(1)`, kind `u32(1)` and historical custody `u32(0)`.
+2. Framed complete surface, descriptor binding and mutation report archives.
+3. Pair family name, framed production and evaluation revision records, and framed surface claim.
+4. Discovery-owned selection, then both specimen-owned artifact identities and exact source buffers.
+5. The substrate slot and roster in the parity format, followed by a difference slot: `0` agrees or `1` differs.
+6. Five framed trial archives in the fixed role order.
+7. Input convention and framed input bytes, then meaning convention and five framed meaning values in that same role order.
+
+`AssessmentArchiveLimits` independently bounds complete bytes and outer fields, full surface, full witness binding, each trial and mutation report, each source, each value and substrate population.
+Known metadata and nested bounds refuse before caller encoders; reached values encode once, input first and then the fixed meaning order.
+Each value is bounded before copying, and accumulated complete size is checked before another value callback and before final envelope allocation.
+Invalid or unknown fields, malformed nested records, contradictory joins and trailing material refuse.
+Format-1 parity, projection and strict interpreted records retain their own fields and ceilings; reading them supplies no missing compiled meaning or upgraded comparison claim.
 
 `retain_parity` borrows a complete reading and records its raw disposition.
 `retain_parity_standing` borrows a qualified or rejected standing and retains its actual disposition and entire reading.

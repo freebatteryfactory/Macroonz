@@ -26,6 +26,9 @@ mod contracts;
 #[path = "account/consuming.rs"]
 mod consuming;
 
+#[path = "account/edit.rs"]
+mod edit;
+
 #[path = "account/informed.rs"]
 mod informed;
 
@@ -488,6 +491,45 @@ pub struct Recipe {
     projections: [ProjectionStanding; PROJECTION_LIMIT],
     evidence: [Option<RecipeEvidence>; EVIDENCE_LIMIT],
     support: Option<SupportName>,
+}
+
+/// One explicit re-declaration of a transition row using the recipe's own admitted material.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RecipeEdit {
+    /// Replace one row's target with a member of its source vocabulary.
+    TransitionTarget {
+        /// The row's zero-based position in authored order.
+        row: usize,
+        /// The caller-selected target member spelling.
+        target: String,
+    },
+    /// Replace one row's effect with the complete effect of another declared row.
+    TransitionEffect {
+        /// The destination row's zero-based position in authored order.
+        row: usize,
+        /// The donor row's zero-based position in authored order.
+        from_row: usize,
+    },
+}
+
+/// Why an explicit recipe re-declaration could not be baked.
+#[must_use = "an edit refusal identifies the unavailable material or compiler rejection"]
+#[derive(Debug)]
+pub enum RecipeEditError {
+    /// The recipe has no informed transition lowering.
+    TransitionRequired,
+    /// A selected row is outside the authored transition roster.
+    RowAbsent {
+        /// The requested zero-based position.
+        position: usize,
+    },
+    /// The requested target is absent from the source vocabulary.
+    TargetAbsent {
+        /// The requested member spelling.
+        spelling: String,
+    },
+    /// The unchanged or re-declared recipe was refused by its existing compiler owner.
+    Compiler(Diagnostic),
 }
 
 /// The mechanically read seats offered to the recipe invariant constructor.

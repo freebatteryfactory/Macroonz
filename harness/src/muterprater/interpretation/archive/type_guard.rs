@@ -22,6 +22,13 @@ mod interpreted_readings;
 #[path = "join_interpreted.rs"]
 mod interpreted_joins;
 pub use interpreted::read_interpreted;
+#[path = "read_assessment.rs"]
+mod assessment;
+#[path = "guard_assessment.rs"]
+mod assessment_readings;
+pub use assessment::read_assessment;
+#[path = "join_assessment.rs"]
+mod assessment_joins;
 
 impl<Value> ValueEncoder<Value> {
     /// Bind a caller encoder to its explicit convention, schema and executable revision.

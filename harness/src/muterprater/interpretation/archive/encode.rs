@@ -138,7 +138,7 @@ fn retain<Input, Meaning>(
     read_parity(&encoded, limits)
 }
 
-fn encode_value<Value>(
+pub(super) fn encode_value<Value>(
     encoder: &ValueEncoder<Value>,
     value: &Value,
     role: ValueRole,
@@ -151,14 +151,14 @@ fn encode_value<Value>(
     Ok(bytes)
 }
 
-fn write_convention<Value>(encoder: &ValueEncoder<Value>, body: &mut Vec<u8>) {
+pub(super) fn write_convention<Value>(encoder: &ValueEncoder<Value>, body: &mut Vec<u8>) {
     encoder.convention().encode_into(body);
     body.extend_from_slice(&encoder.version().to_be_bytes());
     encode_bytes(encoder.schema().as_bytes(), body);
     write_revision(encoder.revision(), body);
 }
 
-fn write_substrate(substrate: &SharedSubstrate, body: &mut Vec<u8>) {
+pub(super) fn write_substrate(substrate: &SharedSubstrate, body: &mut Vec<u8>) {
     match substrate {
         SharedSubstrate::DeclaredIndependent => body.push(0),
         SharedSubstrate::Standing(roster) => {

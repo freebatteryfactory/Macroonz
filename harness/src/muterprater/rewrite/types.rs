@@ -53,7 +53,7 @@ pub enum RosterRefusal {
 
 /// The trust posture every rewrite-produced descriptor stands under.
 ///
-/// Rewrite-produced descriptors are admitted last, as candidates the harness audits and never as evidence on their own.
+/// Rewrite-produced descriptors are candidates the harness audits and never evidence on their own.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RewriteTrust {
     /// The descriptor awaits the harness's audit.
@@ -83,7 +83,7 @@ pub enum RewriteWithheld {
 /// Admission here is execution availability and not evidence: a descriptor stays [`RewriteTrust::AuditPending`] until an actual execution establishes what a later evidence owner requires.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RewriteAdmission {
-    /// The audit road is available under a generic suite bite and exact selection-scoped projection pressure.
+    /// The declared observation scope is available for audit.
     Admitted,
     /// The audit road is unavailable for a stated reason.
     Withheld(RewriteWithheld),
