@@ -8,7 +8,7 @@ use macroonz::harness::fuzz::{
     RustcProfileRequest,
 };
 use macroonz::harness::oracle::RelativeSourcePath;
-use macroonz::harness::report::{ByteBudget, CaseBudget};
+use macroonz::harness::report::{ByteBudget, CaseBudget, TargetTriple};
 use macroonz::native_compiler::CompilerRequest;
 use macroonz::native_process::{ProcessLimits, ProcessTool};
 use serde_json::Value;
@@ -36,15 +36,11 @@ pub(super) fn read() -> Result<Settings, String> {
     .map_err(debug)?;
     let source = RelativeSourcePath::informed(text(&configuration, "source")?).map_err(debug)?;
     let material = std::fs::read(directory.join(source.spelling())).map_err(debug)?;
-    let compiler = CompilerRequest::rustc(
-        &tool,
-        source,
-        artifact.clone(),
-        text(&configuration, "target")?,
-    )
-    .map_err(debug)?
-    .instrumented()
-    .map_err(debug)?;
+    let selected_target = text(&configuration, "target")?;
+    let compiler = CompilerRequest::rustc(&tool, source, artifact.clone(), selected_target)
+        .map_err(debug)?
+        .instrumented()
+        .map_err(debug)?;
     let budgets = CoverageBudgets::declared(
         CaseBudget::declared(16),
         ByteBudget::declared(8192),
@@ -65,7 +61,12 @@ pub(super) fn read() -> Result<Settings, String> {
     );
     let coverage = RustcProfileRequest::declared(
         tool.executable().to_path_buf(),
-        InstrumentedTarget::declared(artifact, Vec::new()).map_err(debug)?,
+        InstrumentedTarget::for_target(
+            artifact,
+            Vec::new(),
+            TargetTriple::declared(selected_target),
+        )
+        .map_err(debug)?,
         CoverageSourceRoot::declared(
             NamespacedName::named("example", "subject").map_err(debug)?,
             directory,

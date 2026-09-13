@@ -6,7 +6,7 @@ mod types;
 mod input;
 
 use macroonz::harness::corpus::{SeedInput, pack, warm_start};
-use macroonz::harness::fuzz::CoverageAdmission;
+use macroonz::harness::fuzz::{CoverageAdmission, CoverageTool, ReadyPreflight};
 use macroonz::harness::generate::InputOrigin;
 use macroonz::harness::oracle::{CompilationVerdict, DeclaredCompilation};
 use macroonz::native_compiler::{self, CompilerRun};
@@ -37,6 +37,7 @@ fn main() -> Result<(), String> {
     .map_err(|error| error.to_string())?;
     let coverage = native_coverage::preflight(settings.coverage, settings.tool, limits)
         .map_err(|failure| failure.to_string())?;
+    report_tools(coverage.ready())?;
     let mut corpus = coverage.corpus();
     for candidate in settings.candidates {
         let observed = native_coverage::observe(&coverage, &mut corpus, &candidate)
@@ -77,4 +78,34 @@ fn main() -> Result<(), String> {
         retained.seeds().len()
     )
     .map_err(|error| error.to_string())
+}
+
+fn report_tools(ready: &ReadyPreflight) -> Result<(), String> {
+    let mut output = std::io::stdout().lock();
+    writeln!(
+        output,
+        "compiler {}: {}",
+        ready.rustc().display(),
+        ready.release()
+    )
+    .map_err(|error| error.to_string())?;
+    writeln!(
+        output,
+        "host {}; target {}",
+        ready.host(),
+        ready.standing().target().target().spelling()
+    )
+    .map_err(|error| error.to_string())?;
+    writeln!(
+        output,
+        "compiler LLVM {}; matching tools {}",
+        ready.llvm_version(),
+        ready.tool_version()
+    )
+    .map_err(|error| error.to_string())?;
+    for tool in [CoverageTool::Profdata, CoverageTool::Cov] {
+        writeln!(output, "{tool:?}: {}", ready.tool_path(tool).display())
+            .map_err(|error| error.to_string())?;
+    }
+    Ok(())
 }

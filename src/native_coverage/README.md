@@ -5,6 +5,7 @@ The caller supplies an instrumented target, a coverage request, an explicit `Pro
 The selected compiler must agree with the tool policy.
 Readiness queries, both LLVM version queries, target execution, profile merge and coverage export all use [`native_process`](../native_process/README.md).
 The harness retains source identity, tool matching, candidate standing, novelty, budgets and refusal meaning.
+`NativeCoverage::ready` exposes the [coverage owner's target selection and established tool facts](../../harness/src/fuzz/README.md#claim) without another discovery or version-matching layer.
 
 ## Execution and cleanup
 
@@ -32,6 +33,7 @@ Zero-count source records still owe an unambiguous mapping.
 ## Limits
 
 The selected compiler, target and source files remain caller trust inputs.
+An explicit coverage target must match the caller's actual compilation selection; readiness does not establish cross-target execution support.
 Matching tool versions and a successful profile do not authenticate an artifact against concurrent replacement.
 Stable line coverage can map multiple generated operations to one macro expansion location, including a registry facade location.
 Different decoder outcomes can therefore have identical coverage points; caller-authored semantic checks remain necessary.

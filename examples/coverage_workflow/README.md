@@ -5,6 +5,8 @@ Coverage remains a search signal; the example supplies no semantic oracle.
 
 Run `cargo run --example coverage_workflow --features native-tooling` with a JSON object on stdin.
 The `rustc`, `directory`, `source`, `artifact`, `target` and `environment` fields have the explicit meanings documented by the [compiler example](../compiler_workflow/README.md).
+The same `target` selects compilation and coverage standing; the compiler's host selects the matching LLVM tools.
+Before candidate results, the example prints the queried compiler path, release and host, the selected execution target, and the matching LLVM paths and versions.
 Also supply an absolute disposable `scratch` directory and `candidates`, an array containing one through eight arrays of unsigned bytes.
 Place the supplied [coverage subject](../support/rustc_coverage_subject.rs) at the declared source path before running.
 For that subject, `[[0], [1, 2, 3], [0]]` produces interesting, interesting and known admissions, followed by replay of the retained seeds.

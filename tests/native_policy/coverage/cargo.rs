@@ -6,6 +6,7 @@ use macroonz::harness::fuzz::{
     RustcProfileRequest,
 };
 use macroonz::harness::oracle::{CompilationVerdict, DeclaredCompilation};
+use macroonz::harness::report::TargetTriple;
 use macroonz::native_compiler::{self, CargoFixture, CargoTarget, CompilerRequest};
 use macroonz::native_coverage;
 use std::io::Write;
@@ -20,7 +21,12 @@ fn instrumented_cargo_registry_decoder_observes_generated_behavior() -> Result<(
     let campaign = campaign_with_export(include_bytes!("decoder_subject.rs"), 16_777_216)?;
     let mapped = RustcProfileRequest::mapped(
         host.rustc.clone(),
-        InstrumentedTarget::declared(executable.to_path_buf(), Vec::new()).map_err(debug)?,
+        InstrumentedTarget::for_target(
+            executable.to_path_buf(),
+            Vec::new(),
+            TargetTriple::declared(&host.triple),
+        )
+        .map_err(debug)?,
         roots,
         run.join("cases"),
         campaign,

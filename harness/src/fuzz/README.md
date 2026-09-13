@@ -5,8 +5,14 @@ This home turns stable rustc source coverage into a bounded search signal while 
 ## Claim
 
 [`CoverageCampaign`] declares the population, subject revision, coverage interpretation, and every resource ceiling before a host is consulted.
-[`preflight_ready`] joins that declaration to the target triple and toolchain identity reported by the exact stable Rust 1.98 compiler that owns the matching LLVM tools.
+[`preflight_ready`] joins that declaration and its selected execution target to the identity of the exact stable Rust 1.98 compiler that owns the matching LLVM tools.
 The resulting [`ReadyPreflight`] is the only door into execution.
+
+`InstrumentedTarget::declared` selects that compiler's host triple, while `InstrumentedTarget::for_target` carries an explicit caller-declared execution triple.
+The compiler host remains the LLVM discovery coordinate even when the execution target differs.
+Neither target selection authenticates the executable's compilation provenance or establishes that this host can execute it.
+`ReadyPreflight` exposes the selected compiler path, its reported release, host, sysroot and LLVM version, the derived tool paths and their exact shared version string.
+Only the pinned release and matching LLVM versions establish readiness; another release returns `PreflightIncomplete::RustcRelease` rather than acquiring an unqualified compatibility claim.
 
 [`observe_rustc_profile`] owns the join from exact candidate bytes to one supervised process outcome and its canonical coverage observation.
 The caller cannot substitute bytes, a campaign, a target, or a toolchain after that observation exists.

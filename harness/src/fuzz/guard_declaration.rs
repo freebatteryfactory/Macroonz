@@ -286,7 +286,7 @@ impl CoverageStanding {
         self.campaign
     }
 
-    /// The target and toolchain established by active preflight.
+    /// The selected execution target and toolchain established by active preflight.
     #[must_use]
     pub const fn target(&self) -> &TargetBinding {
         &self.target

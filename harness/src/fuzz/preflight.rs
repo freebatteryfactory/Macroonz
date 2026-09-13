@@ -106,8 +106,37 @@ pub fn preflight_ready_with<E>(
     let directory = sysroot.join("lib").join("rustlib").join(host).join("bin");
     let profdata = directory.join(format!("llvm-profdata{}", std::env::consts::EXE_SUFFIX));
     let cov = directory.join(format!("llvm-cov{}", std::env::consts::EXE_SUFFIX));
-    let profdata_version = llvm_tool_version(CoverageTool::Profdata, &profdata, &mut execute)?;
-    let cov_version = llvm_tool_version(CoverageTool::Cov, &cov, &mut execute)?;
+    let tools = matching_tools(profdata, cov, rustc_llvm, &mut execute)?;
+    let toolchain = format!("rustc {release} LLVM {rustc_llvm}");
+    let target = TargetBinding::bound(
+        request
+            .target()
+            .triple()
+            .cloned()
+            .unwrap_or_else(|| TargetTriple::declared(host)),
+        ToolchainIdentity::declared(&toolchain),
+    );
+    let standing = CoverageStanding::established(request.campaign(), target);
+    Ok(ReadyPreflight {
+        request,
+        tools,
+        source_roots,
+        standing,
+        sysroot,
+        release: release.to_owned(),
+        host: host.to_owned(),
+        llvm_version: rustc_llvm.to_owned(),
+    })
+}
+
+fn matching_tools<E>(
+    profdata: PathBuf,
+    cov: PathBuf,
+    rustc_llvm: &str,
+    execute: &mut impl FnMut(CoverageInvocation) -> Result<CoverageReply, E>,
+) -> Result<RustcCoverageTools, CoverageHostFailure<E, PreflightIncomplete>> {
+    let profdata_version = llvm_tool_version(CoverageTool::Profdata, &profdata, execute)?;
+    let cov_version = llvm_tool_version(CoverageTool::Cov, &cov, execute)?;
     if profdata_version != cov_version {
         return Err(PreflightIncomplete::LlvmToolVersionsDiffer {
             profdata: profdata_version,
@@ -126,23 +155,11 @@ pub fn preflight_ready_with<E>(
         .into());
     }
 
-    let tools = RustcCoverageTools::established(profdata, cov);
-    let toolchain = format!("rustc {release} LLVM {rustc_llvm}");
-    let target = TargetBinding::bound(
-        TargetTriple::declared(host),
-        ToolchainIdentity::declared(&toolchain),
-    );
-    let standing = CoverageStanding::established(request.campaign(), target);
-    Ok(ReadyPreflight {
-        request,
-        tools,
-        source_roots,
-        standing,
-        sysroot,
-        release: release.to_owned(),
-        host: host.to_owned(),
-        llvm_version: rustc_llvm.to_owned(),
-    })
+    Ok(RustcCoverageTools::established(
+        profdata,
+        cov,
+        profdata_version,
+    ))
 }
 
 fn target_available(request: &RustcProfileRequest) -> Result<(), PreflightIncomplete> {

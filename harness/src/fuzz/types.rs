@@ -3,7 +3,7 @@
 //! Construction and reading live in this module's own child `type_guard.rs`, with one stated exception: the ready preflight keeps its seats open to this home, because the preflight road is the one road that establishes readiness and assembles the value from the compiler facts it read.
 
 use crate::descriptor::{NamespacedName, PopulationRef, RevisionBinding};
-use crate::report::{ByteBudget, CaseBudget, TargetBinding};
+use crate::report::{ByteBudget, CaseBudget, TargetBinding, TargetTriple};
 use std::collections::BTreeSet;
 use std::path::PathBuf;
 
@@ -105,7 +105,7 @@ pub struct CoverageCampaign {
     budgets: CoverageBudgets,
 }
 
-/// One coverage campaign joined to the target and toolchain established by active preflight.
+/// One coverage campaign joined to its selected target and actively established toolchain.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CoverageStanding {
     campaign: CoverageCampaign,
@@ -506,6 +506,7 @@ pub enum MutationRefusal {
 pub(crate) struct RustcCoverageTools {
     profdata: PathBuf,
     cov: PathBuf,
+    version: String,
 }
 
 /// One already-instrumented Rust target and its declared arguments.
@@ -513,6 +514,7 @@ pub(crate) struct RustcCoverageTools {
 pub struct InstrumentedTarget {
     executable: PathBuf,
     arguments: Vec<String>,
+    triple: Option<TargetTriple>,
 }
 
 /// One declared rustc-profile observation request.
@@ -543,7 +545,7 @@ pub enum RustcProfileRequestRefusal {
     RelativeScratch,
 }
 
-/// One actively established rustc, target, source-root, and tool environment carrying a declared scratch path.
+/// One selected target joined to an actively established compiler, source-root and tool environment with a declared scratch path.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReadyPreflight {
     pub(super) request: RustcProfileRequest,

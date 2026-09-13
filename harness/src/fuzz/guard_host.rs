@@ -3,9 +3,10 @@
 use crate::fuzz::types::CoverageSourceRoots;
 use crate::fuzz::types::{
     AbsolutePath, CoverageCampaign, CoverageCaseCleanup, CoverageCommand, CoverageInvocation,
-    CoverageSourceRoot, CoverageStanding, InstrumentedTarget, ReadyPreflight, RustcCoverageTools,
-    RustcProfileRequest, RustcProfileRequestRefusal,
+    CoverageSourceRoot, CoverageStanding, CoverageTool, InstrumentedTarget, ReadyPreflight,
+    RustcCoverageTools, RustcProfileRequest, RustcProfileRequestRefusal,
 };
+use crate::report::TargetTriple;
 use std::path::{Path, PathBuf};
 
 impl CoverageInvocation {
@@ -58,8 +59,12 @@ impl CoverageCaseCleanup {
 }
 
 impl RustcCoverageTools {
-    pub(crate) const fn established(profdata: PathBuf, cov: PathBuf) -> Self {
-        Self { profdata, cov }
+    pub(crate) const fn established(profdata: PathBuf, cov: PathBuf, version: String) -> Self {
+        Self {
+            profdata,
+            cov,
+            version,
+        }
     }
 
     pub(crate) fn profdata(&self) -> &Path {
@@ -72,7 +77,7 @@ impl RustcCoverageTools {
 }
 
 impl InstrumentedTarget {
-    /// Declare one already-instrumented target executable.
+    /// Declares an already-instrumented executable for the selected compiler's host target.
     ///
     /// # Errors
     ///
@@ -90,7 +95,26 @@ impl InstrumentedTarget {
         Ok(Self {
             executable,
             arguments,
+            triple: None,
         })
+    }
+
+    /// Declares an already-instrumented executable for an explicit execution target.
+    ///
+    /// # Errors
+    /// Refuses an empty or relative executable path.
+    pub fn for_target(
+        executable: PathBuf,
+        arguments: Vec<String>,
+        triple: TargetTriple,
+    ) -> Result<Self, RustcProfileRequestRefusal> {
+        let mut target = Self::declared(executable, arguments)?;
+        target.triple = Some(triple);
+        Ok(target)
+    }
+
+    pub(crate) const fn triple(&self) -> Option<&TargetTriple> {
+        self.triple.as_ref()
     }
 
     pub(crate) fn executable(&self) -> &Path {
@@ -194,7 +218,7 @@ impl ReadyPreflight {
         &self.request.scratch
     }
 
-    /// The declared campaign joined to the target and toolchain established by preflight.
+    /// The declared campaign and selected target joined to the toolchain established by preflight.
     #[must_use]
     pub const fn standing(&self) -> &CoverageStanding {
         &self.standing
@@ -204,6 +228,27 @@ impl ReadyPreflight {
     #[must_use]
     pub fn sysroot(&self) -> &Path {
         &self.sysroot
+    }
+
+    /// The declared compiler executable used for readiness queries.
+    #[must_use]
+    pub fn rustc(&self) -> &Path {
+        self.request.rustc()
+    }
+
+    /// The exact matching tool path whose version query established readiness.
+    #[must_use]
+    pub fn tool_path(&self, tool: CoverageTool) -> &Path {
+        match tool {
+            CoverageTool::Profdata => self.tools.profdata(),
+            CoverageTool::Cov => self.tools.cov(),
+        }
+    }
+
+    /// The exact version string shared by both queried LLVM tools.
+    #[must_use]
+    pub fn tool_version(&self) -> &str {
+        &self.tools.version
     }
 
     /// The stable rustc release established by preflight.
