@@ -1,10 +1,12 @@
 use super::configure::publication;
 use super::destination_fixture::{LIMITS, historical, record, snapshot, write_record};
 use crate::compiler::configure::root;
+use crate::presentation_formats::{field, parsed};
 use macroonz::native_publication::{
     DestinationError, DestinationProblem, DestinationState, PreparedPublication,
     PublicationDestination,
 };
+use macroonz::presentation::{bake_output, publication_destination_check};
 
 #[test]
 fn destination_check_is_read_only_and_requires_actual_ownership_even_for_identical_files()
@@ -102,6 +104,26 @@ fn complete_destination_check_distinguishes_missing_stale_tampered_and_extra_own
         ]
     );
     assert!(!report.is_current());
+    let shown = parsed(&bake_output(
+        &macroonz::native_publication::BakeOutput::Checked {
+            prepared,
+            comparison: report,
+        },
+    ))?;
+    assert_eq!(field(&shown, "/record/kind")?, "checked");
+    let comparison = field(&shown, "/record/value/comparison")?;
+    assert_eq!(field(comparison, "/is_current")?, false);
+    assert_eq!(field(comparison, "/state")?, "installed");
+    assert_eq!(
+        field(comparison, "/issues")?,
+        &serde_json::json!([
+            {"path":"generated/alpha.rs","problem":"stale"},
+            {"path":"generated/beta.rs","problem":"missing"},
+            {"path":"generated/other.rs","problem":"tampered"},
+            {"path":"generated/other.rs","problem":"stale"},
+            {"path":"obsolete.rs","problem":"extra-owned"},
+        ])
+    );
     assert_eq!(snapshot(&root)?, before);
     Ok(())
 }
@@ -134,6 +156,10 @@ fn pending_installation_and_exclusive_writer_custody_prevent_a_current_result() 
         .check(&prepared)
         .map_err(|error| error.to_string())?;
     assert_eq!(report.state(), DestinationState::Updating);
+    let shown = parsed(&publication_destination_check(&report))?;
+    assert_eq!(field(&shown, "/record/state")?, "updating");
+    assert_eq!(field(&shown, "/record/is_current")?, false);
+    assert_eq!(field(&shown, "/record/issues")?, &serde_json::json!([]));
     assert!(report.issues().is_empty());
     assert!(!report.is_current());
     assert_eq!(snapshot(&root)?, before);

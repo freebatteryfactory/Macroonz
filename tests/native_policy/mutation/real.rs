@@ -30,6 +30,7 @@ fn actual_backend_retains_command_sources_and_historical_currency() -> Result<()
     let manifest = output
         .manifest()
         .map_err(|error| format!("{error}: {:?}", output.process()))?;
+    super::presentation::accepted(&output)?;
     assert_eq!(output.process().stop(), &ProcessStop::Exited);
     assert_eq!(output.process().status().code(), Some(2_i32));
     assert!(
@@ -91,11 +92,21 @@ fn actual_backend_retains_command_sources_and_historical_currency() -> Result<()
     );
     compare_sources(&output, &root)?;
     assert!(native_mutation::run(executed, |_| None, |_, _| None).is_err());
-    let failed = request(&host, &root, &backend, limits, "failed-baseline")?;
+    failed_baseline(&host, &root, &backend, limits)
+}
+
+fn failed_baseline(
+    host: &crate::compiler::types::Host,
+    root: &std::path::Path,
+    backend: &std::path::Path,
+    limits: ProcessLimits,
+) -> Result<(), String> {
+    let failed = request(host, root, backend, limits, "failed-baseline")?;
     let failed = finish(
         native_mutation::run(failed, |_| None, |_, _| None).map_err(|error| error.to_string())?,
     )?;
     assert_eq!(failed.process().status().code(), Some(4_i32));
+    super::presentation::observation_failure(&failed, "process")?;
     assert_eq!(
         failed.manifest().err(),
         Some(&MutationObservationError::Process)
@@ -120,6 +131,8 @@ fn compare_sources(
     .map_err(|error| format!("{error:?}"))?;
     let compared = native_mutation::compare_historical(&archived, root, 1024)
         .map_err(|error| error.to_string())?;
+    super::presentation::archived(output, &archived)?;
+    let before = macroonz::presentation::native_mutation(output);
     assert_eq!(compared.manifest().encoded(), retained.encoded());
     assert_eq!(compared.current_sources().len(), 1);
     std::fs::write(
@@ -140,6 +153,8 @@ fn compare_sources(
         output.original_sources().collect::<Vec<_>>(),
         [("fixture.rs", SOURCE.as_bytes())]
     );
+    assert_eq!(before, macroonz::presentation::native_mutation(output));
+    super::presentation::archived(output, &archived)?;
     Ok(())
 }
 

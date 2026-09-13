@@ -1,8 +1,10 @@
 use super::configure::{configuration, finish, publication, scratch, standin as body};
 use crate::compiler::configure::{bounds, host, root, tool};
 use crate::compiler::refusal::standin;
+use crate::presentation_formats::{field, parsed};
 use macroonz::native_process::{ProcessLimits, ProcessRun, ProcessStop};
 use macroonz::native_publication::{FormatError, FormatObservationError, FormatRun, Formatter};
+use macroonz::presentation::{publication_format_output, publication_format_run};
 use std::time::Duration;
 
 #[test]
@@ -110,6 +112,17 @@ fn invalid_text_or_changed_configuration_never_establishes_formatted_source() ->
                 .map_err(|error| error.to_string())?,
         )?;
         assert_eq!(output.source(), Err(expected));
+        let shown = parsed(&publication_format_output(&output))?;
+        assert_eq!(field(&shown, "/record/source/kind")?, "refused");
+        assert_eq!(field(&shown, "/record/process/status/success")?, true);
+        assert_eq!(
+            field(&shown, "/record/source/value/kind")?,
+            if name == "changed-config" {
+                "configuration"
+            } else {
+                "text"
+            }
+        );
     }
     Ok(())
 }
@@ -152,10 +165,12 @@ fn query_and_format_cleanup_remain_distinct_and_retryable() -> Result<(), String
     .map_err(|error| error.to_string())?;
     let publication = publication()?;
     let file = publication.files().last().ok_or("no file")?;
-    let FormatRun::Pending(pending) = selected
+    let formatting = selected
         .format(&file, scratch(&root)?)
-        .map_err(|error| error.to_string())?
-    else {
+        .map_err(|error| error.to_string())?;
+    let shown = parsed(&publication_format_run(&formatting))?;
+    assert_eq!(field(&shown, "/record/kind")?, "pending-cleanup");
+    let FormatRun::Pending(pending) = formatting else {
         return Err("format cleanup not retained".to_owned());
     };
     let output = finish(pending.finish(Duration::from_secs(3)))?;

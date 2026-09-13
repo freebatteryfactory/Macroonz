@@ -107,11 +107,15 @@ impl CoverageSourceRoot {
         Ok(Self { logical, checkout })
     }
 
-    pub(crate) const fn logical(&self) -> NamespacedName {
+    /// The caller-declared logical source identity.
+    #[must_use]
+    pub const fn logical(&self) -> NamespacedName {
         self.logical
     }
 
-    pub(crate) fn checkout(&self) -> &Path {
+    /// The physical source-root path carried by this value.
+    #[must_use]
+    pub fn checkout(&self) -> &Path {
         &self.checkout
     }
 }

@@ -50,7 +50,7 @@ macroonz-macros = { path = "macros/proc", version = "=0.2.0" }
 
 [features]
 default = ["full"]
-harness = ["dep:macroonz-harness"]
+harness = ["dep:macroonz-harness", "dep:serde_json"]
 preemption = ["harness", "macroonz-harness/preemption"]
 full = ["harness", "preemption"]
 native-tooling = ["harness", "dep:cap-std", "dep:process-wrap", "dep:rustix", "dep:windows", "dep:serde", "dep:serde_json"]

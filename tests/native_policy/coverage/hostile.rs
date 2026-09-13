@@ -120,6 +120,11 @@ fn every_native_readiness_query_enforces_deadlines_and_both_capture_bounds() -> 
                 return Err("hostile readiness was accepted".to_owned());
             };
             interrupted(&failure, operation, mode)?;
+            super::presentation::interrupted(
+                &macroonz::presentation::coverage_preflight_error(&failure),
+                phase,
+                mode,
+            )?;
         }
     }
     Ok(())
@@ -134,6 +139,11 @@ fn llvm_merge_and_export_failures_spend_attempts_without_admitting_novelty() -> 
         ("merge", CoverageCommand::Merge),
         ("export", CoverageCommand::Export),
     ] {
+        let cause = if phase == "merge" {
+            "profdata-failed"
+        } else {
+            "cov-failed"
+        };
         for mode in ["deadline", "stdout", "stderr", "failure"] {
             let cases = format!("{phase}-{mode}");
             let coverage = native_coverage::preflight(
@@ -147,6 +157,16 @@ fn llvm_merge_and_export_failures_spend_attempts_without_admitting_novelty() -> 
                 return Err("hostile LLVM was accepted".to_owned());
             };
             llvm_failure(&failure, operation, mode)?;
+            if mode == "failure" {
+                super::presentation::failure(&failure, cause)?;
+            } else {
+                super::presentation::interrupted(
+                    &macroonz::presentation::coverage_profile_error(&failure),
+                    phase,
+                    mode,
+                )?;
+            }
+            super::presentation::frontier(&corpus, 1, &[])?;
             assert_eq!(corpus.attempted_cases(), 1);
             assert!(corpus.interesting().is_empty());
             assert_eq!(
@@ -181,7 +201,24 @@ fn native_target_timeout_output_and_exit_failures_cannot_earn_novelty() -> Resul
         let result = native_coverage::observe(&coverage, &mut corpus, &[0]).map_err(debug)?;
         assert_eq!(result.execution(), expected);
         assert!(result.observation().points().is_empty());
-        assert!(corpus.admit(result).is_err());
+        super::presentation::result(&result, &[0], 0)?;
+        let displayed =
+            crate::presentation_formats::parsed(&macroonz::presentation::coverage_result(&result))?;
+        let Err(refusal) = corpus.admit(result) else {
+            return Err("failed execution earned novelty".to_owned());
+        };
+        let refused = crate::presentation_formats::parsed(
+            &macroonz::presentation::coverage_admission_refusal(&refusal),
+        )?;
+        assert_eq!(
+            crate::presentation_formats::field(&refused, "/record/cause/kind")?,
+            "execution"
+        );
+        assert_eq!(
+            crate::presentation_formats::field(&refused, "/record/cause/value")?,
+            crate::presentation_formats::field(&displayed, "/record/execution")?
+        );
+        super::presentation::frontier(&corpus, 1, &[])?;
         assert!(corpus.interesting().is_empty());
         assert_eq!(std::fs::read_dir(run.join(mode)).map_err(debug)?.count(), 0);
     }
@@ -211,6 +248,21 @@ fn missing_native_tools_report_the_exact_starting_role() -> Result<(), String> {
             cleanup: None
         }
     ));
+    let shown = crate::presentation_formats::parsed(
+        &macroonz::presentation::coverage_preflight_error(&failure),
+    )?;
+    assert_eq!(
+        crate::presentation_formats::field(&shown, "/record/phase")?,
+        "preflight"
+    );
+    assert_eq!(
+        crate::presentation_formats::field(&shown, "/record/cause/value/operation")?,
+        &serde_json::json!({"kind":"version","value":"profdata"})
+    );
+    assert_eq!(
+        crate::presentation_formats::field(&shown, "/record/cause/value/error/kind")?,
+        "start"
+    );
     Ok(())
 }
 
@@ -262,6 +314,11 @@ fn the_campaign_export_ceiling_applies_below_the_native_capture_ceiling() -> Res
         return Err("unbounded export was accepted".to_owned());
     };
     interrupted(&failure, CoverageCommand::Export, "stdout")?;
+    super::presentation::interrupted(
+        &macroonz::presentation::coverage_profile_error(&failure),
+        "export",
+        "stdout",
+    )?;
     let CoverageHostFailure::Executor {
         error: NativeCoverageProcessError::Execution {
             run: process_run, ..
@@ -275,6 +332,16 @@ fn the_campaign_export_ceiling_applies_below_the_native_capture_ceiling() -> Res
         return Err(failure.to_string());
     };
     assert_eq!(output.stdout().bytes().len(), 32);
+    let shown = crate::presentation_formats::parsed(
+        &macroonz::presentation::coverage_profile_error(&failure),
+    )?;
+    assert_eq!(
+        crate::presentation_formats::field(
+            &shown,
+            "/record/cause/value/error/value/request/limits/stdout"
+        )?,
+        32_u64
+    );
     assert!(corpus.interesting().is_empty());
     Ok(())
 }

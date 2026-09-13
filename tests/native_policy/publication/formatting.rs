@@ -1,6 +1,8 @@
 use super::configure::{configuration, finish, publication, scratch};
 use crate::compiler::configure::{bounds, host, root, tool};
+use crate::presentation_formats::{field, parsed};
 use macroonz::native_publication::{Formatter, published_digest};
+use macroonz::presentation::publication_format_output;
 
 #[test]
 fn actual_formatter_preserves_canonical_material_across_regeneration_and_relocation()
@@ -140,6 +142,10 @@ fn actual_rustfmt_failure_retains_diagnostics_without_published_bytes() -> Resul
             .map_err(|error| error.to_string())?,
     )?;
     assert!(!output.process().status().success());
+    let shown = parsed(&publication_format_output(&output))?;
+    assert_eq!(field(&shown, "/record/source/kind")?, "refused");
+    assert_eq!(field(&shown, "/record/source/value/kind")?, "process");
+    assert_eq!(field(&shown, "/record/process/status/success")?, false);
     assert!(!output.process().stderr().bytes().is_empty());
     assert_eq!(
         output.source(),

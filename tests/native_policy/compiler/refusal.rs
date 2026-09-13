@@ -104,6 +104,15 @@ fn malformed_ambiguous_and_foreign_diagnostics_do_not_establish_refusal() -> Res
             _ => false,
         };
         assert!(matches, "{category}: {output:?}");
+        let cause = match *category {
+            "json" => "invalid-json",
+            "diagnostics" => "diagnostic-count",
+            "spans" => "primary-span-count",
+            "source" => "source",
+            "code" => "uncoded-diagnostic",
+            _ => return Err("unknown diagnostic control".to_owned()),
+        };
+        super::presentation::observation_failure(&output, cause)?;
     }
     let executable = standin(
         &root,
@@ -146,10 +155,23 @@ fn process_failures_and_exhausted_resources_never_become_expected_diagnostics() 
         &host.triple,
     )
     .map_err(|error| error.to_string())?;
+    let Err(start_failure) = native_compiler::compile(&missing) else {
+        return Err("missing tool did not refuse".to_owned());
+    };
     assert!(matches!(
-        native_compiler::compile(&missing),
-        Err(CompilerError::Process(ProcessError::Start(_)))
+        &start_failure,
+        CompilerError::Process(ProcessError::Start(_))
     ));
+    let shown =
+        super::presentation::parsed(&macroonz::presentation::compiler_error(&start_failure))?;
+    assert_eq!(
+        crate::presentation_formats::field(&shown, "/record/cause/kind")?,
+        "process"
+    );
+    assert_eq!(
+        crate::presentation_formats::field(&shown, "/record/cause/value/kind")?,
+        "start"
+    );
     let failure = standin(
         &root,
         &host,
@@ -169,6 +191,7 @@ fn process_failures_and_exhausted_resources_never_become_expected_diagnostics() 
         failed_output.observed().err(),
         Some(&CompilerObservationError::ProcessFailure)
     );
+    super::presentation::observation_failure(&failed_output, "process-failure")?;
     for (name, body, stop) in [
         (
             "timeout",
@@ -202,6 +225,7 @@ fn process_failures_and_exhausted_resources_never_become_expected_diagnostics() 
             output.observed().err(),
             Some(&CompilerObservationError::Interrupted(stop))
         );
+        super::presentation::observation_failure(&output, "interrupted")?;
         assert!(
             output
                 .compared(&DeclaredCompilation::refuses(anchor("E0308", 28)?))
@@ -249,6 +273,7 @@ fn cargo_completion_and_selected_artifact_are_required_for_success() -> Result<(
             output.observed(),
             Err(CompilerObservationError::Protocol(_))
         ));
+        super::presentation::observation_failure(&output, "protocol")?;
     }
     Ok(())
 }
@@ -340,6 +365,13 @@ fn read_back_failures_do_not_invoke_the_semantic_decoder() -> Result<(), String>
             &DeclaredBehavior::RefusedByCompiler,
         );
         assert_eq!(compared, Err(expected));
+        let failure = compared.as_ref().err().ok_or("missing read-back failure")?;
+        let shown = super::presentation::parsed(&macroonz::presentation::read_back_error(failure))?;
+        assert_eq!(
+            crate::presentation_formats::field(&shown, "/record/phase")?,
+            "read-back"
+        );
+        assert!(shown.pointer("/record/verdict").is_none());
         assert!(!called.get());
     }
     Ok(())

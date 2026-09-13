@@ -57,3 +57,5 @@ mod visibility_fixture;
 mod visibility;
 #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
 mod command_output;
+#[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+mod presentation;

@@ -4,8 +4,14 @@ use super::destination_fixture::snapshot;
 use super::install_fixture::{destination, installed};
 use crate::compiler::configure::{bounds, host, root};
 use crate::compiler::real::read_count;
+use crate::compiler::types::Host;
+use crate::presentation_formats::{field, parsed};
 use macroonz::native_process::ProcessLimits;
-use macroonz::native_publication::{BakeCause, BakeCommand, BakeOutput, StagingRun, bake};
+use macroonz::native_publication::{
+    BakeCause, BakeCommand, BakeOutput, BakePreparation, PreparedPublication, StagingRun, bake,
+};
+use macroonz::presentation::{bake_error, bake_output};
+use std::path::Path;
 use std::time::Duration;
 
 #[test]
@@ -25,12 +31,21 @@ fn registered_command_prepares_inspects_checks_and_regenerates_the_same_formatte
     assert!(matches!(declared, BakeOutput::Declared(_)));
     assert_eq!(calls.get(), 1);
     assert!(snapshot(&work)?.is_empty());
-    let BakeOutput::Prepared(prepared) = bake(
+    let inspected = bake(
         BakeCommand::Inspect(Box::new(preparation.clone())),
         publication,
     )
-    .map_err(|error| error.to_string())?
-    else {
+    .map_err(|error| error.to_string())?;
+    let shown = parsed(&bake_output(&inspected))?;
+    assert_eq!(field(&shown, "/record/kind")?, "prepared");
+    assert_eq!(
+        field(&shown, "/record/value/formatting")?
+            .as_array()
+            .ok_or("no formatting")?
+            .len(),
+        4
+    );
+    let BakeOutput::Prepared(prepared) = inspected else {
         return Err("inspection lost prepared output".to_owned());
     };
     assert_eq!(prepared.formatting().count(), 4);
@@ -51,29 +66,7 @@ fn registered_command_prepares_inspects_checks_and_regenerates_the_same_formatte
     assert!(!absent.is_current());
     assert_eq!(absent.issues().len(), 4);
     assert_eq!(snapshot(&output)?, before);
-    let mut cached = None;
-    for _repeat in 0usize..2 {
-        let BakeOutput::Generated(compiled) = bake(
-            generate(preparation.clone(), &source, &output, &host, bounds()?)?,
-            publication,
-        )
-        .map_err(|error| error.to_string())?
-        else {
-            return Err("generation lost compilation".to_owned());
-        };
-        let current = compiled.compiler().request().process().directory();
-        if let Some(cached) = &cached {
-            assert_eq!(current, cached);
-        } else {
-            cached = Some(current.to_path_buf());
-        }
-        read_count(compiled.compiler(), &host, &source)?;
-        installed(&output, compiled.prepared())?;
-        for (expected, actual) in prepared.files().zip(compiled.prepared().files()) {
-            assert_eq!(actual.bytes(), expected.bytes());
-            assert_eq!(actual.canonical_digest(), expected.canonical_digest());
-        }
-    }
+    regenerate(&preparation, &source, &output, &host, &prepared)?;
     let before_check = snapshot(&output)?;
     let BakeOutput::Checked { comparison, .. } = bake(
         BakeCommand::Check {
@@ -88,6 +81,45 @@ fn registered_command_prepares_inspects_checks_and_regenerates_the_same_formatte
     };
     assert!(comparison.is_current());
     assert_eq!(snapshot(&output)?, before_check);
+    Ok(())
+}
+
+fn regenerate(
+    preparation: &BakePreparation,
+    source: &Path,
+    output: &Path,
+    host: &Host,
+    prepared: &PreparedPublication<super::types::Example>,
+) -> Result<(), String> {
+    let mut cached = None;
+    for _repeat in 0usize..2 {
+        let generated = bake(
+            generate(preparation.clone(), source, output, host, bounds()?)?,
+            publication,
+        )
+        .map_err(|error| error.to_string())?;
+        let shown = parsed(&bake_output(&generated))?;
+        assert_eq!(field(&shown, "/record/kind")?, "generated");
+        assert_eq!(
+            field(&shown, "/record/value/compiler/process/status/success")?,
+            true
+        );
+        let BakeOutput::Generated(compiled) = generated else {
+            return Err("generation lost compilation".to_owned());
+        };
+        let current = compiled.compiler().request().process().directory();
+        if let Some(cached) = &cached {
+            assert_eq!(current, cached);
+        } else {
+            cached = Some(current.to_path_buf());
+        }
+        read_count(compiled.compiler(), host, source)?;
+        installed(output, compiled.prepared())?;
+        for (expected, actual) in prepared.files().zip(compiled.prepared().files()) {
+            assert_eq!(actual.bytes(), expected.bytes());
+            assert_eq!(actual.canonical_digest(), expected.canonical_digest());
+        }
+    }
     Ok(())
 }
 
@@ -144,6 +176,13 @@ fn pending_command_keeps_workspace_custody_until_explicit_cleanup() -> Result<()
     .err()
     .ok_or("pending command returned success")?;
     assert!(pending_failure.is_pending());
+    let shown = parsed(&bake_error(&pending_failure))?;
+    assert_eq!(field(&shown, "/record/pending_cleanup")?, true);
+    assert_eq!(field(&shown, "/record/cause/kind")?, "compilation");
+    assert_eq!(
+        field(&shown, "/record/cause/value/kind")?,
+        "pending-cleanup"
+    );
     assert!(matches!(
         pending_failure.cause(),
         BakeCause::Compilation(StagingRun::Pending(_))
@@ -161,6 +200,10 @@ fn pending_command_keeps_workspace_custody_until_explicit_cleanup() -> Result<()
     assert!(snapshot(&output)?.is_empty());
     let finished = pending_failure.finish_cleanup(Duration::from_secs(5));
     assert!(!finished.is_pending());
+    let completed = parsed(&bake_error(&finished))?;
+    assert_eq!(field(&completed, "/kind")?, "bake-error");
+    assert_eq!(field(&completed, "/record/pending_cleanup")?, false);
+    assert_eq!(field(&shown, "/record/pending_cleanup")?, true);
     assert!(snapshot(&output)?.is_empty());
     let BakeOutput::Generated(compiled) = bake(
         generate(preparation, &source, &output, &host, bounds()?)?,

@@ -2,6 +2,7 @@ use crate::compiler::{
     configure::{bounds, host, root, tool},
     refusal::standin,
 };
+use crate::presentation_formats::{field, parsed};
 use macroonz::harness::oracle::RelativeSourcePath;
 use macroonz::native_mutation::{
     self, MutationError, MutationObservationError, MutationRequest, MutationSources,
@@ -42,6 +43,13 @@ fn capture_enforces_aggregate_bounds_and_compares_unreported_declared_files() ->
         .map_err(|error| error.to_string())?;
         let result = native_mutation::run(request, |_| None, |_, _| None);
         if name == "too-small" {
+            let shown = parsed(&macroonz::presentation::mutation_error(
+                result.as_ref().err().ok_or("source bound admitted")?,
+            ))?;
+            assert_eq!(
+                field(&shown, "/record/cause")?,
+                &serde_json::json!({"kind":"source-bound", "value":8usize})
+            );
             assert!(matches!(
                 result,
                 Err(MutationError::SourceBound { bound: 8 })
@@ -53,6 +61,7 @@ fn capture_enforces_aggregate_bounds_and_compares_unreported_declared_files() ->
             );
         } else {
             let output = super::configure::finish(result.map_err(|error| error.to_string())?)?;
+            super::presentation::observation_failure(&output, "sources")?;
             assert!(
                 matches!(output.manifest(), Err(MutationObservationError::Sources(cause)) if cause.contains("extra.rs"))
             );
@@ -104,10 +113,13 @@ fn declared_source_link_escape_refuses_without_running_the_backend() -> Result<(
         &host.triple,
     )
     .map_err(|error| error.to_string())?;
-    assert!(matches!(
-        native_mutation::run(request, |_| None, |_, _| None),
-        Err(MutationError::Filesystem(_))
-    ));
+    let result = native_mutation::run(request, |_| None, |_, _| None);
+    let shown = parsed(&macroonz::presentation::mutation_error(
+        result.as_ref().err().ok_or("source escape admitted")?,
+    ))?;
+    assert_eq!(field(&shown, "/record/cause/kind")?, "filesystem");
+    assert!(field(&shown, "/record/cause/value/detail")?.is_string());
+    assert!(matches!(result, Err(MutationError::Filesystem(_))));
     assert!(!root.join("started").exists());
     assert!(!root.join("output").exists());
     assert_eq!(

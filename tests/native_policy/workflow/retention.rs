@@ -69,6 +69,27 @@ fn retained_run_loads_without_execution_and_replays_the_reached_witness() -> Res
             mapped(current.comparison().as_ref())?.outcome(),
             ReplayOutcome::FixedOnWitness
         );
+        let shown =
+            macroonz::presentation::replay_comparison(mapped(current.comparison().as_ref())?);
+        crate::presentation_formats::agree(&shown)?;
+        let value = mapped(serde_json::from_str(&shown.json()))?;
+        assert_eq!(
+            crate::presentation_formats::field(&value, "/record/outcome/kind")?,
+            "fixed-on-witness"
+        );
+        assert_eq!(
+            crate::presentation_formats::field(&value, "/record/movement/subject")?,
+            "moved"
+        );
+        assert_eq!(
+            crate::presentation_formats::field(&value, "/record/movement/check")?,
+            "same"
+        );
+        assert_eq!(
+            crate::presentation_formats::field(&value, "/record/lineage")?,
+            "reached-witness"
+        );
+        assert_eq!(fixture::observations(), (1, 1, 0));
         Ok(())
     })
 }
@@ -104,10 +125,17 @@ fn changed_archive_bytes_and_individually_valid_unrelated_inputs_refuse_loading(
         let input = fixture::run(&[9])?;
         std::fs::write(path.join("item-run/item-input"), input.input().encoded())
             .map_err(|error| error.to_string())?;
-        assert!(matches!(
-            StoredRun::load(root, &name, fixture::decoder()?.profile(), LIMITS),
-            Err(RetentionRefusal::InputJoin)
-        ));
+        let input_join = StoredRun::load(root, &name, fixture::decoder()?.profile(), LIMITS)
+            .err()
+            .ok_or("unrelated input joined")?;
+        assert!(matches!(&input_join, RetentionRefusal::InputJoin));
+        let join_display = crate::presentation_formats::parsed(
+            &macroonz::presentation::retention_refusal(&input_join),
+        )?;
+        assert_eq!(
+            crate::presentation_formats::field(&join_display, "/record/kind")?,
+            "input-join"
+        );
         std::fs::write(path.join("item-run/item-input"), original.input().encoded())
             .map_err(|error| error.to_string())?;
         let run_path = path.join("item-run/item-run");
@@ -116,10 +144,20 @@ fn changed_archive_bytes_and_individually_valid_unrelated_inputs_refuse_loading(
         *last ^= 1;
         std::fs::write(&run_path, bytes).map_err(|error| error.to_string())?;
         fixture::reset();
+        let corrupted = StoredRun::load(root, &name, fixture::decoder()?.profile(), LIMITS)
+            .err()
+            .ok_or("corrupt archive loaded")?;
         assert!(matches!(
-            StoredRun::load(root, &name, fixture::decoder()?.profile(), LIMITS),
-            Err(RetentionRefusal::Archive(ArchiveRefusal::AddressMismatch))
+            &corrupted,
+            RetentionRefusal::Archive(ArchiveRefusal::AddressMismatch)
         ));
+        let corrupted_display = crate::presentation_formats::parsed(
+            &macroonz::presentation::retention_refusal(&corrupted),
+        )?;
+        assert_eq!(
+            crate::presentation_formats::field(&corrupted_display, "/record/value/kind")?,
+            "address-mismatch"
+        );
         assert_eq!(fixture::observations(), (0, 0, 0));
         Ok(())
     })

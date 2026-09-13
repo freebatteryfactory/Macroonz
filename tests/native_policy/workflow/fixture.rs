@@ -7,8 +7,8 @@ use macroonz::harness::descriptor::{
     PopulationRef, Provenance, RevisionBinding, Role, Row, SubjectRoute, Tag,
 };
 use macroonz::harness::generate::{
-    ByteReducerId, FingerprintPreservation, ProbeOutcome, ReductionBudget, ReductionPlan,
-    ReductionProbeBinding, capture_replay, reduce,
+    ByteReducerId, FingerprintPreservation, ProbeOutcome, ReductionBudget, ReductionEvidence,
+    ReductionPlan, ReductionProbeBinding, capture_replay, reduce,
 };
 use macroonz::harness::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use macroonz::harness::input::{BoundInput, InputBinding, InputLimits, InputProfile};
@@ -208,7 +208,7 @@ fn probe(payload: &[u8]) -> ProbeOutcome {
     }
 }
 
-pub(super) fn capsule(run: &InputRun) -> Result<ReplayCapsule, String> {
+pub(super) fn reduction(run: &InputRun, plan: &ReductionPlan) -> Result<ReductionEvidence, String> {
     let binding = mapped(ReductionProbeBinding::bound(
         selected(run)?,
         GenerationProfile::declared("workflow-input", 1),
@@ -216,6 +216,10 @@ pub(super) fn capsule(run: &InputRun) -> Result<ReplayCapsule, String> {
         revision(),
         probe,
     ))?;
+    mapped(reduce(plan, run.input().payload(), &binding))
+}
+
+pub(super) fn capsule(run: &InputRun) -> Result<ReplayCapsule, String> {
     let plan = mapped(ReductionPlan::declared(
         MinimizationProfile::declared("workflow-shrink", 1),
         ByteReducerId::ChunkRemovalAndZeroing,
@@ -223,9 +227,5 @@ pub(super) fn capsule(run: &InputRun) -> Result<ReplayCapsule, String> {
         FingerprintPreservation::Required,
         ReductionBudget::declared(32),
     ))?;
-    Ok(capture_replay(&mapped(reduce(
-        &plan,
-        run.input().payload(),
-        &binding,
-    ))?))
+    Ok(capture_replay(&reduction(run, &plan)?))
 }

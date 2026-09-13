@@ -12,6 +12,7 @@ The resulting [`ReadyPreflight`] is the only door into execution.
 The compiler host remains the LLVM discovery coordinate even when the execution target differs.
 Neither target selection authenticates the executable's compilation provenance or establishes that this host can execute it.
 `ReadyPreflight` exposes the selected compiler path, its reported release, host, sysroot and LLVM version, the derived tool paths and their exact shared version string.
+Its retained request keeps the original target selection, arguments, source-root declarations and scratch path beside the canonical roots established by preflight.
 Only the pinned release and matching LLVM versions establish readiness; another release returns `PreflightIncomplete::RustcRelease` rather than acquiring an unqualified compatibility claim.
 
 [`observe_rustc_profile`] owns the join from exact candidate bytes to one supervised process outcome and its canonical coverage observation.

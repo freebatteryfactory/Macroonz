@@ -1,6 +1,7 @@
 //! Co-located trial declarations, typed input and table-derived selection through the facade.
 
 mod checks;
+mod presentation;
 
 use macroonz::configuration::v1;
 #[cfg(test)]
@@ -127,6 +128,9 @@ fn main() -> Result<(), String> {
             ))
     );
     assert_eq!(wrong.input().payload(), &[1, 2, 4]);
+    presentation::write("selected", &selected)?;
+    presentation::write("all", &all)?;
+    presentation::write("refused", &wrong)?;
     Ok(())
 }
 

@@ -32,11 +32,12 @@ pub(super) fn observe(root: &Path, scratch: &Path, strict: &Path) -> Result<(), 
             .map_err(|error| error.to_string())?;
         std::fs::write(subject.join("Cargo.lock"), &root_lock)
             .map_err(|error| error.to_string())?;
-        std::fs::write(
-            subject.join("main.rs"),
+        write_subject(
+            &subject,
+            scratch,
+            name,
             "fn main() { let _clock = macroonz::native_clock::source(); let _name = macroonz::native_storage::StorageName::informed(\"run\"); }\n",
-        )
-        .map_err(|error| error.to_string())?;
+        )?;
         let lock = cargo(
             &subject,
             strict,
@@ -179,11 +180,67 @@ pub(super) fn qualify_graphs() -> Result<(), String> {
         super::dependency::observe(&subject, &scratch, root, name, storage)?;
         workflow_surface(&subject, &scratch, root, name, storage)?;
         configuration::observe(&subject, &scratch, root, name, storage)?;
+        presentation_surface(&subject, &scratch, root, name)?;
         publication_invariants(&subject, &scratch, root, name, storage)?;
     }
     super::dependency::refuse_injected(root, &subject, &scratch)?;
     if std::fs::read(root.join("Cargo.lock")).map_err(|error| error.to_string())? != root_lock {
         return Err("the root lock changed during graph qualification".to_owned());
+    }
+    Ok(())
+}
+
+fn presentation_surface(
+    subject: &Path,
+    scratch: &Path,
+    profile: &Path,
+    posture: &str,
+) -> Result<(), String> {
+    for (name, source, expected) in [
+        (
+            "readers",
+            "fn main() { let _run = macroonz::presentation::run; let _input = macroonz::presentation::input_run; let _historical = macroonz::presentation::archived_run; let _diagnostic = macroonz::presentation::compiler_diagnostic; }",
+            (posture == "diet").then_some("E0433"),
+        ),
+        (
+            "private",
+            "fn main() { let _forge = |value: &mut macroonz::presentation::Presentation| { let _record = &mut value.value; }; }",
+            Some(if posture == "diet" { "E0433" } else { "E0616" }),
+        ),
+        (
+            "native-readers",
+            "fn main() { let _compiler = macroonz::presentation::native_compilation; let _storage = macroonz::presentation::storage_error; let _publication = macroonz::presentation::publication_format_error; }",
+            match posture {
+                "native" | "full-native" => None,
+                "diet" => Some("E0433"),
+                _ => Some("E0425"),
+            },
+        ),
+    ] {
+        surface(
+            subject,
+            scratch,
+            profile,
+            &format!("{posture}-presentation-{name}"),
+            source,
+            expected,
+        )?;
+        let name = format!("{posture}-presentation-{name}-wasm");
+        let output = cargo(
+            subject,
+            profile,
+            scratch,
+            &name,
+            &[
+                "check",
+                "-j1",
+                "--locked",
+                "--offline",
+                "--target",
+                "wasm32-unknown-unknown",
+            ],
+        )?;
+        surface_result(&name, &output, expected)?;
     }
     Ok(())
 }
@@ -576,7 +633,7 @@ fn surface(
     source: &str,
     expected: Option<&str>,
 ) -> Result<(), String> {
-    std::fs::write(subject.join("main.rs"), source).map_err(|error| error.to_string())?;
+    write_subject(subject, scratch, name, source)?;
     let output = cargo(
         subject,
         profile,
@@ -584,6 +641,14 @@ fn surface(
         name,
         &["check", "-j1", "--locked", "--offline"],
     )?;
+    surface_result(name, &output, expected)
+}
+
+fn surface_result(
+    name: &str,
+    output: &std::process::Output,
+    expected: Option<&str>,
+) -> Result<(), String> {
     let stderr = String::from_utf8_lossy(&output.stderr);
     match expected {
         None if output.status.success() => Ok(()),
@@ -595,8 +660,12 @@ fn surface(
 }
 
 fn observe_native(subject: &Path, scratch: &Path, strict: &Path) -> Result<(), String> {
-    std::fs::write(subject.join("main.rs"), include_str!("subject.rs"))
-        .map_err(|error| error.to_string())?;
+    write_subject(
+        subject,
+        scratch,
+        "native-execution",
+        include_str!("subject.rs"),
+    )?;
     for (name, arguments) in [
         ("consumer-run", vec!["run", "-j1", "--locked", "--offline"]),
         (
@@ -620,4 +689,27 @@ fn observe_native(subject: &Path, scratch: &Path, strict: &Path) -> Result<(), S
         }
     }
     Ok(())
+}
+
+fn write_subject(subject: &Path, scratch: &Path, name: &str, source: &str) -> Result<(), String> {
+    let invocation = scratch
+        .file_name()
+        .and_then(|value| value.to_str())
+        .ok_or("consumer invocation name absent")?;
+    let filename = format!("{invocation}-{name}.rs");
+    let manifest_path = subject.join("Cargo.toml");
+    let manifest = std::fs::read_to_string(&manifest_path).map_err(|error| error.to_string())?;
+    let paths = manifest
+        .lines()
+        .filter(|line| line.starts_with("path = "))
+        .collect::<Vec<_>>();
+    let [previous] = paths.as_slice() else {
+        return Err("consumer manifest must declare one source path".to_owned());
+    };
+    std::fs::write(subject.join(&filename), source).map_err(|error| error.to_string())?;
+    std::fs::write(
+        manifest_path,
+        manifest.replace(*previous, &format!("path = \"{filename}\"")),
+    )
+    .map_err(|error| error.to_string())
 }

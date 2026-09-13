@@ -71,6 +71,8 @@ fn actual_target_profile_exposes_the_tools_that_execute_coverage() -> Result<(),
     }
     let legacy = super::configure::ready(&run, &host, &executable, "unexecuted-legacy", bounds()?)?;
     assert_eq!(ready.standing(), legacy.ready().standing());
+    super::presentation::readiness(&coverage, Some(&host.triple))?;
+    super::presentation::readiness(&legacy, None)?;
     let mut corpus = coverage.corpus();
     let first = native_coverage::observe(&coverage, &mut corpus, &[1, 2, 3]).map_err(debug)?;
     assert_eq!(first.execution(), FuzzExecution::Success);

@@ -81,6 +81,14 @@ fn console_roster_source_movement_and_infrastructure_failures_refuse() -> Result
             _ => false,
         };
         assert!(matched, "{expected}: {error:?}");
+        super::presentation::observation_failure(
+            &output,
+            match *expected {
+                "source" => "sources",
+                "limit" | "deadline" => "process",
+                other => other,
+            },
+        )?;
     }
     Ok(())
 }
@@ -100,6 +108,11 @@ fn unsupported_backend_version_refuses_before_source_or_mutation_execution() -> 
         |_| None,
         |_, _| None,
     );
+    super::presentation::query(
+        result.as_ref().err().ok_or("missing refusal")?,
+        "backend-version",
+        "finished",
+    )?;
     assert!(matches!(
         result,
         Err(MutationError::Query {

@@ -34,11 +34,13 @@ fn rustc_compilation_read_back_and_exact_refusal_keep_independent_expectations()
     );
     assert_eq!(output.executable(), Some(artifact.as_path()));
     assert_eq!(output.cargo_fresh(), None);
+    super::presentation::accepted(&output, None)?;
     read_count(&output, &host, &root)?;
 
     std::fs::write(root.join("fixture.rs"), HOSTILE).map_err(|error| error.to_string())?;
     let refused = finish(native_compiler::compile(&request).map_err(|error| error.to_string())?)?;
     let expected = anchor("E0308", 28)?;
+    super::presentation::refused(&refused)?;
     assert_eq!(
         refused.observed().map(|value| value.refusal()),
         Ok(Some(&expected))
@@ -92,6 +94,13 @@ fn relocated_source_retains_primary_coordinates_and_pending_compilation_is_retry
         else {
             return Err("zero cleanup did not retain compiler custody".to_owned());
         };
+        let shown =
+            super::presentation::parsed(&macroonz::presentation::pending_compilation(&pending))?;
+        assert_eq!(
+            crate::presentation_formats::field(&shown, "/record/state")?,
+            "pending-cleanup"
+        );
+        assert!(shown.pointer("/record/observation").is_none());
         let output = finish(pending.finish(Duration::from_secs(3)))?;
         let expected = anchor("E0308", 28)?;
         assert_eq!(
@@ -131,6 +140,7 @@ fn cargo_reports_selected_artifact_freshness_and_actual_refusals() -> Result<(),
         Ok(CompilationVerdict::Conforms)
     );
     assert_eq!(first.cargo_fresh(), Some(false));
+    super::presentation::accepted(&first, Some(false))?;
     read_count(&first, &host, &root)?;
     let cached = finish(native_compiler::compile(&request).map_err(|error| error.to_string())?)?;
     assert_eq!(
@@ -138,6 +148,7 @@ fn cargo_reports_selected_artifact_freshness_and_actual_refusals() -> Result<(),
         Ok(CompilationVerdict::Conforms)
     );
     assert_eq!(cached.cargo_fresh(), Some(true));
+    super::presentation::accepted(&cached, Some(true))?;
     std::fs::write(root.join("fixture.rs"), HOSTILE).map_err(|error| error.to_string())?;
     let refused = finish(native_compiler::compile(&request).map_err(|error| error.to_string())?)?;
     let expected = anchor("E0308", 28)?;
@@ -146,6 +157,7 @@ fn cargo_reports_selected_artifact_freshness_and_actual_refusals() -> Result<(),
         Ok(Some(&expected))
     );
     assert_eq!(refused.cargo_fresh(), None);
+    super::presentation::refused(&refused)?;
     assert_eq!(refused.executable(), None);
     Ok(())
 }
@@ -226,10 +238,10 @@ pub(crate) fn read_count(
     let declared = DeclaredBehavior::ReadsBack(
         DeclaredReadBackRoster::declared(&expected).map_err(|error| format!("{error:?}"))?,
     );
-    assert_eq!(
-        native_compiler::compared_read_back(&read, decode_count, &declared),
-        Ok(CompiledVerdict::Conforms)
-    );
+    let verdict = native_compiler::compared_read_back(&read, decode_count, &declared)
+        .map_err(|error| format!("{error:?}"))?;
+    assert_eq!(verdict, CompiledVerdict::Conforms);
+    super::presentation::read_back(&read, &verdict)?;
     let wrong = [DeclaredReadBack {
         name: "count",
         value: ObservedValue::Count(43),

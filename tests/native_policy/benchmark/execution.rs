@@ -4,11 +4,13 @@ use super::{
     declaration,
     specimen::{self, mapped},
 };
+use crate::presentation_formats::{self, field};
 use macroonz::harness::bench::{
     BenchOutcome, BenchRunRefusal, BenchStage, PrimaryWorkPhase, SecondaryObservationRefusal,
     WorkObservationRef, WorkRecorder, WorkRecordingRefusal, bench_verdict, run_all,
 };
 use macroonz::harness::clock::{ClockFailure, ClockReadRefusal, HarnessClock, MeasurementReading};
+use macroonz::presentation;
 
 #[test]
 fn actual_work_control_and_judge_execute_before_secondary_measurements() -> Result<(), String> {
@@ -98,16 +100,33 @@ fn incomplete_primary_recording_publishes_no_report() -> Result<(), String> {
         specimen::judge,
         specimen::preflight,
     )?])?;
+    let refusal = run_all(
+        &table,
+        &declaration::invocation(HarnessClock::unavailable()),
+    )
+    .err()
+    .ok_or("unrecordable work published a report")?;
     assert!(matches!(
-        run_all(
-            &table,
-            &declaration::invocation(HarnessClock::unavailable())
-        ),
-        Err(BenchRunRefusal::WorkNotRecorded {
+        refusal,
+        BenchRunRefusal::WorkNotRecorded {
             phase: PrimaryWorkPhase::Measured,
             ..
-        })
+        }
     ));
+    let shown = presentation::benchmark_refusal(&refusal);
+    presentation_formats::agree(&shown)?;
+    let value = mapped(serde_json::from_str(&shown.json()))?;
+    assert_eq!(field(&value, "/kind")?, "benchmark-run-refusal");
+    assert_eq!(field(&value, "/record/kind")?, "work-not-recorded");
+    assert_eq!(field(&value, "/record/value/phase")?, "measured");
+    assert_eq!(
+        field(&value, "/record/value/refusal/kind")?,
+        "unknown-observation"
+    );
+    assert_eq!(
+        field(&value, "/record/value/refusal/value/stem")?,
+        "undeclared"
+    );
     Ok(())
 }
 
@@ -129,16 +148,28 @@ fn secondary_work_refusal_remains_an_execution_error() -> Result<(), String> {
         specimen::judge,
         specimen::preflight,
     )?])?;
+    let refusal = run_all(
+        &table,
+        &declaration::invocation(HarnessClock::unavailable()),
+    )
+    .err()
+    .ok_or("secondary refusal published a report")?;
     assert!(matches!(
-        run_all(
-            &table,
-            &declaration::invocation(HarnessClock::unavailable())
-        ),
-        Err(BenchRunRefusal::SecondaryWorkRefused {
+        refusal,
+        BenchRunRefusal::SecondaryWorkRefused {
             refusal: SecondaryObservationRefusal::Warmup(_),
             ..
-        })
+        }
     ));
+    let shown = presentation::benchmark_refusal(&refusal);
+    presentation_formats::agree(&shown)?;
+    let value = mapped(serde_json::from_str(&shown.json()))?;
+    assert_eq!(field(&value, "/record/kind")?, "secondary-work-refused");
+    assert_eq!(field(&value, "/record/value/refusal/kind")?, "warmup");
+    assert_eq!(
+        field(&value, "/record/value/refusal/value/kind")?,
+        "unknown-observation"
+    );
     Ok(())
 }
 

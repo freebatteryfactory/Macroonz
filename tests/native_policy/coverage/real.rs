@@ -20,6 +20,7 @@ fn actual_llvm_novelty_and_repeat_inputs_survive_source_relocation() -> Result<(
         let coverage = ready(&directory, &host, &target, "cases", bounds()?)?;
         let mut corpus = coverage.corpus();
         let first = native_coverage::observe(&coverage, &mut corpus, &[0]).map_err(debug)?;
+        super::presentation::result(&first, &[0], 0)?;
         assert_eq!(first.execution(), FuzzExecution::Success);
         assert!(!first.observation().points().is_empty());
         let points = first.observation().points().to_vec();
@@ -27,18 +28,27 @@ fn actual_llvm_novelty_and_repeat_inputs_survive_source_relocation() -> Result<(
             assert_eq!(previous, &points);
         }
         previous = Some(points);
-        assert!(matches!(
-            corpus.admit(first),
-            Ok(CoverageAdmission::Interesting(_))
-        ));
+        let first_admission = corpus.admit(first).map_err(debug)?;
+        super::presentation::interesting(&first_admission, &[0])?;
         let expanded =
             native_coverage::observe(&coverage, &mut corpus, &[1, 2, 3]).map_err(debug)?;
+        super::presentation::result(&expanded, &[1, 2, 3], 1)?;
         assert!(matches!(
             corpus.admit(expanded),
             Ok(CoverageAdmission::Interesting(_))
         ));
         let repeated = native_coverage::observe(&coverage, &mut corpus, &[0]).map_err(debug)?;
-        assert_eq!(corpus.admit(repeated), Ok(CoverageAdmission::Known));
+        super::presentation::result(&repeated, &[0], 2)?;
+        let admission = corpus.admit(repeated).map_err(debug)?;
+        assert_eq!(admission, CoverageAdmission::Known);
+        let shown = crate::presentation_formats::parsed(
+            &macroonz::presentation::coverage_admission(&admission),
+        )?;
+        assert_eq!(
+            crate::presentation_formats::field(&shown, "/record")?,
+            &serde_json::json!({"kind":"known","value":null})
+        );
+        super::presentation::frontier(&corpus, 3, &[&[0], &[1, 2, 3]])?;
         assert_eq!(corpus.attempted_cases(), 3);
         assert_eq!(corpus.interesting().len(), 2);
         assert_eq!(
@@ -67,6 +77,8 @@ fn an_uninstrumented_target_cannot_supply_a_successful_coverage_observation() ->
         CoverageHostFailure::Refused(RustcProfileRefusal::MissingProfile)
     ));
     assert!(corpus.interesting().is_empty());
+    super::presentation::failure(&failure, "missing-profile")?;
+    super::presentation::frontier(&corpus, 1, &[])?;
     assert_eq!(corpus.attempted_cases(), 1);
     assert_eq!(
         std::fs::read_dir(run.join("cases")).map_err(debug)?.count(),
@@ -102,6 +114,8 @@ fn pending_native_cleanup_keeps_case_input_until_the_child_owner_finishes() -> R
             return Err(format!("unexpected failure: {failure}"));
         }
     };
+    let pending = super::presentation::cleanup(&failure, "pending-cleanup")?;
+    let snapshot = pending.json();
     assert_eq!(
         std::fs::read(directory.join("candidate.bin")).map_err(debug)?,
         [0]
@@ -111,6 +125,9 @@ fn pending_native_cleanup_keeps_case_input_until_the_child_owner_finishes() -> R
         matches!(finished.cause(), CoverageHostFailure::Executor { error: NativeCoverageProcessError::Execution { run: process_run, .. }, cleanup: None, .. } if matches!(process_run.as_ref(), ProcessRun::Finished(_)))
     );
     assert_eq!(finished.cleanup_error(), None);
+    let completed = super::presentation::cleanup(&finished, "finished")?;
+    assert_ne!(completed.json(), snapshot);
+    assert_eq!(pending.json(), snapshot);
     assert!(!directory.exists());
     assert_eq!(corpus.attempted_cases(), 1);
     assert!(corpus.interesting().is_empty());

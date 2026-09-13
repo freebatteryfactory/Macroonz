@@ -1,6 +1,7 @@
-use super::example::{report, run};
+use super::example::{executable_path, files, report, run};
 use crate::compiler::configure::{bounds, host, root, spelling, target, tool};
 use crate::compiler::types::Host;
+use crate::presentation_formats::field;
 use macroonz::native_process::{self, ProcessLimits};
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
@@ -35,37 +36,38 @@ fn fresh_adopter_runs_the_command_through_renamed_and_reexported_facade_paths() 
             *configuration.get_mut("action").ok_or("action absent")? = json!(action);
             let observed = report(&run(&source, &host, &executable, &configuration)?, 0)?;
             assert_eq!(
-                prepared.pointer("/files/0/canonical_digest"),
-                observed.pointer("/files/0/canonical_digest")
+                field(files(&prepared)?, "/0/canonical_digest")?,
+                field(files(&observed)?, "/0/canonical_digest")?
             );
             if let Some(first_files) = &first_files {
-                assert_eq!(observed.get("files"), Some(first_files));
+                assert_eq!(files(&observed)?, first_files);
             } else {
-                first_files = observed.get("files").cloned();
+                first_files = Some(files(&observed)?.clone());
             }
             if action == "generate" {
                 read_back(&source, &host, &observed)?;
             }
             if action == "check" {
-                assert_eq!(observed.get("current"), Some(&json!(true)));
+                assert_eq!(
+                    field(&observed, "/record/value/comparison/is_current")?,
+                    &json!(true)
+                );
             }
         }
     }
     let before = super::destination_fixture::snapshot(&destination)?;
     *configuration.get_mut("value").ok_or("value absent")? = json!(43_u64);
     let stale = report(&run(&source, &host, &executable, &configuration)?, 1)?;
-    assert_eq!(stale.pointer("/issues/0/problem"), Some(&json!("Stale")));
+    assert_eq!(
+        field(&stale, "/record/value/comparison/issues/0/problem")?,
+        &json!("stale")
+    );
     assert_eq!(super::destination_fixture::snapshot(&destination)?, before);
     Ok(())
 }
 
 fn read_back(source: &Path, host: &Host, observed: &Value) -> Result<(), String> {
-    let executable = PathBuf::from(
-        observed
-            .get("executable")
-            .and_then(Value::as_str)
-            .ok_or("compiled executable absent")?,
-    );
+    let executable = executable_path(observed)?;
     let request = tool(host, &executable, source, bounds()?)?
         .invocation(Vec::new())
         .map_err(|error| error.to_string())?;
@@ -94,7 +96,7 @@ fn build(source: &Path, host: &Host) -> Result<PathBuf, String> {
     let repository = serde_json::to_string(&spelling(Path::new(env!("CARGO_MANIFEST_DIR")))?)
         .map_err(|error| error.to_string())?;
     std::fs::write(bridge.join("Cargo.toml"), format!("[package]\nname = \"publication-bridge-{suffix}\"\nversion = \"0.0.0\"\nedition = \"2024\"\nbuild = false\n[lib]\npath = \"lib.rs\"\n[dependencies]\nbakery = {{ package = \"macroonz\", path = {repository}, default-features = false, features = [\"native-tooling\"] }}\n[workspace]\n")).map_err(|error| error.to_string())?;
-    std::fs::write(bridge.join("lib.rs"), "#![deny(warnings)]\n#![forbid(unsafe_code)]\npub use bakery::{compiler, harness, native_compiler, native_process, native_publication};\n").map_err(|error| error.to_string())?;
+    std::fs::write(bridge.join("lib.rs"), "#![deny(warnings)]\n#![forbid(unsafe_code)]\npub use bakery::{compiler, harness, native_compiler, native_process, native_publication, presentation};\n").map_err(|error| error.to_string())?;
     std::fs::write(consumer.join("Cargo.toml"), format!("[package]\nname = \"{name}\"\nversion = \"0.0.0\"\nedition = \"2024\"\nbuild = false\n[[bin]]\nname = \"{name}\"\npath = \"examples/publication_workflow/main.rs\"\n[lints.rust]\nwarnings = \"deny\"\nunsafe_code = \"forbid\"\n[dependencies]\nfacade_bridge = {{ package = \"publication-bridge-{suffix}\", path = \"../bridge\" }}\nserde_json = {{ version = \"=1.0.151\", default-features = false, features = [\"alloc\"] }}\n[workspace]\n")).map_err(|error| error.to_string())?;
     std::fs::copy(
         Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.lock"),

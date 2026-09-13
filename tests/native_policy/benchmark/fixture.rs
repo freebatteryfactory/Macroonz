@@ -1,9 +1,14 @@
 //! Instrumented public example calls and independently damaged preflight.
 
-use super::specimen;
-use macroonz::harness::bench::{
-    WorkJudgment, WorkJudgmentInput, WorkRecorder, WorkRecordingRefusal,
+use super::{
+    declaration,
+    specimen::{self, mapped},
 };
+use macroonz::harness::bench::{
+    BenchReport, WorkConclusion, WorkGapStanding, WorkJudgment, WorkJudgmentInput, WorkRecorder,
+    WorkRecordingRefusal, run_all,
+};
+use macroonz::harness::clock::HarnessClock;
 use macroonz::harness::properties::{Holding, concluded};
 use macroonz::harness::report::{FailureClass, FindingCause, TrialConclusion};
 use macroonz::harness::runner::Invocation;
@@ -49,4 +54,50 @@ pub(super) fn refused_preflight(_invocation: &Invocation) -> TrialConclusion {
         FailureClass::PropertyDisagreement,
         FindingCause::named("outside.benchmark", "wrong-answer"),
     )
+}
+
+fn incomplete_work(_size: u64, recorder: &mut WorkRecorder) -> Result<(), WorkRecordingRefusal> {
+    recorder.record(specimen::observation()?, 0)
+}
+fn multiple_failures(_input: &WorkJudgmentInput<'_>) -> WorkJudgment {
+    WorkJudgment::stated(
+        WorkConclusion::Refused(FindingCause::named("outside.benchmark", "wrong-measured")),
+        WorkConclusion::Satisfied,
+        WorkGapStanding::NotDistinguished(FindingCause::named("outside.benchmark", "missing-gap")),
+    )
+}
+
+pub(super) fn report(clock: HarnessClock) -> Result<BenchReport, String> {
+    let table = declaration::table(vec![
+        declaration::binding("lawful", measured, worse, judge, preflight)?,
+        declaration::binding(
+            "preflight",
+            specimen::measured,
+            specimen::worse,
+            specimen::judge,
+            refused_preflight,
+        )?,
+        declaration::binding(
+            "inactive-control",
+            specimen::measured,
+            specimen::measured,
+            specimen::judge,
+            specimen::preflight,
+        )?,
+        declaration::binding(
+            "primary-refusal",
+            incomplete_work,
+            specimen::worse,
+            specimen::judge,
+            specimen::preflight,
+        )?,
+        declaration::binding(
+            "multiple-axes",
+            specimen::measured,
+            specimen::worse,
+            multiple_failures,
+            specimen::preflight,
+        )?,
+    ])?;
+    mapped(run_all(&table, &declaration::invocation(clock)))
 }

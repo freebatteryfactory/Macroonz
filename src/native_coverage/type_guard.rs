@@ -1,8 +1,21 @@
 use super::{NativeCoverage, NativeCoverageFailure, NativeCoverageProcessError};
 use crate::harness::fuzz::{CoverageCorpus, CoverageHostFailure, ReadyPreflight};
+use crate::native_process::{ProcessLimits, ProcessTool};
 use std::time::Duration;
 
 impl NativeCoverage {
+    /// The explicit process policy used for compiler and LLVM operations.
+    #[must_use]
+    pub const fn tool(&self) -> &ProcessTool {
+        &self.tool
+    }
+
+    /// The separately declared target execution and cleanup limits.
+    #[must_use]
+    pub const fn target_limits(&self) -> ProcessLimits {
+        self.target_limits
+    }
+
     /// The readiness and campaign standing established through bounded tool execution.
     #[must_use]
     pub const fn ready(&self) -> &ReadyPreflight {

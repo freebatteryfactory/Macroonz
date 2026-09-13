@@ -46,8 +46,33 @@ fn rustc_dependencies_report_included_sources_and_keep_execution_time_bytes() ->
     );
     assert!(!info.files().contains(&root.join("unused.rs")));
     let original = info.bytes().to_vec();
+    let before = macroonz::presentation::native_compilation(&output);
     std::fs::write(dependency, b"changed after execution\n").map_err(|error| error.to_string())?;
     assert_eq!(info.bytes(), original);
+    let after = macroonz::presentation::native_compilation(&output);
+    assert_eq!(
+        before, after,
+        "presentation must not read changed disk bytes"
+    );
+    let shown = super::presentation::parsed(&after)?;
+    assert_eq!(
+        crate::presentation_formats::field(&shown, "/record/dependencies/kind")?,
+        "observed"
+    );
+    let files = crate::presentation_formats::field(&shown, "/record/dependencies/value/files")?
+        .as_array()
+        .ok_or("missing dependency files")?;
+    assert_eq!(files.len(), 2);
+    assert_eq!(
+        files
+            .iter()
+            .filter_map(|file| file.get("shown").and_then(serde_json::Value::as_str))
+            .collect::<Vec<_>>(),
+        vec![
+            spelling(&root.join("fixture.rs"))?,
+            spelling(&root.join("owned file.rs"))?
+        ]
+    );
     Ok(())
 }
 
@@ -165,6 +190,16 @@ fn dependency_capture_refuses_foreign_ambiguous_incomplete_and_oversized_rules()
             output
                 .observed()
                 .is_ok_and(|observed| observed.refusal().is_none())
+        );
+        let shown =
+            super::presentation::parsed(&macroonz::presentation::native_compilation(&output))?;
+        assert_eq!(
+            crate::presentation_formats::field(&shown, "/record/observation/value/kind")?,
+            "compiled"
+        );
+        assert_eq!(
+            crate::presentation_formats::field(&shown, "/record/dependencies/kind")?,
+            "refused"
         );
     }
     Ok(())

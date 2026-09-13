@@ -3,7 +3,9 @@ use super::configure::publication;
 use super::destination_fixture::snapshot;
 use super::install_fixture::{destination, installed, subject};
 use crate::compiler::configure::{bounds, host, root};
+use crate::presentation_formats::{field, parsed};
 use macroonz::native_publication::{BakeCause, BakeCommand, BakeOutput, DestinationError, bake};
+use macroonz::presentation::{bake_error, bake_output};
 
 #[test]
 fn pending_formatter_query_retains_command_custody_until_cleanup() -> Result<(), String> {
@@ -28,6 +30,14 @@ fn pending_formatter_query_retains_command_custody_until_cleanup() -> Result<(),
     .err()
     .ok_or("query cleanup was not retained")?;
     assert!(pending.is_pending());
+    let shown = parsed(&bake_error(&pending))?;
+    assert_eq!(field(&shown, "/record/pending_cleanup")?, true);
+    assert_eq!(field(&shown, "/record/cause/kind")?, "formatter");
+    assert_eq!(field(&shown, "/record/cause/value/kind")?, "query");
+    assert_eq!(
+        field(&shown, "/record/cause/value/value/process/state")?,
+        "pending-cleanup"
+    );
     assert!(
         matches!(pending.cause(), BakeCause::Formatter(macroonz::native_publication::FormatError::Query { run, .. })
         if matches!(run.as_ref(), macroonz::native_process::ProcessRun::Pending(_)))
@@ -41,6 +51,13 @@ fn pending_formatter_query_retains_command_custody_until_cleanup() -> Result<(),
     ));
     let finished = pending.finish_cleanup(std::time::Duration::from_secs(5));
     assert!(!finished.is_pending());
+    let completed = parsed(&bake_error(&finished))?;
+    assert_eq!(field(&completed, "/record/pending_cleanup")?, false);
+    assert_eq!(
+        field(&completed, "/record/cause/value/value/process/state")?,
+        "finished"
+    );
+    assert_eq!(field(&shown, "/record/pending_cleanup")?, true);
     assert!(
         matches!(finished.cause(), BakeCause::Formatter(macroonz::native_publication::FormatError::Query { run, .. })
         if matches!(run.as_ref(), macroonz::native_process::ProcessRun::Finished(_)))
@@ -145,6 +162,10 @@ fn recovery_uses_retained_intent_without_calling_generation() -> Result<(), Stri
     })
     .map_err(|error| error.to_string())?;
     assert!(matches!(result, BakeOutput::Recovered));
+    let shown = parsed(&bake_output(&result))?;
+    assert_eq!(field(&shown, "/standing")?, "historical-unauthenticated");
+    assert_eq!(field(&shown, "/record/kind")?, "recovered");
+    assert_eq!(field(&shown, "/record/value")?, &serde_json::Value::Null);
     assert!(!called.get());
     installed(&output, compiled.prepared())
 }

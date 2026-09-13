@@ -7,6 +7,8 @@ Unexpected policy shape refuses preparation.
 The explicitly selected wall checks compiler, proc and harness packages strictly, checks every ordinary root feature posture strictly, and checks the native root posture with the derived profile.
 All selections use the same source checkout.
 Nested Cargo commands use the parent test's target directory so a fresh compiler subject does not create a separate dependency cache.
+Each consumer question has a distinct source filename within its invocation, and its manifest selects that file for both host and Wasm checks.
+The source path participates in Cargo's compilation fingerprint, keeping distinct questions separate while dependencies share the ordinary target.
 Independent disposable compiler subjects distinguish clock permission from still-forbidden environment and SystemTime operations.
 The relaxed pass alone is insufficient.
 Switching the independent clock subject from strict to native and back leaves its source and target untouched, so the final refusal cannot depend on rewriting its source to force a rebuild.
@@ -40,6 +42,11 @@ Benchmark controls execute the public example's actual counted work and repeated
 Complete report storage preserves refused rows, simultaneous judgment failures, and unavailable, zero or failed secondary readings.
 Loading does not call executable attachments, and bounded write refusal, collision, recovery and corruption remain independent of benchmark conclusions.
 The example's declaration and subject are shared caller material; expected stages, counts and damage controls are separately authored in the lane.
+
+Presentation controls independently read every JSON node and both escaped tables, retaining empty containers, unselected rows, failures, source bytes and historical standing.
+The public trial example executes selection, the complete table and a real disagreement in a fresh process; its emitted formats are read against independently stated outcomes.
+Independent consumer manifests check the presentation entrance, opaque value and native-only readers on the current target and Wasm.
+The publication example and renamed facade adopter display actual command outputs and failures while preserving process exit status, generated executable read-back and destination custody.
 
 This is repository qualification through an existing package test target.
 Derived configuration and compiler subjects remain disposable under target/qualification.

@@ -36,7 +36,9 @@ The [compiler example](../compiler_workflow/README.md) describes the native tool
 `check` returns a nonzero exit status for missing, stale, tampered or extra owned files and prints every reported discrepancy.
 It performs no destination writes; optional formatter scratch writes remain in the separate workspace.
 `generate` actually compiles before installation, preserves authored neighbors and refuses unowned collisions or tampered owned files.
-It exposes canonical and physical digests separately in its JSON report.
+Command results are printed through `macroonz::presentation::bake_output`; command errors use `bake_error` after the explicit cleanup retry.
+The [publication presentation owner](../../src/presentation/native/publication/README.md) defines the common envelope and the distinct canonical and physical fields.
+These projections can also produce Markdown or HTML through the same value's methods, as the [trial example](../trial_workflow/README.md) demonstrates.
 Repeated identical declarations may reuse exactly compared staged source, but still invoke the compiler.
 
 Input configuration is bounded to 64 KiB, generated output to one file and 64 KiB, and staged source to two files and 64 KiB.

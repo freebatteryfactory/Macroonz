@@ -1,22 +1,13 @@
 //! Retention keeps the whole benchmark denominator and each independent failure axis.
 
-use super::{
-    declaration,
-    specimen::{self, mapped},
-};
+use super::{fixture::report, specimen::mapped};
 use macroonz::harness::bench::archive::{
     ArchivedBenchOutcome, ArchivedWorkConclusion, ArchivedWorkGap, BenchArchiveLimits,
     BenchArchiveRefusal, retain_report,
 };
-use macroonz::harness::bench::{
-    BenchReport, BenchStage, WorkConclusion, WorkGapStanding, WorkJudgment, WorkJudgmentInput,
-    WorkRecorder, WorkRecordingRefusal, bench_verdict, run_all,
-};
+use macroonz::harness::bench::{BenchStage, bench_verdict};
 use macroonz::harness::clock::{ClockAttribution, ClockReadRefusal, HarnessClock};
-use macroonz::harness::report::{
-    FindingCause,
-    archive::{ArchiveLimits, ArchiveRefusal, ArchivedMeasurement},
-};
+use macroonz::harness::report::archive::{ArchiveLimits, ArchiveRefusal, ArchivedMeasurement};
 use macroonz::native_storage::{
     StorageArtifact, StorageBatch, StorageError, StorageLimits, StorageName, StorageRoot,
     StorageTransaction,
@@ -39,58 +30,6 @@ fn observe(action: impl FnOnce(&StorageRoot, &Path) -> Result<(), String>) -> Re
     drop(root);
     let cleanup = std::fs::remove_dir_all(path).map_err(|error| error.to_string());
     result.and(cleanup)
-}
-
-fn incomplete_work(_size: u64, recorder: &mut WorkRecorder) -> Result<(), WorkRecordingRefusal> {
-    recorder.record(specimen::observation()?, 0)
-}
-fn multiple_failures(_input: &WorkJudgmentInput<'_>) -> WorkJudgment {
-    WorkJudgment::stated(
-        WorkConclusion::Refused(FindingCause::named("outside.benchmark", "wrong-measured")),
-        WorkConclusion::Satisfied,
-        WorkGapStanding::NotDistinguished(FindingCause::named("outside.benchmark", "missing-gap")),
-    )
-}
-
-fn report(clock: HarnessClock) -> Result<BenchReport, String> {
-    let table = declaration::table(vec![
-        declaration::binding(
-            "lawful",
-            super::fixture::measured,
-            super::fixture::worse,
-            super::fixture::judge,
-            super::fixture::preflight,
-        )?,
-        declaration::binding(
-            "preflight",
-            specimen::measured,
-            specimen::worse,
-            specimen::judge,
-            super::fixture::refused_preflight,
-        )?,
-        declaration::binding(
-            "inactive-control",
-            specimen::measured,
-            specimen::measured,
-            specimen::judge,
-            specimen::preflight,
-        )?,
-        declaration::binding(
-            "primary-refusal",
-            incomplete_work,
-            specimen::worse,
-            specimen::judge,
-            specimen::preflight,
-        )?,
-        declaration::binding(
-            "multiple-axes",
-            specimen::measured,
-            specimen::worse,
-            multiple_failures,
-            specimen::preflight,
-        )?,
-    ])?;
-    mapped(run_all(&table, &declaration::invocation(clock)))
 }
 
 #[test]
@@ -250,8 +189,25 @@ fn bounds_refuse_before_reservation_and_collision_preserves_the_report() -> Resu
                 ..LIMITS
             },
         ];
-        for limits in cases {
-            assert!(benchmark::retain(&report, root, &key, limits).is_err());
+        for (limits, (owner, cause)) in cases.into_iter().zip([
+            ("storage", "artifact-bound"),
+            ("storage", "byte-bound"),
+            ("archive", "too-many-rows"),
+        ]) {
+            let refusal = benchmark::retain(&report, root, &key, limits)
+                .err()
+                .ok_or("bounded retention succeeded")?;
+            let shown = crate::presentation_formats::parsed(
+                &macroonz::presentation::benchmark_retention_refusal(&refusal),
+            )?;
+            assert_eq!(
+                crate::presentation_formats::field(&shown, "/record/kind")?,
+                owner
+            );
+            assert_eq!(
+                crate::presentation_formats::field(&shown, "/record/value/kind")?,
+                cause
+            );
             assert!(!path.join("item-bounded").exists());
         }
         mapped(benchmark::retain(&report, root, &key, LIMITS))?;
@@ -295,12 +251,22 @@ fn partial_retention_requires_explicit_recovery_and_corruption_refuses_loading()
         *bytes.last_mut().ok_or("empty archive")? ^= 1;
         std::fs::write(path.join("item-interrupted/item-benchmark"), bytes)
             .map_err(|error| error.to_string())?;
+        let corruption = benchmark::load(root, &key, LIMITS)
+            .err()
+            .ok_or("corrupt benchmark loaded")?;
         assert!(matches!(
-            benchmark::load(root, &key, LIMITS),
-            Err(RetentionRefusal::Archive(BenchArchiveRefusal::Canonical(
+            &corruption,
+            RetentionRefusal::Archive(BenchArchiveRefusal::Canonical(
                 ArchiveRefusal::AddressMismatch
-            )))
+            ))
         ));
+        let corruption_display = crate::presentation_formats::parsed(
+            &macroonz::presentation::benchmark_retention_refusal(&corruption),
+        )?;
+        assert_eq!(
+            crate::presentation_formats::field(&corruption_display, "/record/value/value/kind")?,
+            "address-mismatch"
+        );
         Ok(())
     })
 }

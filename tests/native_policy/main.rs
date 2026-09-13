@@ -25,6 +25,28 @@ mod inventory;
 #[cfg(all(feature = "native-tooling", any(unix, windows)))]
 mod ownership;
 mod probes;
+#[cfg(feature = "harness")]
+mod presentation_diagnostic;
+#[cfg(feature = "harness")]
+mod presentation_coverage;
+#[cfg(feature = "harness")]
+mod presentation_corpus;
+#[cfg(feature = "harness")]
+mod presentation_network;
+#[cfg(feature = "harness")]
+mod presentation_formats;
+#[cfg(feature = "harness")]
+mod presentation_example;
+#[cfg(feature = "harness")]
+mod presentation_interpreted;
+#[cfg(feature = "harness")]
+mod presentation_mutation;
+#[cfg(feature = "harness")]
+mod presentation_oracle;
+#[cfg(feature = "harness")]
+mod presentation_parity;
+#[cfg(all(feature = "native-tooling", any(unix, windows)))]
+mod presentation_storage;
 #[cfg(feature = "native-tooling")]
 mod publication;
 #[cfg(all(

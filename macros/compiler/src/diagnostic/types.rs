@@ -353,6 +353,9 @@ pub struct Diagnostic {
 /// The seats one diagnostic carries behind its pointer.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct DiagnosticSeats {
+    family: Family,
+    class: RefusalClass,
+    body: LineBody,
     summary: String,
     expected: Identity<Contract>,
     related: RelatedSet,
@@ -362,6 +365,9 @@ struct DiagnosticSeats {
 
 /// The informed values the projection operation hands to the invariant nucleus for one diagnostic.
 pub(super) struct DiagnosticProjection {
+    pub(super) family: Family,
+    pub(super) class: RefusalClass,
+    pub(super) body: LineBody,
     pub(super) phase: Phase,
     pub(super) site: Site,
     pub(super) observed: Observed,

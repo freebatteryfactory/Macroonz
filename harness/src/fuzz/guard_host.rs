@@ -113,15 +113,21 @@ impl InstrumentedTarget {
         Ok(target)
     }
 
-    pub(crate) const fn triple(&self) -> Option<&TargetTriple> {
+    /// The explicit execution target, or absence selecting the compiler host.
+    #[must_use]
+    pub const fn triple(&self) -> Option<&TargetTriple> {
         self.triple.as_ref()
     }
 
-    pub(crate) fn executable(&self) -> &Path {
+    /// The declared instrumented executable.
+    #[must_use]
+    pub fn executable(&self) -> &Path {
         &self.executable
     }
 
-    pub(crate) fn arguments(&self) -> &[String] {
+    /// The target arguments in declared order.
+    #[must_use]
+    pub fn arguments(&self) -> &[String] {
         &self.arguments
     }
 }
@@ -186,20 +192,38 @@ impl RustcProfileRequest {
         &self.rustc
     }
 
-    pub(crate) const fn target(&self) -> &InstrumentedTarget {
+    /// The declared instrumented target and execution selection.
+    #[must_use]
+    pub const fn target(&self) -> &InstrumentedTarget {
         &self.target
     }
 
-    pub(crate) const fn source_roots(&self) -> &CoverageSourceRoots {
+    /// The source-root declarations before preflight canonicalization.
+    #[must_use]
+    pub const fn source_roots(&self) -> &CoverageSourceRoots {
         &self.source_roots
     }
 
-    pub(crate) const fn campaign(&self) -> CoverageCampaign {
+    /// The declared semantic and resource standing.
+    #[must_use]
+    pub const fn campaign(&self) -> CoverageCampaign {
         self.campaign
+    }
+
+    /// The declared parent directory for disposable case files.
+    #[must_use]
+    pub fn scratch(&self) -> &Path {
+        &self.scratch
     }
 }
 
 impl ReadyPreflight {
+    /// The original request retained beside the established preflight facts.
+    #[must_use]
+    pub const fn request(&self) -> &RustcProfileRequest {
+        &self.request
+    }
+
     pub(crate) const fn target(&self) -> &InstrumentedTarget {
         &self.request.target
     }

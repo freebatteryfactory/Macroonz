@@ -1,6 +1,7 @@
 use super::destination_fixture::snapshot;
 use crate::compiler::configure::{bounds, host, root, spelling, target, tool};
 use crate::compiler::types::Host;
+use crate::presentation_formats::field;
 use macroonz::native_process::{self, ProcessLimits, ProcessOutput};
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
@@ -34,26 +35,21 @@ fn executable_publication_example_generates_and_checks_in_fresh_processes() -> R
     *configuration.get_mut("action").ok_or("action absent")? = json!("inspect");
     let inspected = report(&run(&source, &host, &executable, &configuration)?, 0)?;
     assert_eq!(
-        prepared.pointer("/files/0/canonical_digest"),
-        inspected.pointer("/files/0/canonical_digest")
+        field(files(&prepared)?, "/0/canonical_digest")?,
+        field(files(&inspected)?, "/0/canonical_digest")?
     );
     let before = snapshot(&destination)?;
     *configuration.get_mut("action").ok_or("action absent")? = json!("check");
     let missing = report(&run(&source, &host, &executable, &configuration)?, 1)?;
     assert_eq!(
-        missing.pointer("/issues/0/problem"),
-        Some(&json!("Missing"))
+        field(&missing, "/record/value/comparison/issues/0/problem")?,
+        &json!("missing")
     );
     assert_eq!(snapshot(&destination)?, before);
     *configuration.get_mut("action").ok_or("action absent")? = json!("generate");
     let generated = report(&run(&source, &host, &executable, &configuration)?, 0)?;
-    assert_eq!(generated.get("files"), inspected.get("files"));
-    let binary = PathBuf::from(
-        generated
-            .get("executable")
-            .and_then(Value::as_str)
-            .ok_or("executable absent")?,
-    );
+    assert_eq!(files(&generated)?, files(&inspected)?);
+    let binary = executable_path(&generated)?;
     let request = tool(&host, &binary, &source, bounds()?)?
         .invocation(Vec::new())
         .map_err(|error| error.to_string())?;
@@ -65,10 +61,16 @@ fn executable_publication_example_generates_and_checks_in_fresh_processes() -> R
     *configuration.get_mut("action").ok_or("action absent")? = json!("check");
     let installed = snapshot(&destination)?;
     let current = report(&run(&source, &host, &executable, &configuration)?, 0)?;
-    assert_eq!(current.get("current"), Some(&json!(true)));
+    assert_eq!(
+        field(&current, "/record/value/comparison/is_current")?,
+        &json!(true)
+    );
     *configuration.get_mut("value").ok_or("value absent")? = json!(43_u64);
     let stale = report(&run(&source, &host, &executable, &configuration)?, 1)?;
-    assert_eq!(stale.pointer("/issues/0/problem"), Some(&json!("Stale")));
+    assert_eq!(
+        field(&stale, "/record/value/comparison/issues/0/problem")?,
+        &json!("stale")
+    );
     assert_eq!(snapshot(&destination)?, installed);
     std::fs::write(
         destination.join("value.rs"),
@@ -78,15 +80,38 @@ fn executable_publication_example_generates_and_checks_in_fresh_processes() -> R
     *configuration.get_mut("value").ok_or("value absent")? = json!(42_u64);
     let tampered = report(&run(&source, &host, &executable, &configuration)?, 1)?;
     assert_eq!(
-        tampered.pointer("/issues/0/problem"),
-        Some(&json!("Tampered"))
+        field(&tampered, "/record/value/comparison/issues/0/problem")?,
+        &json!("tampered")
     );
     let damaged = snapshot(&destination)?;
     *configuration.get_mut("action").ok_or("action absent")? = json!("generate");
     let refused = run(&source, &host, &executable, &configuration)?;
-    assert!(!refused.status().success());
+    let refusal = report(&refused, 1)?;
+    assert_eq!(field(&refusal, "/kind")?, &json!("bake-error"));
+    assert_eq!(
+        field(&refusal, "/record/cause/kind")?,
+        &json!("destination")
+    );
+    assert_eq!(field(&refusal, "/record/pending_cleanup")?, &json!(false));
     assert_eq!(snapshot(&destination)?, damaged);
     Ok(())
+}
+
+pub(super) fn files(report: &Value) -> Result<&Value, String> {
+    let path = match field(report, "/record/kind")?.as_str() {
+        Some("declared" | "prepared") => "/record/value/files",
+        Some("checked" | "generated") => "/record/value/prepared/files",
+        other => return Err(format!("no publication files in {other:?}")),
+    };
+    field(report, path)
+}
+
+pub(super) fn executable_path(report: &Value) -> Result<PathBuf, String> {
+    let path = field(report, "/record/value/compiler/executable")?;
+    assert_eq!(field(path, "/fidelity")?, &json!("unicode"));
+    Ok(PathBuf::from(
+        field(path, "/shown")?.as_str().ok_or("executable absent")?,
+    ))
 }
 
 pub(super) fn report(output: &ProcessOutput, exit_code: i32) -> Result<Value, String> {
@@ -96,12 +121,21 @@ pub(super) fn report(output: &ProcessOutput, exit_code: i32) -> Result<Value, St
         "{}",
         String::from_utf8_lossy(output.stderr().bytes())
     );
-    serde_json::from_slice(output.stdout().bytes()).map_err(|error| {
+    let value: Value = serde_json::from_slice(output.stdout().bytes()).map_err(|error| {
         format!(
             "{error}: {}",
             String::from_utf8_lossy(output.stderr().bytes())
         )
-    })
+    })?;
+    assert_eq!(
+        field(&value, "/schema")?,
+        &json!("macroonz-presentation-v1")
+    );
+    assert_eq!(
+        field(&value, "/owner")?,
+        &json!("macroonz/native_publication/command")
+    );
+    Ok(value)
 }
 
 pub(super) fn run(

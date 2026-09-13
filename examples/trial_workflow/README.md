@@ -14,9 +14,13 @@ The complete generated typed table is passed by an ordinary Rust reference to [t
 Text selection comes from that table's admitted suite names, so selecting totals preserves the unselected count row in the denominator.
 The all-selection runs the same table through the same runner.
 
+Each run is projected once through `macroonz::presentation::input_run` and printed as JSON, Markdown and HTML under labeled sections.
+The [presentation owner](../../src/presentation/README.md) defines the shared fields, escaping and recorded standing; the example supplies no replacement census or outcome.
+The selected run displays the unselected row, and the refused run displays the independent disagreement alongside the original specimen.
+
 The expected total and count live in `checks.rs` and do not come from the arithmetic implementation or declaration metadata.
 Changing the specimen to one whose total disagrees produces an actual refused trial, which the binary observes.
 The example explicitly supplies invocation budgets, unavailable measurement and illustrative target/toolchain labels; those labels are caller claims and do not detect the running host.
 
-This example owns the declaration-to-execution journey.
+This example owns the declaration-to-execution-and-display journey.
 The [root workflow](../../src/workflow/README.md#retain-and-load) owns optional retention and fresh-witness replay using the returned `InputRun` and separately supplied native storage.

@@ -33,7 +33,9 @@ fn query_and_backend_cleanup_keep_their_distinct_execution_contexts() -> Result<
     assert!(
         matches!(&refusal, MutationError::Query { phase: MutationPhase::BackendVersion, run, .. } if matches!(run.as_ref(), ProcessRun::Pending(_)))
     );
+    super::presentation::query(&refusal, "backend-version", "pending-cleanup")?;
     let refusal = refusal.finish_cleanup(Duration::from_secs(3));
+    super::presentation::query(&refusal, "backend-version", "finished")?;
     assert!(
         matches!(refusal, MutationError::Query { phase: MutationPhase::BackendVersion, run, .. } if matches!(run.as_ref(), ProcessRun::Finished(_)))
     );
@@ -47,7 +49,9 @@ fn query_and_backend_cleanup_keep_their_distinct_execution_contexts() -> Result<
         return Err("backend cleanup not retained".to_owned());
     };
     assert_eq!(pending.process().stop(), &ProcessStop::Exited);
+    super::presentation::pending(&pending)?;
     let output = finish(pending.finish(Duration::from_secs(3)))?;
+    super::presentation::accepted(&output)?;
     assert!(output.manifest().is_ok());
     assert_eq!(
         output.original_sources().collect::<Vec<_>>(),
@@ -85,6 +89,7 @@ fn compiler_query_and_backend_query_failures_keep_phase_and_capture() -> Result<
     )
     .err()
     .ok_or("unsupported compiler admitted")?;
+    super::presentation::query(&compiler_refusal, "compiler-version", "finished")?;
     assert!(
         matches!(compiler_refusal, MutationError::Query { phase: MutationPhase::CompilerVersion, request, .. } if request.executable() == wrong)
     );
@@ -115,6 +120,7 @@ fn compiler_query_and_backend_query_failures_keep_phase_and_capture() -> Result<
         )
         .err()
         .ok_or("query failure admitted")?;
+        super::presentation::query(&refusal, "backend-version", "finished")?;
         let MutationError::Query { run, phase, .. } = refusal else {
             return Err("query evidence lost".to_owned());
         };

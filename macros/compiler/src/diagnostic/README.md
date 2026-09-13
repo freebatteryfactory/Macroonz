@@ -2,7 +2,7 @@
 
 A request that fails any step is refused whole, and this is the value that says why.
 
-A `Diagnostic` is one complete typed observation of the step, site, expected contract, observed difference, related issues, declared repairs, and reproduction route.
+A `Diagnostic` is one complete typed observation of the refusing family, class, established body, step, site, expected contract, observed difference, related issues, declared repairs, and reproduction route.
 Every rendering is a projection of that value and may differ in shape, ordering, or verbosity without differing in what it claims.
 
 ## One line, one grammar

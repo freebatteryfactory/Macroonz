@@ -221,7 +221,7 @@ Runnable examples cross distinct public roads:
 | Journey | Command | What it establishes |
 | --- | --- | --- |
 | First recipe | `cargo run --example recipe` | Conventional, configured, and exact projection levels through the root facade entrance. |
-| Declared typed trials | `cargo run --example trial_workflow --features harness` | [Co-located bindings and typed input](examples/trial_workflow/README.md) execute through table-derived selection and versioned mechanical defaults, including an independent disagreement. |
+| Declared typed trials | `cargo run --example trial_workflow --features harness` | [Co-located bindings and typed input](examples/trial_workflow/README.md) execute through table-derived selection and versioned mechanical defaults, displaying complete results and an independent disagreement in JSON, Markdown and HTML. |
 | Callable compiler | `cargo run -p macroonz-compiler --example callable_compiler` | One public compiler request plans, renders, closes, explains, binds, and emits a unit. |
 | Direct handwritten property | `cargo run -p macroonz-harness --example temporal_property` | Caller-owned state and transitions enter a temporal contract without a macro or subject trait. |
 | Exact compile contract | `cargo run --example compile_contract` | A caller-stated compiler observation is compared with an independently declared exact outcome. |
@@ -251,6 +251,7 @@ For a specific task, start at its owner:
 | Replay a retained witness against current code | [Saved-witness execution](harness/src/runner/README.md#saved-witness-replay) and [Historical comparison](harness/src/report/replay/README.md) |
 | Execute declared input, retain a complete run and replay saved witnesses | [Root workflow](src/workflow/README.md) |
 | Inspect or override versioned resource defaults | [Mechanical configuration](src/configuration/README.md) |
+| Display complete results and owner-specific failures as JSON, Markdown or HTML | [Presentation](src/presentation/README.md) and [Executable trial display](examples/trial_workflow/README.md) |
 | Run a benchmark and retain every reached outcome | [Benchmark workflow](src/workflow/benchmark/README.md) |
 | Execute compiler fixtures and compare exact diagnostics or compiled values | [Native compiler fixtures](src/native_compiler/README.md) |
 | Execute coverage campaigns with bounded native tools and declared source roots | [Native coverage](src/native_coverage/README.md) |
@@ -276,7 +277,7 @@ Cargo features are additive, so the lighter postures are selected by turning off
 | **diet** | `cargo add macroonz --no-default-features` | Recipe entrance, compiler, and proc declarations; harness-owned evidence bakes are typed unavailable. |
 
 The `preemption` feature always implies `harness`.
-The `harness` feature also supplies [root input execution](src/workflow/README.md#execute), composing the existing decoder and complete-table runner.
+The `harness` feature also supplies [root input execution](src/workflow/README.md#execute), composing the existing decoder and complete-table runner, and [record presentation](src/presentation/README.md).
 On a native target supported by the pinned Loom backend, enabling `preemption` installs that backend.
 On every other target, including Wasm, the same harness result plane remains available and reports typed backend unavailability instead of trying to compile Loom.
 

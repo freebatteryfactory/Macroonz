@@ -2,10 +2,12 @@ use super::fixture::LIMITS;
 use super::stage_fixture::{DEPENDENCIES, DRIVER, authored, compiled, formatted, request, staged};
 use crate::compiler::configure::{bounds, host, locus, root, target, tool};
 use crate::compiler::real::{package, read_count};
+use crate::presentation_formats::{field, parsed};
 use macroonz::native_compiler::{CargoFixture, CargoTarget, CompilerRequest};
 use macroonz::native_process::ProcessLimits;
 use macroonz::native_publication::{StagingObservationError, StagingPlan, StagingRun};
 use macroonz::native_storage::StorageName;
+use macroonz::presentation::publication_staging_run;
 use std::time::Duration;
 
 #[test]
@@ -160,10 +162,24 @@ fn staged_compilation_refuses_unused_generated_material_and_actual_compile_failu
             &root.join(format!("{name}{}", std::env::consts::EXE_SUFFIX)),
             bounds()?,
         )?;
-        let StagingRun::Refused(output) = stage
+        let run = stage
             .compile(&selected)
-            .map_err(|error| error.to_string())?
-        else {
+            .map_err(|error| error.to_string())?;
+        let shown = parsed(&publication_staging_run(&run))?;
+        assert_eq!(field(&shown, "/record/kind")?, "refused");
+        assert_eq!(
+            field(&shown, "/record/value/reason/kind")?,
+            if name == "unused" {
+                "unused"
+            } else {
+                "compilation"
+            }
+        );
+        assert_eq!(
+            field(&shown, "/record/value/compiler/process/status/success")?,
+            name == "unused"
+        );
+        let StagingRun::Refused(output) = run else {
             return Err("bad subject qualified".to_owned());
         };
         assert_eq!(output.reason(), &expected);

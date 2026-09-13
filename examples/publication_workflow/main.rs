@@ -7,71 +7,29 @@ mod types;
 #[path = "../support/native_input/mod.rs"]
 mod input;
 
-use macroonz::native_publication::{BakeOutput, PreparedPublication, bake};
-use serde_json::{Value, json};
+use macroonz::native_publication::{BakeOutput, bake};
+use macroonz::presentation::{Presentation, bake_error, bake_output};
 use std::io::Write;
 
 fn main() -> Result<(), String> {
     let (command, value) = configuration::read()?;
-    let output = bake(command, || generate::publication(value)).map_err(|error| {
-        error
-            .finish_cleanup(std::time::Duration::from_secs(5))
-            .to_string()
-    })?;
-    let (report, current) = match output {
-        BakeOutput::Declared(publication) => (
-            json!({ "action": "prepare", "files": publication.files().map(|file| {
-            json!({ "path": file.path().spelling(), "canonical_digest": file.canonical_digest().as_bytes(), "source": file.source() })
-        }).collect::<Vec<_>>() }),
-            true,
-        ),
-        BakeOutput::Prepared(prepared) => (
-            json!({ "action": "inspect", "files": files(&prepared) }),
-            true,
-        ),
-        BakeOutput::Checked {
-            prepared,
-            comparison,
-        } => (
-            json!({
-                "action": "check", "current": comparison.is_current(), "files": files(&prepared),
-                "issues": comparison.issues().iter().map(|issue| json!({
-                    "path": issue.path.spelling(), "problem": format!("{:?}", issue.problem),
-                })).collect::<Vec<_>>(),
-            }),
-            comparison.is_current(),
-        ),
-        BakeOutput::Generated(compiled) => (
-            json!({
-                "action": "generate", "files": files(compiled.prepared()),
-                "compiler_directory": compiled.compiler().request().process().directory().to_str().ok_or("compiler directory is not Unicode")?,
-                "executable": compiled.compiler().executable().and_then(std::path::Path::to_str).ok_or("compiled executable is absent or not Unicode")?,
-            }),
-            true,
-        ),
-        BakeOutput::Recovered => (
-            json!({ "action": "recover", "standing": "historical installation intent" }),
-            true,
-        ),
+    let output = match bake(command, || generate::publication(value)) {
+        Ok(output) => output,
+        Err(error) => {
+            let error = error.finish_cleanup(std::time::Duration::from_secs(5));
+            write(&bake_error(&error))?;
+            return Err(error.to_string());
+        }
     };
-    writeln!(std::io::stdout(), "{report}").map_err(|error| error.to_string())?;
-    if current {
-        Ok(())
-    } else {
-        Err("publication check found discrepancies".to_owned())
+    write(&bake_output(&output))?;
+    if let BakeOutput::Checked { comparison, .. } = &output
+        && !comparison.is_current()
+    {
+        return Err("publication check found discrepancies".to_owned());
     }
+    Ok(())
 }
 
-fn files(prepared: &PreparedPublication<types::PublishedValue>) -> Vec<Value> {
-    prepared
-        .files()
-        .map(|file| {
-            json!({
-                "path": file.path().spelling(),
-                "canonical_digest": file.canonical_digest().as_bytes(),
-                "published_digest": file.published_digest().as_bytes(),
-                "bytes": file.bytes(),
-            })
-        })
-        .collect()
+fn write(report: &Presentation) -> Result<(), String> {
+    writeln!(std::io::stdout(), "{}", report.json()).map_err(|error| error.to_string())
 }
