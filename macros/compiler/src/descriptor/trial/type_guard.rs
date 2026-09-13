@@ -5,15 +5,15 @@
 //! A payload's module namespace is closed here, so a stamped module that would declare one function twice is refused before a token exists.
 
 use super::{
-    ROLE_LIMIT, ROW_LIMIT, References, Row, SUITE_GROUP_LIMIT, SuiteGroup, TAG_LIMIT,
-    TrialCaptureError, Trials,
+    AttachmentExpressions, ROLE_LIMIT, ROW_LIMIT, References, Row, SUITE_GROUP_LIMIT, SuiteGroup,
+    TAG_LIMIT, TrialCaptureError, Trials,
 };
 use crate::bounded::{Bounded, NonEmpty, first_duplicate_position};
 use crate::descriptor::{
     CaptureCause, DeclarationError, FunctionName, Grammar, HelperRefusal, ModuleName, Name, Seat,
     SupportName,
 };
-use crate::token::SpanHandle;
+use crate::token::{GeneratedTree, SpanHandle};
 
 impl Row {
     /// Declare one descriptor row.
@@ -47,7 +47,21 @@ impl Row {
             references,
             roles: admitted_roles,
             tags: admitted_tags,
+            attachment: None,
         })
+    }
+
+    /// Binds the consuming target's explicit revision and callable expressions beside this row.
+    #[must_use]
+    pub fn with_attachment(mut self, attachment: AttachmentExpressions) -> Self {
+        self.attachment = Some(attachment);
+        self
+    }
+
+    /// The co-located attachment fragments, when this declaration supplies them.
+    #[must_use]
+    pub const fn attachment(&self) -> Option<&AttachmentExpressions> {
+        self.attachment.as_ref()
     }
 
     /// The lens the stamp declares this row's named test function under.
@@ -73,6 +87,39 @@ impl Row {
     pub fn tags(&self) -> &[Name] {
         self.tags.as_slice()
     }
+}
+
+impl AttachmentExpressions {
+    /// Declares the exact Rust fragments that the consuming target will type-check.
+    ///
+    /// # Errors
+    /// Refuses an empty fragment; Rust syntax, resolution and callable types remain the consumer compiler's responsibility.
+    pub fn declared(
+        subject_revision: GeneratedTree,
+        check_revision: GeneratedTree,
+        call: GeneratedTree,
+    ) -> Result<Self, DeclarationError> {
+        Ok(Self {
+            subject_revision: nonempty_fragment(subject_revision)?,
+            check_revision: nonempty_fragment(check_revision)?,
+            call: nonempty_fragment(call)?,
+        })
+    }
+
+    /// The subject revision, check revision and callable in attachment argument order.
+    #[must_use]
+    pub const fn fragments(&self) -> [&GeneratedTree; 3] {
+        [&self.subject_revision, &self.check_revision, &self.call]
+    }
+}
+
+fn nonempty_fragment(tree: GeneratedTree) -> Result<GeneratedTree, DeclarationError> {
+    if tree.tokens().is_empty() {
+        return Err(DeclarationError::Absent {
+            seat: Seat::TargetFragment,
+        });
+    }
+    Ok(tree)
 }
 
 impl SuiteGroup {
@@ -157,7 +204,23 @@ impl Trials {
             module,
             table,
             groups: admitted,
+            input_type: None,
         })
+    }
+
+    /// Selects an explicit decoded input type for this table's callables and stamped invocation.
+    ///
+    /// # Errors
+    /// Refuses an empty type template; Rust checks its syntax and type at consumption.
+    pub fn with_input(mut self, input_type: GeneratedTree) -> Result<Self, DeclarationError> {
+        self.input_type = Some(nonempty_fragment(input_type)?);
+        Ok(self)
+    }
+
+    /// The decoded input type template, or unit input when absent.
+    #[must_use]
+    pub const fn input_type(&self) -> Option<&GeneratedTree> {
+        self.input_type.as_ref()
     }
 
     /// The exported name a consumption target invokes this declaration's carrier by.

@@ -76,7 +76,10 @@ fn walked(
         .answering(vec![answer])
         .render(|plan, out| {
             let stamped = unit_tree(trial::stamped_module(plan.content(), emitter))?;
-            out.unit(TrialRole::Table, stamped)
+            out.unit(
+                TrialRole::Table,
+                trial::restored_bindings(&stamped, plan.content()),
+            )
         })?;
 
     let declared =

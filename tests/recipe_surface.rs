@@ -3,6 +3,9 @@
 use core::sync::atomic::{AtomicUsize, Ordering};
 use macroonz as bakery;
 
+#[path = "recipe_surface/catalogue.rs"]
+mod catalogue;
+
 static OPENED: AtomicUsize = AtomicUsize::new(0);
 
 fn record_open() {

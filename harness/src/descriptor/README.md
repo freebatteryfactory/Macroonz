@@ -90,6 +90,7 @@ The refusing arm itself tells whoever meets it how the pin is rewritten.
 `trial_table!` turns one declaration into the authored world, one ordinary test per execution suite, and one ignored named lens per row.
 The lens is what makes every row clickable in an editor without being paid for twice in an ordinary run.
 Both spellings call the same engine, so a verdict cannot differ between them.
+Its optional decoded-input declaration reaches the existing [typed-input invocation](../runner/README.md#typed-input), with an independently supplied specimen-admission expression and the same complete table.
 
 ## What this home does not claim
 

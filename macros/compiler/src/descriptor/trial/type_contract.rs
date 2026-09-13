@@ -17,6 +17,10 @@ impl CanonicalContent for Trials {
         for group in self.groups() {
             encode_group(group, into);
         }
+        if let Some(input_type) = self.input_type() {
+            encode_bytes(b"input-type-v1", into);
+            encode_bytes(&input_type.canonical_bytes(), into);
+        }
     }
 }
 
@@ -47,6 +51,12 @@ fn encode_row(row: &Row, into: &mut Vec<u8>) {
     encode_length(row.tags().len(), into);
     for tag in row.tags() {
         encode_name(tag, into);
+    }
+    if let Some(attachment) = row.attachment() {
+        encode_bytes(b"target-attachment-v1", into);
+        for fragment in attachment.fragments() {
+            encode_bytes(&fragment.canonical_bytes(), into);
+        }
     }
 }
 

@@ -188,8 +188,7 @@ pub enum SeatOutcome {
 
 /// The seats' one refusal type: everything a stamped test function answers with instead of passing.
 ///
-/// A construction refusal enters unchanged through this type's [`From`] road over [`TrialTableRefusal`], and the run's own verdict supplies the other arms.
-/// That is the whole road in, which is what makes `?` the entire ceremony at a seat.
+/// Table construction and input admission refusals remain distinct from the run's verdict.
 /// `Debug` is the rendering surface, deliberately: a `Display` written here would be a second vocabulary for facts the typed fields already carry.
 #[must_use = "a refusal is the reason a seat did not pass"]
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -214,6 +213,8 @@ pub enum SeatRefusal {
         /// How many rows the run was stated over.
         denominator: usize,
     },
+    /// The consuming target could not admit the declared specimen before execution.
+    InputNotBound(crate::input::InputRefusal),
 }
 
 /// A sparse historical witness beside the full report earned by current execution.

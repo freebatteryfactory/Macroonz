@@ -139,11 +139,60 @@ pub fn recipe_reference_spans(input: TokenStream) -> TokenStream {
         ("custody_left", 2usize),
         ("custody_right", 2usize),
         ("custody_target", 3usize),
+        ("custody_subject_revision", 1usize),
+        ("custody_check_revision", 1usize),
+        ("custody_callable", 1usize),
+        ("custody_local", 2usize),
     ];
     let answer = if expected
         .into_iter()
         .all(|(spelling, minimum)| restored_identifier_count(emitted.clone(), spelling) >= minimum)
     {
+        "true"
+    } else {
+        "false"
+    };
+    TokenStream::from(TokenTree::Ident(Ident::new(answer, Span::call_site())))
+}
+
+/// Report whether direct trial delivery preserves exact attachment-template token spans.
+#[proc_macro]
+pub fn trial_reference_spans(input: TokenStream) -> TokenStream {
+    let mut spans = Spans::empty();
+    let body = match capture(input, &mut spans) {
+        Ok(captured) => captured,
+        Err(refusal) => return refused(&refusal.to_string()),
+    };
+    let item = match capture(TokenStream::new(), &mut spans) {
+        Ok(captured) => captured,
+        Err(refusal) => return refused(&refusal.to_string()),
+    };
+    let expansion = match macroonz_compiler::descriptor::door::trials(
+        &body,
+        &item,
+        macroonz_compiler::descriptor::Grammar { attribute: "trials" },
+        macroonz_compiler::descriptor::Emitter {
+            namespace: "observer",
+            producer: "span-observer",
+            door: "trials",
+        },
+        &RECIPE_DOOR,
+    ) {
+        Ok(expansion) => expansion,
+        Err(refusal) => return refused(refusal.summary()),
+    };
+    let emitted = match emit(&expansion, &spans) {
+        Ok(emitted) => emitted,
+        Err(refusal) => return refused(&refusal.to_string()),
+    };
+    let answer = if [
+        ("custody_subject_revision", 1usize),
+        ("custody_check_revision", 1usize),
+        ("custody_callable", 1usize),
+        ("custody_local", 2usize),
+    ].into_iter().all(|(spelling, minimum)| {
+        restored_identifier_count(emitted.clone(), spelling) >= minimum
+    }) {
         "true"
     } else {
         "false"

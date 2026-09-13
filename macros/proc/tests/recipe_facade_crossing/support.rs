@@ -14,6 +14,10 @@ mod negative_space;
 mod no_harness;
 #[path = "support/renamed_facade.rs"]
 mod renamed_facade;
+#[path = "support/catalogue.rs"]
+mod catalogue;
+
+pub(super) use catalogue::observe_catalogue;
 
 use effect_execution::{EFFECT_CONSUMER, EFFECT_PRODUCER};
 use generic_recipe::{GENERIC_CONSUMER, GENERIC_PRODUCER, GENERIC_REFUSALS};

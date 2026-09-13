@@ -93,6 +93,11 @@ path = "examples/compile_contract.rs"
 required-features = ["harness"]
 
 [[example]]
+name = "trial_workflow"
+path = "examples/trial_workflow/main.rs"
+required-features = ["harness"]
+
+[[example]]
 name = "benchmark_workflow"
 path = "examples/benchmark_workflow/main.rs"
 required-features = ["native-tooling"]

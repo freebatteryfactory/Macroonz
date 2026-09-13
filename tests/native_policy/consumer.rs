@@ -4,6 +4,9 @@ use super::check::cargo;
 use super::types::StorageDependencies;
 use std::path::Path;
 
+#[path = "consumer_configuration.rs"]
+mod configuration;
+
 pub(super) fn manifest(root: &Path, features: &str) -> Result<String, String> {
     let path = root.to_str().ok_or("the dependency path is not UTF-8")?;
     if path.chars().any(char::is_control) {
@@ -175,6 +178,7 @@ pub(super) fn qualify_graphs() -> Result<(), String> {
         dependency_graph(&subject, &scratch, root, name, storage)?;
         super::dependency::observe(&subject, &scratch, root, name, storage)?;
         workflow_surface(&subject, &scratch, root, name, storage)?;
+        configuration::observe(&subject, &scratch, root, name, storage)?;
         publication_invariants(&subject, &scratch, root, name, storage)?;
     }
     super::dependency::refuse_injected(root, &subject, &scratch)?;

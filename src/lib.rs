@@ -59,6 +59,9 @@ macro_rules! recipe {
 #[cfg(feature = "harness")]
 pub use macroonz_harness as harness;
 
+#[cfg(feature = "harness")]
+pub mod configuration;
+
 #[cfg(feature = "native-tooling")]
 pub mod native_clock;
 

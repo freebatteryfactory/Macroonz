@@ -11,6 +11,7 @@ Its generation observers offer caller-supplied literal values through public tok
 These controls distinguish malformed words and raw identifiers from lawful keywords, underscore and Unicode token roles.
 Its recipe observer compares the authored module body's source span with the span restored onto the baked module group.
 Its recipe-reference observer confirms that vocabulary, row, effect-path, configured-name, and exact-signature identifiers reappear inside the generated module with their caller-authored source spans.
+Direct trial and recipe evidence observers also check exact attachment-template paths and local bindings after carrier assembly.
 Typed capture, fragment-generation, and host-emission refusals become `compile_error!` output, so the witness has no panic branch.
 
 It owns no grammar, interpretation, identity rule, or product observation channel.

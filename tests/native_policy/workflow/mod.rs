@@ -2,6 +2,7 @@
 
 mod fixture;
 mod execute;
+mod configuration;
 #[cfg(feature = "native-tooling")]
 mod retention;
 #[cfg(feature = "native-tooling")]

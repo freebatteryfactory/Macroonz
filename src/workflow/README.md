@@ -11,6 +11,19 @@ The input owner packs and decodes once, then the existing runner executes the se
 The returned `InputRun` pairs that report with the original admitted input.
 Read the ordinary `RunReport` for conclusions, budgets, measurements and every unselected row.
 This home invents no verdict, revision, semantic configuration or clock policy.
+The [versioned configuration entrance](../configuration/README.md) supplies inspectable mechanical ceilings to this same operation.
+The [typed trial example](../../examples/trial_workflow/README.md) connects a co-located declaration and consuming-target checks to text selection and execution.
+
+## Select by text
+
+`suites` lists the distinct execution suites already present in the complete supplied table view.
+`select_suites` matches user-supplied namespace and stem text against those admitted names and returns the runner's ordinary nonempty selection plan.
+Namespace and stem remain separate components because either may contain separator characters.
+An empty request, an unknown name or a repeated suite refuses the complete selection without exposing a partial plan.
+Request order and allocation addresses affect no name or selection identity.
+The returned names are the table's existing values, and allocated selection storage cannot exceed that view's distinct suite count.
+Adding a suite to the table makes it selectable without editing a second host roster.
+The existing runner retains every unselected row in the report denominator.
 
 ## Retain and load
 

@@ -79,7 +79,7 @@ impl SupportShell {
         }
         Ok(Self {
             name,
-            tree: GeneratedTree::assembled(tokens)?,
+            tree: restored_cargo(GeneratedTree::assembled(tokens)?, assembly, form),
         })
     }
     /// Reads the exported name.
@@ -97,6 +97,23 @@ impl SupportShell {
     pub fn into_tree(self) -> GeneratedTree {
         self.tree
     }
+}
+fn restored_cargo(
+    mut tree: GeneratedTree,
+    assembly: &SupportAssembly,
+    form: DeliveryForm,
+) -> GeneratedTree {
+    if let AxisCargo::Carried(cargo) = assembly.declared() {
+        tree = tree.restored_from(cargo.stamped());
+    }
+    let axis = match form {
+        DeliveryForm::Trials => assembly.deferred(),
+        DeliveryForm::Benches => assembly.bench(),
+    };
+    if let AxisCargo::Carried(proved) = axis {
+        tree = tree.restored_from(proved.cargo().tree());
+    }
+    tree
 }
 fn stamped(assembly: &SupportAssembly) -> Vec<GeneratedToken> {
     match assembly.declared() {

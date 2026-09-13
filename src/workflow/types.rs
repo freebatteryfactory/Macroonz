@@ -20,6 +20,24 @@ pub struct InputRun {
     input: InputEnvelope,
 }
 
+/// Why user text could not select a nonempty set of admitted execution suites.
+#[must_use = "a refused suite selection must not be treated as a complete plan"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SuiteSelectionRefusal {
+    /// No suite names were supplied.
+    Empty,
+    /// A namespace and stem pair names no suite in the complete supplied view.
+    Unknown {
+        /// The zero-based position of the first unmatched request.
+        position: usize,
+    },
+    /// A request repeats a suite selected by an earlier request.
+    Duplicate {
+        /// The zero-based position of the repeated request.
+        position: usize,
+    },
+}
+
 /// Independent input, archive and storage bounds for one retained run.
 #[cfg(feature = "native-tooling")]
 #[derive(Debug, Clone, Copy)]
