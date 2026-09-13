@@ -32,6 +32,7 @@ pub struct CompilerRequest {
     pub(super) process: ProcessRequest,
     pub(super) protocol: Protocol,
     pub(super) locus: RelativeSourcePath,
+    pub(super) dependencies: Option<DependencyCapture>,
 }
 
 /// A refusal before compiler supervision begins.
@@ -75,6 +76,7 @@ pub struct CompilerOutput {
     pub(super) request: CompilerRequest,
     pub(super) process: ProcessOutput,
     pub(super) observation: Result<Observation, CompilerObservationError>,
+    pub(super) dependencies: Option<Result<super::DependencyInfo, super::DependencyError>>,
 }
 
 /// A compiler observation or retained ownership of unfinished process cleanup.
@@ -122,6 +124,13 @@ pub(super) struct Observation {
 pub(super) struct Artifact {
     pub executable: Option<PathBuf>,
     pub cargo_fresh: Option<bool>,
+    pub files: Vec<PathBuf>,
+}
+
+#[derive(Clone, Debug)]
+pub(super) struct DependencyCapture {
+    pub path: PathBuf,
+    pub limits: super::DependencyLimits,
 }
 
 #[derive(Default)]

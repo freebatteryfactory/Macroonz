@@ -28,6 +28,22 @@ pub(super) fn lock(directory: &Dir) -> Result<File, StorageError> {
     }
 }
 
+pub(super) fn shared_existing(directory: &Dir) -> Result<Option<File>, StorageError> {
+    let name = ".macroonz-storage-lock";
+    match directory.symlink_metadata(name) {
+        Ok(metadata) if metadata.is_file() => {}
+        Ok(_metadata) => return Err(StorageError::NotRegular),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(StorageError::Io(error)),
+    }
+    let file = directory.open(name).map_err(StorageError::Io)?.into_std();
+    match file.try_lock_shared() {
+        Ok(()) => Ok(Some(file)),
+        Err(TryLockError::WouldBlock) => Err(StorageError::Busy),
+        Err(TryLockError::Error(error)) => Err(StorageError::Io(error)),
+    }
+}
+
 pub(super) fn physical(name: &StorageName) -> String {
     format!("item-{}", name.spelling())
 }

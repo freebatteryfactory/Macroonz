@@ -57,7 +57,11 @@ fn published(directory: &Dir, maximum: usize) -> Result<Vec<StorageName>, Storag
     Ok(names)
 }
 
-fn bounded(directory: &Dir, name: &str, maximum: usize) -> Result<Vec<u8>, StorageError> {
+pub(crate) fn bounded(
+    directory: &Dir,
+    name: &str,
+    maximum: usize,
+) -> Result<Vec<u8>, StorageError> {
     let mut file = directory.open(name).map_err(StorageError::Io)?;
     if !file.metadata().map_err(StorageError::Io)?.is_file() {
         return Err(StorageError::NotRegular);

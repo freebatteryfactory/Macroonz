@@ -17,10 +17,18 @@ pub(super) fn finish(request: CompilerRequest, process: ProcessRun) -> CompilerR
     match process {
         ProcessRun::Finished(process) => {
             let observation = super::diagnose::observe(&request, &process);
+            let dependencies = request.dependencies.as_ref().map(|selection| {
+                super::dependencies::capture(
+                    selection,
+                    request.process.directory(),
+                    observation.as_ref().ok(),
+                )
+            });
             CompilerRun::Finished(Box::new(CompilerOutput {
                 request,
                 process,
                 observation,
+                dependencies,
             }))
         }
         ProcessRun::Pending(process) => {

@@ -71,6 +71,7 @@ fn rustc(
             artifact_once(
                 stream,
                 Artifact {
+                    files: vec![path.clone()],
                     executable: Some(path),
                     cargo_fresh: None,
                 },
@@ -137,6 +138,11 @@ fn cargo(
             artifact_once(
                 stream,
                 Artifact {
+                    files: if request.dependencies.is_some() {
+                        artifact_files(artifact_value, request, fixture)?
+                    } else {
+                        Vec::new()
+                    },
                     executable,
                     cargo_fresh: Some(boolean(artifact_value, "fresh")?),
                 },
@@ -144,6 +150,27 @@ fn cargo(
         }
         _ => Ok(()),
     }
+}
+
+fn artifact_files(
+    value: &Value,
+    request: &CompilerRequest,
+    fixture: &CargoFixture,
+) -> Result<Vec<std::path::PathBuf>, CompilerObservationError> {
+    let mut files = Vec::new();
+    for filename in super::source::array(value, "filenames")? {
+        let spelling = filename.as_str().ok_or_else(|| {
+            CompilerObservationError::Protocol("artifact filename is not text".to_owned())
+        })?;
+        let path = super::source::physical(request.process.directory(), spelling)?;
+        if !path.starts_with(fixture.target_directory()) {
+            return Err(CompilerObservationError::Protocol(
+                "artifact file is outside the target directory".to_owned(),
+            ));
+        }
+        files.push(path);
+    }
+    Ok(files)
 }
 
 fn diagnostic(

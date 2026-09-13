@@ -1,7 +1,7 @@
 //! Exclusive payload creation and batch publication.
 
 use super::custody::{self, COMMITTED, PREPARED};
-use super::{StorageArtifact, StorageBatch, StorageError, StorageName};
+use super::{StorageArtifact, StorageBatch, StorageError, StorageLimits, StorageName};
 use cap_std::fs::{Dir, OpenOptions};
 use std::io::{ErrorKind, Write};
 
@@ -68,4 +68,43 @@ pub(super) fn restart(directory: &Dir, batch: StorageBatch<'_>) -> Result<(), St
         Err(error) if error.kind() == ErrorKind::NotFound => Ok(()),
         Err(error) => Err(StorageError::Io(error)),
     }
+}
+
+pub(super) fn discard(
+    root: &Dir,
+    batch_name: &StorageName,
+    expected: &[StorageArtifact<'_>],
+    limits: StorageLimits,
+) -> Result<(), StorageError> {
+    let directory = custody::batch(root, batch_name)?;
+    let names = custody::inventory(&directory, limits.artifacts)?;
+    let mut remaining = limits.bytes;
+    for name in &names {
+        let artifact = expected
+            .iter()
+            .find(|artifact| artifact.name == name)
+            .ok_or(StorageError::UnexpectedEntry)?;
+        let bytes = super::read::bounded(&directory, &custody::physical(name), remaining)?;
+        if bytes != artifact.bytes {
+            return Err(StorageError::InventoryMismatch);
+        }
+        remaining = remaining
+            .checked_sub(bytes.len())
+            .ok_or(StorageError::ByteBound)?;
+    }
+    for marker in [COMMITTED, PREPARED] {
+        match directory.remove_file(marker) {
+            Ok(()) => {}
+            Err(error) if error.kind() == ErrorKind::NotFound => {}
+            Err(error) => return Err(StorageError::Io(error)),
+        }
+    }
+    for name in names {
+        directory
+            .remove_file(custody::physical(&name))
+            .map_err(StorageError::Io)?;
+    }
+    drop(directory);
+    root.remove_dir(custody::physical(batch_name))
+        .map_err(StorageError::Io)
 }

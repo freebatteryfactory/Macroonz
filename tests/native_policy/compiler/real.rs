@@ -197,7 +197,7 @@ pub(crate) fn package(root: &Path, selection: &str) -> Result<(String, PathBuf),
     Ok((name, manifest))
 }
 
-pub(super) fn read_count(
+pub(crate) fn read_count(
     output: &native_compiler::CompilerOutput,
     host: &Host,
     root: &Path,

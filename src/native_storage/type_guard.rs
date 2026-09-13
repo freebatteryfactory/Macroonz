@@ -74,6 +74,39 @@ impl<'data> StorageBatch<'data> {
 }
 
 impl StorageRoot {
+    #[cfg(any(unix, windows))]
+    pub(crate) const fn from_directory(directory: cap_std::fs::Dir) -> Self {
+        Self { directory }
+    }
+
+    #[cfg(any(unix, windows))]
+    pub(crate) fn exclusive(&self) -> Result<std::fs::File, StorageError> {
+        custody::lock(&self.directory)
+    }
+
+    #[cfg(any(unix, windows))]
+    pub(crate) fn discard(
+        &self,
+        name: &StorageName,
+        expected: &[StorageArtifact<'_>],
+        limits: StorageLimits,
+    ) -> Result<(), StorageError> {
+        let lease = custody::lock(&self.directory)?;
+        let result = write::discard(&self.directory, name, expected, limits);
+        drop(lease);
+        result
+    }
+
+    #[cfg(any(unix, windows))]
+    pub(crate) fn shared_existing(&self) -> Result<Option<std::fs::File>, StorageError> {
+        custody::shared_existing(&self.directory)
+    }
+
+    #[cfg(any(unix, windows))]
+    pub(crate) const fn directory(&self) -> &cap_std::fs::Dir {
+        &self.directory
+    }
+
     /// Bind an existing caller-selected directory without creating or scanning its parents.
     ///
     /// # Errors

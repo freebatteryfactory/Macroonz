@@ -27,6 +27,8 @@ Native mutation controls execute cargo-mutants against independently tested Carg
 Exact source selection excludes a nested file with the same basename.
 Version/query failures, pending cleanup, floods, deadlines, source bounds, link escapes, unreported source movement and historical/current comparisons cross the root API.
 The public mutation example executes and retains a separately authored subject through canonical storage.
+Publication inventory controls bind independently declared compiler units and stamp landings, refuse incomplete or crossed records and portable path collisions, and distinguish canonical token commitments from physical publication bytes.
+The [publication controls](publication/README.md) additionally observe actual formatter execution, complete prepared sets and private staged compilation through Cargo and rustc.
 Independent feature consumers refuse access to mutation tooling without the native feature and refuse rewriting its admitted requests, finished context and historical source comparison.
 An independent compiler consumer accepts the public constructors and one consuming commit, then refuses forged names, unadmitted batches and reuse after commit.
 

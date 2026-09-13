@@ -75,6 +75,9 @@ pub mod native_mutation;
 pub mod native_process;
 
 #[cfg(feature = "native-tooling")]
+pub mod native_publication;
+
+#[cfg(feature = "native-tooling")]
 pub mod native_storage;
 
 #[cfg(feature = "harness")]

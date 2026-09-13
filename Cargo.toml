@@ -121,6 +121,11 @@ name = "mutation_workflow"
 path = "examples/mutation_workflow/main.rs"
 required-features = ["native-tooling"]
 
+[[example]]
+name = "publication_workflow"
+path = "examples/publication_workflow/main.rs"
+required-features = ["native-tooling"]
+
 [lints]
 workspace = true
 

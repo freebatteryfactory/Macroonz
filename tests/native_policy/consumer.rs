@@ -175,6 +175,7 @@ pub(super) fn qualify_graphs() -> Result<(), String> {
         dependency_graph(&subject, &scratch, root, name, storage)?;
         super::dependency::observe(&subject, &scratch, root, name, storage)?;
         workflow_surface(&subject, &scratch, root, name, storage)?;
+        publication_invariants(&subject, &scratch, root, name, storage)?;
     }
     super::dependency::refuse_injected(root, &subject, &scratch)?;
     if std::fs::read(root.join("Cargo.lock")).map_err(|error| error.to_string())? != root_lock {
@@ -286,6 +287,197 @@ fn workflow_surface(
         native_refusal,
         private_field,
     )
+}
+
+fn publication_invariants(
+    subject: &Path,
+    scratch: &Path,
+    profile: &Path,
+    posture: &str,
+    storage: StorageDependencies,
+) -> Result<(), String> {
+    let native_refusal = (storage != StorageDependencies::Native).then_some("E0433");
+    let private_field = Some(if storage == StorageDependencies::Native {
+        "E0616"
+    } else {
+        "E0433"
+    });
+    for (name, source, expected) in [
+        (
+            "publication",
+            "fn main() { let _qualify = macroonz::native_publication::Formatter::qualified; let _path = macroonz::native_publication::PublicationPath::informed(\"generated.rs\"); }\n",
+            native_refusal,
+        ),
+        (
+            "publication-path",
+            "fn main() { let _forge = |path: &macroonz::native_publication::PublicationPath| { let _raw = &path.0; }; }\n",
+            private_field,
+        ),
+        (
+            "publication-inventory",
+            "fn _forge<K: macroonz::compiler::Kind>(value: &mut macroonz::native_publication::Publication<K>) { value.destinations.clear(); } fn main() {}\n",
+            private_field,
+        ),
+        (
+            "formatter-profile",
+            "fn main() { let _forge = |formatter: &macroonz::native_publication::Formatter| { let _raw = &formatter.process; }; }\n",
+            private_field,
+        ),
+        (
+            "formatter-source",
+            "fn main() { let _forge = |output: &macroonz::native_publication::FormatOutput| { let _raw = &output.context; }; }\n",
+            private_field,
+        ),
+        (
+            "formatter-observation",
+            "fn main() { let _forge = |output: &mut macroonz::native_publication::FormatOutput| { output.observation = Ok(()); }; }\n",
+            private_field,
+        ),
+        (
+            "prepared-inventory",
+            "fn _forge<K: macroonz::compiler::Kind>(value: &mut macroonz::native_publication::PreparedPublication<K>) { value.files.clear(); } fn main() {}\n",
+            private_field,
+        ),
+        (
+            "staging-plan",
+            "fn _forge<K: macroonz::compiler::Kind>(value: &mut macroonz::native_publication::StagingPlan<K>) { value.authored.clear(); } fn main() {}\n",
+            private_field,
+        ),
+        (
+            "staged-source",
+            "fn _forge<K: macroonz::compiler::Kind>(value: &macroonz::native_publication::StagedPublication<K>) { let _plan = &value.plan; } fn main() {}\n",
+            private_field,
+        ),
+        (
+            "compiled-publication",
+            "fn _forge<K: macroonz::compiler::Kind>(value: &macroonz::native_publication::CompiledPublication<K>) { let _compiler = &value.compiler; } fn main() {}\n",
+            private_field,
+        ),
+        (
+            "compiler-dependencies",
+            "fn main() { let _forge = |value: &mut macroonz::native_compiler::DependencyInfo| { value.files.clear(); }; }\n",
+            private_field,
+        ),
+    ] {
+        surface(
+            subject,
+            scratch,
+            profile,
+            &format!("{posture}-{name}"),
+            source,
+            expected,
+        )?;
+    }
+    destination_invariants(subject, scratch, profile, posture, storage)?;
+    command_invariants(subject, scratch, profile, posture, storage)
+}
+
+fn command_invariants(
+    subject: &Path,
+    scratch: &Path,
+    profile: &Path,
+    posture: &str,
+    storage: StorageDependencies,
+) -> Result<(), String> {
+    let native_refusal = (storage != StorageDependencies::Native).then_some("E0433");
+    let private_field = Some(if storage == StorageDependencies::Native {
+        "E0616"
+    } else {
+        "E0433"
+    });
+    for (name, source, expected) in [
+        (
+            "publication-command",
+            "fn _call<K: macroonz::compiler::Kind>(publication: macroonz::native_publication::Publication<K>) { let _result = macroonz::native_publication::bake(macroonz::native_publication::BakeCommand::Prepare, || Ok::<_, ()>(publication)); } fn main() { let _relocate = macroonz::native_compiler::CompilerRequest::relocated; }\n",
+            native_refusal,
+        ),
+        (
+            "publication-cache",
+            "fn _cache<K: macroonz::compiler::Kind>(plan: macroonz::native_publication::StagingPlan<K>) { drop(plan.cached(std::path::Path::new(\"explicit\"))); } fn main() {}\n",
+            native_refusal,
+        ),
+        (
+            "publication-command-custody",
+            "fn _forge<K: macroonz::compiler::Kind>(error: &mut macroonz::native_publication::BakeError<K, ()>) { error.lease = None; } fn main() {}\n",
+            private_field,
+        ),
+        (
+            "publication-command-cause",
+            "fn _forge<K: macroonz::compiler::Kind>(error: &mut macroonz::native_publication::BakeError<K, ()>) { let _cause = &mut error.cause; } fn main() {}\n",
+            private_field,
+        ),
+    ] {
+        surface(
+            subject,
+            scratch,
+            profile,
+            &format!("{posture}-{name}"),
+            source,
+            expected,
+        )?;
+    }
+    Ok(())
+}
+
+fn destination_invariants(
+    subject: &Path,
+    scratch: &Path,
+    profile: &Path,
+    posture: &str,
+    storage: StorageDependencies,
+) -> Result<(), String> {
+    let native_refusal = (storage != StorageDependencies::Native).then_some("E0433");
+    let private_field = Some(if storage == StorageDependencies::Native {
+        "E0616"
+    } else {
+        "E0433"
+    });
+    for (name, source, expected) in [
+        (
+            "destination",
+            "fn main() { let _open = macroonz::native_publication::PublicationDestination::open; let _recover = macroonz::native_publication::PublicationDestination::recover; }\n",
+            native_refusal,
+        ),
+        (
+            "destination-limits",
+            "fn main() { let _forge = |value: &mut macroonz::native_publication::PublicationDestination| { value.limits.files = usize::MAX; }; }\n",
+            private_field,
+        ),
+        (
+            "destination-check",
+            "fn main() { let _forge = |value: &mut macroonz::native_publication::DestinationCheck| { value.state = macroonz::native_publication::DestinationState::Installed; }; }\n",
+            private_field,
+        ),
+        (
+            "installation-intent",
+            "fn main() { let _forge = |value: &macroonz::native_publication::PublicationInstallation<'_>| { let _intent = &value.intent; }; }\n",
+            private_field,
+        ),
+        (
+            "installation-progress",
+            "fn main() { let _forge = |value: &mut macroonz::native_publication::PublicationInstallation<'_>| { value.cursor = usize::MAX; }; }\n",
+            private_field,
+        ),
+        (
+            "installation-consumed",
+            "fn _reuse(value: macroonz::native_publication::PublicationInstallation<'_>) { drop(value.commit()); drop(value.commit()); } fn main() {}\n",
+            Some(if storage == StorageDependencies::Native {
+                "E0382"
+            } else {
+                "E0433"
+            }),
+        ),
+    ] {
+        surface(
+            subject,
+            scratch,
+            profile,
+            &format!("{posture}-{name}"),
+            source,
+            expected,
+        )?;
+    }
+    Ok(())
 }
 
 fn mutation_invariants(

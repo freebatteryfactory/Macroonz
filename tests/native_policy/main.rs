@@ -25,6 +25,8 @@ mod inventory;
 #[cfg(all(feature = "native-tooling", any(unix, windows)))]
 mod ownership;
 mod probes;
+#[cfg(feature = "native-tooling")]
+mod publication;
 #[cfg(all(
     feature = "native-tooling",
     any(windows, target_os = "linux", target_os = "macos")
