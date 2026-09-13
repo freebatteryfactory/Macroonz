@@ -13,3 +13,10 @@ pub(super) enum StorageDependencies {
     Absent,
     Native,
 }
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum HarnessDependencies {
+    Absent,
+    Judgment,
+    Preemption,
+}

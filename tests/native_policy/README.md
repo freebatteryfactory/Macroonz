@@ -17,6 +17,10 @@ Independent consumer manifests require both native clock and storage entrances t
 The opted-in consumer executes on the current host and compiles for Wasm; cross-compilation alone does not execute the unavailable-target branch.
 Normal dependency graphs independently cover diet, harness, full, native-only and full-plus-native consumer manifests on all targets and on Wasm.
 The storage dependency family must appear only in an opted-in native-target graph.
+The same independently resolved normal graphs require the compiler and proc owners, exclude harness/runtime dependencies in diet, and require the harness without Loom in harness-only and native-only postures.
+Full postures require Loom on the all-target graph, while every Wasm graph excludes its scheduler and generator.
+Repository-only trybuild must remain absent from every normal graph.
+Independently altered graph controls refuse leaked dependencies, missing owners and missing or misplaced preemption backends.
 
 The native dependency crossings exercise directory-relative reads and writes, traversal and pre-existing link escape refusal, exclusive creation, non-overwriting hard-link publication, bounded reading and exclusive file-lock custody.
 These observations qualify the selected filesystem primitives on the current host; they do not establish a complete storage transaction, crash recovery or power-loss durability.

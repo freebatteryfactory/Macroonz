@@ -1,7 +1,7 @@
 //! Independent feature-isolated Cargo consumers of the root native entrances.
 
 use super::check::cargo;
-use super::types::StorageDependencies;
+use super::types::{HarnessDependencies, StorageDependencies};
 use std::path::Path;
 
 #[path = "consumer_configuration.rs"]
@@ -22,11 +22,19 @@ pub(super) fn observe(root: &Path, scratch: &Path, strict: &Path) -> Result<(), 
     let subject = scratch.join("consumer");
     std::fs::create_dir(&subject).map_err(|error| error.to_string())?;
     let root_lock = std::fs::read(root.join("Cargo.lock")).map_err(|error| error.to_string())?;
-    for (name, features) in [
-        ("consumer-diet", ""),
-        ("consumer-harness", "\"harness\""),
-        ("consumer-full", "\"full\""),
-        ("consumer-native", "\"native-tooling\""),
+    for (name, features, harness) in [
+        ("consumer-diet", "", HarnessDependencies::Absent),
+        (
+            "consumer-harness",
+            "\"harness\"",
+            HarnessDependencies::Judgment,
+        ),
+        ("consumer-full", "\"full\"", HarnessDependencies::Preemption),
+        (
+            "consumer-native",
+            "\"native-tooling\"",
+            HarnessDependencies::Judgment,
+        ),
     ] {
         std::fs::write(subject.join("Cargo.toml"), manifest(root, features)?)
             .map_err(|error| error.to_string())?;
@@ -56,7 +64,7 @@ pub(super) fn observe(root: &Path, scratch: &Path, strict: &Path) -> Result<(), 
         } else {
             StorageDependencies::Absent
         };
-        dependency_graph(&subject, scratch, strict, name, storage)?;
+        dependency_graph(&subject, scratch, strict, name, storage, harness)?;
         super::dependency::observe(&subject, scratch, strict, name, storage)?;
         let output = cargo(
             &subject,
@@ -93,6 +101,7 @@ fn dependency_graph(
     strict: &Path,
     name: &str,
     storage: StorageDependencies,
+    harness: HarnessDependencies,
 ) -> Result<(), String> {
     for target in ["all", "wasm32-unknown-unknown"] {
         let output = cargo(
@@ -121,6 +130,8 @@ fn dependency_graph(
             ));
         }
         let graph = String::from_utf8(output.stdout).map_err(|error| error.to_string())?;
+        super::dependency::normal(&graph, harness, target)
+            .map_err(|error| format!("{name}/{target}: {error}"))?;
         for package in [
             "cap-std",
             "cap-primitives",
@@ -148,15 +159,36 @@ pub(super) fn qualify_graphs() -> Result<(), String> {
     std::fs::create_dir(&subject).map_err(|error| error.to_string())?;
     std::fs::write(subject.join("main.rs"), "fn main() {}\n").map_err(|error| error.to_string())?;
     let root_lock = std::fs::read(root.join("Cargo.lock")).map_err(|error| error.to_string())?;
-    for (name, features, storage) in [
-        ("diet", "", StorageDependencies::Absent),
-        ("harness", "\"harness\"", StorageDependencies::Absent),
-        ("full", "\"full\"", StorageDependencies::Absent),
-        ("native", "\"native-tooling\"", StorageDependencies::Native),
+    for (name, features, storage, harness) in [
+        (
+            "diet",
+            "",
+            StorageDependencies::Absent,
+            HarnessDependencies::Absent,
+        ),
+        (
+            "harness",
+            "\"harness\"",
+            StorageDependencies::Absent,
+            HarnessDependencies::Judgment,
+        ),
+        (
+            "full",
+            "\"full\"",
+            StorageDependencies::Absent,
+            HarnessDependencies::Preemption,
+        ),
+        (
+            "native",
+            "\"native-tooling\"",
+            StorageDependencies::Native,
+            HarnessDependencies::Judgment,
+        ),
         (
             "full-native",
             "\"full\", \"native-tooling\"",
             StorageDependencies::Native,
+            HarnessDependencies::Preemption,
         ),
     ] {
         std::fs::write(subject.join("Cargo.toml"), manifest(root, features)?)
@@ -176,7 +208,7 @@ pub(super) fn qualify_graphs() -> Result<(), String> {
                 String::from_utf8_lossy(&output.stderr)
             ));
         }
-        dependency_graph(&subject, &scratch, root, name, storage)?;
+        dependency_graph(&subject, &scratch, root, name, storage, harness)?;
         super::dependency::observe(&subject, &scratch, root, name, storage)?;
         workflow_surface(&subject, &scratch, root, name, storage)?;
         configuration::observe(&subject, &scratch, root, name, storage)?;

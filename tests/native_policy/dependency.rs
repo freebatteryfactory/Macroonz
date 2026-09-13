@@ -1,8 +1,107 @@
-//! Target and reverse-edge controls for the narrowly admitted Windows parser dependency.
+//! Independent runtime graphs and target-qualified parser dependency crossings.
 
 use super::check::cargo;
-use super::types::StorageDependencies;
+use super::types::{HarnessDependencies, StorageDependencies};
 use std::path::Path;
+
+pub(super) fn normal(
+    graph: &str,
+    harness: HarnessDependencies,
+    target: &str,
+) -> Result<(), String> {
+    let preemption = match target {
+        "all" => harness == HarnessDependencies::Preemption,
+        "wasm32-unknown-unknown" => false,
+        _ => return Err("normal graph target is outside the declared observation".to_owned()),
+    };
+    let judgment = harness != HarnessDependencies::Absent;
+    for (package, expected) in [
+        ("macroonz", true),
+        ("macroonz-compiler", true),
+        ("macroonz-macros", true),
+        ("macroonz-harness", judgment),
+        ("arbitrary", judgment),
+        ("serde", judgment),
+        ("serde_json", judgment),
+        ("loom", preemption),
+        ("generator", preemption),
+        ("trybuild", false),
+    ] {
+        let prefix = format!("{package} v");
+        let present = graph.lines().any(|line| line.starts_with(&prefix));
+        if present != expected {
+            return Err(format!("unexpected {package} presence={present}"));
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn normal_graph_refuses_runtime_leaks_and_missing_owners() -> Result<(), String> {
+    let diet = "macroonz v0.2.0\nmacroonz-compiler v0.2.0\nmacroonz-macros v0.2.0\n";
+    normal(diet, HarnessDependencies::Absent, "all")?;
+    for package in [
+        "macroonz-harness",
+        "arbitrary",
+        "serde",
+        "serde_json",
+        "loom",
+        "generator",
+        "trybuild",
+    ] {
+        let injected = format!("{diet}{package} v9.9.9\n");
+        let refusal = normal(&injected, HarnessDependencies::Absent, "all").err();
+        assert_eq!(refusal, Some(format!("unexpected {package} presence=true")));
+    }
+    for package in ["macroonz", "macroonz-compiler", "macroonz-macros"] {
+        let omitted = diet.replace(&format!("{package} v0.2.0\n"), "");
+        let refusal = normal(&omitted, HarnessDependencies::Absent, "all").err();
+        assert_eq!(
+            refusal,
+            Some(format!("unexpected {package} presence=false"))
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn normal_graph_refuses_scheduler_leaks_and_false_preemption_absence() -> Result<(), String> {
+    let judgment = "macroonz v0.2.0\nmacroonz-compiler v0.2.0\nmacroonz-macros v0.2.0\nmacroonz-harness v0.2.0\narbitrary v1.4.2\nserde v1.0.229\nserde_json v1.0.151\n";
+    let preemption = format!("{judgment}loom v0.7.2\ngenerator v0.8.9\n");
+    normal(judgment, HarnessDependencies::Judgment, "all")?;
+    normal(
+        judgment,
+        HarnessDependencies::Preemption,
+        "wasm32-unknown-unknown",
+    )?;
+    normal(&preemption, HarnessDependencies::Preemption, "all")?;
+    for (graph, posture, target, refusal) in [
+        (
+            preemption.as_str(),
+            HarnessDependencies::Judgment,
+            "all",
+            "unexpected loom presence=true",
+        ),
+        (
+            preemption.as_str(),
+            HarnessDependencies::Preemption,
+            "wasm32-unknown-unknown",
+            "unexpected loom presence=true",
+        ),
+        (
+            judgment,
+            HarnessDependencies::Preemption,
+            "all",
+            "unexpected loom presence=false",
+        ),
+    ] {
+        assert_eq!(
+            normal(graph, posture, target).err().as_deref(),
+            Some(refusal)
+        );
+    }
+    Ok(())
+}
 
 pub(super) fn observe(
     subject: &Path,
