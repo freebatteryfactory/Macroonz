@@ -71,14 +71,25 @@ Its canonical bytes are the preimage of the generated-support schema identity â€
 ## The gate
 
 `generated_support!` is the door.
-It matches the producer's copy of the published identity against this crate's copy as tokens, before either side reaches type checking, and releases both seats of a delivery or neither.
+It matches the producer's copy of the published identity against this crate's copy as tokens, before invoking the generated carrier's internal transcription.
+A matching pin releases both seats of a delivery through that transcription; a mismatching pin or malformed gate envelope releases neither.
+
+The gate supplies its defining harness's hygienic `$crate` binding and the selected table stamp.
+The generated carrier roots all framework-owned harness references in that supplied binding, so the target cannot independently select a different harness identity beside the gate.
+Renaming a dependency or reexporting the real gate preserves that binding, even when the reexport's neighboring types are unrelated.
+An independent `harness` clause is outside the gate grammar and refuses without releasing the delivery.
 
 The pin crosses as thirty-two decimal byte values, and the base is what makes the comparison sound rather than merely conventional.
 A macro arm matches tokens, a byte string has many spellings of one value, and the producer's side is written by the compiler's own literal writer.
 An unsuffixed integer has exactly one rendering, so the two sides are one token by construction.
 
-The gate never reads the deferred seat.
-It transports the cargo or it withholds it, because a door that parsed the cargo would be a second authority over a vocabulary it does not own.
+The gate receives a carrier path and opaque input, never the expanded delivery seats.
+It chooses the trial or benchmark transcription without parsing caller-owned Rust or the deferred vocabulary.
+The [support owner](../../../macros/compiler/src/support/README.md#invocation) defines generated-carrier invocation, and this gate's item documentation owns its raw envelope grammar.
+
+These guarantees cover supported generated carriers invoked through their public entrance and this gate.
+The internal transcription is expansion machinery, not an authenticated capability: a caller can write an unrelated macro or invoke hidden macro arms directly.
+Schema admission establishes no semantic truth about caller-owned fragments, no successful type checking and no successful execution.
 
 What the gate catches is pair incoherence: a version-mixed consumer, a partial rewrite, a hand edit to one side.
 What it cannot catch is a jointly stale pair, where the declaration moved and neither literal was rewritten â€” two old values agree just as loudly.

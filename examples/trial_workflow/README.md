@@ -7,6 +7,7 @@ The binary returns success after observing the selected and complete tables and 
 The recipe contains ordinary arithmetic code and one declaration roster.
 Each row places its semantic names beside the explicit subject revision, check revision and callable template.
 The [trial declaration owner](../../macros/compiler/src/descriptor/trial/README.md#authored-grammar) defines those clauses and the consuming-crate binding.
+The root `macroonz::support!` invocation selects the facade's harness gate while leaving the declaring path, caller facts and specimen explicit, under the [support invocation contract](../../macros/compiler/src/support/README.md#invocation).
 In an adopter, the support invocation and checks can live in a separate test target; the library carries their expressions without compiling the test callables into its ordinary target.
 
 The input decoder reads every operand byte and retains the original specimen.

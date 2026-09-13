@@ -79,7 +79,8 @@ A collision inside that declared universe refuses the request before partial out
 No ambient scan or cross-recipe registry is performed, and no ordinary generated item is sprayed into the crate root or reexported automatically.
 
 An evidence bake may carry an explicitly named support macro because Rust exports such macros at the declaring crate root.
-That caller-authored address is the exception rather than an automatic reexport: its cargo stays inert, and the external test or bench target must invoke it with both the declaring-crate path and the harness path before any judgment exists.
+That caller-authored address is the exception rather than an automatic reexport: its cargo stays inert until the external test or bench target invokes it with the declaring-crate path.
+The root `macroonz::support!` entrance selects the facade's harness gate; the [explicit carrier entrance](macros/compiler/src/support/README.md#invocation) also accepts a target-selected gate path.
 
 The compiler's [recipe home](https://github.com/freebatteryfactory/Macroonz/blob/main/macros/compiler/src/recipe/README.md#evidence-projections) owns the exact contract for `declaration_conformance;` and `compile_contract;`.
 Use a caller-authored harness property, oracle, or model comparison when judgment must be independent of the declaration.
@@ -222,6 +223,7 @@ Runnable examples cross distinct public roads:
 | --- | --- | --- |
 | First recipe | `cargo run --example recipe` | Conventional, configured, and exact projection levels through the root facade entrance. |
 | Consuming transitions | `cargo run --example consuming_workflow --no-default-features` | [Owned resources and checked restoration](macros/compiler/src/recipe/README.md#consuming-transitions) through caller-declared runtime validation and effects. |
+| Reusable admitted types | `cargo run --example admitted_types --no-default-features` | [Reusable patterns](src/pattern/README.md) render nominal wrappers with caller-owned admission, bounds, visibility and encoding choices. |
 | Declared typed trials | `cargo run --example trial_workflow --features harness` | [Co-located bindings and typed input](examples/trial_workflow/README.md) execute through table-derived selection and versioned mechanical defaults, displaying complete results and an independent disagreement in JSON, Markdown and HTML. |
 | Callable compiler | `cargo run -p macroonz-compiler --example callable_compiler` | One public compiler request plans, renders, closes, explains, binds, and emits a unit. |
 | Direct handwritten property | `cargo run -p macroonz-harness --example temporal_property` | Caller-owned state and transitions enter a temporal contract without a macro or subject trait. |
@@ -242,13 +244,14 @@ For a specific task, start at its owner:
 | --- | --- |
 | Write a recipe clause or configure a projection | [Recipe clause forms](macros/compiler/src/recipe/README.md#clause-forms) |
 | Generate consuming phase methods over caller-owned resources | [Consuming transitions](macros/compiler/src/recipe/README.md#consuming-transitions) |
+| Reuse checked newtype construction or typed fixture registration | [Source patterns](src/pattern/README.md) |
 | Replace a projection algorithm | [Callable projector](macros/compiler/README.md#raw-callable-road) |
 | Define a kind, role or complete disposition set | [Kind](macros/compiler/src/kind/README.md) |
 | Publish a shared macro definition and its adoption sites | [Runnable publication](macros/compiler/src/stamp/README.md#runnable-publication) |
 | Compose generated tokens or preserve exact authored Rust | [Token generation](macros/compiler/src/token/generation/README.md) |
 | Generate canonical encode and decode methods | [Codec](macros/compiler/src/codec/README.md) |
 | Declare trial, benchmark or mutation material | [Descriptor adapter](macros/compiler/src/descriptor/README.md) |
-| Invoke deferred test or benchmark cargo | [Support carrier](macros/compiler/src/support/README.md) |
+| Invoke deferred test or benchmark cargo through `macroonz::support!` | [Support carrier](macros/compiler/src/support/README.md#invocation) |
 | Add an independent judgment | [Handwritten property](harness/README.md#direct-handwritten-property) or [Oracle](harness/src/oracle/README.md) |
 | Replay a retained witness against current code | [Saved-witness execution](harness/src/runner/README.md#saved-witness-replay) and [Historical comparison](harness/src/report/replay/README.md) |
 | Execute declared input, retain a complete run and replay saved witnesses | [Root workflow](src/workflow/README.md) |
@@ -279,7 +282,7 @@ Cargo features are additive, so the lighter postures are selected by turning off
 | **diet** | `cargo add macroonz --no-default-features` | Recipe entrance, compiler, and proc declarations; harness-owned evidence bakes are typed unavailable. |
 
 The `preemption` feature always implies `harness`.
-The `harness` feature also supplies [root input execution](src/workflow/README.md#execute), composing the existing decoder and complete-table runner, and [record presentation](src/presentation/README.md).
+The `harness` feature also supplies `macroonz::support!`, [root input execution](src/workflow/README.md#execute), composing the existing decoder and complete-table runner, and [record presentation](src/presentation/README.md).
 On a native target supported by the pinned Loom backend, enabling `preemption` installs that backend.
 On every other target, including Wasm, the same harness result plane remains available and reports typed backend unavailability instead of trying to compile Loom.
 

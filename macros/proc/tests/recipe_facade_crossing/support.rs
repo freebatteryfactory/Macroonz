@@ -307,6 +307,20 @@ pub(super) fn observe_without_harness(scratch: &Path) -> Result<(), String> {
     if !tested.status.success() {
         return Err(command_refusal("no-harness recipe qualification", &tested));
     }
+    std::fs::write(
+        scratch.join("tests/recipe.rs"),
+        "bakery::support! { missing {} }",
+    )
+    .map_err(|error| error.to_string())?;
+    let refused = cargo(
+        scratch,
+        &["check", "--test", "recipe", "--locked", "--offline"],
+    )?;
+    if refused.status.success()
+        || !String::from_utf8_lossy(&refused.stderr).contains("could not find `support`")
+    {
+        return Err(command_refusal("support without harness refusal", &refused));
+    }
     Ok(())
 }
 

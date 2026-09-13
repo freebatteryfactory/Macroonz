@@ -1,4 +1,4 @@
-//! The token half: the pin roster, the one gate invocation a carrier's body is, the exported definition around it, and the forwarding address beside it.
+//! The token half: a carrier's staged gate invocation, internal transcription and forwarding address.
 //!
 //! # Tokens, not text
 //!
@@ -7,9 +7,10 @@
 //!
 //! # The crate a path is rooted at is never spelled
 //!
-//! Every path a carrier writes begins with the carrier's own root-and-segments METAVARIABLES for the crate it is rooted at, and the consumption target supplies the path once, at the invocation.
-//! A consumer that reaches the harness through a facade or renamed dependency gets its own path back, and this home never learns what that path is.
-//! The gate's own binding clause receives the very same metavariables, which is what makes that binding load-bearing rather than decorative: the gate proves the path the consumer passed reaches the same declaration the gate's own crate reaches, so a wrong path refuses at the door instead of as an unresolved path somewhere inside a seat.
+//! Every path a carrier writes begins with the carrier's own root-and-segments metavariables for the crate it is rooted at.
+//! The consuming target supplies its declaring and consumer paths and selects a harness gate, including through a facade or renamed dependency.
+//! The consumer path selects the gate; the gate supplies its own hygienic root and table stamp to the carrier's internal transcription after schema admission.
+//! Framework references then use that supplied root, while caller-owned fragments retain their own meaning and resolution.
 //!
 //! # The pin is a roster of canonical tokens
 //!
@@ -17,11 +18,13 @@
 //! A byte string has many spellings of one value and the spelling on this side is a literal writer's choice rather than a declaration anybody made, so a byte string here would be a producer hostage to an escaping convention nobody controls.
 //! An unsuffixed integer has exactly one rendering, so the two sides are one token by construction.
 
+use super::super::assembly::SupportAssembly;
 use super::super::cargo::{AxisCargo, DeclaredCargo};
 use super::super::types::{
     BoundPath, CrateFacing, DeclaringBinding, DeliveryForm, SchemaId, SupportName,
 };
 use super::ShellName;
+use super::types::CarrierRoute;
 use crate::bounded::Overflow;
 use crate::request::Door;
 use crate::token::{
@@ -29,7 +32,7 @@ use crate::token::{
     segmented_twin_path,
 };
 
-/// The gate a carrier's body invokes.
+/// The gate a carrier's public entrance invokes.
 pub const GATE_MACRO: &str = "generated_support";
 
 /// The gate's clause carrying the producer's own expectation.
@@ -74,26 +77,18 @@ pub fn expectation_roster(expectation: SchemaId) -> Result<GeneratedToken, Overf
 #[must_use]
 pub fn matched_clause(name: &str, fragment: &str) -> Vec<GeneratedToken> {
     let mut tokens = vec![GeneratedToken::word(name), GeneratedToken::alone(':')];
-    tokens.extend(metavariable(name));
-    tokens.push(GeneratedToken::alone(':'));
-    tokens.push(GeneratedToken::word(fragment));
+    tokens.extend(fragment_of(name, fragment));
     tokens.push(GeneratedToken::alone(','));
     tokens
 }
 
-/// A carrier's matcher: the binding every rendered path is rooted at, and exactly the clauses the declared cargo consumes.
+/// A complete explicit invocation matcher for a carrier without declaring-crate references.
 ///
-/// The binding is asked for always, because every expression a carrier renders is rooted at it and the gate's own clause is what proves the path the consumer passed reaches the right crate.
-/// The rest is the declared cargo's own, carried beside the body that spells it — an argument a consumer supplies that nothing spells is a value the plan decided and nothing read.
+/// The harness path selects a gate, followed by exactly the clauses the declared cargo consumes.
+/// The staged shell splits this grammar across its public entrance and admitted transcription.
 #[must_use]
 pub fn matcher(declared: &AxisCargo<DeclaredCargo>) -> Vec<GeneratedToken> {
     matcher_for(DeclaringBinding::Absent, declared)
-}
-
-pub(super) fn matcher_requiring_declaring(
-    declared: &AxisCargo<DeclaredCargo>,
-) -> Vec<GeneratedToken> {
-    matcher_for(DeclaringBinding::Required, declared)
 }
 
 fn matcher_for(
@@ -112,12 +107,19 @@ fn matcher_for(
 }
 
 fn path_matcher(facing: CrateFacing) -> Vec<GeneratedToken> {
+    let mut tokens = vec![
+        GeneratedToken::word(facing.name()),
+        GeneratedToken::alone(':'),
+    ];
+    tokens.extend(path_capture(facing));
+    tokens.push(GeneratedToken::alone(','));
+    tokens
+}
+
+fn path_capture(facing: CrateFacing) -> Vec<GeneratedToken> {
     let binding = facing.name();
     let segment = segment_binding(facing);
-    let mut tokens = vec![GeneratedToken::word(binding), GeneratedToken::alone(':')];
-    tokens.extend(metavariable(binding));
-    tokens.push(GeneratedToken::alone(':'));
-    tokens.push(GeneratedToken::word("ident"));
+    let mut tokens = fragment_of(binding, "ident");
     tokens.push(GeneratedToken::joint('$'));
     tokens.push(GeneratedToken::fixed_group(
         GeneratedDelimiter::Parenthesis,
@@ -131,53 +133,41 @@ fn path_matcher(facing: CrateFacing) -> Vec<GeneratedToken> {
         ],
     ));
     tokens.push(GeneratedToken::alone('*'));
-    tokens.push(GeneratedToken::alone(','));
     tokens
 }
 
-/// The gate invocation a carrier's body IS: the producer's expectation, the binding, and the form's coupled pair of seats.
-///
-/// # Both seats, always
-///
-/// A seat may be EMPTY and it is still written, because a gate arm that had to match two clause shapes would be two arms and one pin would open two doors.
-/// The stamped seat carries material under the address's own grammar, which the gate forwards to its stamp; the opaque seat carries token trees the gate never parses and emits verbatim.
-/// They are separate seats because they are two vocabularies: folding the opaque trees in beside the stamped body would hand the stamp items it has no clause for, and standing them outside the invocation would release them on a pin MISMATCH.
+/// Invokes the selected gate with the producer's schema, the delivery continuation and opaque input.
 ///
 /// # Errors
 ///
-/// Returns [`Overflow`] where either seat, or the invocation around them, outgrows the declared token magnitude.
+/// Returns [`Overflow`] when the complete invocation exceeds the token magnitude.
 pub fn gate_invocation(
     form: DeliveryForm,
     expectation: GeneratedToken,
-    stamped: Vec<GeneratedToken>,
-    opaque: Vec<GeneratedToken>,
+    continuation: Vec<GeneratedToken>,
+    input: Vec<GeneratedToken>,
 ) -> Result<Vec<GeneratedToken>, Overflow> {
-    let facing = CrateFacing::Harness;
-    let binding = facing.name();
     let mut clauses = vec![
         GeneratedToken::word(EXPECTED_CLAUSE),
         GeneratedToken::alone(':'),
         expectation,
         GeneratedToken::alone(','),
-        GeneratedToken::word(binding),
+        GeneratedToken::word(form.name()),
         GeneratedToken::alone(':'),
     ];
-    clauses.extend(rooted_path(facing, &[]));
-    clauses.push(GeneratedToken::alone(','));
-    clauses.push(GeneratedToken::word(form.name()));
-    clauses.push(GeneratedToken::alone(':'));
-    clauses.push(group(GeneratedDelimiter::Brace, stamped)?);
-    clauses.push(GeneratedToken::alone(','));
-    clauses.push(GeneratedToken::word(form.opaque()));
-    clauses.push(GeneratedToken::alone(':'));
-    clauses.push(group(GeneratedDelimiter::Brace, opaque)?);
-    clauses.push(GeneratedToken::alone(','));
-    let mut tokens = rooted_path(facing, &[GATE_MACRO]);
+    clauses.extend(continuation);
+    clauses.extend([
+        GeneratedToken::alone(','),
+        GeneratedToken::word("with"),
+        GeneratedToken::alone(':'),
+        group(GeneratedDelimiter::Brace, input)?,
+        GeneratedToken::alone(','),
+    ]);
+    let mut tokens = rooted_path(CrateFacing::Harness, &[GATE_MACRO]);
     tokens.push(GeneratedToken::alone('!'));
     tokens.push(group(GeneratedDelimiter::Brace, clauses)?);
     Ok(tokens)
 }
-
 /// The exported carrier: a hidden definition under the mangled name, with one rule matching what the delivery consumes and expanding to the body it guards.
 ///
 /// # Errors
@@ -189,6 +179,14 @@ pub fn exported_shell(
     matched: Vec<GeneratedToken>,
     body: Vec<GeneratedToken>,
 ) -> Result<Vec<GeneratedToken>, Overflow> {
+    shell_definition(name, sentence, alias_rule(matched, body)?)
+}
+
+fn shell_definition(
+    name: &ShellName,
+    sentence: &str,
+    rules: Vec<GeneratedToken>,
+) -> Result<Vec<GeneratedToken>, Overflow> {
     let mut tokens = documentation(sentence)?;
     tokens.extend(attribute(vec![
         GeneratedToken::word("doc"),
@@ -198,19 +196,113 @@ pub fn exported_shell(
         )?,
     ])?);
     tokens.extend(attribute(vec![GeneratedToken::word("macro_export")])?);
-    tokens.push(GeneratedToken::word("macro_rules"));
-    tokens.push(GeneratedToken::alone('!'));
-    tokens.push(GeneratedToken::word(name.spelling()));
-    let mut rule = vec![group(GeneratedDelimiter::Parenthesis, matched)?];
-    rule.push(GeneratedToken::joint('='));
-    rule.push(GeneratedToken::alone('>'));
-    rule.push(group(GeneratedDelimiter::Brace, body)?);
-    rule.push(GeneratedToken::alone(';'));
-    tokens.push(group(GeneratedDelimiter::Brace, rule)?);
+    tokens.extend([
+        GeneratedToken::word("macro_rules"),
+        GeneratedToken::alone('!'),
+        GeneratedToken::word(name.spelling()),
+        group(GeneratedDelimiter::Brace, rules)?,
+    ]);
     Ok(tokens)
 }
 
-/// The author-chosen address: an exported definition under the spelling a declaration chose, whose one rule forwards its whole input to the hidden carrier.
+pub(super) fn staged_shell(
+    name: &ShellName,
+    assembly: &SupportAssembly,
+    sentence: &str,
+    stamped: Vec<GeneratedToken>,
+    opaque: Vec<GeneratedToken>,
+) -> Result<Vec<GeneratedToken>, Overflow> {
+    let declaring = assembly.declaring_binding();
+    let mut rules = Vec::new();
+    let routes: &[CarrierRoute] = match declaring {
+        DeclaringBinding::Absent => &[CarrierRoute::DefiningCrate],
+        DeclaringBinding::Required => &[
+            CarrierRoute::LocalDeclaration,
+            CarrierRoute::NamedDeclaration,
+        ],
+    };
+    for route in routes {
+        rules.extend(staged_front(name, assembly, *route)?);
+    }
+    let mut matched = vec![
+        GeneratedToken::alone('@'),
+        GeneratedToken::word(assembly.form().name()),
+    ];
+    let harness = path_capture(CrateFacing::Harness);
+    matched.push(group(GeneratedDelimiter::Brace, harness)?);
+    matched.push(group(
+        GeneratedDelimiter::Brace,
+        fragment_of("stamp", "path"),
+    )?);
+    let mut context = Vec::new();
+    if declaring == DeclaringBinding::Required {
+        context.extend(path_matcher(CrateFacing::Declaring));
+    }
+    if let AxisCargo::Carried(cargo) = assembly.declared() {
+        context.extend(cargo.matched().tokens().iter().cloned());
+    }
+    matched.push(group(GeneratedDelimiter::Brace, context)?);
+    let mut body = Vec::new();
+    if !stamped.is_empty() {
+        body.extend(metavariable("stamp"));
+        body.push(GeneratedToken::alone('!'));
+        body.push(group(GeneratedDelimiter::Brace, stamped)?);
+    }
+    body.extend(opaque);
+    rules.extend(alias_rule(matched, body)?);
+    shell_definition(name, sentence, rules)
+}
+
+fn fragment_of(name: &str, kind: &str) -> Vec<GeneratedToken> {
+    let mut tokens = metavariable(name);
+    tokens.push(GeneratedToken::alone(':'));
+    tokens.push(GeneratedToken::word(kind));
+    tokens
+}
+
+fn staged_front(
+    name: &ShellName,
+    assembly: &SupportAssembly,
+    route: CarrierRoute,
+) -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut matched = Vec::new();
+    match route {
+        CarrierRoute::DefiningCrate => {}
+        CarrierRoute::LocalDeclaration => matched.extend([
+            GeneratedToken::word("declaring"),
+            GeneratedToken::alone(':'),
+            GeneratedToken::word("crate"),
+            GeneratedToken::alone(','),
+        ]),
+        CarrierRoute::NamedDeclaration => {
+            matched.extend(path_matcher(CrateFacing::Declaring));
+        }
+    }
+    matched.extend(path_matcher(CrateFacing::Harness));
+    matched.extend(repeated_input()?);
+    let mut callback = match route {
+        CarrierRoute::DefiningCrate => metavariable("crate"),
+        CarrierRoute::LocalDeclaration => Vec::new(),
+        CarrierRoute::NamedDeclaration => rooted_path(CrateFacing::Declaring, &[]),
+    };
+    if !callback.is_empty() {
+        callback.extend([GeneratedToken::joint(':'), GeneratedToken::alone(':')]);
+    }
+    callback.push(GeneratedToken::word(name.spelling()));
+    let context = match route {
+        CarrierRoute::DefiningCrate => forwarded_input(DeclaringBinding::Absent)?,
+        CarrierRoute::LocalDeclaration => local_forwarded_input()?,
+        CarrierRoute::NamedDeclaration => forwarded_input(DeclaringBinding::Required)?,
+    };
+    let body = gate_invocation(
+        assembly.form(),
+        expectation_roster(assembly.expectation())?,
+        callback,
+        context,
+    )?;
+    alias_rule(matched, body)
+}
+/// The author-chosen address: an exported definition under the spelling a declaration chose, forwarding its input to the hidden carrier.
 ///
 /// # Why an address exists at all
 ///
@@ -305,9 +397,7 @@ fn alias_rule(
 }
 
 fn repeated_input() -> Result<Vec<GeneratedToken>, Overflow> {
-    let mut taken = metavariable("input");
-    taken.push(GeneratedToken::alone(':'));
-    taken.push(GeneratedToken::word("tt"));
+    let taken = fragment_of("input", "tt");
     let mut repeated = vec![GeneratedToken::joint('$')];
     repeated.push(group(GeneratedDelimiter::Parenthesis, taken)?);
     repeated.push(GeneratedToken::alone('*'));
@@ -374,10 +464,9 @@ pub(super) fn shell_sentence(door: &Door) -> String {
     let namespace = producer.namespace;
     let name = producer.name;
     format!(
-        "Generated support carrier from {namespace}/{name}: deferred tokens a consumption \
-         target invokes. Hidden and mangled because it is machinery. Its body is one gate \
-         invocation, and the gate compares this producer's expected schema identity against \
-         the published one before any constructor reaches type checking."
+        "Generated support carrier from {namespace}/{name}: a staged delivery invoked by a \
+         consumption target. Its public entrance selects the harness gate, which admits the \
+         producer's schema before supplying its own binding to the internal transcription."
     )
 }
 

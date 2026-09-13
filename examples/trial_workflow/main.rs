@@ -57,15 +57,14 @@ macroonz::recipe! {
     }
 }
 
-arithmetic_support! {
+macroonz::support! { arithmetic_support {
     declaring: crate,
-    harness: macroonz::harness,
     consumer: crate,
     invocation: crate::checks::BUDGETS,
     target: crate::checks::target(),
     clock: macroonz::harness::clock::HarnessClock::unavailable(),
     specimen: crate::specimen(),
-}
+} }
 
 #[cfg(test)]
 fn specimen() -> Result<BoundInput<Vec<u8>>, InputRefusal> {

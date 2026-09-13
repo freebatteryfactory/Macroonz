@@ -36,6 +36,7 @@ Their `loom` or `harness` clause supplies the physical path that declaration sco
 The carrier is a hidden `macro_rules!` definition — plus the alias you chose in the `support` clause — holding its cargo inert.
 An ordinary build compiles the definition and nothing inside it.
 Your test or bench target invokes the alias, supplies its own host facts and callables there, and the carrier's gate checks the schema pin before a single constructor reaches type checking.
+The [support invocation](../compiler/src/support/README.md#invocation) owner defines the root `macroonz::support!` convenience and explicit gate selection.
 
 A descriptor carrier composed through `macroonz::recipe!` also requires the invocation target to state the declaring crate path.
 The wrapper's `$crate` belongs to the facade that defined the wrapper, so the explicit path is what lets the existing carrier reach its hidden helper without guessing package topology or adding ambient discovery.

@@ -1,4 +1,4 @@
-//! Root recipe behavior observed through package-shaped journeys and the proc-carrier contract.
+//! Root authoring behavior observed through package-shaped journeys and the proc-carrier contract.
 
 #[path = "recipe_facade_crossing/archive_delivery.rs"]
 mod archive_delivery;
@@ -10,6 +10,8 @@ mod generic_recipe;
 mod effect_execution;
 #[path = "recipe_facade_crossing/consuming.rs"]
 mod consuming;
+#[path = "recipe_facade_crossing/patterns.rs"]
+mod patterns;
 #[path = "recipe_facade_crossing/harness_posture.rs"]
 mod harness_posture;
 #[path = "recipe_facade_crossing/historical_subjects.rs"]

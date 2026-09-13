@@ -1,24 +1,17 @@
-//! A delivery whose expected schema identity is not the published one is refused with ONE owned diagnostic naming both sides.
-//!
-//! Not a cascade of field errors somewhere inside a generated table: the comparison is a `macro_rules!` pattern, so it refuses before the tokens it guards are parsed as Rust at all.
-//! The delivery below fills BOTH cargo seats, so what is recorded beside this file is the whole of what a consumer with an incoherent published pair is shown.
-//!
-//! # What this fixture does NOT establish
-//!
-//! That the two seats were withheld TOGETHER.
-//! `compile_error!` fires during expansion and stops the build before name resolution runs, so an item a released deferred seat would have declared cannot be reached for and found missing — the attempt produces no second error either way, which is a fact about when rustc gives up rather than about this gate.
-//!
-//! What establishes the together is the gate's SHAPE: two arms, one clause grammar, and a refusing arm whose body is this diagnostic and nothing else.
-//! Neither `$trials` nor `$deferred` is written on that road, so there is no arrangement of tokens in which half the delivery gets through.
+//! A mismatched schema withholds a trial carrier whose expansion would emit independent errors.
 
-fn main() {}
+#[macro_export]
+macro_rules! forbidden_delivery {
+    ($($input:tt)*) => {
+        compile_error!("trial seat was released");
+        compile_error!("deferred seat was released");
+    };
+}
 
 macroonz_harness::generated_support! {
-    expected: [
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    ],
-    harness: macroonz_harness,
-    trials: { },
-    deferred: { struct WithheldCargo; },
+    expected: [0],
+    trials: forbidden_delivery,
+    with: { opaque input must remain unparsed },
 }
+
+fn main() {}

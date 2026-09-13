@@ -124,6 +124,8 @@ fn observe_entrance(scratch: &Path, producer: &str, consumer: &str) -> Result<()
     if !tested.status.success() {
         return Err(command_refusal("co-located consumer", &tested));
     }
+    observe_gate_bindings(scratch, consumer, &target)?;
+    observe_path_refusals(scratch, consumer, &target)?;
     observe_refusals(scratch, producer, consumer, &target)?;
     std::fs::write(
         scratch.join("src/lib.rs"),
@@ -150,6 +152,122 @@ fn observe_entrance(scratch: &Path, producer: &str, consumer: &str) -> Result<()
             "independent successor disagreement",
             &challenged,
         ));
+    }
+    Ok(())
+}
+
+fn observe_gate_bindings(scratch: &Path, consumer: &str, target: &Path) -> Result<(), String> {
+    let facade = consumer
+        .replace(
+            "catalogue_support! {",
+            "crate::library::support! { catalogue_support {",
+        )
+        .replace("harness: crate::library::harness,", "")
+        .replace("\n}\n\n#[test]", "\n} }\n\n#[test]");
+    let reexport = format!(
+        "{}\nmod gate_reexport {{
+            pub use crate::library::harness::generated_support;
+            pub mod descriptor {{ pub struct GeneratedSupportSchemaId; }}
+        }}
+        const _: Option<gate_reexport::descriptor::GeneratedSupportSchemaId> = None;",
+        consumer.replace(
+            "harness: crate::library::harness,",
+            "harness: crate::gate_reexport,"
+        ),
+    );
+    for (source, question) in [
+        (&facade, "facade support"),
+        (&reexport, "gate-owned binding"),
+    ] {
+        std::fs::write(scratch.join("tests/recipe.rs"), source)
+            .map_err(|error| error.to_string())?;
+        let tested = cargo_with_target(
+            scratch,
+            target,
+            &[
+                "test",
+                "--locked",
+                "--offline",
+                "--test",
+                "recipe",
+                "--",
+                "--include-ignored",
+            ],
+        )?;
+        if !tested.status.success() {
+            return Err(command_refusal(question, &tested));
+        }
+    }
+    let conflicting = facade.replace(
+        "consumer: crate,",
+        "harness: crate::library::compiler, consumer: crate,",
+    );
+    std::fs::write(scratch.join("tests/recipe.rs"), conflicting)
+        .map_err(|error| error.to_string())?;
+    let checked = cargo_with_target(
+        scratch,
+        target,
+        &["check", "--locked", "--offline", "--test", "recipe"],
+    )?;
+    if checked.status.success()
+        || !String::from_utf8_lossy(&checked.stderr).contains("no rules expected")
+    {
+        return Err(command_refusal(
+            "facade conflicting harness refusal",
+            &checked,
+        ));
+    }
+    Ok(())
+}
+
+fn observe_path_refusals(scratch: &Path, consumer: &str, target: &Path) -> Result<(), String> {
+    let mut attempts = vec![
+        (
+            consumer.replace("harness: crate::library::harness,", ""),
+            "no rules expected",
+        ),
+        (
+            consumer.replace(
+                "harness: crate::library::harness,",
+                "harness: crate::library::harness, harness: crate::library::harness,",
+            ),
+            "no rules expected",
+        ),
+        (
+            consumer.replace(
+                "harness: crate::library::harness,",
+                "harness: crate::library::compiler,",
+            ),
+            "generated_support",
+        ),
+    ];
+    if consumer.contains("declaring: renamed_recipe_adopter,") {
+        attempts.extend([
+            (
+                consumer.replace("declaring: renamed_recipe_adopter,", ""),
+                "declaring",
+            ),
+            (
+                consumer.replace(
+                    "declaring: renamed_recipe_adopter,",
+                    "declaring: crate::library,",
+                ),
+                "could not find",
+            ),
+        ]);
+    }
+    for (damaged, expected) in attempts {
+        std::fs::write(scratch.join("tests/recipe.rs"), damaged)
+            .map_err(|error| error.to_string())?;
+        let checked = cargo_with_target(
+            scratch,
+            target,
+            &["check", "--locked", "--offline", "--test", "recipe"],
+        )?;
+        if checked.status.success() || !String::from_utf8_lossy(&checked.stderr).contains(expected)
+        {
+            return Err(command_refusal("carrier path refusal", &checked));
+        }
     }
     Ok(())
 }
