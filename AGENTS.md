@@ -74,8 +74,9 @@ A file exists only when it has content.
 An empty seat is a directory with one README that states its question and the condition that fills it.
 
 A home is sized for a reader.
-A function past a hundred lines is two operations.
-Four levels of nesting is a type that has not been written yet.
+Length and nesting trigger semantic review.
+Extract when distinct responsibilities or invariants earn a clearer boundary and the change reduces reader burden.
+Preserve a cohesive operation when division would obscure its sequencing or authority.
 
 ---
 

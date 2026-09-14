@@ -313,3 +313,71 @@ pub mod workflow {
     );
     Ok(())
 }
+
+#[test]
+fn generated_child_collision_precedes_unread_bake_grammar() -> Result<(), ()> {
+    let source = "mod subject { struct baked; bake! { not_a_clause; } }";
+    let refused = refusal(source)?;
+    assert!(refused.summary().contains("generated recipe name `baked`"));
+    assert_at_handle(&refused, word_handle(source, "baked", Occurrence::First)?);
+    Ok(())
+}
+
+#[test]
+fn requested_admission_precedes_deferred_signatures() -> Result<(), ()> {
+    let source = "mod subject { bake! { projections { dispatch { not_a_signature }; companions; companions; }; } }";
+    let refused = refusal(source)?;
+    assert!(
+        refused
+            .summary()
+            .contains("projection `companions` is requested more than once")
+    );
+    assert_at_handle(
+        &refused,
+        word_handle(source, "companions", Occurrence::Last)?,
+    );
+    Ok(())
+}
+
+#[test]
+fn earlier_unavailable_request_precedes_a_later_duplicate() -> Result<(), ()> {
+    use super::support::refusal_under;
+    use macroonz_compiler::recipe::HarnessPosture;
+
+    let source =
+        "mod subject { bake! { projections { compile_contract; companions; companions; }; } }";
+    let refused = refusal_under(source, HarnessPosture::Unavailable)?;
+    let control = source.replace("companions; companions;", "companions;");
+    assert_eq!(
+        refused.summary(),
+        refusal_under(&control, HarnessPosture::Unavailable)?.summary()
+    );
+    assert_at_handle(
+        &refused,
+        word_handle(source, "compile_contract", Occurrence::First)?,
+    );
+    Ok(())
+}
+
+#[test]
+fn each_relation_table_is_resolved_before_later_duplicate_work() -> Result<(), ()> {
+    let source =
+        "mod subject { bake! { projections { relation_tables { missing; missing; }; }; } }";
+    let refused = refusal(source)?;
+    let control = source.replace("missing; missing;", "missing;");
+    assert_eq!(refused.summary(), refusal(&control)?.summary());
+    assert_at_handle(&refused, word_handle(source, "missing", Occurrence::First)?);
+    Ok(())
+}
+
+#[test]
+fn support_compatibility_precedes_authored_codec_owner_lookup() -> Result<(), ()> {
+    let source = "mod subject { bake! { codecs { record(Missing) { direction(encode); refusal(ReadError); assembly(assembled, total); members { count: u16 => count(required); }; }; }; projections { codec; }; support(unneeded); } }";
+    let refused = refusal(source)?;
+    assert!(
+        refused.summary().contains(
+            "a support address was declared although no evidence projection was requested"
+        )
+    );
+    Ok(())
+}

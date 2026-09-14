@@ -1,12 +1,12 @@
 //! The ordered bake declaration clauses for vocabularies, transitions, posture, projections, and evidence.
 
 use super::codec::read_codecs;
-use super::evidence::{evidence, read_evidence_block, read_support, support_matches_projections};
-use super::projection::{projections, read_projection};
+use super::evidence::{read_evidence_block, read_support};
+use super::projection::{read_effective, read_projection};
 use super::relation::{read_and_apply_postures, read_relations, read_vocabularies};
 use super::{
-    BakeRead, CapturedName, CapturedRelation, HarnessPosture, RecipeError, RecipeIssue, grammar,
-    identifier_token,
+    BakeRead, CapturedName, CapturedRelation, HarnessPosture, Recipe, RecipeError, RecipeIssue,
+    grammar, identifier_token,
 };
 use crate::recipe::{RecipeRelationPayload, RecipeRelationRequirements, RecipeRelationRow};
 use crate::relation::AbsencePosture;
@@ -75,15 +75,12 @@ pub(super) fn read_bake(
                 )
             })
     });
-    let projections = projections(
-        &requested,
-        &requested_evidence,
-        harness,
-        transition_subject,
-        &relations,
-    )?;
-    let evidence = evidence(&requested_evidence);
-    support_matches_projections(&projections, support.as_ref(), declaration.last_span())?;
+    let projections =
+        Recipe::projection_standings(&requested, &requested_evidence, harness, |row| {
+            read_effective(row, transition_subject, &relations)
+        })?;
+    let evidence = Recipe::captured_evidence(&requested_evidence);
+    Recipe::support_matches_projections(&projections, support.as_ref(), declaration.last_span())?;
     Ok(BakeRead {
         vocabularies,
         relations,

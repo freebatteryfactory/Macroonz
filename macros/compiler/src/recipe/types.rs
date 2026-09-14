@@ -38,6 +38,9 @@ mod relation;
 #[path = "account/restore.rs"]
 mod restore;
 
+#[path = "account/selection.rs"]
+mod selection;
+
 #[path = "account/settle.rs"]
 mod settle;
 
@@ -652,4 +655,66 @@ pub(super) struct RecipeShell;
 pub(super) struct RecipeShellContent {
     pub(super) recipe: crate::identity::ClosedExpansionId,
     pub(super) support: Option<crate::identity::ClosedExpansionId>,
+}
+
+/// The mechanically read bake declaration with its complete projection standings.
+pub(super) struct BakeRead {
+    pub(super) vocabularies: Vec<CapturedName>,
+    pub(super) relations: Vec<CapturedRelation>,
+    pub(super) transition_relation: Option<String>,
+    pub(super) codecs: Vec<RecipeCodec>,
+    pub(super) projections: [ProjectionStanding; PROJECTION_LIMIT],
+    pub(super) evidence: [Option<RecipeEvidence>; EVIDENCE_LIMIT],
+    pub(super) support: Option<SupportName>,
+}
+
+/// One mechanically read named relation before its endpoint references are informed.
+#[derive(Clone)]
+pub(super) struct CapturedRelation {
+    pub(super) name: CapturedName,
+    pub(super) left: CapturedName,
+    pub(super) right: CapturedName,
+    pub(super) rows: Vec<RecipeRelationRow>,
+    pub(super) requirements: RecipeRelationRequirements,
+}
+
+/// One exact identifier read from recipe syntax before its structural role is informed.
+#[derive(Clone)]
+pub(super) struct CapturedName {
+    pub(super) spelling: String,
+    pub(super) token: GeneratedToken,
+    pub(super) at: SpanHandle,
+}
+
+/// One requested role with its mechanical configuration.
+#[derive(Clone)]
+pub(super) struct RequestedProjection {
+    pub(super) role: RecipeRole,
+    pub(super) name: Option<String>,
+    pub(super) subject: Option<String>,
+    pub(super) source: LoweringSource,
+    pub(super) exact: Option<CapturedInput>,
+    pub(super) dispatch_bindings: Option<[String; 2]>,
+    pub(super) relation_tables: Option<Vec<RequestedRelationTable>>,
+    pub(super) consuming: Option<CapturedInput>,
+    pub(super) at: SpanHandle,
+}
+
+/// One mechanically requested relation-table surface before its relation is informed.
+#[derive(Clone)]
+pub(super) struct RequestedRelationTable {
+    pub(super) relation: String,
+    pub(super) function: Option<String>,
+    pub(super) source: LoweringSource,
+    pub(super) exact: Option<CapturedInput>,
+    pub(super) at: SpanHandle,
+}
+
+/// One descriptor-native evidence role and its generated or target-unavailable standing.
+#[derive(Clone)]
+pub(super) struct RequestedEvidence {
+    pub(super) role: RecipeRole,
+    pub(super) target: Option<String>,
+    pub(super) body: Option<CapturedInput>,
+    pub(super) at: SpanHandle,
 }

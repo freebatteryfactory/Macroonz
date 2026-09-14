@@ -1,12 +1,10 @@
-//! Projection selection and the complete projection standing account.
+//! Projection grammar and deferred exact material read under account-owned selection.
 
-use super::super::types::{RecipeRoleAvailability, RecipeRoleEntrance};
+use super::super::types::RecipeRoleEntrance;
 use super::dispatch::{exact_dispatch, exact_relation_table};
-use super::evidence::evidence_standing;
 use super::{
-    CapturedRelation, EffectiveProjection, HarnessPosture, LoweringSource, PROJECTION_LIMIT,
-    ProjectionStanding, RELATION_TABLE_LIMIT, RecipeError, RecipeIssue, RecipeRole,
-    RelationTableProjection, RequestedEvidence, RequestedProjection, RequestedRelationTable,
+    CapturedRelation, EffectiveProjection, LoweringSource, RELATION_TABLE_LIMIT, RecipeError,
+    RecipeIssue, RecipeRole, RelationTableProjection, RequestedProjection, RequestedRelationTable,
 };
 use crate::bounded::Bounded;
 use crate::token::{
@@ -347,124 +345,21 @@ fn requested(
     }
 }
 
-/// Build the complete projection account and enforce harness posture before planning.
-pub(super) fn projections(
-    requested: &[RequestedProjection],
-    evidence: &[RequestedEvidence],
-    harness: HarnessPosture,
+/// Interpret one admitted projection's deferred grammar.
+pub(super) fn read_effective(
+    row: &RequestedProjection,
     transition_subject: Option<(&str, &str)>,
     relations: &[CapturedRelation],
-) -> Result<[ProjectionStanding; PROJECTION_LIMIT], RecipeError> {
-    ensure_requested_admission(requested, harness)?;
-    ensure_evidence_admission(evidence, harness)?;
-    projection_standings(requested, evidence, harness, transition_subject, relations)
-}
-
-fn ensure_requested_admission(
-    requested: &[RequestedProjection],
-    harness: HarnessPosture,
-) -> Result<(), RecipeError> {
-    for (position, row) in requested.iter().enumerate() {
-        if requested
-            .iter()
-            .take(position)
-            .any(|earlier| earlier.role == row.role)
-        {
-            return Err(RecipeError::at(
-                RecipeIssue::DuplicateProjection { role: row.role },
-                Some(row.at),
-            ));
-        }
-        if harness == HarnessPosture::Unavailable
-            && row.role.profile().availability == RecipeRoleAvailability::Harness
-        {
-            return Err(RecipeError::at(
-                RecipeIssue::HarnessUnavailable { role: row.role },
-                Some(row.at),
-            ));
-        }
-    }
-    Ok(())
-}
-
-fn ensure_evidence_admission(
-    evidence: &[RequestedEvidence],
-    harness: HarnessPosture,
-) -> Result<(), RecipeError> {
-    for (position, row) in evidence.iter().enumerate() {
-        if evidence
-            .iter()
-            .take(position)
-            .any(|earlier| earlier.role == row.role)
-        {
-            return Err(RecipeError::at(
-                RecipeIssue::DuplicateProjection { role: row.role },
-                Some(row.at),
-            ));
-        }
-        if harness == HarnessPosture::Unavailable
-            && row.role.profile().availability == RecipeRoleAvailability::Harness
-            && row.body.is_some()
-        {
-            return Err(RecipeError::at(
-                RecipeIssue::HarnessUnavailable { role: row.role },
-                Some(row.at),
-            ));
-        }
-    }
-    Ok(())
-}
-
-fn projection_standings(
-    requested: &[RequestedProjection],
-    evidence: &[RequestedEvidence],
-    harness: HarnessPosture,
-    transition_subject: Option<(&str, &str)>,
-    relations: &[CapturedRelation],
-) -> Result<[ProjectionStanding; PROJECTION_LIMIT], RecipeError> {
-    let mut standings = Vec::with_capacity(PROJECTION_LIMIT);
-    for role in RecipeRole::ALL.iter().copied() {
-        let standing = match role.profile().entrance {
-            RecipeRoleEntrance::Projection => {
-                standing(requested, role, harness, transition_subject, relations)?
-            }
-            RecipeRoleEntrance::Evidence => evidence_standing(evidence, role, harness),
-        };
-        standings.push(standing);
-    }
-    let Ok(standings) = standings.try_into() else {
-        unreachable!("the complete role roster has the projection-account magnitude")
-    };
-    Ok(standings)
-}
-
-fn standing(
-    requested: &[RequestedProjection],
-    role: RecipeRole,
-    harness: HarnessPosture,
-    transition_subject: Option<(&str, &str)>,
-    relations: &[CapturedRelation],
-) -> Result<ProjectionStanding, RecipeError> {
-    if harness == HarnessPosture::Unavailable
-        && role.profile().availability == RecipeRoleAvailability::Harness
-        && !requested.iter().any(|row| row.role == role)
-    {
-        return Ok(ProjectionStanding::FeatureUnavailable);
-    }
-    let Some(row) = requested.iter().find(|row| row.role == role) else {
-        return Ok(ProjectionStanding::NotRequested);
-    };
-    if role == RecipeRole::RelationTables {
+) -> Result<EffectiveProjection, RecipeError> {
+    if row.role == RecipeRole::RelationTables {
         return relation_table_standing(row, relations);
     }
     if let Some(input) = row.consuming.as_ref() {
-        return Ok(ProjectionStanding::Generated(Box::new(
-            EffectiveProjection::with_consuming(
-                row.subject.clone(),
-                super::consuming::read(input)?,
-                row.at,
-            ),
-        )));
+        return Ok(EffectiveProjection::with_consuming(
+            row.subject.clone(),
+            super::consuming::read(input)?,
+            row.at,
+        ));
     }
     if let Some(exact) = row.exact.as_ref() {
         let exact = exact_dispatch(
@@ -473,68 +368,40 @@ fn standing(
             transition_subject,
             row.dispatch_bindings.as_ref(),
         )?;
-        return Ok(ProjectionStanding::Generated(Box::new(
-            EffectiveProjection::exact_dispatch(
-                exact.name,
-                exact.signature,
-                exact.bindings,
-                exact.binding_names,
-                exact.imports,
-                exact.name_at,
-            ),
-        )));
+        return Ok(EffectiveProjection::exact_dispatch(
+            exact.name,
+            exact.signature,
+            exact.bindings,
+            exact.binding_names,
+            exact.imports,
+            exact.name_at,
+        ));
     }
-    Ok(ProjectionStanding::Generated(Box::new(
-        EffectiveProjection::effective(
-            role,
-            row.name.clone(),
-            row.subject.clone(),
-            row.source,
-            row.at,
-        ),
-    )))
+    Ok(EffectiveProjection::effective(
+        row.role,
+        row.name.clone(),
+        row.subject.clone(),
+        row.source,
+        row.at,
+    ))
 }
 
 fn relation_table_standing(
     requested: &RequestedProjection,
     relations: &[CapturedRelation],
-) -> Result<ProjectionStanding, RecipeError> {
+) -> Result<EffectiveProjection, RecipeError> {
     let requested_tables = requested.relation_tables.as_deref().unwrap_or(&[]);
     let mut tables = Vec::new();
     for (position, table) in requested_tables.iter().enumerate() {
-        if requested_tables
-            .iter()
-            .take(position)
-            .any(|earlier| earlier.relation == table.relation)
-        {
-            return Err(RecipeError::at(
-                RecipeIssue::DuplicateRelationTable {
-                    relation: table.relation.clone(),
-                },
-                Some(table.at),
-            ));
-        }
-        let relation = relations
-            .iter()
-            .find(|relation| relation.name.spelling == table.relation)
-            .ok_or_else(|| {
-                RecipeError::at(
-                    RecipeIssue::RelationNotFound {
-                        name: table.relation.clone(),
-                    },
-                    Some(table.at),
-                )
-            })?;
+        let subject = RelationTableProjection::declared_subject(
+            table,
+            requested_tables.iter().take(position),
+            relations,
+        )?;
         let (function, exact_rust, bindings, imports) = match table.exact.as_ref() {
             Some(exact) => {
-                let (name, signature, bindings, imports) = exact_relation_table(
-                    exact,
-                    table.at,
-                    (
-                        relation.left.spelling.as_str(),
-                        relation.right.spelling.as_str(),
-                    ),
-                )?;
+                let (name, signature, bindings, imports) =
+                    exact_relation_table(exact, table.at, subject)?;
                 (name, Some(signature), Some(bindings), Some(imports))
             }
             None => (
@@ -565,7 +432,8 @@ fn relation_table_standing(
             Some(requested.at),
         )
     })?;
-    Ok(ProjectionStanding::Generated(Box::new(
-        EffectiveProjection::with_relation_tables(tables, requested.at),
-    )))
+    Ok(EffectiveProjection::with_relation_tables(
+        tables,
+        requested.at,
+    ))
 }

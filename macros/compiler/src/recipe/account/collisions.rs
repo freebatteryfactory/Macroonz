@@ -176,3 +176,22 @@ fn shared_codec_road(
     }
     (first.direction.reads() && second.direction.reads()).then_some(DECODE_ROAD)
 }
+
+impl super::Recipe {
+    /// Admit the generated child name against the capture lens's direct namespace observations.
+    pub(in crate::recipe) fn ensure_authored_names<'a>(
+        names: impl Iterator<Item = (&'a str, SpanHandle)>,
+    ) -> Result<(), RecipeError> {
+        for (name, at) in names {
+            if name == "baked" {
+                return Err(RecipeError::at(
+                    RecipeIssue::GeneratedNameCollision {
+                        name: "baked".to_owned(),
+                    },
+                    Some(at),
+                ));
+            }
+        }
+        Ok(())
+    }
+}

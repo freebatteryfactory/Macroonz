@@ -286,8 +286,14 @@ fn legacy_invocation<F: FnOnce(&mut Child) -> Result<FuzzExecution, String>>(
 
 /// One started target that remains responsible for termination and reaping until it proves otherwise.
 struct TargetProcess {
+    process: OwnedChild,
+}
+
+/// Termination custody shared by the fallback's distinct completion policies.
+struct OwnedChild {
     child: Child,
     custody: ProcessCustody,
+    context: &'static str,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -299,13 +305,12 @@ enum ProcessCustody {
 impl TargetProcess {
     fn running(child: Child) -> Self {
         Self {
-            child,
-            custody: ProcessCustody::Running,
+            process: OwnedChild::running(child, "target"),
         }
     }
 
     fn child_mut(&mut self) -> &mut Child {
-        &mut self.child
+        &mut self.process.child
     }
 
     fn finish(mut self, execution: FuzzExecution) -> Result<FuzzExecution, RustcProfileRefusal> {
@@ -318,7 +323,7 @@ impl TargetProcess {
         if status.is_none() {
             return self.refuse(RustcProfileRefusal::SupervisorReturnedBeforeExit);
         }
-        self.custody = ProcessCustody::Reaped;
+        self.process.custody = ProcessCustody::Reaped;
         Ok(execution)
     }
 
@@ -326,7 +331,7 @@ impl TargetProcess {
         mut self,
         refusal: RustcProfileRefusal,
     ) -> Result<FuzzExecution, RustcProfileRefusal> {
-        match self.terminate_and_reap() {
+        match self.process.terminate_and_reap() {
             Ok(()) => Err(refusal),
             Err(cleanup) => Err(RustcProfileRefusal::CleanupTarget {
                 after: Box::new(refusal),
@@ -334,47 +339,22 @@ impl TargetProcess {
             }),
         }
     }
-
-    fn terminate_and_reap(&mut self) -> Result<(), String> {
-        if let Ok(Some(_status)) = self.child_mut().try_wait() {
-            self.custody = ProcessCustody::Reaped;
-            return Ok(());
-        }
-        self.child_mut()
-            .kill()
-            .map_err(|error| format!("target termination failed: {error}"))?;
-        self.child_mut()
-            .wait()
-            .map_err(|error| format!("target reap failed: {error}"))?;
-        self.custody = ProcessCustody::Reaped;
-        Ok(())
-    }
-}
-
-impl Drop for TargetProcess {
-    fn drop(&mut self) {
-        if matches!(self.custody, ProcessCustody::Running) {
-            let _cleanup = self.terminate_and_reap();
-        }
-    }
 }
 
 /// One coverage-export process that remains responsible for termination and reaping until it proves otherwise.
 struct CovProcess {
-    child: Child,
-    custody: ProcessCustody,
+    process: OwnedChild,
 }
 
 impl CovProcess {
     fn running(child: Child) -> Self {
         Self {
-            child,
-            custody: ProcessCustody::Running,
+            process: OwnedChild::running(child, "coverage export"),
         }
     }
 
     fn bounded_output(mut self, bound: u64) -> Result<Output, RustcProfileRefusal> {
-        let Some(stdout) = self.child.stdout.take() else {
+        let Some(stdout) = self.process.child.stdout.take() else {
             return self.refuse(RustcProfileRefusal::ReadCov(
                 "coverage export stdout was not piped".to_owned(),
             ));
@@ -391,13 +371,13 @@ impl CovProcess {
                 observed_at_least,
             });
         }
-        let status = match self.child.wait() {
+        let status = match self.process.child.wait() {
             Ok(status) => status,
             Err(error) => {
                 return self.refuse(RustcProfileRefusal::WaitCov(error.to_string()));
             }
         };
-        self.custody = ProcessCustody::Reaped;
+        self.process.custody = ProcessCustody::Reaped;
         if status.success() {
             Ok(Output {
                 status,
@@ -410,12 +390,22 @@ impl CovProcess {
     }
 
     fn refuse(mut self, refusal: RustcProfileRefusal) -> Result<Output, RustcProfileRefusal> {
-        match self.terminate_and_reap() {
+        match self.process.terminate_and_reap() {
             Ok(()) => Err(refusal),
             Err(cleanup) => Err(RustcProfileRefusal::CleanupCov {
                 after: Box::new(refusal),
                 cleanup,
             }),
+        }
+    }
+}
+
+impl OwnedChild {
+    fn running(child: Child, context: &'static str) -> Self {
+        Self {
+            child,
+            custody: ProcessCustody::Running,
+            context,
         }
     }
 
@@ -426,16 +416,16 @@ impl CovProcess {
         }
         self.child
             .kill()
-            .map_err(|error| format!("coverage export termination failed: {error}"))?;
+            .map_err(|error| format!("{} termination failed: {error}", self.context))?;
         self.child
             .wait()
-            .map_err(|error| format!("coverage export reap failed: {error}"))?;
+            .map_err(|error| format!("{} reap failed: {error}", self.context))?;
         self.custody = ProcessCustody::Reaped;
         Ok(())
     }
 }
 
-impl Drop for CovProcess {
+impl Drop for OwnedChild {
     fn drop(&mut self) {
         if matches!(self.custody, ProcessCustody::Running) {
             let _cleanup = self.terminate_and_reap();

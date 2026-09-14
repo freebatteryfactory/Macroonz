@@ -24,17 +24,33 @@ use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 
 static SCRATCH_ORDINAL: AtomicU32 = AtomicU32::new(0);
 
-fn scratch_path() -> PathBuf {
-    let ordinal = SCRATCH_ORDINAL.fetch_add(1, Ordering::SeqCst);
-    PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!(
-        "macroonz_bounded_refusal_{}_{ordinal}",
-        std::process::id()
-    ))
+fn scratch_path() -> Result<PathBuf, String> {
+    let parent = PathBuf::from(env!("CARGO_TARGET_TMPDIR"));
+    std::fs::create_dir_all(&parent).map_err(|error| error.to_string())?;
+    for _attempt in 0u16..1_024u16 {
+        let ordinal = SCRATCH_ORDINAL.fetch_add(1, Ordering::SeqCst);
+        let candidate = parent.join(format!(
+            "macroonz_bounded_refusal_{}_{ordinal}",
+            std::process::id()
+        ));
+        match std::fs::create_dir(&candidate) {
+            Ok(()) => return Ok(candidate),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(error) => return Err(error.to_string()),
+        }
+    }
+    Err("no unoccupied bounded-refusal specimen seat remained".to_owned())
 }
 
 fn compiled(source: &str) -> Result<Output, String> {
-    let scratch = scratch_path();
-    let observed = compiled_in(&scratch, source);
+    with_specimen(|scratch| compiled_in(scratch, source))
+}
+
+fn with_specimen<T>(
+    observe: impl FnOnce(&std::path::Path) -> Result<T, String>,
+) -> Result<T, String> {
+    let scratch = scratch_path()?;
+    let observed = observe(&scratch);
     let cleaned = std::fs::remove_dir_all(&scratch).map_err(|error| error.to_string());
     match (observed, cleaned) {
         (result, Ok(())) => result,
@@ -88,6 +104,9 @@ fn compiled_in(scratch: &std::path::Path, source: &str) -> Result<Output, String
     if !locked.status.success() {
         return Err(String::from_utf8_lossy(&locked.stderr).into_owned());
     }
+    let target = std::path::Path::new(env!("CARGO_TARGET_TMPDIR"))
+        .parent()
+        .ok_or_else(|| "Cargo's target temporary directory has no target parent".to_owned())?;
     Command::new("rustup")
         .arg("run")
         .arg("1.98.1")
@@ -97,7 +116,7 @@ fn compiled_in(scratch: &std::path::Path, source: &str) -> Result<Output, String
         .arg("--offline")
         .arg("--manifest-path")
         .arg(scratch.join("Cargo.toml"))
-        .env("CARGO_TARGET_DIR", scratch.join("target"))
+        .env("CARGO_TARGET_DIR", target)
         .output()
         .map_err(|error| error.to_string())
 }
@@ -179,6 +198,38 @@ fn impossible_const_generic_collections_refuse_during_codegen() -> Result<(), St
         include_str!("build-fail/a-capped-collection-cannot-have-a-zero-ceiling.rs"),
         "a capped list under a ceiling that admits no item",
     )
+}
+
+/// Reusing compiler artifacts must still rebuild changed source and retain the independent specimen's cleanup boundary.
+#[test]
+fn shared_target_observes_invalid_valid_invalid_source_changes() -> Result<(), String> {
+    with_specimen(|scratch| {
+        let invalid =
+            include_str!("build-fail/a-fixed-bounded-offering-cannot-exceed-its-ceiling.rs");
+        let valid = invalid.replace("Bounded::<u8, 1>", "Bounded::<u8, 2>");
+        for (source, succeeds) in [(invalid, false), (valid.as_str(), true), (invalid, false)] {
+            let output = compiled_in(scratch, source)?;
+            assert_eq!(
+                output.status.success(),
+                succeeds,
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            if !succeeds {
+                assert!(
+                    String::from_utf8_lossy(&output.stderr)
+                        .contains("a fixed list longer than the ceiling it is declared under")
+                );
+            }
+        }
+        assert!(!scratch.join("target").exists());
+        Ok(())
+    })?;
+    let target = std::path::Path::new(env!("CARGO_TARGET_TMPDIR"))
+        .parent()
+        .ok_or_else(|| "Cargo's target temporary directory has no target parent".to_owned())?;
+    assert!(target.join("debug").is_dir());
+    Ok(())
 }
 
 /// Non-empty construction gives a total first item and separates absence from overflow.
