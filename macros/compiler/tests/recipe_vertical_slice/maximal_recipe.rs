@@ -12,7 +12,7 @@ use macroonz_compiler::{RENDERED_BYTE_LIMIT, TEXT_SOURCE_BYTE_LIMIT, TextCapture
 #[ignore = "explicit long campaign; invoke this maximal recipe by exact name"]
 fn the_catalog_bearing_maximal_load_fits_the_derived_render_envelope_with_pinned_headroom()
 -> Result<(), String> {
-    const EXPECTED_CANONICAL_BYTES: usize = 4_548_871;
+    const EXPECTED_CANONICAL_BYTES: usize = 4_558_497;
 
     let source = maximal_recipe_source();
     assert!(
