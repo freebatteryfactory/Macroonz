@@ -1,22 +1,6 @@
 //! Reading one authored concurrency declaration out of a typed token tree.
 //!
-//! # The authored grammar
-//!
-//! ```text
-//! <helper>! {
-//!     harness = <dependency path>,
-//!     module = <ident>,
-//!     namespace = "<owner>",
-//!     <row name> {
-//!         population = "<stem>",
-//!         interleavings = <n>,
-//!         samples = <n>,
-//!         seed = <n>,
-//!     },
-//! }
-//! ```
-//!
-//! Clause order is free and is read by key, inside a row and outside one; row order is meaning and is preserved.
+//! The [authored grammar](super#authored-grammar) belongs to this home's public documentation.
 
 use super::{ConcurrencyCaptureError, ConcurrencyDeclaration, ExplorationRow};
 use crate::descriptor::clause::{

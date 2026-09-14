@@ -132,7 +132,7 @@ fn mirrored_dispatch(
         tokens.extend(mirrored_exact_dispatch_imports(states, events, effective));
         tokens.extend(exact.tokens().iter().cloned());
         tokens.push(group(GeneratedDelimiter::Brace, body)?);
-        return GeneratedTree::assembled(tokens).map_err(ProjectionError::Tokens);
+        return GeneratedTree::assembled(tokens).map_err(ProjectionError::from);
     }
     let parameters = vec![
         typed_parameter(
@@ -167,7 +167,7 @@ fn mirrored_dispatch(
     );
     let mut tokens = refusal;
     tokens.extend(function);
-    GeneratedTree::assembled(tokens).map_err(ProjectionError::Tokens)
+    GeneratedTree::assembled(tokens).map_err(ProjectionError::from)
 }
 
 fn mirrored_transition_refusal() -> Result<Vec<GeneratedToken>, ProjectionError> {

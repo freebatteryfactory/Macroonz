@@ -38,7 +38,7 @@ pub(super) fn compile_contract(recipe: &Recipe) -> Result<GeneratedTree, Project
     tokens.push(GeneratedToken::alone('='));
     tokens.extend(crate_baked_path(recipe, name));
     tokens.push(GeneratedToken::alone(';'));
-    GeneratedTree::assembled(tokens).map_err(ProjectionError::Tokens)
+    GeneratedTree::assembled(tokens).map_err(ProjectionError::from)
 }
 
 pub(super) fn declaration_conformance(recipe: &Recipe) -> Result<GeneratedTree, ProjectionError> {
@@ -68,7 +68,7 @@ pub(super) fn declaration_conformance(recipe: &Recipe) -> Result<GeneratedTree, 
             body,
         )?,
     );
-    GeneratedTree::assembled(tokens).map_err(ProjectionError::Tokens)
+    GeneratedTree::assembled(tokens).map_err(ProjectionError::from)
 }
 
 fn declaration_conformance_row(

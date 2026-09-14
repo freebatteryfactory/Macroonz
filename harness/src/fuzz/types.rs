@@ -3,7 +3,7 @@
 //! Construction and reading live in this module's own child `type_guard.rs`, with one stated exception: the ready preflight keeps its seats open to this home, because the preflight road is the one road that establishes readiness and assembles the value from the compiler facts it read.
 
 use crate::descriptor::{NamespacedName, PopulationRef, RevisionBinding};
-use crate::report::{ByteBudget, CaseBudget, TargetBinding};
+use crate::report::{ByteBudget, CaseBudget, TargetBinding, TargetTriple};
 use std::collections::BTreeSet;
 use std::path::PathBuf;
 
@@ -21,6 +21,29 @@ pub const RUSTC_COVERAGE_TOOLCHAIN: &str = "1.98.1";
 pub struct CoverageSourceRoot {
     logical: NamespacedName,
     checkout: PathBuf,
+}
+
+/// A nonempty set of distinct logical source roots with nonoverlapping declared path spellings.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CoverageSourceRoots {
+    first: CoverageSourceRoot,
+    additional: Vec<CoverageSourceRoot>,
+}
+
+/// Why a set of coverage source roots was not admitted.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CoverageRootsRefusal {
+    /// No source root was supplied.
+    Empty,
+    /// Two roots used the same logical name.
+    DuplicateName(NamespacedName),
+    /// Two declared paths overlap and cannot select one root unambiguously.
+    OverlappingPaths {
+        /// The earlier root's position.
+        left: usize,
+        /// The later root's position.
+        right: usize,
+    },
 }
 
 /// Why a coverage source root was not informed.
@@ -82,7 +105,7 @@ pub struct CoverageCampaign {
     budgets: CoverageBudgets,
 }
 
-/// One coverage campaign joined to the target and toolchain established by active preflight.
+/// One coverage campaign joined to its selected target and actively established toolchain.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CoverageStanding {
     campaign: CoverageCampaign,
@@ -127,10 +150,70 @@ pub enum RustcField {
     Sysroot,
 }
 
+/// The coverage operation that selects one child process.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CoverageCommand {
+    /// One compiler identity query.
+    Rustc(RustcCommand),
+    /// One matching LLVM tool's version query.
+    Version(CoverageTool),
+    /// The instrumented candidate reader.
+    Target,
+    /// Raw-profile merging.
+    Merge,
+    /// Bounded LCOV export.
+    Export,
+}
+
+/// One coverage-owned command and its materialized input and output ceiling.
+#[derive(Debug)]
+pub struct CoverageInvocation {
+    pub(super) operation: CoverageCommand,
+    pub(super) command: std::process::Command,
+    pub(super) input: Option<std::fs::File>,
+    pub(super) output_bound: Option<u64>,
+}
+
+/// The executor's process output or classification of the instrumented target.
+#[derive(Debug)]
+pub enum CoverageReply {
+    /// Complete output of a compiler or LLVM command.
+    Output(std::process::Output),
+    /// The executor's classification after target cleanup.
+    Target(FuzzExecution),
+}
+
+/// A task-created case directory retained while an executor may still own a child.
+#[derive(Debug)]
+#[must_use]
+pub struct CoverageCaseCleanup {
+    directory: PathBuf,
+}
+
+/// An owning coverage refusal or an executor failure with any still-required case cleanup.
+#[derive(Debug)]
+pub enum CoverageHostFailure<ExecutorError, Refusal> {
+    /// The coverage owner refused before or after a completed executor call.
+    Refused(Refusal),
+    /// The executor did not establish a completed reply.
+    Executor {
+        /// The operation whose execution failed.
+        operation: CoverageCommand,
+        /// The executor's own failure and resource custody.
+        error: ExecutorError,
+        /// The case directory that must survive until the executor finishes cleanup.
+        cleanup: Option<CoverageCaseCleanup>,
+    },
+}
+
 /// Why active stable-rustc coverage preflight did not establish readiness.
 #[must_use = "a refusal is the reason rustc coverage preflight was not ready"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PreflightIncomplete {
+    /// An executor returned a target classification for a tool query.
+    UnexpectedExecutorReply,
+    /// Canonical source roots overlap or repeat logical identities.
+    SourceRoots(CoverageRootsRefusal),
     /// The declared target could not be inspected.
     TargetUnavailable {
         /// The target path.
@@ -253,6 +336,11 @@ pub struct CoverageObservation {
 #[must_use = "a refusal is the reason a coverage export was not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CoverageReadRefusal {
+    /// More than one declared root matched a normalized source path.
+    AmbiguousSource {
+        /// The one-based LCOV record position.
+        record: usize,
+    },
     /// The export was not UTF-8.
     NonUtf8,
     /// A source record carried no path.
@@ -418,6 +506,7 @@ pub enum MutationRefusal {
 pub(crate) struct RustcCoverageTools {
     profdata: PathBuf,
     cov: PathBuf,
+    version: String,
 }
 
 /// One already-instrumented Rust target and its declared arguments.
@@ -425,6 +514,7 @@ pub(crate) struct RustcCoverageTools {
 pub struct InstrumentedTarget {
     executable: PathBuf,
     arguments: Vec<String>,
+    triple: Option<TargetTriple>,
 }
 
 /// One declared rustc-profile observation request.
@@ -432,7 +522,7 @@ pub struct InstrumentedTarget {
 pub struct RustcProfileRequest {
     rustc: PathBuf,
     target: InstrumentedTarget,
-    source_root: CoverageSourceRoot,
+    source_roots: CoverageSourceRoots,
     scratch: PathBuf,
     campaign: CoverageCampaign,
 }
@@ -455,12 +545,12 @@ pub enum RustcProfileRequestRefusal {
     RelativeScratch,
 }
 
-/// One actively established rustc, target, source-root, and tool environment carrying a declared scratch path.
+/// One selected target joined to an actively established compiler, source-root and tool environment with a declared scratch path.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReadyPreflight {
     pub(super) request: RustcProfileRequest,
     pub(super) tools: RustcCoverageTools,
-    pub(super) source_root: CoverageSourceRoot,
+    pub(super) source_roots: CoverageSourceRoots,
     pub(super) standing: CoverageStanding,
     pub(super) sysroot: PathBuf,
     pub(super) release: String,
@@ -497,6 +587,8 @@ pub struct RustcProfileResult {
 #[must_use = "a refusal is the reason a rustc coverage execution did not complete"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RustcProfileRefusal {
+    /// An executor returned the wrong reply kind for the selected operation.
+    UnexpectedExecutorReply,
     /// The caller supplied an empty candidate.
     EmptyCandidate,
     /// The supplied corpus belongs to another qualified campaign standing.

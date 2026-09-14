@@ -1,5 +1,6 @@
 #![doc = include_str!("README.md")]
 
+pub mod archive;
 mod type_contract;
 mod types;
 

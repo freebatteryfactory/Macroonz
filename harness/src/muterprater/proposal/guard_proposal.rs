@@ -4,18 +4,15 @@ use crate::descriptor::{
     AdmissionGround, ExecutionSuite, Namespace, Origin, ProposalId, ReplayBearingGround, Row,
     SynthesisFacts,
 };
-use crate::identity::ContentAddress;
 use crate::muterprater::MutationTarget;
+use crate::muterprater::proposal::encode::proposal_identity;
 use crate::muterprater::proposal::types::{
     ClaimPinnedGround, ClaimPinnedProposal, FailureComparison, MutantKilledGround,
     MutantKilledProposal, NoComparison, NoComparisonReason, ObligationComparison,
-    ObligationDischargedGround, ObligationDischargedProposal, PROPOSAL_TAG, ProposalDestination,
+    ObligationDischargedGround, ObligationDischargedProposal, ProposalDestination,
     ProposalDocument, ProposalRefusal, ReplayBearingProposal,
 };
-use crate::report::{ReplayCapsule, encode_bytes};
-
-/// The version of the proposal identity encoding.
-const PROPOSAL_ENCODING_VERSION: u32 = 1;
+use crate::report::ReplayCapsule;
 
 // ---------------------------------------------------------------------------
 // The proposals, and their one identity road.
@@ -217,23 +214,6 @@ impl ReplayBearingProposal for ClaimPinnedProposal {
     fn replay_ground(&self) -> ReplayBearingGround {
         ReplayBearingGround::ClaimPinned
     }
-}
-
-/// The one road every proposal's identity is derived by, over the three readings the three of them share.
-///
-/// The candidate row's canonical bytes were written where that row was born, so this reads them rather than encoding a row a second time.
-/// Written once rather than per proposal: three copies of one preimage agree until one is edited, and the specification is stated on [`ProposalDocument::identity`].
-fn proposal_identity(
-    candidate: &Row,
-    ground: AdmissionGround,
-    destination: ProposalDestination,
-) -> ProposalId {
-    let mut preimage = Vec::new();
-    preimage.extend_from_slice(&PROPOSAL_ENCODING_VERSION.to_be_bytes());
-    encode_bytes(candidate.canonical_bytes().as_bytes(), &mut preimage);
-    preimage.push(ground.slot());
-    destination.suite().name().encode_into(&mut preimage);
-    ProposalId::over(ContentAddress::derived(PROPOSAL_TAG, &preimage))
 }
 
 /// The synthesis facts a candidate row carries, or the refusal it earns.

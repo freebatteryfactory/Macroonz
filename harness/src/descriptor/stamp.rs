@@ -70,6 +70,12 @@
 ///             against <expression>,
 /// ```
 ///
+/// Either form may place `input: <decoded type>, specimen: <expression>,` immediately after provenance.
+/// The specimen expression must return `Result<BoundInput<DecodedType>, InputRefusal>` and is evaluated once per invoked suite or lens.
+/// The stamp joins the admitted specimen through [`Invocation::with_input`](crate::runner::Invocation::with_input); input refusal returns [`SeatRefusal::InputNotBound`](crate::runner::SeatRefusal::InputNotBound) before execution.
+/// Omitting both clauses preserves unit-input bindings and invocations.
+/// Decoder effects and work limits remain under the [input owner](crate::input); the runner applies case and payload budgets to the admitted specimen.
+///
 /// - `<module>` is the stamped module's name, and the visibility in front of `mod` is carried onto the module and onto every declaration it holds, so no public road ever ends at a private one.
 /// - `named(<namespace>, <stem>)` after `mod` is the authored table's own namespaced name, parsed at run time because a name that states no owner is refused rather than stamped.
 /// - `provenance:` is one of the two forms above; the produced form's expression evaluates to `Result<GeneratedSupportSchemaId, TrialTableRefusal>`, which is the shape a producer's own identity road already has.
@@ -81,13 +87,15 @@
 /// - `suite <seat> named(<namespace>, <stem>) { … }` declares one aggregate seat: `<seat>` is the test function's name, and the two literals are the [`ExecutionSuite`](crate::descriptor::ExecutionSuite) it selects on.
 ///   At least one suite group is required, and each group requires at least one row.
 /// - `<row>: <expression>` declares one row: `<row>` names its lens, and the expression answers with one [`TrialBinding`](crate::runner::TrialBinding) or refuses in any family that discharges into [`TrialTableRefusal`](crate::descriptor::TrialTableRefusal).
+///   With an explicit input type, the binding is `TrialBinding<BoundInput<DecodedType>>`.
 ///   The stamp never reads inside the expression: a row's internals are the producer's statement, and a macro that parsed them would be a second authority over this vocabulary.
 ///
 /// Both grammars end their clauses and their rows with a comma.
 ///
 /// # What is stamped
 ///
-/// One module, containing a private `row` module with one function per declared row; a `table` function building the authored world through the public constructors; an `INVOCATION` constant and a `CLOCK` constant; a `target` function; one ordinary `#[test]` per suite group; and one `#[test] #[ignore = "lens"]` per row.
+/// One module, containing a `row` module with one binding factory per declared row; a `table` function building the authored world through the public constructors; an `INVOCATION` constant and a `CLOCK` constant; a `target` function; one ordinary `#[test]` per suite group; and one `#[test] #[ignore = "lens"]` per row.
+/// The `row` module has the declaration's visibility, so a caller can compose `module::row::lens()` into another receiver without repeating its metadata or executing its check during construction.
 /// Each seat and each lens builds its own invocation, so a report carries the site of the seat that produced it rather than one site the whole table shared.
 ///
 /// # Authority
@@ -113,6 +121,7 @@ macro_rules! trial_table {
         $(#[$note:meta])*
         $vis:vis mod $module:ident named($table_namespace:literal, $table_stem:literal) {
             provenance: unproduced,
+            $(input: $input:ty, specimen: $specimen:expr,)?
             invocation: $invocation:expr,
             target: $target:expr,
             clock: $clock:expr,
@@ -133,6 +142,8 @@ macro_rules! trial_table {
             [$table_namespace]
             [$table_stem]
             [::core::result::Result::Ok($crate::descriptor::Provenance::Unproduced)]
+            [$($input)?]
+            [$($specimen)?]
             [$invocation]
             [$target]
             [$clock]
@@ -155,6 +166,7 @@ macro_rules! trial_table {
         $vis:vis mod $module:ident named($table_namespace:literal, $table_stem:literal) {
             provenance: produced($producer_namespace:literal, $producer_stem:literal)
                 against $schema:expr,
+            $(input: $input:ty, specimen: $specimen:expr,)?
             invocation: $invocation:expr,
             target: $target:expr,
             clock: $clock:expr,
@@ -187,6 +199,8 @@ macro_rules! trial_table {
                     })
                 })
             ]
+            [$($input)?]
+            [$($specimen)?]
             [$invocation]
             [$target]
             [$clock]
@@ -204,6 +218,15 @@ macro_rules! trial_table {
         }
     };
 
+    (@input_type []) => { () };
+    (@input_type [$input:ty]) => { $crate::input::BoundInput<$input> };
+    (@invocation [] $invocation:expr) => { $invocation };
+    (@invocation [$specimen:expr] $invocation:expr) => {
+        $invocation.with_input(
+            $specimen.map_err($crate::runner::SeatRefusal::InputNotBound)?
+        )
+    };
+
     // THE ONE TRANSCRIPTION. Both invocation forms arrive here with their provenance already assembled
     // into one expression of one type, so the module below is written once and neither form can drift
     // from the other.
@@ -215,6 +238,8 @@ macro_rules! trial_table {
         [$table_namespace:literal]
         [$table_stem:literal]
         [$provenance:expr]
+        $input:tt
+        $specimen:tt
         [$invocation:expr]
         [$target:expr]
         [$clock:expr]
@@ -233,10 +258,8 @@ macro_rules! trial_table {
         $(#[$note])*
         /// One stamped trial table: the authored world its rows declare, one aggregate seat per declared execution suite, and one ignored lens per row.
         $vis mod $module {
-            /// One function per declared row, so each declared expression is written exactly once
-            /// and both spellings read that one: the table collects these functions, and each named
-            /// lens calls its own.
-            mod row {
+            /// Named binding factories shared by the complete table, lenses and consuming receivers.
+            $vis mod row {
                 $(
                     $(
                         /// One declared row's binding.
@@ -244,8 +267,8 @@ macro_rules! trial_table {
                         /// # Errors
                         ///
                         /// Refuses whatever the declaration's own constructions refuse, each carried into the stamp's one family by the discharge that family declares for it.
-                        pub(super) fn $row() -> ::core::result::Result<
-                            $crate::runner::TrialBinding,
+                        pub fn $row() -> ::core::result::Result<
+                            $crate::runner::TrialBinding<$crate::trial_table!(@input_type $input)>,
                             $crate::descriptor::TrialTableRefusal,
                         > {
                             ::core::result::Result::Ok($binding?)
@@ -280,7 +303,7 @@ macro_rules! trial_table {
             ///
             /// Refuses the first construction that refused, in the order the stamp builds them: the table's name, the stated provenance, each row's binding in declared order, then the authored world itself.
             $vis fn table() -> ::core::result::Result<
-                $crate::runner::TrialTable,
+                $crate::runner::TrialTable<$crate::trial_table!(@input_type $input)>,
                 $crate::descriptor::TrialTableRefusal,
             > {
                 let name = $crate::descriptor::AuthoredTableName::named(
@@ -327,7 +350,7 @@ macro_rules! trial_table {
                             ::std::collections::BTreeSet::from([suite]),
                         ),
                     );
-                    let invocation = $crate::runner::Invocation::declared(
+                    let invocation = $crate::trial_table! { @invocation $specimen $crate::runner::Invocation::declared(
                         INVOCATION,
                         target(),
                         $crate::report::TrialSite::located(
@@ -337,7 +360,7 @@ macro_rules! trial_table {
                             ::core::stringify!($seat),
                         ),
                         CLOCK,
-                    );
+                    ) };
                     let report = $crate::runner::run_all(&view, &selection, &invocation);
                     let _outcome = $crate::runner::seat_verdict(&report)?;
                     ::core::result::Result::Ok(())
@@ -358,7 +381,7 @@ macro_rules! trial_table {
                     #[ignore = "lens"]
                     fn $row() -> ::core::result::Result<(), $crate::runner::SeatRefusal> {
                         let binding = row::$row()?;
-                        let invocation = $crate::runner::Invocation::declared(
+                        let invocation = $crate::trial_table! { @invocation $specimen $crate::runner::Invocation::declared(
                             INVOCATION,
                             target(),
                             $crate::report::TrialSite::located(
@@ -368,7 +391,7 @@ macro_rules! trial_table {
                                 ::core::stringify!($row),
                             ),
                             CLOCK,
-                        );
+                        ) };
                         let report = $crate::runner::run_one(&binding, &invocation);
                         $crate::runner::lens_verdict(&report)
                     }

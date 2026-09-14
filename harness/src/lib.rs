@@ -10,6 +10,7 @@
 //!
 //! [`descriptor`] owns the rows a producer writes into, and [`runner`] turns those rows and a typed invocation into typed reports.
 //! [`generate`] owns the generation contract, [`corpus`] carries content-addressed warm starts for it, and [`properties`] holds the algebraic laws a subject can be held to.
+//! [`input`] admits complete specimens under an independently expected profile and an explicitly bound typed decoder.
 //! [`interleave`] explores the orders concurrent parties' commands can merge in, with the schedule itself a generated input, and [`network`] is the deterministic message-passing sim whose command-shaped deliveries feed that exploration.
 //! The feature-gated `preemption` module explores instruction-level interleavings and the memory model through a target-qualified backend: the feature enables Loom where the pinned scheduler supports the target and retains typed backend unavailability everywhere else.
 //! [`fault`] schedules owner-declared adversity, [`clock`] is the caller-declared wall-measurement boundary, and [`mod@bench`] judges work under a pinned profile.
@@ -30,6 +31,7 @@ pub mod descriptor;
 pub mod fault;
 pub mod fuzz;
 pub mod generate;
+pub mod input;
 pub mod interleave;
 pub mod muterprater;
 pub mod network;

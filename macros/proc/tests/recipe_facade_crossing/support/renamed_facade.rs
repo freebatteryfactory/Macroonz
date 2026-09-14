@@ -264,6 +264,7 @@ const TEMPORAL_HOLDS: FindingCause = FindingCause::named("recipe", "temporal-hol
 const MEASURED_REFUSED: FindingCause = FindingCause::named("recipe", "measured-refused");
 const WORSE_REFUSED: FindingCause = FindingCause::named("recipe", "worse-refused");
 const GAP_REFUSED: FindingCause = FindingCause::named("recipe", "gap-refused");
+const EXPECTED_FORMULA: Option<&[u8]> = None;
 
 static BENCH_CLOCK: AtomicU64 = AtomicU64::new(1);
 
@@ -329,6 +330,7 @@ fn planted_worse(
 }
 
 fn judge(input: &WorkJudgmentInput<'_>) -> WorkJudgment {
+    assert_eq!(input.formula().map(|formula| formula.bytes()), EXPECTED_FORMULA);
     let samples = u64::from(input.budgets().samples());
     let measured_holds = input.measured().points().iter().all(|point| {
         let [count] = point.counts() else {

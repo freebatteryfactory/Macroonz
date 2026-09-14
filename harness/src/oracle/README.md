@@ -37,3 +37,5 @@ The stronger status is a qualified implementation bound to the revision it was q
 
 There is no scan for a declared textual form in rendered output, and its absence is a decision rather than a gap.
 Anchors like that are generator-invalidation data: they belong to whoever authors the rendered form, so a hand restating them beside the renderer would be maintaining a second spelling of somebody else's output.
+
+The [archive](archive/) retains method-specific verdict data for historical inspection without minting a current verdict or reconstructing absent producer, parser or compiler provenance.

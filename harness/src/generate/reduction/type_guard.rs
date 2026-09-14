@@ -4,13 +4,15 @@
 //! Duplicate semantic reducers, zero budgets, non-descending candidates, and probes not bound to a refused report are refused here, while an empty semantic roster lawfully selects the generic byte road alone.
 
 use super::{
-    ByteReducerExecution, ByteReducerId, FingerprintPreservation, FingerprintProbe,
-    ReductionBudget, ReductionCensus, ReductionCensusSeat, ReductionEvidence, ReductionHalt,
-    ReductionOutcome, ReductionPlan, ReductionPlanRefusal, ReductionProbeBinding,
-    ReductionProbeRefusal, SemanticCandidateRefusal, SemanticCandidates, SemanticReducerBinding,
-    SemanticReducerCall, SemanticReducerExecution, SemanticReducerId, ShrinkVerdict,
+    ByteReducerExecution, ByteReducerId, FingerprintPreservation, FingerprintProbe, ProbeOutcome,
+    ReductionBaseline, ReductionBudget, ReductionCensus, ReductionCensusSeat, ReductionEvidence,
+    ReductionHalt, ReductionOutcome, ReductionPlan, ReductionPlanRefusal, ReductionProbeBinding,
+    ReductionProbeRefusal, ReductionRefusal, SemanticCandidateRefusal, SemanticCandidates,
+    SemanticReducerBinding, SemanticReducerCall, SemanticReducerExecution, SemanticReducerId,
+    ShrinkVerdict,
 };
 use crate::descriptor::{GeneratedSupportSchemaId, RevisionBinding, namespaced_reference};
+use crate::input::{InputLimits, pack};
 use crate::report::{
     Fingerprint, GenerationProfile, MinimizationProfile, ReplayPosture, RunAttempt,
     TrialConclusion, TrialReport, TrialRunStanding,
@@ -297,6 +299,48 @@ impl ReductionProbeBinding {
 
 // What a reduction counts and leaves behind.
 
+impl<'input> ReductionBaseline<'input> {
+    /// Join the starting bytes before running the report-bound baseline probe.
+    pub(in crate::generate::reduction) fn admitted(
+        input: &'input [u8],
+        binding: &'input ReductionProbeBinding,
+    ) -> Result<Self, ReductionRefusal> {
+        let key = binding.standing().key();
+        if let Some(expected) = key.input() {
+            let budget = usize::try_from(key.invocation().bytes().bytes()).unwrap_or(usize::MAX);
+            let offered = pack(
+                expected.profile(),
+                input,
+                InputLimits::declared(usize::MAX, budget),
+            )
+            .map_err(|cause| ReductionRefusal::BaselineInputRefused { cause })?;
+            if offered.case() != expected.case() {
+                return Err(ReductionRefusal::BaselineCaseDiffers {
+                    expected: expected.case(),
+                    found: offered.case(),
+                });
+            }
+        }
+        let ProbeOutcome::Reproduced(found) = binding.probe()(input) else {
+            return Err(ReductionRefusal::BaselineDidNotFail);
+        };
+        if found != binding.preserved() {
+            return Err(ReductionRefusal::BaselineFingerprintDiffers { found });
+        }
+        Ok(Self { input, binding })
+    }
+
+    /// The starting specimen admitted with this binding.
+    pub(in crate::generate::reduction) const fn input(&self) -> &'input [u8] {
+        self.input
+    }
+
+    /// The report and probe that admitted this starting specimen.
+    pub(in crate::generate::reduction) const fn binding(&self) -> &'input ReductionProbeBinding {
+        self.binding
+    }
+}
+
 macro_rules! implement_reduction_census {
     (
         $(
@@ -425,7 +469,7 @@ impl ReductionEvidence {
     #[must_use]
     pub(crate) fn recorded(
         probe: &ReductionProbeBinding,
-        minimization: MinimizationProfile,
+        plan: &ReductionPlan,
         semantic_reducers: Vec<SemanticReducerExecution>,
         byte_reducer: ByteReducerExecution,
         outcome: ReductionOutcome,
@@ -436,7 +480,8 @@ impl ReductionEvidence {
             generation: probe.generation(),
             schema: probe.schema(),
             probe_revision: probe.revision(),
-            minimization,
+            minimization: plan.profile(),
+            budget: plan.budget(),
             semantic_reducers,
             byte_reducer,
             outcome,
@@ -472,6 +517,12 @@ impl ReductionEvidence {
     #[must_use]
     pub const fn minimization(&self) -> MinimizationProfile {
         self.minimization
+    }
+
+    /// The candidate-probe budget actually supplied by the reduction plan.
+    #[must_use]
+    pub const fn budget(&self) -> ReductionBudget {
+        self.budget
     }
 
     /// The semantic reducers actually invoked, in execution order.

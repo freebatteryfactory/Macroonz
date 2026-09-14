@@ -13,7 +13,7 @@ pub use bench::bench;
 pub(crate) use bench::bench_requiring_declaring;
 pub use concurrency::concurrency;
 pub(crate) use mutations::mutations_from_order_requiring_declaring;
-pub use mutations::{mutations, mutations_from_order};
+pub use mutations::{mutations, mutations_from_order, mutations_from_surface};
 pub use network::network;
 pub use shadow::shadow;
 pub use trials::trials;

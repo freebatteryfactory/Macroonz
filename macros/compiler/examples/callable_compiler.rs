@@ -47,13 +47,27 @@ fn compile(capture: CapturedInput) -> Result<Expansion<GreetImpl>, Diagnostic> {
 }
 
 fn main() -> Result<(), String> {
+    for (input, expected) in [
+        ("world", "pub const GREETING : u64 = 42 ; "),
+        ("visitor", "pub const GREETING : u64 = 0 ; "),
+    ] {
+        let captured = TextCapture::read(input).map_err(|error| error.to_string())?;
+        let expansion = compile(captured.input().clone())
+            .map_err(|diagnostic| diagnostic.summary().to_owned())?;
+        let emitted = expansion
+            .emit()
+            .tokens()
+            .ok_or_else(|| "the declaration-site delivery was not planned".to_owned())?;
+        assert_eq!(emitted.inspected(), expected);
+    }
     let captured = TextCapture::read("world").map_err(|error| error.to_string())?;
-    let expansion =
-        compile(captured.input().clone()).map_err(|diagnostic| diagnostic.summary().to_owned())?;
-    let emitted = expansion
-        .emit()
-        .tokens()
-        .ok_or_else(|| "the declaration-site delivery was not planned".to_owned())?;
-    assert_eq!(emitted.inspected(), "pub const GREETING : u64 = 42 ; ");
+    let empty = Request::<GreetImpl>::over(captured.input().clone(), "world", &GREET_DOOR)
+        .render(|_plan, _output| Ok(()));
+    assert!(empty.is_err(), "a planned unit cannot be silently omitted");
     Ok(())
+}
+
+#[test]
+fn documented_callable_request_executes_with_its_refusal_control() -> Result<(), String> {
+    main()
 }

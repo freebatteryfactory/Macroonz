@@ -1,0 +1,67 @@
+error: trial seat was released
+  --> tests/compile_refusals/compile-fail/a-matching-pin-releases-both-delivery-controls.rs:6:9
+   |
+ 6 |           compile_error!("trial seat was released");
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+15 | / macroonz_harness::generated_support! {
+16 | |     expected: [
+17 | |         185, 251, 251, 45, 168, 146, 85, 42, 248, 177, 196, 48, 117, 229, 207, 5,
+18 | |         84, 120, 104, 25, 150, 41, 202, 2, 243, 73, 31, 148, 241, 22, 122, 34,
+...  |
+21 | |     with: { opaque input must remain unparsed },
+22 | | }
+   | |_- in this macro invocation
+   |
+   = note: this error originates in the macro `delivery_control` which comes from the expansion of the macro `macroonz_harness::generated_support` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: deferred seat was released
+  --> tests/compile_refusals/compile-fail/a-matching-pin-releases-both-delivery-controls.rs:7:9
+   |
+ 7 |           compile_error!("deferred seat was released");
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+15 | / macroonz_harness::generated_support! {
+16 | |     expected: [
+17 | |         185, 251, 251, 45, 168, 146, 85, 42, 248, 177, 196, 48, 117, 229, 207, 5,
+18 | |         84, 120, 104, 25, 150, 41, 202, 2, 243, 73, 31, 148, 241, 22, 122, 34,
+...  |
+21 | |     with: { opaque input must remain unparsed },
+22 | | }
+   | |_- in this macro invocation
+   |
+   = note: this error originates in the macro `delivery_control` which comes from the expansion of the macro `macroonz_harness::generated_support` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: benchmark seat was released
+  --> tests/compile_refusals/compile-fail/a-matching-pin-releases-both-delivery-controls.rs:10:9
+   |
+10 |           compile_error!("benchmark seat was released");
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+24 | / macroonz_harness::generated_support! {
+25 | |     expected: [
+26 | |         185, 251, 251, 45, 168, 146, 85, 42, 248, 177, 196, 48, 117, 229, 207, 5,
+27 | |         84, 120, 104, 25, 150, 41, 202, 2, 243, 73, 31, 148, 241, 22, 122, 34,
+...  |
+30 | |     with: { opaque input must remain unparsed },
+31 | | }
+   | |_- in this macro invocation
+   |
+   = note: this error originates in the macro `delivery_control` which comes from the expansion of the macro `macroonz_harness::generated_support` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: reporter seat was released
+  --> tests/compile_refusals/compile-fail/a-matching-pin-releases-both-delivery-controls.rs:11:9
+   |
+11 |           compile_error!("reporter seat was released");
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+24 | / macroonz_harness::generated_support! {
+25 | |     expected: [
+26 | |         185, 251, 251, 45, 168, 146, 85, 42, 248, 177, 196, 48, 117, 229, 207, 5,
+27 | |         84, 120, 104, 25, 150, 41, 202, 2, 243, 73, 31, 148, 241, 22, 122, 34,
+...  |
+30 | |     with: { opaque input must remain unparsed },
+31 | | }
+   | |_- in this macro invocation
+   |
+   = note: this error originates in the macro `delivery_control` which comes from the expansion of the macro `macroonz_harness::generated_support` (in Nightly builds, run with -Z macro-backtrace for more info)

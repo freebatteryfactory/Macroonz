@@ -1,0 +1,15 @@
+error[E0624]: associated function `admitted` is private
+ --> tests/compile_refusals/compile-fail/input-envelope-cannot-be-minted-outside-admission.rs:4:32
+  |
+4 |       let _mint = InputEnvelope::admitted;
+  |                                  ^^^^^^^^ private associated function
+  |
+ ::: src/input/type_guard.rs
+  |
+  | /     pub(in crate::input) fn admitted(
+  | |         profile: InputProfile,
+  | |         case: InputCaseId,
+  | |         payload: Vec<u8>,
+  | |         encoded: Vec<u8>,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

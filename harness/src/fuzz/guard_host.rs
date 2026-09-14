@@ -1,14 +1,70 @@
 //! The host roads: the tools derived from one sysroot, the instrumented target, the profile request, and the ready preflight that joins them.
 
+use crate::fuzz::types::CoverageSourceRoots;
 use crate::fuzz::types::{
-    AbsolutePath, CoverageCampaign, CoverageSourceRoot, CoverageStanding, InstrumentedTarget,
-    ReadyPreflight, RustcCoverageTools, RustcProfileRequest, RustcProfileRequestRefusal,
+    AbsolutePath, CoverageCampaign, CoverageCaseCleanup, CoverageCommand, CoverageInvocation,
+    CoverageSourceRoot, CoverageStanding, CoverageTool, InstrumentedTarget, ReadyPreflight,
+    RustcCoverageTools, RustcProfileRequest, RustcProfileRequestRefusal,
 };
+use crate::report::TargetTriple;
 use std::path::{Path, PathBuf};
 
+impl CoverageInvocation {
+    /// The semantic role of this invocation.
+    #[must_use]
+    pub const fn operation(&self) -> CoverageCommand {
+        self.operation
+    }
+
+    /// The coverage owner's exact program, arguments and explicit environment additions.
+    #[must_use]
+    pub const fn command(&self) -> &std::process::Command {
+        &self.command
+    }
+
+    /// The coverage-export ceiling, when the operation has one.
+    #[must_use]
+    pub const fn output_bound(&self) -> Option<u64> {
+        self.output_bound
+    }
+
+    /// Consumes the invocation and transfers its already-materialized target input.
+    #[must_use]
+    pub fn into_input(self) -> Option<std::fs::File> {
+        self.input
+    }
+}
+
+impl CoverageCaseCleanup {
+    pub(crate) const fn retained(directory: PathBuf) -> Self {
+        Self { directory }
+    }
+
+    /// The exact case directory awaiting cleanup.
+    #[must_use]
+    pub fn directory(&self) -> &Path {
+        &self.directory
+    }
+
+    /// Removes this task-created case after the executor has finished with its files.
+    ///
+    /// # Errors
+    /// Retains this cleanup value with the filesystem error when removal fails.
+    pub fn remove(self) -> Result<(), (Self, std::io::Error)> {
+        match std::fs::remove_dir_all(&self.directory) {
+            Ok(()) => Ok(()),
+            Err(error) => Err((self, error)),
+        }
+    }
+}
+
 impl RustcCoverageTools {
-    pub(crate) const fn established(profdata: PathBuf, cov: PathBuf) -> Self {
-        Self { profdata, cov }
+    pub(crate) const fn established(profdata: PathBuf, cov: PathBuf, version: String) -> Self {
+        Self {
+            profdata,
+            cov,
+            version,
+        }
     }
 
     pub(crate) fn profdata(&self) -> &Path {
@@ -21,7 +77,7 @@ impl RustcCoverageTools {
 }
 
 impl InstrumentedTarget {
-    /// Declare one already-instrumented target executable.
+    /// Declares an already-instrumented executable for the selected compiler's host target.
     ///
     /// # Errors
     ///
@@ -39,14 +95,39 @@ impl InstrumentedTarget {
         Ok(Self {
             executable,
             arguments,
+            triple: None,
         })
     }
 
-    pub(crate) fn executable(&self) -> &Path {
+    /// Declares an already-instrumented executable for an explicit execution target.
+    ///
+    /// # Errors
+    /// Refuses an empty or relative executable path.
+    pub fn for_target(
+        executable: PathBuf,
+        arguments: Vec<String>,
+        triple: TargetTriple,
+    ) -> Result<Self, RustcProfileRequestRefusal> {
+        let mut target = Self::declared(executable, arguments)?;
+        target.triple = Some(triple);
+        Ok(target)
+    }
+
+    /// The explicit execution target, or absence selecting the compiler host.
+    #[must_use]
+    pub const fn triple(&self) -> Option<&TargetTriple> {
+        self.triple.as_ref()
+    }
+
+    /// The declared instrumented executable.
+    #[must_use]
+    pub fn executable(&self) -> &Path {
         &self.executable
     }
 
-    pub(crate) fn arguments(&self) -> &[String] {
+    /// The target arguments in declared order.
+    #[must_use]
+    pub fn arguments(&self) -> &[String] {
         &self.arguments
     }
 }
@@ -61,6 +142,26 @@ impl RustcProfileRequest {
         rustc: PathBuf,
         target: InstrumentedTarget,
         source_root: CoverageSourceRoot,
+        scratch: PathBuf,
+        campaign: CoverageCampaign,
+    ) -> Result<Self, RustcProfileRequestRefusal> {
+        Self::mapped(
+            rustc,
+            target,
+            CoverageSourceRoots::single(source_root),
+            scratch,
+            campaign,
+        )
+    }
+
+    /// Declares one coverage request with an explicitly admitted source-root map.
+    ///
+    /// # Errors
+    /// Refuses empty or relative compiler and scratch paths.
+    pub fn mapped(
+        rustc: PathBuf,
+        target: InstrumentedTarget,
+        source_roots: CoverageSourceRoots,
         scratch: PathBuf,
         campaign: CoverageCampaign,
     ) -> Result<Self, RustcProfileRequestRefusal> {
@@ -79,30 +180,50 @@ impl RustcProfileRequest {
         Ok(Self {
             rustc,
             target,
-            source_root,
+            source_roots,
             scratch,
             campaign,
         })
     }
 
-    pub(crate) fn rustc(&self) -> &Path {
+    /// The compiler explicitly selected for readiness queries.
+    #[must_use]
+    pub fn rustc(&self) -> &Path {
         &self.rustc
     }
 
-    pub(crate) const fn target(&self) -> &InstrumentedTarget {
+    /// The declared instrumented target and execution selection.
+    #[must_use]
+    pub const fn target(&self) -> &InstrumentedTarget {
         &self.target
     }
 
-    pub(crate) const fn source_root(&self) -> &CoverageSourceRoot {
-        &self.source_root
+    /// The source-root declarations before preflight canonicalization.
+    #[must_use]
+    pub const fn source_roots(&self) -> &CoverageSourceRoots {
+        &self.source_roots
     }
 
-    pub(crate) const fn campaign(&self) -> CoverageCampaign {
+    /// The declared semantic and resource standing.
+    #[must_use]
+    pub const fn campaign(&self) -> CoverageCampaign {
         self.campaign
+    }
+
+    /// The declared parent directory for disposable case files.
+    #[must_use]
+    pub fn scratch(&self) -> &Path {
+        &self.scratch
     }
 }
 
 impl ReadyPreflight {
+    /// The original request retained beside the established preflight facts.
+    #[must_use]
+    pub const fn request(&self) -> &RustcProfileRequest {
+        &self.request
+    }
+
     pub(crate) const fn target(&self) -> &InstrumentedTarget {
         &self.request.target
     }
@@ -111,15 +232,17 @@ impl ReadyPreflight {
         &self.tools
     }
 
-    pub(crate) const fn source_root(&self) -> &CoverageSourceRoot {
-        &self.source_root
+    /// The canonical physical roots and caller-declared logical identities used for coverage mapping.
+    #[must_use]
+    pub const fn source_roots(&self) -> &CoverageSourceRoots {
+        &self.source_roots
     }
 
     pub(crate) fn scratch(&self) -> &Path {
         &self.request.scratch
     }
 
-    /// The declared campaign joined to the target and toolchain established by preflight.
+    /// The declared campaign and selected target joined to the toolchain established by preflight.
     #[must_use]
     pub const fn standing(&self) -> &CoverageStanding {
         &self.standing
@@ -129,6 +252,27 @@ impl ReadyPreflight {
     #[must_use]
     pub fn sysroot(&self) -> &Path {
         &self.sysroot
+    }
+
+    /// The declared compiler executable used for readiness queries.
+    #[must_use]
+    pub fn rustc(&self) -> &Path {
+        self.request.rustc()
+    }
+
+    /// The exact matching tool path whose version query established readiness.
+    #[must_use]
+    pub fn tool_path(&self, tool: CoverageTool) -> &Path {
+        match tool {
+            CoverageTool::Profdata => self.tools.profdata(),
+            CoverageTool::Cov => self.tools.cov(),
+        }
+    }
+
+    /// The exact version string shared by both queried LLVM tools.
+    #[must_use]
+    pub fn tool_version(&self) -> &str {
+        &self.tools.version
     }
 
     /// The stable rustc release established by preflight.

@@ -16,10 +16,16 @@ allow = [
 multiple-versions = "deny"
 wildcards = "deny"
 allow-wildcard-paths = true
+skip = [{ crate = "syn@2.0.119", reason = "Windows binding procedural macros behind native-tooling; native_policy checks the feature, target and reverse dependency paths" }]
 
 [[bans.features]]
-crate = "syn"
+crate = "syn@3.0.3"
 allow = ["clone-impls", "derive", "full", "parsing", "printing", "proc-macro"]
+exact = true
+
+[[bans.features]]
+crate = "syn@2.0.119"
+allow = ["clone-impls", "full", "parsing", "printing", "proc-macro"]
 exact = true
 
 [[bans.features]]

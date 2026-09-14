@@ -1,7 +1,8 @@
 //! Archive delivery is distinct from the checkout-path journeys: Cargo assembles the four packages, and only extracted source supplies the compiler, proc carrier, harness, examples, and independent facade controls.
 //!
 //! The aggregate root reconnects the normalized manifests with workspace membership and extracted-package patches, retaining the facade profiles and committed dependency lock.
-//! One standalone scratch consumer compiles the archived skill against the delivered facade; no library source is changed.
+//! Standalone scratch consumers execute the archived skill and public Job/retention callers against the delivered facade; no library source is changed.
+//! The delivered native controls also require the complete Job display, omitted-lane refusal, and fresh historical mutation comparison against changed source and damaged records.
 //! This is first-publication package composition, not a claim that unpublished siblings resolve through crates.io.
 //! Archive assembly permits dirty development trees and reports Cargo's source records; release qualification separately requires a clean committed source and candidate hashes.
 
@@ -9,10 +10,18 @@
 mod delivery;
 #[path = "support/archive_skill.rs"]
 mod skill;
+#[path = "support/archive_adopter.rs"]
+mod adopter;
 
 use crate::scratch::{cargo_command, cargo_with_target, observed_in_scratch_for};
 use std::ffi::OsStr;
 use std::path::Path;
+
+#[test]
+fn a_fresh_cargo_adopter_uses_documented_syntax_and_repairs_an_actionable_refusal()
+-> Result<(), String> {
+    observed_in_scratch_for("documented_adoption", skill::observe_adoption)
+}
 
 #[test]
 #[ignore = "long extracted-archive delivery campaign; run explicitly"]

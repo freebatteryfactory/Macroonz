@@ -5,6 +5,22 @@ This home owns the bounded token tree a renderer writes, its pure composers, its
 Ordinary and raw identifiers are distinct values, and punctuation carries the adjacency the compiler host must emit.
 The public paths remain rooted at `token`; this child is an implementation home, not a second public namespace.
 
+## Admission
+
+[`GeneratedToken`](crate::token::GeneratedToken) is offered material; only [`GeneratedTree`](crate::token::GeneratedTree) is a completed output artifact.
+Tree construction admits every nested word, raw identifier and punctuation token before canonical output bytes are reachable.
+Words use the pinned Rust lexer's Unicode identifier alphabet, including keywords and the standalone underscore token.
+Raw identifiers use that alphabet and the token home's raw-name exclusions, without a written `r#` marker in the stored name.
+Punctuation holds one Rust punctuation character and its declared spacing; delimiters remain groups and lifetimes remain quote punctuation followed by an identifier.
+This lexical admission does not establish Rust syntax, types, resolution or the renderer's meaning.
+
+An invalid offered token returns its lexical role and pre-order position through [`GeneratedTreeRefusal`](crate::token::GeneratedTreeRefusal).
+Preserved capture material passes the same admission and maps that position to the original producer span.
+Joining or grouping completed trees retains their admitted material and nonsemantic span custody.
+The ASCII item-name policy of [`rendered_name`](crate::token::rendered_name) remains a different contract from a token's lexical role.
+
+## Composition
+
 [`keyed_roster_slice`](crate::token::keyed_roster_slice) and [`keyed_assignment_slice`](crate::token::keyed_assignment_slice) project informed caller-keyed values into conventional borrowed Rust slice expressions.
 They preserve retained or denominator order and delegate every row's tokens to the caller, so the surrounding name, visibility, type, destination, and meaning remain outside this home.
 [`keyed_roster_items`](crate::token::keyed_roster_items) and [`keyed_assignment_items`](crate::token::keyed_assignment_items) project the same informed rows into flat item runs.
@@ -27,8 +43,9 @@ The caller owns every coherence claim, qualifier, bound, predicate, item body an
 Ordinary and raw identifiers, punctuation adjacency, all captured literal forms, written groups, and invisible compiler groups remain distinct.
 [`GeneratedLiteral`](crate::token::GeneratedLiteral) guards the exact literal forms whose older semantic constructors deliberately canonicalize differently.
 
-The private provenance operation restores caller spans only onto exact fragments, external paths, caller-named generated items, and the binding coupled to an exact effect body, while keeping every other generated binding under one consistent Rust hygiene context.
+The private provenance operation restores caller spans onto exact fragments, external paths, caller-named generated items, bindings coupled to exact effect bodies, and explicitly declared value bindings within their owning generated unit, while keeping other generated bindings under one consistent Rust hygiene context.
 Those spans move no canonical bytes or identity and exist only for compiler diagnostics and editor projection.
+Template restoration leaves macro metavariable markers and names under generated hygiene so they still match the carrier's declarations.
 Restoration matches repeated material by spelling rather than carrying an origin coordinate through every projector, so a diagnostic may select a same-spelled sibling occurrence while preserving Rust resolution context.
 
 This home does not capture input or decide what a generated declaration means.

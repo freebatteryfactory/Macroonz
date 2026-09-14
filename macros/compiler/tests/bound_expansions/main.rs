@@ -3,7 +3,7 @@
 use macroonz_compiler::{
     Accounted, BINDING_FACT, BindError, CrateBinding, Destination, Diagnostic, Disposition,
     DispositionRecord, DispositionSet, Door, Expansion, GeneratedToken, GeneratedTree, Kind,
-    KindSet, LineBody, NoQuestions, Observed, Overflow, OwnerIdentity, Phase, Placement, Producer,
+    KindSet, LineBody, NoQuestions, Observed, OwnerIdentity, Phase, Placement, Producer,
     RefusalClass, Refused, Request, Role, Site, TextCapture, encode_bytes,
 };
 
@@ -87,7 +87,7 @@ const SECOND_ADDRESS: OwnerIdentity = OwnerIdentity {
 };
 
 /// One generated word as a bounded tree.
-fn word(spelling: &str) -> Result<GeneratedTree, Overflow> {
+fn word(spelling: &str) -> Result<GeneratedTree, macroonz_compiler::token::GeneratedTreeRefusal> {
     GeneratedTree::assembled(vec![GeneratedToken::word(spelling)])
 }
 

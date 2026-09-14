@@ -3,12 +3,43 @@
 use super::{
     ReplayExhaustion, ReplayIncomplete, ReproducedReplay, ReproducedReplayRefusal,
     SimulationAction, SimulationManifest, SimulationReproduction, TranscriptAddress,
-    TranscriptEntry, TranscriptMaterial, TranscriptPack, TranscriptSourceClaim,
+    TranscriptEntry, TranscriptLimits, TranscriptMaterial, TranscriptPack, TranscriptSourceClaim,
 };
 use crate::identity::ContentAddress;
 use crate::network::simulation::{
     DeliveryCopy, Link, NetworkSchedule, SendOrdinal, Tick, Topology,
 };
+use crate::report::archive::ArchiveLimits;
+
+impl TranscriptLimits {
+    /// The independently selected byte, action and delivery ceilings.
+    #[must_use]
+    pub const fn declared(bytes: ArchiveLimits, actions: usize, entries: usize) -> Self {
+        Self {
+            bytes,
+            actions,
+            entries,
+        }
+    }
+
+    /// The envelope and per-member byte ceilings.
+    #[must_use]
+    pub const fn bytes(self) -> ArchiveLimits {
+        self.bytes
+    }
+
+    /// The maximum number of retained simulation actions.
+    #[must_use]
+    pub const fn actions(self) -> usize {
+        self.actions
+    }
+
+    /// The maximum number of retained delivery rows.
+    #[must_use]
+    pub const fn entries(self) -> usize {
+        self.entries
+    }
+}
 
 impl TranscriptEntry {
     /// One delivery as somebody witnessed it — the sim's own, or a live adapter's observation.

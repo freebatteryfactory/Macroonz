@@ -1,0 +1,25 @@
+error[E0308]: arguments to this function are incorrect
+ --> tests/compile_refusals/compile-fail/host-record-without-a-case-cannot-admit-input-execution.rs:8:21
+  |
+8 |     let _unjoined = record_one(&binding, &invocation, record);
+  |                     ^^^^^^^^^^
+  |
+note: expected `&Binding<Invocation, TrialConclusion>`, found `&Binding<Invocation<...>, ...>`
+ --> tests/compile_refusals/compile-fail/host-record-without-a-case-cannot-admit-input-execution.rs:8:32
+  |
+8 |     let _unjoined = record_one(&binding, &invocation, record);
+  |                                ^^^^^^^^
+  = note: expected reference `&macroonz_harness::descriptor::Binding<Invocation<()>, TrialConclusion>`
+             found reference `&macroonz_harness::descriptor::Binding<Invocation<BoundInput<u8>>, TrialConclusion>`
+note: expected `&Invocation`, found `&Invocation<BoundInput<u8>>`
+ --> tests/compile_refusals/compile-fail/host-record-without-a-case-cannot-admit-input-execution.rs:8:42
+  |
+8 |     let _unjoined = record_one(&binding, &invocation, record);
+  |                                          ^^^^^^^^^^^
+  = note: expected reference `&Invocation<()>`
+             found reference `&Invocation<BoundInput<u8>>`
+note: function defined here
+ --> src/runner/record.rs
+  |
+  | pub fn record_one(
+  |        ^^^^^^^^^^

@@ -79,16 +79,8 @@ fn assert_single_owner_stamps(root: &Path) -> Result<(), std::io::Error> {
         "map_err(|_| EncodeRefusal::LengthPastEncodingWidth)",
         &["descriptor/encode.rs"],
     )?;
-    assert_occurrences(
-        root,
-        "fn collected<Refusal>(",
-        &["muterprater/backend/roster.rs"],
-    )?;
-    assert_occurrences(
-        root,
-        "fn matched<Refusal>(",
-        &["muterprater/backend/roster.rs"],
-    )?;
+    assert_occurrences(root, "fn collected<", &["muterprater/backend/roster.rs"])?;
+    assert_occurrences(root, "fn matched<", &["muterprater/backend/roster.rs"])?;
     assert_occurrences(
         root,
         "macro_rules! namespaced_reference",
@@ -208,6 +200,8 @@ fn assert_content_address_denominator(root: &Path) -> Result<(), std::io::Error>
             "descriptor/types.rs",
             "generate/generation/type_guard.rs",
             "generate/generation/types.rs",
+            "input/type_guard.rs",
+            "input/types.rs",
             "muterprater/backend/type_guard.rs",
             "muterprater/backend/type_guard.rs",
             "muterprater/backend/types.rs",

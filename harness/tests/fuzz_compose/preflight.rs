@@ -7,10 +7,12 @@ use super::support::{
 };
 use macroonz_harness::descriptor::NamespacedName;
 use macroonz_harness::fuzz::{
-    CoverageCorpus, CoverageSourceRoot, CoverageSourceRootRefusal, FuzzExecution,
-    InstrumentedTarget, PreflightIncomplete, RUSTC_COVERAGE_TOOLCHAIN, RustcProfileRefusal,
-    RustcProfileRequest, RustcProfileRequestRefusal, observe_rustc_profile, preflight_ready,
+    CoverageCorpus, CoverageHostFailure, CoverageSourceRoot, CoverageSourceRootRefusal,
+    CoverageTool, FuzzExecution, InstrumentedTarget, PreflightIncomplete, RUSTC_COVERAGE_TOOLCHAIN,
+    ReadyPreflight, RustcProfileRefusal, RustcProfileRequest, RustcProfileRequestRefusal,
+    observe_rustc_profile, observe_rustc_profile_with, preflight_ready,
 };
+use macroonz_harness::report::TargetTriple;
 use std::cell::Cell;
 use std::path::PathBuf;
 
@@ -25,6 +27,22 @@ fn declared_execution_inputs_refuse_ambient_paths() -> Result<(), FuzzRoadFailur
         InstrumentedTarget::declared(PathBuf::from("target"), Vec::new()),
         Err(RustcProfileRequestRefusal::RelativeTarget)
     );
+    for (path, refusal) in [
+        (PathBuf::new(), RustcProfileRequestRefusal::Target),
+        (
+            PathBuf::from("target"),
+            RustcProfileRequestRefusal::RelativeTarget,
+        ),
+    ] {
+        assert_eq!(
+            InstrumentedTarget::for_target(
+                path,
+                Vec::new(),
+                TargetTriple::declared("selected-target")
+            ),
+            Err(refusal)
+        );
+    }
     let Some(logical) = NamespacedName::named("harness", "rustc-coverage").ok() else {
         return Err(FuzzRoadFailure::Fixture);
     };
@@ -150,6 +168,115 @@ fn active_preflight_refuses_wrong_release_and_mismatched_llvm() -> Result<(), Fu
     );
     run.removed()?;
     Ok(())
+}
+
+#[test]
+fn execution_target_stays_distinct_from_tool_host_and_refuses_crossed_corpus()
+-> Result<(), FuzzRoadFailure> {
+    let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let repository = manifest.parent().ok_or(FuzzRoadFailure::Fixture)?;
+    let run = RunScratch::created(
+        repository
+            .join("target/qualification")
+            .join(format!("fuzz-target-profile-{}", std::process::id())),
+    )?;
+    let declared_host = "compiler-host-control";
+    let declared_target = "execution-target-control";
+    let rustc = preflight_double(
+        &rustc_path()?,
+        &manifest,
+        &run.join("tools"),
+        declared_host,
+        ["1.98.1", "22.1.8", "22.1.8-control", "22.1.8-control"],
+    )?;
+    let host_ready = preflight_ready(preflight_double_request(
+        rustc.clone(),
+        repository,
+        run.path(),
+        "host",
+    )?)?;
+    assert_eq!(
+        host_ready.standing().target().target().spelling(),
+        declared_host
+    );
+    let target = InstrumentedTarget::for_target(
+        rustc.clone(),
+        Vec::new(),
+        TargetTriple::declared(declared_target),
+    )
+    .map_err(external)?;
+    let root = CoverageSourceRoot::declared(
+        NamespacedName::named("harness", "preflight-double").map_err(external)?,
+        repository.to_path_buf(),
+    )
+    .map_err(external)?;
+    let request = RustcProfileRequest::declared(
+        rustc.clone(),
+        target,
+        root,
+        run.join("explicit-cases"),
+        coverage_campaign()?,
+    )
+    .map_err(external)?;
+    let explicit = preflight_ready(request)?;
+    assert_eq!(explicit.rustc(), rustc);
+    assert_eq!(explicit.host(), declared_host);
+    assert_eq!(
+        explicit.standing().target().target().spelling(),
+        declared_target
+    );
+    assert_eq!(
+        explicit.standing().target().toolchain(),
+        host_ready.standing().target().toolchain()
+    );
+    assert_eq!(explicit.tool_version(), "22.1.8-control");
+    assert_eq!(explicit.llvm_version(), "22.1.8");
+    for (tool, name) in [
+        (CoverageTool::Profdata, "llvm-profdata"),
+        (CoverageTool::Cov, "llvm-cov"),
+    ] {
+        let expected = run
+            .join("tools/sysroot/lib/rustlib")
+            .join(declared_host)
+            .join("bin")
+            .join(format!("{name}{}", std::env::consts::EXE_SUFFIX));
+        assert_eq!(explicit.tool_path(tool), expected);
+        assert_eq!(host_ready.tool_path(tool), expected);
+    }
+    refused_target_crossing(&explicit, &host_ready);
+    assert!(!run.join("explicit-cases").exists());
+    assert!(!run.join("host/cases").exists());
+    std::fs::write(run.join("tools/release.txt"), "1.99.0").map_err(external)?;
+    let refused = preflight_ready(preflight_double_request(
+        rustc,
+        repository,
+        run.path(),
+        "unsupported-newer",
+    )?);
+    assert!(
+        matches!(refused, Err(PreflightIncomplete::RustcRelease { required: "1.98.1", observed }) if observed == "1.99.0")
+    );
+    run.removed()?;
+    Ok(())
+}
+
+fn refused_target_crossing(explicit: &ReadyPreflight, host: &ReadyPreflight) {
+    for (ready, other) in [(explicit, host), (host, explicit)] {
+        let mut corpus = CoverageCorpus::opening(other);
+        let mut called = false;
+        let result = observe_rustc_profile_with(ready, &mut corpus, &[1], |_| {
+            called = true;
+            Err(())
+        });
+        assert!(matches!(
+            result,
+            Err(CoverageHostFailure::Refused(
+                RustcProfileRefusal::CampaignMismatch
+            ))
+        ));
+        assert!(!called);
+        assert_eq!(corpus.attempted_cases(), 0);
+    }
 }
 
 #[test]

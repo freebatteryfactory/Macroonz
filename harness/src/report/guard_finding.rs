@@ -74,13 +74,13 @@ impl ReplayCapsule {
         }
     }
 
-    /// The execution this capsule reproduces.
+    /// The original refused execution from which reduction began.
     #[must_use]
     pub const fn key(&self) -> &ExecutionKey {
         &self.key
     }
 
-    /// The exact input bytes the execution was handed.
+    /// The reached witness bytes that preserved the failure during reduction.
     #[must_use]
     pub fn input(&self) -> &[u8] {
         &self.input
@@ -124,6 +124,16 @@ impl ReplayCapsule {
 }
 
 impl ReplayPosture {
+    /// Meet this ceiling with another account's ceiling through the revision-posture owner.
+    #[must_use]
+    pub(crate) const fn meet(self, other: Self) -> Self {
+        match other {
+            Self::ExactDerived => self.meet_revision(RevisionPosture::Derived),
+            Self::DeclaredByAuthor => self.meet_revision(RevisionPosture::Declared),
+            Self::UnavailableBecauseUntracked => self.meet_revision(RevisionPosture::Untracked),
+        }
+    }
+
     /// Meet this ceiling with one more callable revision posture.
     ///
     /// Derived keeps the standing ceiling, declared forecloses an exact derived claim, and untracked makes exact reproduction unavailable.

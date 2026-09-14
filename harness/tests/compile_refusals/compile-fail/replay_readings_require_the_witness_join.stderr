@@ -1,0 +1,13 @@
+error[E0616]: field `outcome` of struct `ReplayReading` is private
+ --> tests/compile_refusals/compile-fail/replay_readings_require_the_witness_join.rs:7:13
+  |
+7 |     reading.outcome = ReplayOutcome::FixedOnWitness;
+  |             ^^^^^^^ private field
+
+error[E0308]: mismatched types
+  --> tests/compile_refusals/compile-fail/replay_readings_require_the_witness_join.rs:11:5
+   |
+10 | fn promote(historical: macroonz_harness::report::archive::ArchivedCapsule) -> ReplayedTrial {
+   |                                                                               ------------- expected `ReplayedTrial` because of return type
+11 |     historical
+   |     ^^^^^^^^^^ expected `ReplayedTrial`, found `ArchivedCapsule`

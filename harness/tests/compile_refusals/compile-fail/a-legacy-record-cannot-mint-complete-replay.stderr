@@ -1,0 +1,31 @@
+error[E0277]: the trait bound `TrialReport: From<LegacyRecord>` is not satisfied
+ --> tests/compile_refusals/compile-fail/a-legacy-record-cannot-mint-complete-replay.rs:8:57
+  |
+8 | fn report(record: LegacyRecord) -> TrialReport { record.into() }
+  |                                                         ^^^^ the trait `From<LegacyRecord>` is not implemented for `TrialReport`
+  |
+  = note: required for `LegacyRecord` to implement `Into<TrialReport>`
+
+error[E0277]: the trait bound `ReplayCapsule: From<LegacyRecord>` is not satisfied
+ --> tests/compile_refusals/compile-fail/a-legacy-record-cannot-mint-complete-replay.rs:9:60
+  |
+9 | fn capsule(record: LegacyRecord) -> ReplayCapsule { record.into() }
+  |                                                            ^^^^ the trait `From<LegacyRecord>` is not implemented for `ReplayCapsule`
+  |
+  = note: required for `LegacyRecord` to implement `Into<ReplayCapsule>`
+
+error[E0277]: the trait bound `ArchivedCapsule: From<LegacyRecord>` is not satisfied
+  --> tests/compile_refusals/compile-fail/a-legacy-record-cannot-mint-complete-replay.rs:10:62
+   |
+10 | fn history(record: LegacyRecord) -> ArchivedCapsule { record.into() }
+   |                                                              ^^^^ the trait `From<LegacyRecord>` is not implemented for `ArchivedCapsule`
+   |
+   = note: required for `LegacyRecord` to implement `Into<ArchivedCapsule>`
+
+error[E0277]: the trait bound `ReplayReading: From<LegacyReading>` is not satisfied
+  --> tests/compile_refusals/compile-fail/a-legacy-record-cannot-mint-complete-replay.rs:11:66
+   |
+11 | fn comparison(reading: LegacyReading) -> ReplayReading { reading.into() }
+   |                                                                  ^^^^ the trait `From<LegacyReading>` is not implemented for `ReplayReading`
+   |
+   = note: required for `LegacyReading` to implement `Into<ReplayReading>`

@@ -142,13 +142,13 @@ pub(super) fn evidence_standing(
         .find(|row| row.role == role)
         .map_or(ProjectionStanding::NotRequested, |row| {
             if row.body.is_some() {
-                ProjectionStanding::Generated(EffectiveProjection::effective(
+                ProjectionStanding::Generated(Box::new(EffectiveProjection::effective(
                     role,
                     None,
                     None,
                     LoweringSource::Configuration,
                     row.at,
-                ))
+                )))
             } else {
                 ProjectionStanding::TargetUnavailable
             }

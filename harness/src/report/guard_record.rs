@@ -1,13 +1,14 @@
 //! One execution's record, and the complete-table census a run is stated over.
 
-use crate::clock::MeasurementReading;
+use crate::clock::{ClockAttribution, MeasurementReading};
 use crate::descriptor::{ClaimRef, TablePosture};
+use crate::input::BoundInput;
 use crate::report::{
-    ExecutionKey, ExecutionRevisions, Exercise, ForeignText, HostTrialRecord,
-    InfrastructureFailure, InfrastructureFault, InvocationProfile, NotSelectedReason, OutcomeClass,
-    ReplayPosture, RowRevisionId, RunAttempt, RunReport, SelectionDisposition,
-    SelectionExpectation, SelectionOutcome, TargetBinding, TrialAccounting, TrialConclusion,
-    TrialId, TrialReport, TrialRunStanding, TrialSite,
+    CacheEligibility, ExecutionInput, ExecutionKey, ExecutionRevisions, Exercise, ForeignText,
+    HostTrialRecord, InfrastructureFailure, InfrastructureFault, InvocationProfile,
+    NotSelectedReason, OutcomeClass, ReplayPosture, RowRevisionId, RunAttempt, RunReport,
+    SelectionDisposition, SelectionExpectation, SelectionOutcome, TargetBinding, TrialAccounting,
+    TrialConclusion, TrialId, TrialReport, TrialRunStanding, TrialSite,
 };
 
 impl InfrastructureFailure {
@@ -34,11 +35,44 @@ impl HostTrialRecord {
     /// One host's typed input about one selected trial.
     #[must_use]
     pub fn recorded(trial: TrialId, attempt: RunAttempt, measurement: MeasurementReading) -> Self {
+        Self::recorded_with_attribution(trial, attempt, measurement, ClockAttribution::Unspecified)
+    }
+
+    /// One host's typed attempt and measurement with its declared source classification.
+    #[must_use]
+    pub fn recorded_with_attribution(
+        trial: TrialId,
+        attempt: RunAttempt,
+        measurement: MeasurementReading,
+        clock_attribution: ClockAttribution,
+    ) -> Self {
         Self {
             trial,
             attempt,
             measurement,
+            clock_attribution,
+            input: (),
         }
+    }
+
+    /// The host observation joined to the specimen coordinates admitted by its decoder.
+    #[must_use]
+    pub fn with_input<Input>(self, input: &BoundInput<Input>) -> HostTrialRecord<ExecutionInput> {
+        HostTrialRecord {
+            trial: self.trial,
+            attempt: self.attempt,
+            measurement: self.measurement,
+            clock_attribution: self.clock_attribution,
+            input: ExecutionInput::of(input),
+        }
+    }
+}
+
+impl<Input> HostTrialRecord<Input> {
+    /// The specimen standing attached to the host observation, or the explicit unit value.
+    #[must_use]
+    pub const fn input(&self) -> &Input {
+        &self.input
     }
 
     /// The semantic trial the host says this input belongs to.
@@ -58,9 +92,20 @@ impl HostTrialRecord {
         self.measurement
     }
 
-    /// The three host-authored seats, for the runner join that admits them.
-    pub(crate) fn into_parts(self) -> (TrialId, RunAttempt, MeasurementReading) {
-        (self.trial, self.attempt, self.measurement)
+    /// The source classification recorded alongside the measurement.
+    #[must_use]
+    pub const fn clock_attribution(&self) -> ClockAttribution {
+        self.clock_attribution
+    }
+
+    /// The host-authored seats, for the runner join that admits them.
+    pub(crate) fn into_parts(self) -> (TrialId, RunAttempt, MeasurementReading, ClockAttribution) {
+        (
+            self.trial,
+            self.attempt,
+            self.measurement,
+            self.clock_attribution,
+        )
     }
 }
 
@@ -77,10 +122,16 @@ impl TrialRunStanding {
         &self.key
     }
 
-    /// The replay ceiling derived from the attachment's revision posture meet.
+    /// The replay ceiling derived from every participating executable revision.
     #[must_use]
     pub const fn replay(&self) -> ReplayPosture {
         self.replay
+    }
+
+    /// Whether the complete recorded revision standing permits a rerun cache.
+    #[must_use]
+    pub fn cache_eligibility(&self) -> CacheEligibility {
+        CacheEligibility::from(self.replay)
     }
 }
 
@@ -92,12 +143,14 @@ impl TrialReport {
         site: TrialSite,
         attempt: RunAttempt,
         measurement: MeasurementReading,
+        clock_attribution: ClockAttribution,
     ) -> Self {
         Self {
             standing,
             site,
             attempt,
             measurement,
+            clock_attribution,
         }
     }
 
@@ -128,6 +181,12 @@ impl TrialReport {
     /// The wall-measurement posture recorded around the attempt.
     pub const fn measurement(&self) -> MeasurementReading {
         self.measurement
+    }
+
+    /// The source classification recorded alongside the measurement.
+    #[must_use]
+    pub const fn clock_attribution(&self) -> ClockAttribution {
+        self.clock_attribution
     }
 }
 
@@ -278,6 +337,7 @@ impl RunReport {
         selection: SelectionOutcome,
         invocation: InvocationProfile,
         target: TargetBinding,
+        input: Option<ExecutionInput>,
     ) -> Self {
         Self {
             census,
@@ -285,6 +345,7 @@ impl RunReport {
             selection,
             invocation,
             target,
+            input,
         }
     }
 
@@ -322,5 +383,11 @@ impl RunReport {
     #[must_use]
     pub const fn target(&self) -> &TargetBinding {
         &self.target
+    }
+
+    /// The invocation's admitted specimen standing, including when no row was selected.
+    #[must_use]
+    pub const fn input(&self) -> Option<ExecutionInput> {
+        self.input
     }
 }

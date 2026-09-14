@@ -67,7 +67,7 @@ fn the_reader_refuses_tampered_foreign_and_retired_envelopes() -> Result<(), Lan
         *last = last.wrapping_add(1u8);
     }
     assert!(matches!(
-        read_simulated(&topology, &schedule, &tampered).err(),
+        read_simulated(&topology, &schedule, &tampered, READ_LIMITS).err(),
         Some(TranscriptRefusal::AddressMismatch { derived: _ })
     ));
     let short = pack
@@ -75,7 +75,7 @@ fn the_reader_refuses_tampered_foreign_and_retired_envelopes() -> Result<(), Lan
         .get(0usize..10usize)
         .ok_or(LaneFailure::Standing)?;
     assert_eq!(
-        read_simulated(&topology, &schedule, short).err(),
+        read_simulated(&topology, &schedule, short, READ_LIMITS).err(),
         Some(TranscriptRefusal::Truncated)
     );
     let elsewhere = Topology::declared(
@@ -89,7 +89,7 @@ fn the_reader_refuses_tampered_foreign_and_retired_envelopes() -> Result<(), Lan
         )],
     )?;
     assert_eq!(
-        read_simulated(&elsewhere, &schedule, pack.encoded()).err(),
+        read_simulated(&elsewhere, &schedule, pack.encoded(), READ_LIMITS).err(),
         Some(TranscriptRefusal::TopologyMismatch)
     );
 
@@ -104,7 +104,7 @@ fn the_reader_refuses_tampered_foreign_and_retired_envelopes() -> Result<(), Lan
     version.copy_from_slice(&1u32.to_be_bytes());
     readdress(&mut retired)?;
     assert_eq!(
-        read_simulated(&topology, &schedule, &retired).err(),
+        read_simulated(&topology, &schedule, &retired, READ_LIMITS).err(),
         Some(TranscriptRefusal::UnsupportedFormat { found: 1u32 })
     );
     Ok(())

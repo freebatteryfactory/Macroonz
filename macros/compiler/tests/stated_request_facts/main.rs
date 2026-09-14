@@ -200,7 +200,9 @@ fn every_repeated_request_statement_keeps_the_last_value() -> Result<(), ()> {
     Ok(())
 }
 
-fn rendered_word(word: &'static str) -> Result<GeneratedTree, macroonz_compiler::Overflow> {
+fn rendered_word(
+    word: &'static str,
+) -> Result<GeneratedTree, macroonz_compiler::token::GeneratedTreeRefusal> {
     GeneratedTree::assembled(vec![GeneratedToken::word(word)])
 }
 

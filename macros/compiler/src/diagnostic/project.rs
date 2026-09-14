@@ -101,6 +101,9 @@ pub(super) fn diagnostic<E: Refused>(refusal: &E, door: &Door, site: Site) -> Di
     };
     let composed_line = composed(door, &line, line_site(site));
     DiagnosticProjection {
+        family: E::FAMILY,
+        class: line.class,
+        body: line.body,
         phase: E::PHASE,
         site,
         observed: refusal.observed(),

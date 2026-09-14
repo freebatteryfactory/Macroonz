@@ -33,25 +33,44 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/freebatteryfactory/Macroonz"
 
 [workspace.dependencies]
+serde = { version = "=1.0.229", default-features = false, features = ["alloc"] }
+serde_json = { version = "=1.0.151", default-features = false, features = ["alloc"] }
 arbitrary = { version = "=1.4.2", default-features = false }
 syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }
 blake3 = { version = "=1.8.6", default-features = false }
 ra-ap-rustc_lexer = { version = "=0.174.0", default-features = false }
 trybuild = "=1.0.120"
+cap-std = { version = "=3.4.6", default-features = false }
+process-wrap = { version = "=10.0.0", default-features = false, features = ["std", "creation-flags", "job-object"] }
+rustix = { version = "=1.1.4", default-features = false, features = ["std", "process"] }
+windows = { version = "=0.62.2", default-features = false, features = ["Win32_System_Threading"] }
 macroonz-compiler = { path = "macros/compiler", version = "=0.2.0" }
 macroonz-harness = { path = "harness", version = "=0.2.0", default-features = false }
 macroonz-macros = { path = "macros/proc", version = "=0.2.0" }
 
 [features]
 default = ["full"]
-harness = ["dep:macroonz-harness"]
+harness = ["dep:macroonz-harness", "dep:serde_json"]
 preemption = ["harness", "macroonz-harness/preemption"]
 full = ["harness", "preemption"]
+native-tooling = ["harness", "dep:cap-std", "dep:process-wrap", "dep:rustix", "dep:windows", "dep:serde", "dep:serde_json"]
 
 [dependencies]
 macroonz-compiler = { workspace = true, features = ["host"] }
 macroonz-harness = { workspace = true, optional = true }
 macroonz-macros = { workspace = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+
+[target.'cfg(any(unix, windows))'.dependencies]
+cap-std = { workspace = true, optional = true }
+
+[target.'cfg(windows)'.dependencies]
+process-wrap = { workspace = true, optional = true }
+windows = { workspace = true, optional = true }
+
+[target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
+rustix = { workspace = true, optional = true }
 
 [[test]]
 name = "facade_harness_surface"
@@ -72,6 +91,94 @@ required-features = ["harness"]
 name = "compile_contract"
 path = "examples/compile_contract.rs"
 required-features = ["harness"]
+
+[[example]]
+name = "trial_workflow"
+path = "examples/trial_workflow/main.rs"
+required-features = ["harness"]
+
+[[example]]
+name = "job_workflow"
+path = "examples/job_workflow/main.rs"
+required-features = ["harness"]
+
+[[example]]
+name = "benchmark_workflow"
+path = "examples/benchmark_workflow/main.rs"
+required-features = ["native-tooling"]
+
+[[example]]
+name = "retained_workflow"
+path = "examples/retained_workflow/main.rs"
+required-features = ["native-tooling"]
+
+[[example]]
+name = "job_retained"
+path = "examples/job_retained/main.rs"
+required-features = ["native-tooling"]
+
+[[example]]
+name = "compiler_workflow"
+path = "examples/compiler_workflow/main.rs"
+required-features = ["native-tooling"]
+
+[[example]]
+name = "job_compiler"
+path = "examples/job_compiler/main.rs"
+required-features = ["native-tooling"]
+
+[[example]]
+name = "job_coverage"
+path = "examples/job_coverage/main.rs"
+required-features = ["native-tooling"]
+
+[[example]]
+name = "codec_workflow"
+path = "examples/codec_workflow/main.rs"
+
+[[example]]
+name = "schedule_workflow"
+path = "examples/schedule_workflow/main.rs"
+required-features = ["harness"]
+
+[[example]]
+name = "structural_mutation"
+path = "examples/structural_mutation/main.rs"
+required-features = ["harness"]
+
+[[test]]
+name = "native_clock"
+path = "tests/native_clock/main.rs"
+required-features = ["native-tooling"]
+
+[[example]]
+name = "coverage_workflow"
+path = "examples/coverage_workflow/main.rs"
+required-features = ["native-tooling"]
+
+[[test]]
+name = "native_policy"
+path = "tests/native_policy/main.rs"
+
+[[example]]
+name = "mutation_workflow"
+path = "examples/mutation_workflow/main.rs"
+required-features = ["native-tooling"]
+
+[[example]]
+name = "mutation_assessment"
+path = "examples/mutation_assessment/main.rs"
+required-features = ["native-tooling"]
+
+[[example]]
+name = "publication_workflow"
+path = "examples/publication_workflow/main.rs"
+required-features = ["native-tooling"]
+
+[[example]]
+name = "job_publication"
+path = "examples/job_publication/main.rs"
+required-features = ["native-tooling"]
 
 [lints]
 workspace = true

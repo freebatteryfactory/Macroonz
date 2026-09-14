@@ -3,7 +3,7 @@
 #[cfg(feature = "host")]
 use super::RecipeBake;
 use super::types::{RecipeShell, RecipeShellContent};
-use super::{ProjectionError, Recipe, RecipeProjection, RecipeRole};
+use super::{ProjectionError, Recipe, RecipeEditError, RecipeProjection, RecipeRole};
 use crate::bounded::Overflow;
 use crate::kind::{Destination, Kind, NoQuestions, Role, SoleRole};
 use crate::render::RenderError;
@@ -53,9 +53,41 @@ impl core::error::Error for ProjectionError {
     }
 }
 
+impl fmt::Display for RecipeEditError {
+    fn fmt(&self, into: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::TransitionRequired => {
+                into.write_str("recipe editing requires an informed transition relation")
+            }
+            Self::RowAbsent { position } => write!(
+                into,
+                "transition row {position} is outside the authored roster"
+            ),
+            Self::TargetAbsent { spelling } => write!(
+                into,
+                "transition target {spelling} is absent from the declared vocabulary"
+            ),
+            Self::Compiler(refusal) => into.write_str(refusal.summary()),
+        }
+    }
+}
+
+impl core::error::Error for RecipeEditError {}
+
 impl From<Overflow> for ProjectionError {
     fn from(overflow: Overflow) -> Self {
         Self::Tokens(overflow)
+    }
+}
+
+impl From<crate::token::GeneratedTreeRefusal> for ProjectionError {
+    fn from(refusal: crate::token::GeneratedTreeRefusal) -> Self {
+        match refusal {
+            crate::token::GeneratedTreeRefusal::Unbounded(overflow) => Self::Tokens(overflow),
+            refused @ crate::token::GeneratedTreeRefusal::Token { .. } => {
+                Self::Render(refused.into())
+            }
+        }
     }
 }
 

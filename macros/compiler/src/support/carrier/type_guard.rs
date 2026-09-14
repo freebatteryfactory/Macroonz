@@ -43,7 +43,7 @@ impl SupportShell {
     /// Renders the inert shell from one plan and verified assembly.
     ///
     /// # Errors
-    /// Returns a declaration mismatch or generated-tree overflow.
+    /// Returns a declaration mismatch, generated-tree overflow or lexical token refusal.
     pub fn assembled<C: Kind>(
         carrier: &Plan<C>,
         assembly: &SupportAssembly,
@@ -56,16 +56,13 @@ impl SupportShell {
         }
         let name = ShellName::mangled(carrier.identity());
         let form = assembly.form();
-        let pin = render::expectation_roster(assembly.expectation())?;
-        let body = render::gate_invocation(form, pin, stamped(assembly), opaque(assembly, form))?;
-        let matched = match assembly.declaring_binding() {
-            crate::support::DeclaringBinding::Absent => render::matcher(assembly.declared()),
-            crate::support::DeclaringBinding::Required => {
-                render::matcher_requiring_declaring(assembly.declared())
-            }
-        };
-        let mut tokens =
-            render::exported_shell(&name, &render::shell_sentence(door), matched, body)?;
+        let mut tokens = render::staged_shell(
+            &name,
+            assembly,
+            &render::shell_sentence(door),
+            stamped(assembly),
+            opaque(assembly, form),
+        )?;
         if let Some(address) = assembly.address() {
             let sentence = render::alias_sentence(door);
             tokens.extend(match assembly.declaring_binding() {
@@ -79,7 +76,7 @@ impl SupportShell {
         }
         Ok(Self {
             name,
-            tree: GeneratedTree::assembled(tokens)?,
+            tree: restored_cargo(GeneratedTree::assembled(tokens)?, assembly, form),
         })
     }
     /// Reads the exported name.
@@ -97,6 +94,23 @@ impl SupportShell {
     pub fn into_tree(self) -> GeneratedTree {
         self.tree
     }
+}
+fn restored_cargo(
+    mut tree: GeneratedTree,
+    assembly: &SupportAssembly,
+    form: DeliveryForm,
+) -> GeneratedTree {
+    if let AxisCargo::Carried(cargo) = assembly.declared() {
+        tree = tree.restored_from(cargo.stamped());
+    }
+    let axis = match form {
+        DeliveryForm::Trials => assembly.deferred(),
+        DeliveryForm::Benches => assembly.bench(),
+    };
+    if let AxisCargo::Carried(proved) = axis {
+        tree = tree.restored_from(proved.cargo().tree());
+    }
+    tree
 }
 fn stamped(assembly: &SupportAssembly) -> Vec<GeneratedToken> {
     match assembly.declared() {

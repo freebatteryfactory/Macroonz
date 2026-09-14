@@ -23,6 +23,12 @@ mod collisions;
 #[path = "account/contracts.rs"]
 mod contracts;
 
+#[path = "account/consuming.rs"]
+mod consuming;
+
+#[path = "account/edit.rs"]
+mod edit;
+
 #[path = "account/informed.rs"]
 mod informed;
 
@@ -212,7 +218,7 @@ pub struct RecipeCodec {
 }
 
 crate::roster! {
-    /// The complete projection vocabulary understood by the first recipe slice.
+    /// The compiler's complete projection vocabulary.
     #[non_exhaustive]
     pub enum RecipeRole {
         /// Enum-member and relation companions inside the generated child module.
@@ -225,7 +231,7 @@ crate::roster! {
         CompileContract = "compile-contract",
         /// A generated check that the dispatch output agrees with its declaring transition rows.
         DeclarationConformance = "declaration-conformance",
-        /// One selected vocabulary projected as type-level stage markers.
+        /// One selected vocabulary projected as structural markers and optionally consuming resource wrappers.
         Typestate = "typestate",
         /// One existing descriptor trial carrier over caller-declared rows.
         Trials = "trials",
@@ -376,7 +382,58 @@ pub struct EffectiveProjection {
     exact_dispatch_binding_names: Option<Box<[String; 2]>>,
     exact_dispatch_imports: Option<[bool; 2]>,
     relation_tables: Option<Box<Bounded<RelationTableProjection, RELATION_TABLE_LIMIT>>>,
+    consuming: Option<Box<ConsumingProjection>>,
     at: SpanHandle,
+}
+
+/// The explicit runtime bindings of a consuming typestate projection.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ConsumingProjection {
+    wrapper: String,
+    wrapper_token: GeneratedToken,
+    parameters: Bounded<GeneratedTree, VOCABULARY_LIMIT>,
+    arguments: Bounded<GeneratedTree, VOCABULARY_LIMIT>,
+    predicates: Bounded<GeneratedTree, VOCABULARY_LIMIT>,
+    resource: ConsumingParameter,
+    runtime: ConsumingParameter,
+    refusal: GeneratedTree,
+    validator: GeneratedTree,
+    methods: Bounded<ConsumingMethod, VOCABULARY_LIMIT>,
+    at: SpanHandle,
+}
+
+/// One exact caller-named value binding and its Rust type.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ConsumingParameter {
+    name: String,
+    token: GeneratedToken,
+    kind: GeneratedTree,
+    at: SpanHandle,
+}
+
+/// One event's method spelling and optional caller-owned payload.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ConsumingMethod {
+    event: String,
+    name: String,
+    token: GeneratedToken,
+    payload: Option<ConsumingParameter>,
+    at: SpanHandle,
+}
+
+/// The captured mechanical bindings offered to consuming-projection admission.
+pub(super) struct ConsumingParts {
+    pub(super) wrapper: String,
+    pub(super) wrapper_token: GeneratedToken,
+    pub(super) parameters: Bounded<GeneratedTree, VOCABULARY_LIMIT>,
+    pub(super) arguments: Bounded<GeneratedTree, VOCABULARY_LIMIT>,
+    pub(super) predicates: Bounded<GeneratedTree, VOCABULARY_LIMIT>,
+    pub(super) resource: ConsumingParameter,
+    pub(super) runtime: ConsumingParameter,
+    pub(super) refusal: GeneratedTree,
+    pub(super) validator: GeneratedTree,
+    pub(super) methods: Bounded<ConsumingMethod, VOCABULARY_LIMIT>,
+    pub(super) at: SpanHandle,
 }
 
 /// One selected typed relation table and its effective function surface.
@@ -395,7 +452,7 @@ pub struct RelationTableProjection {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(super) enum ProjectionStanding {
     /// The role enters the selected request membership under this effective lowering.
-    Generated(EffectiveProjection),
+    Generated(Box<EffectiveProjection>),
     /// The caller deliberately did not request this role.
     NotRequested,
     /// The facade feature posture does not carry the harness owner this role requires.
@@ -434,6 +491,45 @@ pub struct Recipe {
     projections: [ProjectionStanding; PROJECTION_LIMIT],
     evidence: [Option<RecipeEvidence>; EVIDENCE_LIMIT],
     support: Option<SupportName>,
+}
+
+/// One explicit re-declaration of a transition row using the recipe's own admitted material.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RecipeEdit {
+    /// Replace one row's target with a member of its source vocabulary.
+    TransitionTarget {
+        /// The row's zero-based position in authored order.
+        row: usize,
+        /// The caller-selected target member spelling.
+        target: String,
+    },
+    /// Replace one row's effect with the complete effect of another declared row.
+    TransitionEffect {
+        /// The destination row's zero-based position in authored order.
+        row: usize,
+        /// The donor row's zero-based position in authored order.
+        from_row: usize,
+    },
+}
+
+/// Why an explicit recipe re-declaration could not be baked.
+#[must_use = "an edit refusal identifies the unavailable material or compiler rejection"]
+#[derive(Debug)]
+pub enum RecipeEditError {
+    /// The recipe has no informed transition lowering.
+    TransitionRequired,
+    /// A selected row is outside the authored transition roster.
+    RowAbsent {
+        /// The requested zero-based position.
+        position: usize,
+    },
+    /// The requested target is absent from the source vocabulary.
+    TargetAbsent {
+        /// The requested member spelling.
+        spelling: String,
+    },
+    /// The unchanged or re-declared recipe was refused by its existing compiler owner.
+    Compiler(Diagnostic),
 }
 
 /// The mechanically read seats offered to the recipe invariant constructor.

@@ -5,6 +5,44 @@ use crate::token::SpanHandle;
 use std::collections::{BTreeMap, VecDeque};
 
 impl GeneratedTree {
+    /// Couple declared bindings to generated declarations and uses within this completed unit.
+    #[must_use]
+    pub(crate) fn restored_bindings(&self, bindings: &[(&GeneratedToken, SpanHandle)]) -> Self {
+        let mut tokens = Vec::new();
+        preorder_tokens(self.tokens.as_slice(), &mut tokens);
+        let mut restored = self.clone();
+        for (binding, span) in bindings {
+            restore_binding_uses(&mut restored, &tokens, binding, *span, 0..tokens.len());
+        }
+        restored
+    }
+
+    /// Restore exact template tokens while leaving macro metavariables under generated hygiene.
+    #[must_use]
+    pub(crate) fn restored_template_from(&self, source: &Self) -> Self {
+        let mut tokens = Vec::new();
+        preorder_tokens(source.tokens.as_slice(), &mut tokens);
+        let mut template = source.clone();
+        for (position, pair) in tokens.windows(2).enumerate() {
+            if !matches!(
+                pair,
+                [
+                    GeneratedToken::Punct { mark: '$', .. },
+                    GeneratedToken::Word(_)
+                ]
+            ) {
+                continue;
+            }
+            if let Some(spans) = template
+                .source_spans
+                .get_mut(position..position.saturating_add(2))
+            {
+                spans.fill(None);
+            }
+        }
+        self.restored_from(&template)
+    }
+
     /// Restore one exact caller-authored token run onto the first matching generated run that carries no producer spans yet.
     #[must_use]
     pub(crate) fn restored_from(&self, source: &Self) -> Self {

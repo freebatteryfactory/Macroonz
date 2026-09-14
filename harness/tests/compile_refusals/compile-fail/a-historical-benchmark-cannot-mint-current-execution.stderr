@@ -1,0 +1,31 @@
+error[E0277]: the trait bound `BenchReport: From<ArchivedBenchReport>` is not satisfied
+ --> tests/compile_refusals/compile-fail/a-historical-benchmark-cannot-mint-current-execution.rs:9:11
+  |
+9 |     value.into()
+  |           ^^^^ the trait `From<ArchivedBenchReport>` is not implemented for `BenchReport`
+  |
+  = note: required for `ArchivedBenchReport` to implement `Into<BenchReport>`
+
+error[E0277]: the trait bound `BenchRow: From<ArchivedBenchRow>` is not satisfied
+  --> tests/compile_refusals/compile-fail/a-historical-benchmark-cannot-mint-current-execution.rs:13:11
+   |
+13 |     value.into()
+   |           ^^^^ the trait `From<ArchivedBenchRow>` is not implemented for `BenchRow`
+   |
+   = note: required for `ArchivedBenchRow` to implement `Into<BenchRow>`
+
+error[E0277]: the trait bound `WorkJudgment: From<ArchivedWorkJudgment>` is not satisfied
+  --> tests/compile_refusals/compile-fail/a-historical-benchmark-cannot-mint-current-execution.rs:17:11
+   |
+17 |     value.into()
+   |           ^^^^ the trait `From<ArchivedWorkJudgment>` is not implemented for `WorkJudgment`
+   |
+   = note: required for `ArchivedWorkJudgment` to implement `Into<WorkJudgment>`
+
+error[E0277]: the trait bound `SecondaryObservation: From<ArchivedSecondaryObservation>` is not satisfied
+  --> tests/compile_refusals/compile-fail/a-historical-benchmark-cannot-mint-current-execution.rs:21:11
+   |
+21 |     value.into()
+   |           ^^^^ the trait `From<ArchivedSecondaryObservation>` is not implemented for `SecondaryObservation`
+   |
+   = note: required for `ArchivedSecondaryObservation` to implement `Into<SecondaryObservation>`

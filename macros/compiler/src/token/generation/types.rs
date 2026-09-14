@@ -3,7 +3,7 @@
 //! Declarations only.
 //! The invariant nucleus lives in `type_guard.rs`, and nonsemantic source restoration lives in `provenance.rs`; both are this file's children so no public field is opened.
 
-use crate::bounded::{Bounded, NonEmptyError};
+use crate::bounded::{Bounded, NonEmptyError, Overflow};
 use crate::token::SpanHandle;
 
 #[path = "type_guard.rs"]
@@ -83,6 +83,35 @@ pub enum FragmentGenerationIssue {
     Literal(GeneratedLiteralRefusal),
     /// The generated tree would exceed its declared token magnitude.
     Unbounded,
+    /// One captured word, raw identifier or punctuation has no token in its stated role.
+    Token(GeneratedTokenIssue),
+}
+
+/// The lexical role whose offered spelling cannot be emitted as one Rust token.
+#[must_use = "a generated-token issue names the lexical role that refused"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum GeneratedTokenIssue {
+    /// The spelling is not one ordinary identifier-shaped token or keyword.
+    Word,
+    /// The name is malformed or forbidden behind the raw-identifier marker.
+    RawIdentifier,
+    /// The character is not a Rust punctuation token.
+    Punctuation,
+}
+
+/// Why an offered token run could not become a completed generated tree.
+#[must_use = "a generated-tree refusal prevents malformed or unbounded output from acquiring an identity"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum GeneratedTreeRefusal {
+    /// The top-level run exceeds its declared token magnitude.
+    Unbounded(Overflow),
+    /// One offered token has no spelling in its stated lexical role.
+    Token {
+        /// The zero-based position in pre-order, counting groups before their children.
+        position: usize,
+        /// The lexical role that refused.
+        issue: GeneratedTokenIssue,
+    },
 }
 
 /// One refused captured-fragment projection with the exact source span it belongs to.
@@ -101,7 +130,7 @@ pub struct GeneratedRowRefusal {
     cause: NonEmptyError,
 }
 
-/// One token a renderer writes.
+/// One offered token a renderer composes before generated-tree admission.
 ///
 /// A renderer states a literal's value and never its spelling, and the quoting, the escaping, and the absence of a suffix are the tree's business.
 ///
@@ -138,7 +167,7 @@ pub enum GeneratedToken {
     Literal(GeneratedLiteral),
 }
 
-/// One generated token tree: the artifact a renderer produces.
+/// One bounded generated token tree whose words, raw identifiers and punctuation hold their lexical roles.
 #[derive(Clone)]
 pub struct GeneratedTree {
     tokens: Bounded<GeneratedToken, GENERATED_TOKEN_LIMIT>,

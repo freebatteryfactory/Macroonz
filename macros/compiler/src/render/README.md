@@ -46,5 +46,5 @@ It also does not interpret generated syntax, prove semantic correctness of the c
 
 ## Refusal boundary
 
-Rendering stops at the first local impossibility: no material was written, a seat has no planned member, or a declared rendering magnitude would be exceeded.
+Rendering stops at the first local impossibility: no material was written, a seat has no planned member, a declared rendering magnitude would be exceeded, or the token owner refuses offered output material.
 Each refusal remains an ordinary typed error and projects through the shared diagnostic road without inventing related issues or ownerless repair advice.

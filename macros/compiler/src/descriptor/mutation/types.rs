@@ -6,8 +6,7 @@
 //! # Every fact here is the declaration's
 //!
 //! An owner fact is a name the consumer declares, an operator family is a slug the consumer declares, and an alternative is DATA: its semantic operation bytes and the value it means, both stated rather than derived.
-//! Nothing in this vocabulary computes an alternative: a shape that could invent one would be deciding what pressure a consumer's declaration is under.
-//! The one computation this home does offer — the declared-order door in `complete.rs` — transposes the declaration's OWN order and invents nothing beside it.
+//! These types carry alternatives rather than computing them.
 
 use crate::bounded::{Bounded, NonEmpty};
 use crate::descriptor::{HelperRefusal, ModuleName, Name, SupportName, TypeName};
@@ -35,11 +34,7 @@ pub const ALTERNATIVE_LIMIT: usize = 64;
 /// The three attribute-helper readings of one declaration share the captured-helper role and are told apart by position alone: this one is the second.
 pub const MUTATION_HELPER_POSITION: u32 = 1;
 
-/// The operator family the declared-order door produces alternatives under, by the harness bank's own slug.
-///
-/// The one structural operator a generic door can apply without knowing what a declaration means: transpose two adjacent members of the order an author declared.
-/// It is declared here so a permission and the door cite one spelling — an author who wants this pressure permits this slug, and a policy that does not name it lowers no alternative the door produced.
-/// The spelling is the harness operator bank's, which owns the family vocabulary: a slug of this adapter's own invention would produce alternatives the bank refuses to resolve, which is exactly what an earlier spelling of this constant did.
+/// The harness bank's operator slug for transposing one adjacent pair in a declared order.
 pub const DECLARED_ORDER_FAMILY: &str = "declared-order-permutation";
 
 /// The kind one mutation declaration produces: the module a mutation harness lowers, delivered to the consumer's test target.
@@ -143,3 +138,39 @@ pub struct Surface {
 #[must_use = "a mutation capture refusal names the cause and the token it was established at"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MutationCaptureError(HelperRefusal);
+
+/// Why a codec declaration could not supply structural mutation material.
+#[must_use = "a refusal identifies the declaration or rendering that withheld mutation material"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CodecMutationError {
+    /// The declared member roster contains no adjacent pair.
+    NoAdjacentMembers,
+    /// The codec owner refused a changed declaration.
+    Codec(crate::codec::CodecError),
+    /// The mutation owner refused the completed site.
+    Declaration(crate::descriptor::DeclarationError),
+    /// The codec renderer could not supply informed Rust tokens.
+    Tokens(crate::token::GeneratedTreeRefusal),
+}
+
+/// The harness bank's operator slug for replacing a declared transition destination.
+pub const TRANSITION_TARGET_FAMILY: &str = "transition-target-substitution";
+
+/// The harness bank's operator slug for replacing a declared transition effect binding.
+pub const EFFECT_BINDING_FAMILY: &str = "effect-binding-substitution";
+
+/// Why one recipe row could not supply complete structural mutation material.
+#[must_use = "a refusal withholds the complete site rather than silently reducing its alternatives"]
+#[derive(Debug)]
+pub enum RecipeMutationError {
+    /// The selected row has no structurally distinct alternative in the declared roster.
+    NoAlternative,
+    /// The recipe compiler refused unchanged or selected source.
+    Compiler(crate::diagnostic::Diagnostic),
+    /// The recipe owner refused the selected re-declaration.
+    Edit(crate::recipe::RecipeEditError),
+    /// The mutation owner refused the site or its alternative magnitude.
+    Declaration(crate::descriptor::DeclarationError),
+    /// A completed recipe provided no source material.
+    SourceAbsent,
+}

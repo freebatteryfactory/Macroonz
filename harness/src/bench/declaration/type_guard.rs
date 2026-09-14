@@ -6,7 +6,7 @@ use super::{
     InputSizeAxis, InputSizeAxisRefusal, PlantedWorseRef, PreflightRef, WorkFormula,
     WorkFormulaRefusal, WorkObservationRef, WorkloadRef,
 };
-use crate::bench::declaration::encode::derive_row_key;
+use crate::bench::declaration::encode::{derive_row_key, row_preimage};
 use crate::descriptor::namespaced_reference;
 use crate::identity::ContentAddress;
 use std::collections::BTreeMap;
@@ -231,6 +231,11 @@ impl BenchMeasurement {
 }
 
 impl BenchRow {
+    /// The owning canonical preimage for bounded historical retention.
+    pub(in crate::bench) fn canonical_preimage(&self) -> Result<Vec<u8>, BenchRowRefusal> {
+        row_preimage(self.references, &self.measurement).map_err(BenchRowRefusal::Encoding)
+    }
+
     /// One row, with its identity derived from the whole declaration.
     ///
     /// # Identity

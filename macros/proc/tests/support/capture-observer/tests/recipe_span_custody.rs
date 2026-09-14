@@ -62,9 +62,54 @@ const RECIPE_REFERENCE_SPANS_RESTORED: bool =
                     };
                     dispatch(custody_apply);
                 };
+                evidence {
+                    trials {
+                        support = custody_trials_support,
+                        module = custody_trials,
+                        table = named("custody", "table"),
+                        suite checks = named("custody", "suite") {
+                            observed {
+                                claim = named("custody", "claim"),
+                                subject = named("custody", "subject"),
+                                check = named("custody", "check"),
+                                population = named("custody", "population"),
+                                binding = {
+                                    subject_revision = { $consumer::custody_subject_revision() },
+                                    check_revision = { $consumer::custody_check_revision() },
+                                    call = {
+                                        let custody_local = $consumer::custody_callable;
+                                        custody_local
+                                    },
+                                },
+                            },
+                        },
+                    };
+                };
             }
         }
     };
+
+const TRIAL_REFERENCE_SPANS_RESTORED: bool = macroonz_capture_observer::trial_reference_spans! {
+    support = custody_trials_support,
+    module = custody_trials,
+    table = named("custody", "table"),
+    suite checks = named("custody", "suite") {
+        observed {
+            claim = named("custody", "claim"),
+            subject = named("custody", "subject"),
+            check = named("custody", "check"),
+            population = named("custody", "population"),
+            binding = {
+                subject_revision = { $consumer::custody_subject_revision() },
+                check_revision = { $consumer::custody_check_revision() },
+                call = {
+                    let custody_local = $consumer::custody_callable;
+                    custody_local
+                },
+            },
+        },
+    },
+};
 
 /// The emitted module group retains the exact body span authored at the recipe entrance.
 #[test]
@@ -76,4 +121,9 @@ fn recipe_emission_restores_the_authored_module_body_span() {
 #[test]
 fn recipe_emission_restores_every_authored_reference_kind() {
     assert!(core::hint::black_box(RECIPE_REFERENCE_SPANS_RESTORED));
+}
+
+#[test]
+fn direct_trial_delivery_restores_attachment_template_spans() {
+    assert!(core::hint::black_box(TRIAL_REFERENCE_SPANS_RESTORED));
 }

@@ -5,7 +5,9 @@ use super::collisions::ensure_standard_names;
 use super::contracts::{
     ensure_evidence_targets, ensure_projection_contracts, ensure_transition_account,
 };
-use super::restore::{restore_projection_references, restore_relation_references};
+use super::restore::{
+    restore_projection_bindings, restore_projection_references, restore_relation_references,
+};
 use super::settle::missing_vocabulary;
 use super::{
     EffectiveProjection, EvidenceTarget, PROJECTION_LIMIT, ProjectionDisposition,
@@ -203,6 +205,12 @@ impl Recipe {
             vocabularies.as_ref(),
         )?;
         resolve_typestate_subject(&mut projections, vocabularies.as_ref())?;
+        inform_consuming(
+            &projections,
+            vocabularies.as_ref(),
+            relations.as_ref(),
+            transition_relation.as_deref(),
+        )?;
         ensure_projection_contracts(
             &projections,
             codecs.as_ref(),
@@ -272,6 +280,18 @@ impl Recipe {
 
     pub(in crate::recipe) const fn module_body_at(&self) -> Option<SpanHandle> {
         self.module_body_at
+    }
+
+    pub(in crate::recipe) fn restore_projected_unit(
+        &self,
+        tree: &GeneratedTree,
+        role: RecipeRole,
+    ) -> GeneratedTree {
+        let restored = self.restore_authored_references(tree);
+        self.effective(role).map_or_else(
+            || restored.clone(),
+            |effective| restore_projection_bindings(&restored, effective),
+        )
     }
 
     /// Reads every informed vocabulary in caller-authored order.
@@ -435,4 +455,31 @@ fn resolve_typestate_subject(
     }
     effective.select_subject(subject);
     Ok(())
+}
+
+fn inform_consuming(
+    projections: &[ProjectionStanding; PROJECTION_LIMIT],
+    vocabularies: Option<&KeyedRoster<super::RecipeVocabulary, String, VOCABULARY_LIMIT>>,
+    relations: Option<&KeyedRoster<RecipeRelation, String, { super::RELATION_LIMIT }>>,
+    transition: Option<&str>,
+) -> Result<(), RecipeError> {
+    let ProjectionStanding::Generated(effective) = RecipeRole::Typestate.standing(projections)
+    else {
+        return Ok(());
+    };
+    let Some(consuming) = effective.consuming() else {
+        return Ok(());
+    };
+    let subject = effective
+        .subject()
+        .and_then(|name| vocabularies.and_then(|values| values.get(name)));
+    let relation = transition.and_then(|name| relations.and_then(|values| values.get(name)));
+    let (Some(subject), Some(relation)) = (subject, relation) else {
+        return Err(super::consuming::binding(
+            consuming.wrapper(),
+            "one informed transition relation",
+            consuming.at(),
+        ));
+    };
+    consuming.against(subject, relation)
 }

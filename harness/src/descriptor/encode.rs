@@ -1,6 +1,7 @@
 //! The canonical bytes this home's preimage-bearing values commit to: one root schema declaration, one authored row, and one trial's coordinates.
 //!
-//! These bytes are preimages, never identities, and no reader is meant to parse meaning out of them.
+//! These bytes are preimages, never identities.
+//! The bounded [`archive`](super::archive) reader retains candidate row fields as historical data without creating a live row.
 //! They exist so that one value has exactly one byte string, and so that a change to any member of that value moves the identity derived from it.
 //! The encoding is a function of the value and of nothing else — no clock, no environment, no source text, no iteration order that is not the declared one.
 //! It is stated completely here, because an independent party re-deriving one of these identities writes its own encoder from this page and imports nothing.
@@ -65,7 +66,17 @@ use super::types::{
     SchemaField, SubjectRoute, SynthesisFacts, TrialCoordinates, generated_support_members,
     origin_declarations,
 };
-use crate::identity::{encode_bytes, encode_length};
+use crate::identity::{
+    ContentAddress, DomainTag, IdentityProfileVersion, encode_bytes, encode_length,
+};
+
+/// The domain a trial key is derived under.
+const TRIAL_KEY_DOMAIN: DomainTag =
+    DomainTag::declared("trial-key", IdentityProfileVersion::declared(1));
+
+pub(super) fn derive_trial_key(preimage: &[u8]) -> ContentAddress {
+    ContentAddress::derived(TRIAL_KEY_DOMAIN, preimage)
+}
 
 /// The version of the schema encoding itself.
 ///
@@ -75,7 +86,7 @@ const SCHEMA_ENCODING_VERSION: u32 = 1;
 /// The version of the row encoding itself.
 ///
 /// Its own constant rather than the schema encoding's: the two move for separate reasons, and a bump to one must rename nothing derived under the other.
-const ROW_ENCODING_VERSION: u32 = 2;
+pub(super) const ROW_ENCODING_VERSION: u32 = 2;
 
 impl AdmissionGround {
     /// The byte this ground is written as in a row's canonical preimage.
@@ -316,11 +327,27 @@ impl<'classification> RowEncoding<'classification> {
 ///
 /// The execution suite is absent because two rows differing only by suite are one trial run under two seats, and nothing about where the row is written appears either, so the key survives a file move and a rename.
 pub(super) fn encode_trial_coordinates(coordinates: TrialCoordinates) -> Vec<u8> {
+    let parts = |name: NamespacedName| (name.namespace().written(), name.stem().written());
+    encode_trial_names(
+        parts(coordinates.claim().name()),
+        parts(coordinates.subject().name()),
+        parts(coordinates.check().name()),
+        parts(coordinates.population().name()),
+    )
+}
+
+/// Encode the four semantic roles of already admitted live or historical coordinates.
+pub(super) fn encode_trial_names(
+    claim: (&str, &str),
+    subject: (&str, &str),
+    check: (&str, &str),
+    population: (&str, &str),
+) -> Vec<u8> {
     let mut out = Vec::new();
-    coordinates.claim().name().encode_into(&mut out);
-    coordinates.subject().name().encode_into(&mut out);
-    coordinates.check().name().encode_into(&mut out);
-    coordinates.population().name().encode_into(&mut out);
+    encode_name(claim.0, claim.1, &mut out);
+    encode_name(subject.0, subject.1, &mut out);
+    encode_name(check.0, check.1, &mut out);
+    encode_name(population.0, population.1, &mut out);
     out
 }
 
@@ -382,9 +409,14 @@ impl NamespacedName {
     ///
     /// Seated with the type on purpose: five homes once restated these two lines, and one lawful edit to the spelling would have split the identity families of the homes that drifted from the homes that did not.
     pub fn encode_into(self, into: &mut Vec<u8>) {
-        encode_bytes(self.namespace().written().as_bytes(), into);
-        encode_bytes(self.stem().written().as_bytes(), into);
+        encode_name(self.namespace().written(), self.stem().written(), into);
     }
+}
+
+/// Append the components of an already admitted live or historical name.
+pub(super) fn encode_name(namespace: &str, stem: &str, into: &mut Vec<u8>) {
+    encode_bytes(namespace.as_bytes(), into);
+    encode_bytes(stem.as_bytes(), into);
 }
 
 /// Append one descriptor length after proving that its public encoding width can hold it.

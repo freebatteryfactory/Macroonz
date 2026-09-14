@@ -6,7 +6,7 @@
 use crate::bounded::{Bounded, NonEmpty, Overflow};
 use crate::identity::{self, Identity};
 use crate::plan::DigestContract;
-use crate::token::GeneratedTree;
+use crate::token::{GeneratedTokenIssue, GeneratedTree};
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -320,5 +320,12 @@ pub enum StampError {
     TokensUnbounded {
         /// The magnitude and what was offered.
         overflow: Overflow,
+    },
+    /// A composed stamp token cannot occupy its stated lexical role.
+    TokenInvalid {
+        /// The zero-based token position in pre-order.
+        position: usize,
+        /// The lexical role that refused.
+        issue: GeneratedTokenIssue,
     },
 }

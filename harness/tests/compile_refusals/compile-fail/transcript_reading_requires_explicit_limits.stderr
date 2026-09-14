@@ -1,0 +1,21 @@
+error[E0308]: mismatched types
+ --> tests/compile_refusals/compile-fail/transcript_reading_requires_explicit_limits.rs:8:84
+  |
+8 |     let _live: fn(&Topology, &[u8]) -> Result<TranscriptPack, TranscriptRefusal> = read_recorded_live;
+  |                -----------------------------------------------------------------   ^^^^^^^^^^^^^^^^^^ incorrect number of function parameters
+  |                |
+  |                expected due to this
+  |
+  = note: expected fn pointer `for<'a, 'b> fn(&'a Topology, &'b [u8]) -> Result<TranscriptPack, TranscriptRefusal>`
+                found fn item `for<'a, 'b> fn(&'a Topology, &'b [u8], TranscriptLimits) -> Result<TranscriptPack, TranscriptRefusal> {read_recorded_live}`
+
+error[E0308]: mismatched types
+ --> tests/compile_refusals/compile-fail/transcript_reading_requires_explicit_limits.rs:9:108
+  |
+9 |     let _simulation: fn(&Topology, &NetworkSchedule, &[u8]) -> Result<TranscriptPack, TranscriptRefusal> = read_simulated;
+  |                      -----------------------------------------------------------------------------------   ^^^^^^^^^^^^^^ incorrect number of function parameters
+  |                      |
+  |                      expected due to this
+  |
+  = note: expected fn pointer `for<'a, 'b, 'c> fn(&'a Topology, &'b NetworkSchedule, &'c [u8]) -> Result<TranscriptPack, TranscriptRefusal>`
+                found fn item `for<'a, 'b, 'c> fn(&'a Topology, &'b NetworkSchedule, &'c [u8], TranscriptLimits) -> Result<TranscriptPack, TranscriptRefusal> {read_simulated}`

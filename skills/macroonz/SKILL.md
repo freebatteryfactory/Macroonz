@@ -115,6 +115,7 @@ Read the compiler [recipe home's evidence contract](https://github.com/freebatte
 Exercise it from an external test and compare it with a handwritten model, a direct `macroonz::harness` property or oracle, or an explicitly invoked generated evidence carrier.
 The packaged `macroonz-harness` example `temporal_property.rs` is the direct judgment reference.
 An uninvoked carrier is inert material, not evidence.
+The [trial example](../../examples/trial_workflow/README.md) composes declared input, independent checks and all public [presentation formats](../../src/presentation/README.md) through the root facade.
 
 ## Respect package posture
 

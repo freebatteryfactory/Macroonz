@@ -66,6 +66,9 @@ Each reading keeps the complete row, the target it stood on, the preflight repor
 A renderer may read a completed report.
 It cannot mint a report, reach a callable or judge, change a stage, or change the denominator.
 
+The [archive](archive/README.md) retains that complete account for bounded historical inspection and caller-owned storage.
+Loading preserves the retained stages and source declarations without creating current execution or work qualification.
+
 ## Ownership
 
 The public owner remains `macroonz_harness::bench`.

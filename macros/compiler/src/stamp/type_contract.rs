@@ -6,6 +6,17 @@
 use super::{StampError, TransportedReach, Visibility};
 use crate::bounded::Overflow;
 
+impl From<crate::token::GeneratedTreeRefusal> for StampError {
+    fn from(refusal: crate::token::GeneratedTreeRefusal) -> Self {
+        match refusal {
+            crate::token::GeneratedTreeRefusal::Unbounded(overflow) => overflow.into(),
+            crate::token::GeneratedTreeRefusal::Token { position, issue } => {
+                Self::TokenInvalid { position, issue }
+            }
+        }
+    }
+}
+
 impl Visibility {
     /// The reach a stamped item carries inside the module a pattern seats it in.
     ///
@@ -103,6 +114,9 @@ impl core::fmt::Display for StampError {
                 "a rendered tree carries {} tokens where at most {} fit",
                 overflow.offered, overflow.capacity
             ),
+            Self::TokenInvalid { position, issue } => {
+                write!(into, "generated stamp token {position} refused: {issue}")
+            }
         }
     }
 }
@@ -115,6 +129,7 @@ impl core::error::Error for StampError {
             | Self::SitesUnbounded { overflow }
             | Self::ArgumentsUnbounded { overflow }
             | Self::TokensUnbounded { overflow } => Some(overflow),
+            Self::TokenInvalid { issue, .. } => Some(issue),
             Self::NotAnIdentifier
             | Self::PathEmpty
             | Self::PatternEmpty

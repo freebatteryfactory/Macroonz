@@ -50,6 +50,10 @@ impl RenderError {
                 counted_into(*bound, into);
                 counted_into(*observed, into);
             }
+            Self::TokenInvalid { position, issue } => {
+                counted_into(*position, into);
+                into.push(issue.slot());
+            }
         }
     }
 }

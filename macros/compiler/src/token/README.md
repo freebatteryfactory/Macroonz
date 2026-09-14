@@ -61,6 +61,7 @@ The lens is not a Rust AST, and Rustc remains responsible for full syntax, type,
 ## Writing
 
 [`GeneratedTree`] is what a renderer produces.
+Its [admission boundary](generation/README.md#admission) owns which offered token spellings can become completed output.
 A renderer states a literal's value and never its spelling here too: the quoting, the escaping, and the absence of a suffix belong to the tree.
 That is what keeps `b"…"` from being assembled out of a word and a quoted string — two tokens where the address reading it matches one — and what lets one count be written into a `u32` seat, a `u64` seat, and a `usize` seat, because an unsuffixed literal is typed by the position it lands in.
 

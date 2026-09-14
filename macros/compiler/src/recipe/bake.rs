@@ -7,7 +7,8 @@ use super::types::{
 };
 use super::{
     ConfiguredEvidence, EvidenceCompiler, HarnessPosture, PROJECTION_LIMIT, ProjectionSink,
-    ProjectorReplacement, Recipe, RecipeBake, RecipeProjection, RecipeProjector, RecipeRole,
+    ProjectorReplacement, Recipe, RecipeBake, RecipeEdit, RecipeEditError, RecipeProjection,
+    RecipeProjector, RecipeRole,
 };
 use crate::closure::PartitionCargo;
 use crate::diagnostic::{Diagnostic, Placement, Refused};
@@ -18,7 +19,6 @@ use crate::support::{
 };
 use crate::token::{
     CapturedInput, GeneratedDelimiter, GeneratedToken, GeneratedTree, SpanTable, documentation,
-    group,
 };
 
 /// Bake one recipe through the standard projector catalog.
@@ -65,15 +65,49 @@ pub fn bake_with(
     walked(capture, harness, door, replacements)
 }
 
+/// Bake one explicit transition re-declaration through the ordinary recipe account and projectors.
+///
+/// The [recipe owner](super) defines the selected material, re-admission and identity contract.
+///
+/// # Errors
+///
+/// Returns [`RecipeEditError`] when the selected material is absent or either recipe is refused.
+pub fn bake_edited(
+    capture: &CapturedInput,
+    harness: HarnessPosture,
+    edit: &RecipeEdit,
+    door: &Door,
+) -> Result<RecipeBake, RecipeEditError> {
+    let recipe = read_recipe(capture, harness, door).map_err(RecipeEditError::Compiler)?;
+    let changed = recipe.edited(edit, door)?;
+    bake_informed(capture, &changed, door, &[]).map_err(RecipeEditError::Compiler)
+}
+
+pub(crate) fn read_recipe(
+    capture: &CapturedInput,
+    harness: HarnessPosture,
+    door: &Door,
+) -> Result<Recipe, Diagnostic> {
+    Recipe::read(capture, harness).map_err(|refusal| recipe_refused(&refusal, door))
+}
+
 fn walked(
     capture: &CapturedInput,
     harness: HarnessPosture,
     door: &Door,
     replacements: &[ProjectorReplacement<'_>],
 ) -> Result<RecipeBake, Diagnostic> {
-    let recipe =
-        Recipe::read(capture, harness).map_err(|refusal| recipe_refused(&refusal, door))?;
-    validate_replacements(&recipe, replacements)
+    let recipe = read_recipe(capture, harness, door)?;
+    bake_informed(capture, &recipe, door, replacements)
+}
+
+pub(crate) fn bake_informed(
+    capture: &CapturedInput,
+    recipe: &Recipe,
+    door: &Door,
+    replacements: &[ProjectorReplacement<'_>],
+) -> Result<RecipeBake, Diagnostic> {
+    validate_replacements(recipe, replacements)
         .map_err(|refusal| recipe_refused(&refusal, door))?;
     let selected = recipe.selected_roles().collect::<Vec<_>>();
     let Some((&first, rest)) = selected.split_first() else {
@@ -86,7 +120,7 @@ fn walked(
         .iter()
         .map(|replacement| replacement.role())
         .collect::<Vec<_>>();
-    let prepared = ConfiguredEvidence::prepared(capture, &recipe, door, replaced.as_slice())?;
+    let prepared = ConfiguredEvidence::prepared(capture, recipe, door, replaced.as_slice())?;
     let standard = StandardProjector::over(&prepared);
     let projection = Request::<RecipeProjection>::over(capture.clone(), recipe.clone(), door)
         .selecting(first, rest.to_vec())
@@ -101,17 +135,12 @@ fn walked(
                     Some(replacement) => replacement.projector(),
                     None => &standard,
                 };
-                render::project(
-                    &recipe,
-                    role,
-                    ProjectionSink::bound(output, role),
-                    projector,
-                )?;
+                render::project(recipe, role, ProjectionSink::bound(output, role), projector)?;
             }
             Ok(())
         })?;
-    let support = support(capture, &recipe, &projection, door)?;
-    let emitted = final_emission(capture, &recipe, &projection, support.as_ref(), door)?;
+    let support = support(capture, recipe, &projection, door)?;
+    let emitted = final_emission(capture, recipe, &projection, support.as_ref(), door)?;
     Ok(RecipeBake::baked(projection, emitted))
 }
 
@@ -258,15 +287,8 @@ fn final_emission(
     support: Option<&crate::expansion::Expansion<SupportCarrier>>,
     door: &Door,
 ) -> Result<crate::expansion::Expansion<RecipeShell>, Diagnostic> {
-    let tree = final_tree(recipe, projection, support).map_err(|overflow| {
-        whole(
-            &crate::render::RenderError::TokensUnbounded {
-                bound: overflow.capacity,
-                observed: overflow.offered,
-            },
-            door,
-        )
-    })?;
+    let tree = final_tree(recipe, projection, support)
+        .map_err(|refusal| whole(&crate::render::RenderError::from(refusal), door))?;
     let content = RecipeShellContent::composed(
         projection.identity(),
         support.map(crate::expansion::Expansion::identity),
@@ -280,7 +302,7 @@ fn final_tree(
     recipe: &Recipe,
     projection: &crate::expansion::Expansion<RecipeProjection>,
     support: Option<&crate::expansion::Expansion<SupportCarrier>>,
-) -> Result<GeneratedTree, crate::bounded::Overflow> {
+) -> Result<GeneratedTree, crate::token::GeneratedTreeRefusal> {
     let mut root = GeneratedTree::assembled(Vec::new())?;
     if let Some(support) = support
         && let Some(tree) = support.emit().tokens()
@@ -293,13 +315,13 @@ fn final_tree(
         }
     }
     let mut body = recipe.authored_body().clone();
-    let mut companions = Vec::new();
+    let mut companions = GeneratedTree::assembled(Vec::new())?;
     for role in RecipeRole::roles_at(RecipeRolePlacement::BakedModule) {
         if let Some(unit) = projection.closure().rendered().under(role) {
-            companions.extend(unit.tree().tokens().iter().cloned());
+            companions = companions.joined(&recipe.restore_projected_unit(unit.tree(), role))?;
         }
     }
-    if !companions.is_empty() {
+    if !companions.tokens().is_empty() {
         let mut generated = documentation(
             "Generated companions selected by this recipe's informed projection account.",
         )?;
@@ -307,9 +329,10 @@ fn final_tree(
             GeneratedToken::word("pub"),
             GeneratedToken::word("mod"),
             GeneratedToken::word("baked"),
-            group(GeneratedDelimiter::Brace, companions)?,
         ]);
-        body = body.joined(&GeneratedTree::assembled(generated)?)?;
+        let baked = GeneratedTree::assembled(generated)?
+            .joined(&companions.grouped(GeneratedDelimiter::Brace, None)?)?;
+        body = body.joined(&baked)?;
     }
     let grouped = body.grouped(GeneratedDelimiter::Brace, recipe.module_body_at())?;
     let module = recipe.module_head().joined(&grouped)?;
@@ -317,7 +340,7 @@ fn final_tree(
     Ok(recipe.restore_authored_references(&assembled))
 }
 
-fn recipe_refused(refusal: &RecipeError, door: &Door) -> Diagnostic {
+pub(in crate::recipe) fn recipe_refused(refusal: &RecipeError, door: &Door) -> Diagnostic {
     match refusal.token() {
         Some(token) => Diagnostic::refused(
             refusal,

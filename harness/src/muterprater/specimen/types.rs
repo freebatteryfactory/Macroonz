@@ -4,9 +4,10 @@ use crate::descriptor::{CheckRef, ClaimRef};
 use crate::identity::{DomainTag, IdentityProfileVersion};
 use crate::muterprater::{
     ActiveSelection, EvaluationDirective, EvaluationPairStanding, EvaluationPairStandingMismatch,
-    EvaluationSurfaceId, MutationReport, NoMutationParityQualification, SelectionRefusal,
+    EvaluationSurfaceId, MutationObservation, MutationReport, NoMutationParityQualification,
+    SelectionRefusal,
 };
-use crate::report::{ExecutionKey, ForeignText, TrialReport};
+use crate::report::{ExecutionKey, ForeignText, InvocationProfile, TargetBinding, TrialReport};
 use crate::runner::ReportRecordingRefusal;
 #[path = "type_guard.rs"]
 mod guard;
@@ -69,25 +70,31 @@ pub struct SpecimenMaterializerBinding {
 
 /// One immutable request handed to a compiled-specimen host.
 ///
-/// The request binds the exact content, operation, parity-qualified input, semantic role, execution key, and check identity before any caller code runs.
+/// The request binds content, operation, supplied input, role and declared execution context before caller code runs.
 pub struct CompiledSpecimenRequest<'content, 'input, Input> {
     content: &'content ArtifactContent,
     role: CompiledSpecimenRole,
     operation: &'content [u8],
     input: &'input Input,
-    execution: &'content ExecutionKey,
-    check: CheckRef,
+    context: &'content CompiledSpecimenContext,
+}
+
+/// The declared pair, invocation profile and target of a compiled specimen execution.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompiledSpecimenContext {
+    pair: EvaluationPairStanding,
+    profile: InvocationProfile,
+    target: TargetBinding,
 }
 
 /// A host's typed report that it compiled and executed one exact request and recovered this meaning.
 ///
-/// The constructor copies the content, role, execution, and check facts off the request, so a host cannot supply sibling identity labels.
+/// The constructor copies content, role and execution context from the request.
 /// This is still caller output: it records what the host reported and does not prove that a compiler process ran or that the host used those inputs faithfully.
 pub struct CompiledSpecimenObservation<Meaning> {
     content: ArtifactContentId,
     role: CompiledSpecimenRole,
-    execution: ExecutionKey,
-    check: CheckRef,
+    context: CompiledSpecimenContext,
     meaning: Meaning,
 }
 
@@ -104,10 +111,26 @@ pub enum CompiledSpecimenObservationMismatch {
     },
     /// The observation names another baseline or selected role.
     Role,
-    /// The observation retains another execution key.
-    Execution,
-    /// The observation names another check contract.
-    Check,
+    /// The observation retains another pair, invocation profile or target.
+    Context,
+}
+
+/// Why one requested compiled execution supplied no usable meaning.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SpecimenObservationRefusal {
+    /// The caller-owned host did not recover an executed meaning.
+    Host(CompiledSpecimenHostRefusal),
+    /// The host returned an observation for another request context.
+    Foreign(CompiledSpecimenObservationMismatch),
+}
+
+/// The separately compiled results and source bytes for one retained mutation observation.
+pub struct CompiledMutationObservation<'scope, Input, Meaning> {
+    observation: &'scope MutationObservation<'scope, Input, Meaning>,
+    baseline_content: ArtifactContent,
+    selected_content: ArtifactContent,
+    baseline: Result<Meaning, SpecimenObservationRefusal>,
+    selected: Result<Meaning, SpecimenObservationRefusal>,
 }
 
 /// Why a compiled-specimen host produced no execution observation.
@@ -148,7 +171,8 @@ pub struct CompiledSpecimenStanding {
 /// It cannot be minted from an external backend's output or from labels attached after execution.
 pub struct CompiledProjectionPressure<'parity, 'pair, 'input, Input, Meaning> {
     parity: &'parity NoMutationParityQualification<'pair, 'input, Input, Meaning>,
-    baseline_artifact: ArtifactContentId,
+    baseline_artifact: ArtifactContent,
+    selected_artifact: ArtifactContent,
     standing: CompiledSpecimenStanding,
     baseline_report: TrialReport,
     selected_report: TrialReport,

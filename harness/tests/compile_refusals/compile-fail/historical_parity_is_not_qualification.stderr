@@ -1,0 +1,21 @@
+error[E0308]: mismatched types
+ --> tests/compile_refusals/compile-fail/historical_parity_is_not_qualification.rs:7:5
+  |
+6 | fn qualification(historical: ArchivedParity) -> NoMutationParityQualification<'static, 'static, (), ()> {
+  |                                                 ------------------------------------------------------- expected `NoMutationParityQualification<'static, 'static, (), ()>` because of return type
+7 |     historical
+  |     ^^^^^^^^^^ expected `NoMutationParityQualification<'_, '_, (), ()>`, found `ArchivedParity`
+  |
+  = note: expected struct `NoMutationParityQualification<'static, 'static, (), ()>`
+             found struct `ArchivedParity`
+
+error[E0308]: mismatched types
+  --> tests/compile_refusals/compile-fail/historical_parity_is_not_qualification.rs:11:5
+   |
+10 | fn reading(historical: ArchivedParity) -> NoMutationParityReading<'static, 'static, (), ()> {
+   |                                           ------------------------------------------------- expected `NoMutationParityReading<'static, 'static, (), ()>` because of return type
+11 |     historical
+   |     ^^^^^^^^^^ expected `NoMutationParityReading<'_, '_, (), ()>`, found `ArchivedParity`
+   |
+   = note: expected struct `NoMutationParityReading<'static, 'static, (), ()>`
+              found struct `ArchivedParity`

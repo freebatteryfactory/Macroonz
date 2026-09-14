@@ -4,6 +4,8 @@
 //! The receipts below rebuild every token slot, delimiter, spacing row, and producer coordinate while using the public framing contract.
 //! The generated projection is fixed beside the byte receipt because the projection and the identity bytes are different contracts and neither substitutes for the other.
 
+mod admission;
+
 use core::convert::Infallible;
 use macroonz_compiler::token::{
     CaptureBound, CaptureBuildRefusal as HomeCaptureBuildRefusal,

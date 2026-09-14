@@ -3,6 +3,8 @@
 #[path = "type_guard.rs"]
 mod guard;
 
+pub(crate) use guard::first_difference;
+
 /// The eight bytes every vector pack opens with.
 pub const VECTOR_PACK_MAGIC: [u8; 8] = *b"macroonz";
 

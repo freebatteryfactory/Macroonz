@@ -45,8 +45,47 @@ The descriptor doors read first-party declarations, close their generated output
 This home composes the carrier and walks it through the same request, rendering, closure, explanation, and binding road as every other generated unit.
 The proc host only emits the resulting declaration-site unit beside the item it was given.
 
-At the consumption boundary, the harness gate proves that the supplied harness path reaches the publishing crate and that the producer's schema expectation matches the published one before either seat reaches type checking.
-The gate transports opaque cargo without interpreting it.
+At the consumption boundary, the public carrier entrance selects the harness gate and forwards the producer's expectation, its internal continuation address and opaque target input.
+The [harness gate](../../../../harness/src/descriptor/README.md#the-gate) owns admission and supplies its defining crate's binding and table stamp to that continuation.
+The carrier transcribes both seats only from that supplied binding and the declared target input.
+
+## Invocation
+
+Invoke the declaration's chosen support address from the consuming test or benchmark target.
+The root facade selects its own harness gate:
+
+```text
+macroonz::support! { adopter::chosen_support {
+    declaring: adopter,
+    ...
+} }
+```
+
+`adopter` is the consuming target's path to the declaring crate.
+State `declaring` first when the carrier requires declaration-owned items; otherwise omit it.
+The remaining clauses come from that carrier's cargo, and an additional `harness` clause refuses.
+This entrance requires the facade's `harness` feature and preserves renamed dependencies and facade reexports.
+
+The explicit carrier entrance also allows the target to select a gate through a physical path:
+
+```text
+chosen_support! {
+    declaring: adopter,
+    harness: macroonz::harness,
+    ...
+}
+```
+
+The `harness` path selects `generated_support!` and may use a renamed dependency or facade reexport; it is not forwarded as an independent framework binding.
+Both paths contain identifier segments separated by `::`.
+A carrier that requires no declaring-crate items asks only for `harness`; use the matcher emitted for that declaration rather than adding an unused binding.
+Recipe compile-contract and declaration-conformance cargo, and the declared-order mutation carrier, need no further target clauses.
+
+The [trial](../descriptor/trial/README.md#carrier-arguments) and [benchmark](../descriptor/bench/README.md#carrier-arguments) owners specify the additional target expressions and their order.
+The [enum carrier example](../../../../examples/enum_mutation/README.md) is a runnable library-and-consumer crossing through the root facade.
+
+The [renamed facade specimen](../../../proc/tests/recipe_facade_crossing/support/renamed_facade.rs) contains complete declarations and consuming invocations for these forms.
+Its [executable crossing](../../../proc/tests/recipe_facade_crossing/renamed_facade.rs) compiles the generated targets and executes their checks.
 
 ## Evidence ceiling
 

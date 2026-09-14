@@ -9,7 +9,7 @@ pub(in crate::clock) enum Source {
     /// The caller declared no wall source.
     Unavailable,
     /// The caller declared this reading function.
-    Available(Reader),
+    Available(Reader, ClockAttribution),
 }
 
 /// The two shapes a caller's reading function may take.
@@ -28,6 +28,17 @@ pub(in crate::clock) enum Reader {
 #[derive(Debug, Clone, Copy)]
 pub struct HarnessClock {
     pub(in crate::clock) source: Source,
+}
+
+/// The caller's declared origin of a measurement source.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ClockAttribution {
+    /// The caller supplied no origin classification.
+    Unspecified,
+    /// The caller declares synthetic readings.
+    Synthetic,
+    /// The caller declares readings from a monotonic host clock.
+    Monotonic,
 }
 
 /// An open measurement, finishable exactly once and only against the source it opened on.
@@ -107,7 +118,7 @@ pub enum ClockFailure {
 pub enum MeasurementReading {
     /// Both ticks were admitted in order, and this is their checked difference.
     Observed(RecordedDuration),
-    /// The caller declared no clock for this run.
+    /// No wall measurement was offered for this attempt.
     Unavailable,
     /// A clock was offered and the measurement did not complete.
     Failed(ClockFailure),

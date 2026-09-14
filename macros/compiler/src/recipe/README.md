@@ -14,7 +14,7 @@ Clause families occur in that order when present because the reader settles refe
 
 Vocabulary members are read from the authored enums themselves.
 The caller does not restate a roster, and Macroonz does not reconstruct an enum as a parallel Rust model.
-The current vocabulary ceiling is one unit-variant enum, and its generated declared-order companion uses Rust's own `_VARIANTS` vocabulary.
+Each vocabulary names one unit-variant enum, and its generated declared-order companion uses Rust's own `_VARIANTS` vocabulary.
 Record-shaped or field-bearing types remain ordinary authored structs and enter the existing codec owner when canonical bytes are requested.
 
 A relation names its left and right vocabularies and contains zero or more caller-authored endpoint rows.
@@ -36,8 +36,62 @@ The standard projector still owns the complete match and one arm per informed ro
 
 The optional `typestate(Vocabulary)` projection treats the selected authored members as caller-declared type-level stages.
 It generates one marker per member, one structural `RecipeStage` trait carrying the caller-authored spelling, and one generic `Stage<Marker>` phantom carrier with conventional construction inside `baked::typestate`.
-The projection assigns no runtime transition meaning to those types.
+Those structural types assign no runtime transition meaning.
+The optional [consuming configuration](#consuming-transitions) adds an opaque resource wrapper whose admission calls the caller's runtime validator.
 Newtypes, markers and phantom carriers are ordinary data-item compositions rather than separate compiler ontologies.
+
+## Clause forms
+
+The tables below give the clause spellings inside the final `bake! { ... }` of an inline recipe module.
+Capitalized names, `name`, `path`, and ellipses stand for caller material; they are not additional keywords.
+Use only the families required by the recipe, in this order when present:
+
+| Family | Written form |
+| --- | --- |
+| Vocabularies | `vocabularies { Left; Right; };` |
+| Transition lowering | `transitions(State, Event) { (From, Trigger) => To with(path); };` or a row ending `with(target) { exact Rust };` |
+| Generic relations | `relations { name(Left, Right) { (LeftMember, RightMember); }; };` |
+| Transition absence | `absence(allowed);` or `absence(refused);`, required when `transitions` is present |
+| Relation postures | `postures { name { repetition(refused); }; };` |
+| Codecs | `codecs { name(Record) { direction(round_trip); refusal(DecodeError); assembly(assembled, total); members { field: Type => count(required); }; }; };` |
+| Projections | `projections { companions; relation_tables { name; }; typestate(Left); };` |
+| Evidence | `evidence { trials { ... }; mutation(Target) { ... }; benchmarks { ... }; network { ... }; concurrency { ... }; };` |
+| Support address | `support(caller_chosen_macro);` |
+
+An unlabeled relation row is `(LeftMember, RightMember);`, a path-bearing row is `(LeftMember, RightMember) with(path);`, and an exact payload row is `(LeftMember, RightMember) with { exact Rust };`.
+The [declaration contract](#the-declaration) owns row uniformity, structural meaning and transition effects.
+Each relation posture names a question followed by its answer in parentheses; `membership(left, right)` and `completeness(left, right)` take one answer per endpoint roster, while `empty`, `repetition`, `density`, `absence`, `self_relation` and `cycle` take one answer.
+The [relation vocabulary](../relation/types.rs) declares each question's answer spellings and meanings.
+
+The [projection disclosure](#projection-disclosure) section owns the preset, configured and exact-signature forms of `dispatch` and `relation_tables`.
+The other projection entries are `companions;`, `codec;`, `compile_contract;`, `declaration_conformance;`, and `typestate(Vocabulary);`, with an optional [consuming block](#consuming-transitions) on typestate.
+`typestate;` selects the sole declared vocabulary; when several vocabularies are declared, `typestate(Vocabulary);` names the intended one.
+The [evidence contract](#evidence-projections) owns the support address requirement and the limits of the generated tests.
+
+Codec directions are `encode`, `decode`, and `round_trip`.
+The assembly clause is `assembly(method, total);` or `assembly(method, checked(RefusalPath));`.
+A member is `field: TypePath => shape(cardinality);`, with shape `count`, `bytes`, `text`, `closed_choice`, or `nested`, and cardinality `required`, `optional`, or `repeated`.
+The [codec owner](../codec/README.md) owns the methods each type must supply and their byte semantics.
+
+Evidence bodies use the existing [trial](../descriptor/trial/README.md#authored-grammar), [mutation](../descriptor/mutation/README.md#authored-grammar), [benchmark](../descriptor/bench/README.md#authored-grammar), [network](../descriptor/network/README.md#authored-grammar), and [concurrency](../descriptor/concurrency/README.md#authored-grammar) grammars.
+Place the clauses inside the corresponding evidence block without the enclosing helper attribute or macro invocation shown by those grammars.
+The [support invocation](../support/README.md#invocation) supplies the target-owned expressions after declaration.
+An explicit unavailable entry is `trials unavailable;`, `mutation unavailable;`, `benchmarks unavailable;`, `network unavailable;`, or `concurrency unavailable;` in the evidence block.
+It carries no body or target argument and does not establish execution.
+
+The [first recipe](../../../../examples/recipe.rs) is the runnable starting point for structural clauses; the [renamed facade consumer](../../../proc/tests/recipe_facade_crossing.rs) observes the composed recipe and evidence crossings.
+
+## Runnable structural clauses
+
+Run `cargo run --example recipe --no-default-features` from the repository root.
+Successful execution is silent: the example checks same-roster and cross-roster lookups, conventional and configured membership tables, exact path and Rust payloads, declared companion order, implicit and selected typestate, fixed codec bytes and malformed input, and conventional, configured and exact dispatch.
+The exact dispatcher accepts additional mutable caller context through explicit state/event bindings; its admitted row changes the context once, and its absent row returns `TransitionRefusal::Absent` without running that effect.
+Expected lookup results, bytes and effect counts are authored independently of generated companions.
+
+Run `cargo run --example recipe_postures --no-default-features` for the [posture controls](../../../../examples/recipe_postures/README.md).
+They exercise every lawful answer spelling through callable admission and require inconsistent declarations to refuse.
+The [ordinary Rust and independent dispatch control](../../../../tests/recipe_surface.rs), [effect forms](../../../proc/tests/recipe_facade_crossing/support/effect_execution.rs), and [projection refusals](../../../compiler/tests/recipe_vertical_slice/dispatch_contract.rs) provide further executable examples of the same owners.
+The callable controls observe structural admission and diagnostics; the generated-program controls establish their separate execution claims.
 
 ## Capability catalog
 
@@ -61,13 +115,14 @@ The grammar's count maxima and the rendered-output home own independent resource
 ## Projection disclosure
 
 A standard projection has one progressively disclosed seat rather than separate beginner and expert APIs.
-The preset spelling names only the role, a parenthesized spelling carries flat mechanical configuration, and a braced spelling carries exact Rust material.
+The preset spelling names only the role, a parenthesized spelling carries flat mechanical configuration, and a braced spelling carries the role's explicit bindings or exact Rust material.
 
 For dispatch, those levels are `dispatch;`, `dispatch(apply);`, and a braced semicolon-terminated function signature.
 The exact signature preserves caller-authored attributes, visibility, qualifiers, name, generics, parameters and exact types, result, and where clause.
 Where that signature carries only state and event, their two simple bindings are read directly; where it carries additional parameters, `dispatch(state_binding, event_binding) { exact signature };` names the two bindings the row-accounted match consumes.
 The standard projector generates only the body accounted from the informed transition rows.
 A caller-authored function body is refused at that seat because an arbitrary body belongs to the caller-owned projector road.
+The standard dispatcher requires transition `absence(refused)`; `absence(allowed)` remains available to declarations that do not request that dispatcher.
 
 A `relation_tables` projection selects one or more caller-named relations inside a single role-owned block.
 An unlabeled row set accepts `relation;` for the borrowed `contains` preset or `relation(function_name);` for the same typed membership body under a configured name.
@@ -82,6 +137,77 @@ The final recipe shell restores the declaration spans of every identifier and ex
 Restoration attributes repeated material by spelling rather than a projector-carried origin coordinate, so a diagnostic may select a same-spelled sibling occurrence while preserving Rust resolution context.
 Those paths bound nesting depth and token counts but do not independently bound the byte width of one token spelling, so the render home applies its derived canonical-byte ceiling to every completed unit.
 An over-limit exact fragment therefore refuses at capture or rendering according to the bound it exceeds; no caller-configurable or unbounded road exists.
+
+## Consuming transitions
+
+`typestate(Phase) { ... };` adds consuming methods over the existing informed transition rows.
+The caller owns the held resource, runtime authority, revisions, phase semantics, errors and effects.
+The [consuming workflow](../../../../examples/consuming_workflow.rs) is an executable ordinary-facade example, including refusal and restoration.
+
+The configured clauses occur in this order:
+
+```text
+typestate(Phase) {
+    wrapper(Ticket);
+    resource(record: crate::Record);
+    runtime(engine: &mut crate::Engine);
+    refusal(crate::Error);
+    validate(crate::inspect);
+    methods {
+        Reserve => reserve();
+        Settle => settle(acknowledgement: crate::Acknowledgement);
+    };
+};
+```
+
+`methods` names exactly one method per event used by a transition, with zero or one typed payload; a caller tuple or struct may hold several payload facts.
+It does not repeat source, destination or effect rows.
+The selected vocabulary must be the transition source vocabulary.
+Missing, foreign or repeated event bindings refuse before rendering, as do duplicate outgoing method names for one source phase.
+Wrapper names must differ from phase markers and structural typestate items; methods must differ from `restore`, `resource` and `into_resource`.
+Runtime, resource and payload names must be distinct in each method, must differ from that row's target binding, and must avoid the reserved `__macroonz_` prefix.
+
+The generated `Ticket<PhaseMarker>` owns the declared resource through private fields.
+`Ticket::<Marker>::restore(runtime, resource)` returns `Result<Self, (Resource, Error)>` and calls the supplied validator with the runtime, a shared resource reference and that marker's caller-owned phase value.
+The validator must return `Result<(), Error>`; only its success admits a witness.
+The caller defines which owner, revision and runtime facts must agree.
+Caller type and validator paths resolve inside `baked::typestate`; declared crate paths or explicit `super::super` paths can name recipe-owned material.
+Every phase specialization has this checked restoration path; no arbitrary-marker restoration, unchecked construction, public field, default or automatic Clone/Copy implementation is generated.
+`resource(&self)` borrows the held resource and `into_resource(self)` returns it without a phase witness.
+Debug identifies the wrapper without requiring the held resource to implement Debug.
+
+Only outgoing methods declared for a source phase exist on its specialization.
+A method consumes its witness, validates the current source, executes the declared effect, validates the actual target and returns the target specialization.
+The exact row body sees the supplied runtime and payload bindings, the resource binding as `&mut Resource`, and its target binding as the caller's phase enum value.
+A path effect is still invoked with no arguments.
+Consuming effects return `Result<_, Error>`; their success value is discarded and cannot substitute for target validation.
+Validators and effects execute inside closures so a caller `return` cannot skip the surrounding generated admission steps.
+Methods are synchronous; a returned future does not satisfy the effect result contract.
+
+Every refusal returns the held resource and its typed error without claiming a phase.
+Effects are not rolled back, and a panic or divergent effect has no returned recovery guarantee.
+After a partial effect, restoration must validate the actual remaining runtime state; it cannot assume the previous phase still holds.
+No generated check can establish that a caller-supplied validator or effect is semantically truthful; independent tests retain that obligation.
+
+An optional exact generic block between `wrapper` and `resource` carries parameters, arguments and where predicates:
+
+```text
+generics {
+    parameters { ('data); (T); (const N: usize); };
+    arguments { ('data); (T); (N); };
+    predicates { (T: core::fmt::Display); };
+};
+```
+
+Each roster contains bounded semicolon-separated parenthesized Rust fragments, and every declared parameter requires one argument.
+The wrapper appends its phase parameter after those arguments; exact resource, runtime and payload types may use caller generics and borrows.
+No Clone, Send, Sync or static bound is inferred.
+Rustc owns generic syntax, coherence and borrow validity, including collisions in exact Rust material.
+The [borrowed-resource consumer](../../../../tests/recipe_surface/consuming_borrowed.rs) executes this form with a borrowed array and shared single-threaded ownership.
+
+The configuration is exposed through `EffectiveProjection::consuming()` to the same caller-owned projector protocol.
+Its explicit bindings and Rust fragments enter canonical content under `consuming-typestate/v1`; absent configuration adds no bytes to the structural typestate account.
+Producer spans remain outside identity.
 
 ## Projection authority
 
@@ -109,6 +235,20 @@ Test and benchmark cargo remain separate because the harness gates them under di
 
 The compiler may render calls to public harness constructors and carry target-owned callables, but it never invokes them or decides what their result means.
 An external target invokes the carrier and the harness owns the resulting judgment, report, corpus, reduction, replay, mutation, benchmark, and failure standing.
+
+## Explicit transition re-declarations
+
+The callable [`bake_edited`] road applies one explicit [`RecipeEdit`] to a transition row before projecting it.
+A target edit selects a member from that relation's source vocabulary; an effect edit selects the complete path or exact Rust effect, including its target binding, from another authored row.
+Row positions are zero-based authored positions and are meaningful only against the supplied recipe.
+Missing rows, missing targets and absent transition structure refuse explicitly.
+The changed parts pass through the same recipe constructor, structural requirements, consuming bindings and name checks as an authored recipe, then the standard projectors render the result.
+No edit bypasses an invariant or assigns meaning to the changed target or effect.
+
+The original captured declaration remains the source binding, while the actual changed structural account enters canonical content and moves its identity when meaning-bearing declared material changes.
+An edit that states the existing target or an identical effect retains that same content.
+Authored Rust items and nonselected structural seats are preserved; rustc still judges whether a substituted effect resolves and type-checks in its new context.
+The edit road is callable compiler composition and adds no recipe grammar or proc-host policy.
 
 ## Caller-owned projectors
 

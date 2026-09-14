@@ -88,11 +88,11 @@ pub fn synthesize(
 /// # Errors
 ///
 /// Refuses a staging the descriptor vocabulary rejected, then every way a report can fail to demonstrate a kill.
-pub fn prove_candidate(
-    parent: &TrialTable,
-    candidate: TrialBinding,
+pub fn prove_candidate<Input>(
+    parent: &TrialTable<Input>,
+    candidate: TrialBinding<Input>,
     target: &MutationTarget,
-    invocation: &Invocation,
+    invocation: &Invocation<Input>,
 ) -> Result<Demonstration, ProofRefusal> {
     let trial = trial_identity(candidate.row());
     let staged =

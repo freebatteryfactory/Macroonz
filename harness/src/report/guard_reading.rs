@@ -2,10 +2,10 @@
 
 use crate::descriptor::ClaimRef;
 use crate::report::{
-    CensusDelta, CensusDirection, ClaimCoverage, ClaimExercise, ConclusionFlip,
-    ExecutionRevisionChange, ExecutionRevisions, InvocationProfile, InvocationProfileChange,
-    OutcomeClass, ReportDiff, ReportExecutionDiff, ReportPopulationDiff, RowRevisionChange,
-    RowRevisionId, TargetBinding, TargetBindingChange, TrialId,
+    CensusDelta, CensusDirection, ClaimCoverage, ClaimExercise, ConclusionFlip, ExecutionInput,
+    ExecutionInputChange, ExecutionRevisionChange, ExecutionRevisions, InvocationProfile,
+    InvocationProfileChange, OutcomeClass, ReportDiff, ReportExecutionDiff, ReportPopulationDiff,
+    RowRevisionChange, RowRevisionId, TargetBinding, TargetBindingChange, TrialId,
 };
 use core::cmp::Ordering;
 
@@ -84,6 +84,16 @@ crate::report::implement_borrowed_change_pair! {
     }
 }
 
+crate::report::implement_borrowed_change_pair! {
+    ExecutionInputChange {
+        context {}
+        value: Option<ExecutionInput>,
+        construction: "One changed specimen, input profile or decoder standing.",
+        before: "The baseline's input standing.",
+        after: "The current report's input standing.",
+    }
+}
+
 crate::report::implement_copy_change_pair! {
     ConclusionFlip {
         context { trial: TrialId => "The trial.", }
@@ -144,12 +154,14 @@ impl ReportExecutionDiff {
         flips: Vec<ConclusionFlip>,
         invocation: Option<InvocationProfileChange>,
         target: Option<TargetBindingChange>,
+        input: Option<Box<ExecutionInputChange>>,
     ) -> Self {
         Self {
             revisions,
             flips,
             invocation,
             target: target.map(Box::new),
+            input,
         }
     }
 
@@ -175,6 +187,12 @@ impl ReportExecutionDiff {
     #[must_use]
     pub fn target(&self) -> Option<&TargetBindingChange> {
         self.target.as_deref()
+    }
+
+    /// How the specimen, input profile or decoder standing moved, where any did.
+    #[must_use]
+    pub fn input(&self) -> Option<&ExecutionInputChange> {
+        self.input.as_deref()
     }
 }
 

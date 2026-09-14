@@ -60,6 +60,18 @@ pub const DECLARED_ORDER_PERMUTATION: OperatorFamily = OperatorFamily::declared(
     "the adjacency of an owner-declared semantic order",
 );
 
+/// Replaces one declared transition destination with another member of its source vocabulary.
+pub const TRANSITION_TARGET_SUBSTITUTION: OperatorFamily = OperatorFamily::declared(
+    "transition-target-substitution",
+    "the declared destination of one transition while preserving its trigger and effect",
+);
+
+/// Replaces one declared transition effect with an effect stated by a sibling row.
+pub const EFFECT_BINDING_SUBSTITUTION: OperatorFamily = OperatorFamily::declared(
+    "effect-binding-substitution",
+    "the effect attached to one transition while preserving its trigger and destination",
+);
+
 /// The declared operator families, in the order this bank states them.
 pub const OPERATOR_FAMILIES: &[OperatorFamily] = &[
     COMPARISON_BOUNDARIES,
@@ -70,4 +82,6 @@ pub const OPERATOR_FAMILIES: &[OperatorFamily] = &[
     DIRECT_MACHINE_CONTACT,
     CONSTRUCTOR_AND_DEFAULT_RECURSION,
     DECLARED_ORDER_PERMUTATION,
+    TRANSITION_TARGET_SUBSTITUTION,
+    EFFECT_BINDING_SUBSTITUTION,
 ];

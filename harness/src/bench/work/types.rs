@@ -7,9 +7,17 @@ use super::super::declaration::{
     ComplexityClaimRef, DeclaredBudgets, PlantedWorseRef, WorkFormula, WorkObservationRef,
     WorkloadRef,
 };
-use crate::clock::MeasurementReading;
+use crate::clock::{ClockAttribution, MeasurementReading};
 use crate::descriptor::NameRefusal;
 use crate::report::FindingCause;
+
+/// The stage derived from the three work readings, without their cause payloads.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::bench) enum WorkStage {
+    ControlNotDistinguished,
+    MeasuredRefused,
+    Qualified,
+}
 
 /// One benchmark callable, taking an input size and the recorder it may count through.
 ///
@@ -107,6 +115,7 @@ pub struct SecondaryObservation {
     work: WorkCurve,
     judgment: WorkJudgment,
     measurements: Vec<MeasurementReading>,
+    clock_attribution: ClockAttribution,
 }
 
 /// The counter a benchmark callable writes through, scoped to its binding's observations.

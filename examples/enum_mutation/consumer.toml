@@ -1,0 +1,22 @@
+[package]
+name = "enum-mutation-workflow"
+version = "0.0.0"
+edition = "2024"
+publish = false
+build = false
+
+[lib]
+path = "declaration.rs"
+
+[[bin]]
+name = "enum-mutation-workflow"
+path = "consumer.rs"
+
+[dependencies]
+macroonz = { path = "/absolute/path/to/Macroonz", default-features = false, features = ["harness"] }
+
+[lints.rust]
+warnings = "deny"
+unsafe_code = "forbid"
+
+[workspace]

@@ -67,6 +67,15 @@ pub(super) fn variant(vocabulary: &GeneratedToken, member: &GeneratedToken) -> V
     tokens
 }
 
+pub(super) fn typestate_variant(
+    vocabulary: &GeneratedToken,
+    member: &GeneratedToken,
+) -> Vec<GeneratedToken> {
+    let mut tokens = super_path(&GeneratedToken::word("super"));
+    extend_token_path(&mut tokens, [vocabulary.clone(), member.clone()]);
+    tokens
+}
+
 pub(super) fn crate_recipe_path(recipe: &Recipe, name: &GeneratedToken) -> Vec<GeneratedToken> {
     let mut tokens = crate::support::rooted_path(crate::support::CrateFacing::Declaring, &[]);
     extend_token_path(

@@ -3,14 +3,18 @@
 //! Constructors and readers are this file's own child, `type_guard.rs`, so an invocation is born in one place and nothing reaches in afterwards.
 //!
 //! The descriptor home declares its table and its attachment over two type parameters, because it sits below the record vocabulary and may not import a record type.
-//! This home sees both, so the parameters are pinned here once: the facts are [`Invocation`] and the conclusion is [`TrialConclusion`].
+//! This home joins [`Invocation`] and [`TrialConclusion`], retaining the invocation's input type.
 
 use crate::clock::HarnessClock;
 use crate::descriptor::{
     AuthoredTable, Binding, ClaimRef, ExecutionSuite, SubjectRoute, TableView, TrialTableRefusal,
 };
+use crate::identity::ContentAddress;
+use crate::input::InputEnvelope;
+use crate::report::TrialReport;
+use crate::report::replay::{ReplayJoinRefusal, ReplayReading};
 use crate::report::{
-    EmptySelectionReason, FindingCause, InfrastructureFailure, InvocationProfile,
+    EmptySelectionReason, ExecutionInput, FindingCause, InfrastructureFailure, InvocationProfile,
     SelectionExpectation, SkipReason, TargetBinding, TimeBudget, TrialConclusion, TrialFinding,
     TrialId, TrialSite,
 };
@@ -19,17 +23,29 @@ use std::collections::BTreeSet;
 #[path = "type_guard.rs"]
 mod guard;
 
+/// A saved historical witness beside its independently earned current report and comparison.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReplayedTrial {
+    historical: ContentAddress,
+    witness: InputEnvelope,
+    report: TrialReport,
+    comparison: Result<ReplayReading, ReplayJoinRefusal>,
+}
+
 /// What one run stands on: the budgets a check reads, the host facts it was told, the site its reports are written at, and the caller's clock.
 ///
 /// The engine reads this value and its other parameters and nothing else: no argument vector, no environment, no clock of its own, no output stream.
 /// The site states where the invocation was written, not where a row was authored.
-/// The budgets are the check's to honour, so a bound that was exceeded is a conclusion the check states rather than one the engine infers from a measurement.
+/// Input admission and budget handling belong to the [runner contract](super#typed-input).
 #[derive(Debug, Clone)]
-pub struct Invocation {
+pub struct Invocation<Input = ()> {
     profile: InvocationProfile,
     target: TargetBinding,
     site: TrialSite,
     clock: HarnessClock,
+    input: Input,
+    input_standing: Option<ExecutionInput>,
+    input_bytes: usize,
 }
 
 /// What one invocation chooses from the complete world.
@@ -92,21 +108,25 @@ pub enum ReportRecordingRefusal {
     RecordForUnselectedTrial(TrialId),
     /// The selection named a trial for which the host supplied no record.
     MissingSelectedRecord(TrialId),
+    /// The host's specimen profile, case or decoder standing differs from the invocation's.
+    InputMismatch(TrialId),
+    /// An input-budget refusal was paired with something other than an unmeasured budget skip.
+    InputBudgetMismatch(TrialId),
 }
 
 /// The callable one executable attachment carries, at the types this engine runs.
 ///
 /// A capture-free function pointer, which excludes captured state and establishes neither semantic purity nor termination.
-pub type TrialCall = fn(&Invocation) -> TrialConclusion;
+pub type TrialCall<Input = ()> = fn(&Invocation<Input>) -> TrialConclusion;
 
 /// One row married to its callable, at the types this engine runs.
-pub type TrialBinding = Binding<Invocation, TrialConclusion>;
+pub type TrialBinding<Input = ()> = Binding<Invocation<Input>, TrialConclusion>;
 
 /// The complete authored world, at the types this engine runs.
-pub type TrialTable = AuthoredTable<Invocation, TrialConclusion>;
+pub type TrialTable<Input = ()> = AuthoredTable<Invocation<Input>, TrialConclusion>;
 
 /// The sealed read surface an authored table and a staged view both present, at the types this engine runs.
-pub type TrialTableView<'view> = TableView<'view, Invocation, TrialConclusion>;
+pub type TrialTableView<'view, Input = ()> = TableView<'view, Invocation<Input>, TrialConclusion>;
 
 /// The typed cause every caught subject panic is cited under.
 ///
@@ -168,8 +188,7 @@ pub enum SeatOutcome {
 
 /// The seats' one refusal type: everything a stamped test function answers with instead of passing.
 ///
-/// A construction refusal enters unchanged through this type's [`From`] road over [`TrialTableRefusal`], and the run's own verdict supplies the other arms.
-/// That is the whole road in, which is what makes `?` the entire ceremony at a seat.
+/// Table construction and input admission refusals remain distinct from the run's verdict.
 /// `Debug` is the rendering surface, deliberately: a `Display` written here would be a second vocabulary for facts the typed fields already carry.
 #[must_use = "a refusal is the reason a seat did not pass"]
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -194,4 +213,27 @@ pub enum SeatRefusal {
         /// How many rows the run was stated over.
         denominator: usize,
     },
+    /// The consuming target could not admit the declared specimen before execution.
+    InputNotBound(crate::input::InputRefusal),
+}
+
+/// A sparse historical witness beside the full report earned by current execution.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LegacyReplayedTrial {
+    historical: ContentAddress,
+    witness: InputEnvelope,
+    report: TrialReport,
+    comparison:
+        Result<crate::report::replay::LegacyReading, crate::report::replay::LegacyJoinRefusal>,
+}
+
+/// Why a sparse source could not enter the current input and execution road.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LegacyReplayRefusal {
+    /// The source omitted witness bytes.
+    MissingWitness,
+    /// The source explicitly carried a null witness.
+    NullWitness,
+    /// The independently supplied current input decoder or envelope refused.
+    Input(crate::input::InputRefusal),
 }

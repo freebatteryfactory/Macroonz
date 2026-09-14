@@ -113,7 +113,11 @@ pub fn read_artifact(
         ),
     }
     .map_err(ArtifactManifestRefusal::Reading)?;
-    let supplied = collected(sources, ArtifactManifestRefusal::DuplicateSource)?;
+    let supplied = collected(
+        sources,
+        MutationSourceRevision::file,
+        ArtifactManifestRefusal::DuplicateSource,
+    )?;
     let mut reported = BTreeSet::new();
     for report in reading.run().reports() {
         match report.target().site() {
@@ -164,28 +168,33 @@ fn recorded(
     baseline: BaselineQualification,
 ) -> Result<MutationReport, WrapRefusal> {
     let axis = baseline.axis();
-    let cause = match word {
-        WrapOutcomeWord::Caught => {
-            return MutationReport::killed(
-                target,
-                axis,
-                MaterializationAxis::from(word),
-                WRAP_ACTIVATION,
-                ExecutionAxis::from(word),
-                IntendedRejection::ReportedByBackend {
-                    stated: ForeignText::admitted(line.as_bytes()),
-                },
-                WRAP_EQUIVALENCE,
-            )
-            .map_err(|cause| WrapRefusal::KillNotLawful { ordinal, cause });
-        }
-        WrapOutcomeWord::Missed => InconclusiveCause::UnobservableAndUnrejected,
+    if let Some(cause) = inconclusive_cause(word) {
+        return Ok(unlearned(target, axis, word, cause));
+    }
+    MutationReport::killed(
+        target,
+        axis,
+        MaterializationAxis::from(word),
+        WRAP_ACTIVATION,
+        ExecutionAxis::from(word),
+        IntendedRejection::ReportedByBackend {
+            stated: ForeignText::admitted(line.as_bytes()),
+        },
+        WRAP_EQUIVALENCE,
+    )
+    .map_err(|cause| WrapRefusal::KillNotLawful { ordinal, cause })
+}
+
+/// The absence of a conclusion stated by a backend word other than caught.
+pub(super) fn inconclusive_cause(word: WrapOutcomeWord) -> Option<InconclusiveCause> {
+    match word {
+        WrapOutcomeWord::Caught => None,
+        WrapOutcomeWord::Missed => Some(InconclusiveCause::UnobservableAndUnrejected),
         WrapOutcomeWord::Unviable | WrapOutcomeWord::ToolFailed => {
-            InconclusiveCause::NotMaterialized
+            Some(InconclusiveCause::NotMaterialized)
         }
-        WrapOutcomeWord::TimedOut => InconclusiveCause::WitnessIncomplete,
-    };
-    Ok(unlearned(target, axis, word, cause))
+        WrapOutcomeWord::TimedOut => Some(InconclusiveCause::WitnessIncomplete),
+    }
 }
 
 /// One record that established nothing, over the axes the backend's word already fixed.

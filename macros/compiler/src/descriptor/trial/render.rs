@@ -7,7 +7,8 @@
 //!
 //! # Nothing spells a crate
 //!
-//! Every path begins with the harness binding's own metavariable, and the carrier's invocation supplies it once, so a consumer that renamed the dependency gets its own name back.
+//! Generated harness paths begin with the harness binding's own metavariable, supplied once at carrier invocation.
+//! Caller-owned templates may use the separately declared consumer metavariable for consuming-target paths.
 //!
 //! # What the expressions demand of the address
 //!
@@ -21,8 +22,8 @@ use crate::descriptor::{Emitter, Name};
 use crate::kind::Kind;
 use crate::stamp::{Visibility, declared_reach_tokens};
 use crate::token::{
-    GeneratedDelimiter, GeneratedToken, bound_local, comma, group, metavariable, method_call,
-    roster, text_pair,
+    GeneratedDelimiter, GeneratedToken, GeneratedTree, bound_local, comma, group, metavariable,
+    method_call, roster, text_pair,
 };
 
 /// The local a row expression binds its parsed subject route to.
@@ -39,6 +40,22 @@ const ATTACHMENT_LOCAL: &str = "attachment";
 
 /// The binding one closure parameter of the table's schema expression carries.
 const DECLARED_LOCAL: &str = "declared";
+
+/// Restore the caller's exact attachment fragments onto their rendered occurrences.
+pub(crate) fn restored_bindings(tree: &GeneratedTree, payload: &Trials) -> GeneratedTree {
+    let restored = payload
+        .input_type()
+        .map_or_else(|| tree.clone(), |input| tree.restored_template_from(input));
+    payload
+        .groups()
+        .iter()
+        .flat_map(SuiteGroup::rows)
+        .filter_map(Row::attachment)
+        .flat_map(super::AttachmentExpressions::fragments)
+        .fold(restored, |restored, fragment| {
+            restored.restored_template_from(fragment)
+        })
+}
 
 /// One call to a namespaced reference's parser over two spellings, with the row expression's own `?` on it.
 ///
@@ -150,7 +167,7 @@ pub fn attachment_metavariable(lens: &str, seat: HarnessWord) -> String {
 
 /// One row's executable attachment: the two locals the row already parsed, the two revision commitments the consumption target declared, and the callable it named.
 ///
-/// The three arguments come from the invocation and not from the declaration: a generated row points at a check function the consumption target owns, and there is no crate binding a rendered path could be rooted at.
+/// The consuming target supplies the fragments either beside the row or at carrier invocation.
 ///
 /// # Errors
 ///
@@ -163,13 +180,23 @@ pub fn attachment(declared: &Row) -> Result<Vec<GeneratedToken>, Overflow> {
         GeneratedToken::word(CHECK_LOCAL),
         GeneratedToken::alone(','),
     ];
-    for seat in [
-        HarnessWord::SubjectRevision,
-        HarnessWord::CheckRevision,
-        HarnessWord::Call,
-    ] {
-        arguments.extend(metavariable(&attachment_metavariable(lens, seat)));
-        arguments.push(GeneratedToken::alone(','));
+    if let Some(attachment) = declared.attachment() {
+        for fragment in attachment.fragments() {
+            arguments.push(group(
+                GeneratedDelimiter::Brace,
+                fragment.tokens().to_vec(),
+            )?);
+            arguments.push(GeneratedToken::alone(','));
+        }
+    } else {
+        for seat in [
+            HarnessWord::SubjectRevision,
+            HarnessWord::CheckRevision,
+            HarnessWord::Call,
+        ] {
+            arguments.extend(metavariable(&attachment_metavariable(lens, seat)));
+            arguments.push(GeneratedToken::alone(','));
+        }
     }
     vocabulary::road(
         &[
@@ -396,13 +423,23 @@ pub fn suite_group(seated: &SuiteGroup, emitter: Emitter) -> Result<Vec<Generate
 
 /// The matcher clauses one trial table's carrier must bind: exactly the metavariables the stamped module spells, in the order it spells them.
 ///
-/// The three host facts come first and every row's three attachment seats follow, group by group in declared order, so the invocation a person writes reads in the same order as the module the stamp writes.
-/// Every clause takes an expression, because each is a value the consumption target owns — a revision commitment, a callable, a clock — arriving where that target's own hygiene reaches its own items.
+/// A consumer crate identifier comes first when the input type or a co-located binding needs it.
+/// The three host facts follow, then an explicitly selected typed specimen and the attachment seats of rows that have no co-located binding, in declaration order.
+/// Value clauses take expressions owned by the consumption target, arriving where that target's own hygiene reaches its items.
 ///
 /// The carrier's own binding clause is not here: the carrier asks for it always, whatever cargo it composes, so it is composed where the matcher is.
 #[must_use]
 pub fn matched_clauses(payload: &Trials) -> Vec<GeneratedToken> {
     let mut clauses: Vec<GeneratedToken> = Vec::new();
+    if payload.input_type().is_some()
+        || payload
+            .groups()
+            .iter()
+            .flat_map(SuiteGroup::rows)
+            .any(|row| row.attachment().is_some())
+    {
+        clauses.extend(crate::support::matched_clause("consumer", "ident"));
+    }
     for host in [
         HarnessWord::Invocation,
         HarnessWord::Target,
@@ -410,8 +447,14 @@ pub fn matched_clauses(payload: &Trials) -> Vec<GeneratedToken> {
     ] {
         clauses.extend(crate::support::matched_clause(host.spelling(), "expr"));
     }
+    if payload.input_type().is_some() {
+        clauses.extend(crate::support::matched_clause("specimen", "expr"));
+    }
     for seated in payload.groups() {
         for declared in seated.rows() {
+            if declared.attachment().is_some() {
+                continue;
+            }
             let lens = declared.lens().spelling();
             for seat in [
                 HarnessWord::SubjectRevision,
@@ -445,6 +488,14 @@ pub fn stamped_module(payload: &Trials, emitter: Emitter) -> Result<Vec<Generate
     body.push(GeneratedToken::word(HarnessWord::Against.spelling()));
     body.extend(table_schema_identity()?);
     body.push(GeneratedToken::alone(','));
+    if let Some(input_type) = payload.input_type() {
+        body.extend([GeneratedToken::word("input"), GeneratedToken::alone(':')]);
+        body.extend(input_type.tokens().iter().cloned());
+        body.push(GeneratedToken::alone(','));
+        body.extend([GeneratedToken::word("specimen"), GeneratedToken::alone(':')]);
+        body.extend(metavariable("specimen"));
+        body.push(GeneratedToken::alone(','));
+    }
     for host in [
         HarnessWord::Invocation,
         HarnessWord::Target,

@@ -2,6 +2,7 @@
 
 use macroonz_compiler::host::{Spans, capture, emit, emit_tree};
 use macroonz_compiler::recipe::HarnessPosture;
+use macroonz_compiler::token::{GeneratedToken, GeneratedTree};
 use macroonz_compiler::{CrateBinding, Door, Producer};
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 
@@ -44,6 +45,41 @@ pub fn round_trip(input: TokenStream) -> TokenStream {
         Ok(emitted) => emitted,
         Err(refusal) => refused(&refusal.to_string()),
     }
+}
+
+/// Offer one literal's value directly as a word variant and observe admission followed by real proc emission.
+#[proc_macro]
+pub fn generated_word(input: TokenStream) -> TokenStream {
+    observed_generation(input, |word| GeneratedToken::Word(word.to_owned()))
+}
+
+/// Offer one literal's value directly as a raw-identifier variant and observe admission followed by real proc emission.
+#[proc_macro]
+pub fn generated_raw_identifier(input: TokenStream) -> TokenStream {
+    observed_generation(input, |name| GeneratedToken::RawIdentifier(name.to_owned()))
+}
+
+/// Emit admitted material before recording its compiler spelling, so an admission bypass reaches the real host constructor.
+fn observed_generation(input: TokenStream, token: fn(&str) -> GeneratedToken) -> TokenStream {
+    let mut spans = Spans::empty();
+    let captured = match capture(input, &mut spans) {
+        Ok(captured) => captured,
+        Err(error) => return refused(&error.to_string()),
+    };
+    let [offered] = captured.trees() else {
+        return refused("the generation observer requires one text literal");
+    };
+    let Some(spelling) = offered.text() else {
+        return refused("the generation observer requires one text literal");
+    };
+    let observed = match GeneratedTree::assembled(vec![token(spelling)]) {
+        Ok(tree) => match emit_tree(&tree, &spans) {
+            Ok(emitted) => format!("emitted:{emitted}"),
+            Err(error) => return refused(&error.to_string()),
+        },
+        Err(error) => format!("refused:{error}"),
+    };
+    TokenStream::from(TokenTree::Literal(Literal::string(&observed)))
 }
 
 /// Report whether a baked recipe module restores the exact authored body-group span.
@@ -103,11 +139,60 @@ pub fn recipe_reference_spans(input: TokenStream) -> TokenStream {
         ("custody_left", 2usize),
         ("custody_right", 2usize),
         ("custody_target", 3usize),
+        ("custody_subject_revision", 1usize),
+        ("custody_check_revision", 1usize),
+        ("custody_callable", 1usize),
+        ("custody_local", 2usize),
     ];
     let answer = if expected
         .into_iter()
         .all(|(spelling, minimum)| restored_identifier_count(emitted.clone(), spelling) >= minimum)
     {
+        "true"
+    } else {
+        "false"
+    };
+    TokenStream::from(TokenTree::Ident(Ident::new(answer, Span::call_site())))
+}
+
+/// Report whether direct trial delivery preserves exact attachment-template token spans.
+#[proc_macro]
+pub fn trial_reference_spans(input: TokenStream) -> TokenStream {
+    let mut spans = Spans::empty();
+    let body = match capture(input, &mut spans) {
+        Ok(captured) => captured,
+        Err(refusal) => return refused(&refusal.to_string()),
+    };
+    let item = match capture(TokenStream::new(), &mut spans) {
+        Ok(captured) => captured,
+        Err(refusal) => return refused(&refusal.to_string()),
+    };
+    let expansion = match macroonz_compiler::descriptor::door::trials(
+        &body,
+        &item,
+        macroonz_compiler::descriptor::Grammar { attribute: "trials" },
+        macroonz_compiler::descriptor::Emitter {
+            namespace: "observer",
+            producer: "span-observer",
+            door: "trials",
+        },
+        &RECIPE_DOOR,
+    ) {
+        Ok(expansion) => expansion,
+        Err(refusal) => return refused(refusal.summary()),
+    };
+    let emitted = match emit(&expansion, &spans) {
+        Ok(emitted) => emitted,
+        Err(refusal) => return refused(&refusal.to_string()),
+    };
+    let answer = if [
+        ("custody_subject_revision", 1usize),
+        ("custody_check_revision", 1usize),
+        ("custody_callable", 1usize),
+        ("custody_local", 2usize),
+    ].into_iter().all(|(spelling, minimum)| {
+        restored_identifier_count(emitted.clone(), spelling) >= minimum
+    }) {
         "true"
     } else {
         "false"
@@ -126,9 +211,7 @@ fn restored_identifier_count(stream: TokenStream, spelling: &str) -> usize {
                 1usize
             }
             TokenTree::Group(group) => restored_identifier_count(group.stream(), spelling),
-            TokenTree::Ident(_)
-            | TokenTree::Punct(_)
-            | TokenTree::Literal(_) => 0usize,
+            TokenTree::Ident(_) | TokenTree::Punct(_) | TokenTree::Literal(_) => 0usize,
         };
         count.saturating_add(observed)
     })

@@ -1,0 +1,26 @@
+[package]
+name = "neutral-job-adopter"
+version = "0.0.0"
+edition = "2024"
+build = false
+
+[lib]
+name = "neutral_job_adopter"
+path = "/absolute/path/to/Macroonz/examples/job_workflow/declaration.rs"
+
+[[bin]]
+name = "lawful-state"
+path = "fixtures/lawful-state.rs"
+
+[[bin]]
+name = "wrong-state"
+path = "fixtures/wrong-state.rs"
+
+[[bin]]
+name = "coverage-record"
+path = "fixtures/coverage-record.rs"
+
+[dependencies]
+macroonz = { path = "/absolute/path/to/Macroonz", default-features = false, features = ["harness"] }
+
+[workspace]

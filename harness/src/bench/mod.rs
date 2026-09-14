@@ -1,5 +1,7 @@
 #![doc = include_str!("README.md")]
 
+pub mod archive;
+
 mod declaration;
 mod execute;
 mod stamp;

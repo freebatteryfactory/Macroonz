@@ -71,14 +71,25 @@ Its canonical bytes are the preimage of the generated-support schema identity �
 ## The gate
 
 `generated_support!` is the door.
-It matches the producer's copy of the published identity against this crate's copy as tokens, before either side reaches type checking, and releases both seats of a delivery or neither.
+It matches the producer's copy of the published identity against this crate's copy as tokens, before invoking the generated carrier's internal transcription.
+A matching pin releases both seats of a delivery through that transcription; a mismatching pin or malformed gate envelope releases neither.
+
+The gate supplies its defining harness's hygienic `$crate` binding and the selected table stamp.
+The generated carrier roots all framework-owned harness references in that supplied binding, so the target cannot independently select a different harness identity beside the gate.
+Renaming a dependency or reexporting the real gate preserves that binding, even when the reexport's neighboring types are unrelated.
+An independent `harness` clause is outside the gate grammar and refuses without releasing the delivery.
 
 The pin crosses as thirty-two decimal byte values, and the base is what makes the comparison sound rather than merely conventional.
 A macro arm matches tokens, a byte string has many spellings of one value, and the producer's side is written by the compiler's own literal writer.
 An unsuffixed integer has exactly one rendering, so the two sides are one token by construction.
 
-The gate never reads the deferred seat.
-It transports the cargo or it withholds it, because a door that parsed the cargo would be a second authority over a vocabulary it does not own.
+The gate receives a carrier path and opaque input, never the expanded delivery seats.
+It chooses the trial or benchmark transcription without parsing caller-owned Rust or the deferred vocabulary.
+The [support owner](../../../macros/compiler/src/support/README.md#invocation) defines generated-carrier invocation, and this gate's item documentation owns its raw envelope grammar.
+
+These guarantees cover supported generated carriers invoked through their public entrance and this gate.
+The internal transcription is expansion machinery, not an authenticated capability: a caller can write an unrelated macro or invoke hidden macro arms directly.
+Schema admission establishes no semantic truth about caller-owned fragments, no successful type checking and no successful execution.
 
 What the gate catches is pair incoherence: a version-mixed consumer, a partial rewrite, a hand edit to one side.
 What it cannot catch is a jointly stale pair, where the declaration moved and neither literal was rewritten — two old values agree just as loudly.
@@ -88,10 +99,15 @@ The refusing arm itself tells whoever meets it how the pin is rewritten.
 ## The stamp
 
 `trial_table!` turns one declaration into the authored world, one ordinary test per execution suite, and one ignored named lens per row.
+Its named binding factories remain available through `module::row::lens()` under the declaration's visibility, allowing another receiver to reuse the same informed binding before execution.
 The lens is what makes every row clickable in an editor without being paid for twice in an ordinary run.
 Both spellings call the same engine, so a verdict cannot differ between them.
+Its optional decoded-input declaration reaches the existing [typed-input invocation](../runner/README.md#typed-input), with an independently supplied specimen-admission expression and the same complete table.
 
 ## What this home does not claim
+
+The [archive](archive/) retains bounded owned candidate descriptors for historical inspection, with no conversion into live rows or static names.
+Canonical material remains distinct from execution, mutation evidence and human admission.
 
 It imports no producer's types, so no producer's shape can quietly become the interface.
 It says nothing about what a trial concluded — a table that was never built ran nothing, and a verdict belongs to the record home.

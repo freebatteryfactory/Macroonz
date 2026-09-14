@@ -3,6 +3,12 @@
 These integration claims observe the public mutation, imported-backend custody and trust-composition roads independently of library internals.
 Historical artifacts remain paired with their recorded sources and never substitute for a newly executed campaign.
 
+The faithful-survivor crossing compiles unchanged and selected source, compares both roads and judges the same retained result with an incomplete witness and a separately authored stronger check.
+Its assessment crosses a fresh historical reader, and its typed selected-result input reaches complete-table staged proof and an unadmitted proposal.
+A separate process replays the saved stronger-check input through current runner and decoder bindings.
+That replay judges the retained selected result; it does not claim another compilation or mutation activation.
+Synthetic observation controls exercise missing meanings, incorrect activation, disagreement and foreign scope without claiming compiler execution.
+
 The ignored current-campaign observation reads the caller-supplied `mutation-campaign/` directory under its compile-time Cargo-owned `CARGO_TARGET_TMPDIR`.
 It reads no ambient environment override and performs no source discovery.
 That directory contains native `console.txt`, one command argument per line in `command.txt`, single-line `version.txt`, `target.txt` and `toolchain.txt`, and the declared source paths in `sources.txt`.

@@ -2,6 +2,7 @@
 
 use crate::scratch::{cargo_with_target, command_refusal, manifest_path, repository_root};
 use std::collections::BTreeSet;
+use std::fmt::Write as _;
 use std::io::Write;
 use std::path::{Component, Path};
 use std::process::Command;
@@ -36,7 +37,6 @@ pub(super) fn observe(scratch: &Path) -> Result<(), String> {
         extract(&identity, &archive, &root.join(relative))?;
     }
     join(&root, source)?;
-    super::skill::prepare(&root)?;
     let target = scratch.join("build");
     let graph = run(
         &root,
@@ -138,20 +138,27 @@ fn join(root: &Path, source: &Path) -> Result<(), String> {
         }
     }
     manifest
-        .write_all(b"]\n\n[patch.crates-io]\n")
+        .write_all(b"]\n")
         .map_err(|error| error.to_string())?;
-    for (name, relative) in PACKAGES {
-        let path = if relative.is_empty() { "." } else { relative };
-        writeln!(
-            manifest,
-            "{name} = {{ path = \"{}\" }}",
-            manifest_path(Path::new(path))?
-        )
+    manifest
+        .write_all(patches(root)?.as_bytes())
         .map_err(|error| error.to_string())?;
-    }
     std::fs::copy(source.join("Cargo.lock"), root.join("Cargo.lock"))
         .map_err(|error| error.to_string())?;
     Ok(())
+}
+
+pub(super) fn patches(root: &Path) -> Result<String, String> {
+    let mut patches = String::from("\n[patch.crates-io]\n");
+    for (name, relative) in PACKAGES {
+        writeln!(
+            patches,
+            "{name} = {{ path = \"{}\" }}",
+            manifest_path(&root.join(relative))?
+        )
+        .map_err(|error| error.to_string())?;
+    }
+    Ok(patches)
 }
 
 pub(super) fn expected_graph(root: &Path) -> Vec<String> {
@@ -193,7 +200,7 @@ pub(super) fn check_graph(root: &Path, graph: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn run(root: &Path, target: &Path, arguments: &[&str]) -> Result<String, String> {
+pub(super) fn run(root: &Path, target: &Path, arguments: &[&str]) -> Result<String, String> {
     let output = cargo_with_target(root, target, arguments)?;
     let mut log = std::io::stdout().lock();
     writeln!(log, "archive Cargo observation: {arguments:?}").map_err(|error| error.to_string())?;
@@ -212,23 +219,30 @@ fn run(root: &Path, target: &Path, arguments: &[&str]) -> Result<String, String>
 fn execute(root: &Path, target: &Path) -> Result<(), String> {
     facade_controls(root, target)?;
     examples(root, target)?;
+    super::adopter::observe(root, target)?;
     run(
         root,
         target,
         &[
-            "build",
+            "nextest",
+            "run",
+            "-j1",
             "-p",
             "macroonz",
-            "--lib",
+            "--test",
+            "native_policy",
             "--all-features",
             "--locked",
             "--offline",
+            "--no-tests",
+            "fail",
+            "-E",
+            "test(=workflow::job_example::public_job_example_executes_complete_and_selected_tables) | test(=mutation::example::public_example_executes_retains_and_compares_an_independent_subject)",
         ],
     )?;
-    super::skill::execute(root, target)?;
     writeln!(
         std::io::stdout().lock(),
-        "archive skill: warnings-denied compilation and all four independent policy pairs passed"
+        "archive skill: Cargo compilation, independent policy pairs, declaration disagreement and separate semantic amendment passed"
     )
     .map_err(|error| error.to_string())?;
     run(

@@ -45,13 +45,13 @@ impl<'pack> VectorEntry<'pack> {
     ///
     /// The claim it supports is this lane's alone: the producer rendered exactly the bytes the specification states for this input, and nothing about any other input.
     pub fn compared(self, produced: &[u8]) -> VectorVerdict {
-        if produced == self.expected {
+        let Some(difference) = first_difference(self.expected, produced) else {
             return VectorVerdict::Agrees;
-        }
+        };
         VectorVerdict::Disagrees(VectorDisagreement {
             expected: self.expected.to_vec(),
             produced: produced.to_vec(),
-            difference: first_difference(self.expected, produced),
+            difference,
         })
     }
 }
@@ -126,18 +126,22 @@ impl VectorDisagreement {
     }
 }
 
-/// Where two byte strings first part company.
+/// Where two byte strings first part company, or no difference when they agree.
 ///
 /// Two strings where one is a prefix of the other part only at the end, and the reading says so with both lengths rather than pointing past one of them.
-fn first_difference(expected: &[u8], produced: &[u8]) -> ByteDifference {
+pub(crate) fn first_difference(expected: &[u8], produced: &[u8]) -> Option<ByteDifference> {
     for (at, (left, right)) in expected.iter().zip(produced.iter()).enumerate() {
         if left != right {
-            return ByteDifference::AtByte { at };
+            return Some(ByteDifference::AtByte { at });
         }
     }
-    ByteDifference::Length {
-        expected: expected.len(),
-        produced: produced.len(),
+    if expected.len() == produced.len() {
+        None
+    } else {
+        Some(ByteDifference::Length {
+            expected: expected.len(),
+            produced: produced.len(),
+        })
     }
 }
 

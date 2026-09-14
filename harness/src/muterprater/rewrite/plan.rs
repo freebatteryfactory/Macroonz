@@ -3,17 +3,31 @@
 //! A rewrite descriptor is data — a pattern, the shape it rewrites to, and the operator family the pair realizes.
 //! Nothing here compiles, executes, or interprets either side, and nothing here invokes a rewriter: this file states which damages the lane would ask for, and under which scope.
 //!
-//! # Why the interpreter gates this lane
-//!
-//! Rewrite families are cheap only once the interpreter is the execution substrate under them; before that every rewrite is a source-level damage priced like a compiled mutation, which is the thing this lane exists not to be.
-//! So [`admission`] reads the interpreted lane's availability, and an admitted descriptor is still an audit candidate rather than evidence until an actual execution earns a later claim.
+//! Admission checks a declared observation scope; a planned descriptor remains an audit candidate until execution earns evidence.
 
 use super::types::{
     ArtifactMutation, RewriteAdmission, RewriteCandidate, RewriteRoster, RewriteWithheld,
 };
 use crate::depot::operator_families::OPERATOR_FAMILIES;
 use crate::depot::types::OperatorFamily;
+use crate::muterprater::{
+    ActiveSelection, EvaluationPair, EvaluationSurface, MutationObservationRefusal,
+};
 use crate::muterprater::{InterpreterAvailability, ScopeShape};
+
+/// Admit an exact selection to rewrite observation without requiring an earlier kill.
+///
+/// # Errors
+///
+/// Refuses a foreign pair or selection before any caller execution.
+pub fn admission_for<Input, Meaning>(
+    surface: &EvaluationSurface,
+    pair: &EvaluationPair<Input, Meaning>,
+    selection: ActiveSelection,
+) -> Result<RewriteAdmission, MutationObservationRefusal> {
+    crate::muterprater::interpretation::selection_for(surface, pair, selection)?;
+    Ok(RewriteAdmission::Admitted)
+}
 
 macro_rules! describe_artifact_mutations {
     ($( $(#[$variant_doc:meta])* $variant:ident => $description:literal, )+) => {
@@ -47,10 +61,9 @@ pub fn planned(roster: &RewriteRoster, scope: &ScopeShape) -> Vec<RewriteCandida
         .collect()
 }
 
-/// Whether this lane's descriptors may enter the interpreted audit road.
+/// Read admission through the stricter compiled-rejection availability composition.
 ///
-/// Read over the interpreted lane's availability, which already folds the trust order in its owner's sequence.
-/// Availability retains one exact active selection, so a point-free surface cannot reach the admitted arm.
+/// [`admission_for`] admits the ordinary observation road independently of prior witness outcomes.
 #[must_use]
 pub fn admission<Input, Meaning>(
     interpreter: &InterpreterAvailability<'_, '_, '_, '_, '_, '_, Input, Meaning>,

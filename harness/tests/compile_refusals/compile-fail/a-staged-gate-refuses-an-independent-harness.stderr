@@ -1,0 +1,13 @@
+error: generated_support!: expected a staged trials or benches carrier and its input; the gate supplies the harness binding, and no delivery is released
+  --> tests/compile_refusals/compile-fail/a-staged-gate-refuses-an-independent-harness.rs:10:1
+   |
+10 | / macroonz_harness::generated_support! {
+11 | |     expected: [
+12 | |         185, 251, 251, 45, 168, 146, 85, 42, 248, 177, 196, 48, 117, 229, 207, 5,
+13 | |         84, 120, 104, 25, 150, 41, 202, 2, 243, 73, 31, 148, 241, 22, 122, 34,
+...  |
+17 | |     with: { opaque input must remain unparsed },
+18 | | }
+   | |_^
+   |
+   = note: this error originates in the macro `macroonz_harness::generated_support` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -48,8 +48,52 @@ flowchart LR
 An in-process call and an external host observation are two ways to establish the attempt axis, not two report engines.
 Both roads enter one assembler, which derives the standing a host cannot author from the binding, invocation, table, and selection.
 
-A host may state only the semantic trial it ran, what became of the attempt, and the wall reading it observed.
+A host states the semantic trial it ran, what became of the attempt, and the wall reading and source it observed.
 The join refuses records that are duplicated, outside the table, outside the selection, or absent for a selected trial.
+`record_one` and `record_all` accept unit-input invocations only; those records establish no individual specimen join.
+`HostTrialRecord::with_input` attaches the profile, case and decoder standing from a decoder-admitted specimen.
+`record_input_one` and `record_input_all` require that standing to equal the independently supplied typed invocation's standing before entering the shared assembler.
+A different trial refuses before input mismatch; complete-table admission refuses duplicate and inadmissible roster entries before walking selected rows in table order.
+Within that walk, each missing record or refused join stops admission without returning a partial report.
+The join does not execute the subject or authenticate the host's claim that it used those bytes; native execution custody belongs to the host.
+
+## Typed input
+
+`Invocation::declared` creates the explicit unit-input road, which retains its cloneable surface.
+`with_input` consumes a decoder-admitted `BoundInput<T>` and creates `Invocation<BoundInput<T>>` for the same execution and accounting engine.
+The callable reads the actual value through `invocation.input().value()`.
+There is no constructor pairing an arbitrary value with unrelated bytes, and cloning a caller's value cannot mint another admitted invocation.
+
+The input's profile, case identity and decoder revision travel into the report's execution standing.
+The decoder posture participates in the complete replay and cache ceiling.
+Input values remain caller-owned semantics; a shared reference does not establish purity or exclude interior mutability.
+
+Each selected trial receives the same admitted specimen once.
+Before calling it, the runner requires room for one case and the specimen's actual payload bytes in that trial's invocation budgets.
+An exceeded bound records a budget skip with no clock reading and cannot pass either verdict fold.
+Envelope admission limits remain the input owner's separate resource bounds.
+The unit-input road leaves case and byte consumption to its check, and no elapsed measurement is interpreted as a timeout.
+
+A host reads `Invocation::input_budget_refusal` before starting input-bearing work.
+When the specimen exceeds that bound, host admission permits only the corresponding budget skip with unavailable measurement and unspecified clock attribution.
+Any contradictory attempt or measurement refuses the join rather than being relabeled as an execution under that budget.
+
+## Saved-witness replay
+
+`replay` receives a historical capsule and independently supplied current trial, decoder, invocation and input admission limits.
+It packs the saved reached bytes under the current decoder's declared profile, decodes them once with complete consumption required, and calls the existing `run_one` road once.
+An input refusal produces no trial report, while an execution-budget refusal retains the existing skipped report before clock or subject execution.
+Admitted execution retains the ordinary panic, conclusion and measurement behavior of `run_one`.
+The decoder remains caller-owned code under the [input contract](../input/README.md), including its effects and termination.
+
+`ReplayedTrial` retains the historical envelope address, the admitted witness, the complete current report and the [report owner's comparison](../report/replay/README.md).
+Historical source claims do not choose the current binding, and changing that binding never erases the report it actually earned.
+This operation performs no reduction, mints no live replay capsule and establishes no human admission.
+
+`replay_legacy` admits a sparse historical record's present witness through the same packing, decoding and execution operation.
+Missing and null witnesses refuse separately before current decoding, while an empty witness remains eligible for the caller's decoder.
+`LegacyReplayedTrial` retains the exact source address, admitted witness, complete current report and sparse-claim comparison.
+Matching source claims do not supply the missing historical preimages or earn a reproduced-defect or fixed-on-witness claim.
 
 ## The complete table is the denominator
 

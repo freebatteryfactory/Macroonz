@@ -1,8 +1,18 @@
 //! Carrier declarations.
 use crate::identity::{self, Identity};
-use crate::token::GeneratedTree;
+use crate::token::{GeneratedTokenIssue, GeneratedTree};
 #[path = "type_guard.rs"]
 mod guard;
+/// The declaration address a carrier entrance can resolve.
+#[derive(Clone, Copy)]
+pub(super) enum CarrierRoute {
+    /// The exported macro's defining crate supplies its address.
+    DefiningCrate,
+    /// The invocation stands beside its declaration.
+    LocalDeclaration,
+    /// The target supplies the declaring crate's physical path.
+    NamedDeclaration,
+}
 /// The full-width plan-keyed exported name.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ShellName {
@@ -25,6 +35,13 @@ pub enum ShellError {
         bound: usize,
         /// The observed count.
         observed: usize,
+    },
+    /// A composed carrier token cannot occupy its stated lexical role.
+    TokenInvalid {
+        /// The zero-based token position in pre-order.
+        position: usize,
+        /// The lexical role that refused.
+        issue: GeneratedTokenIssue,
     },
 }
 /// The rendered inert exported shell.

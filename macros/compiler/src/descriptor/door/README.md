@@ -23,6 +23,11 @@ The projection kind determines which posture applies, and this home does not fla
 The proc crate calls these roads after capture and emits the expansion it receives, while a callable compiler user may invoke the same public roads directly.
 The facade preserves those owning modules rather than adding another door vocabulary.
 
+[`mutations_from_surface`] accepts an informed mutation surface, the captured helper body and its semantic item.
+It uses the same helper identity position, required support address and standalone sealed delivery as the attribute and declared-order roads.
+Structural producers can therefore compose their informed material with the existing carrier without reopening their declaration grammar or assembling a second carrier protocol.
+The caller owns the correspondence between its captured inputs and supplied surface; this callable road does not rederive or independently certify that meaning.
+
 ## Evidence ceiling
 
 A successful road establishes that the declared projection completed the compiler's generic request sequence and produced a sealed expansion under the caller's stated authority.

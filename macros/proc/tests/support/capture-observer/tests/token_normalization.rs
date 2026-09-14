@@ -178,3 +178,57 @@ fn preserved_fragments_return_through_the_real_proc_host() {
     assert!(size_of_val(&captured) > 0);
     assert_eq!(item.bytes, [255, 3]);
 }
+
+/// Malformed generated variants return the owning admission refusal before real proc emission can panic.
+#[test]
+fn malformed_generated_words_refuse_before_the_proc_constructor() {
+    let word_refusal = "refused:generated token 0 refused: the spelling is not one Rust word token";
+    for observed in [
+        macroonz_capture_observer::generated_word!("#"),
+        macroonz_capture_observer::generated_word!(""),
+        macroonz_capture_observer::generated_word!("1x"),
+        macroonz_capture_observer::generated_word!("a b"),
+        macroonz_capture_observer::generated_word!("r#type"),
+    ] {
+        assert_eq!(observed, word_refusal);
+    }
+    let raw_refusal =
+        "refused:generated token 0 refused: the name is not one permitted Rust raw identifier";
+    for observed in [
+        macroonz_capture_observer::generated_raw_identifier!("#"),
+        macroonz_capture_observer::generated_raw_identifier!("_"),
+        macroonz_capture_observer::generated_raw_identifier!("self"),
+        macroonz_capture_observer::generated_raw_identifier!("Self"),
+        macroonz_capture_observer::generated_raw_identifier!("crate"),
+        macroonz_capture_observer::generated_raw_identifier!("super"),
+    ] {
+        assert_eq!(observed, raw_refusal);
+    }
+}
+
+/// Keywords, underscore, Unicode and raw names cross the actual proc constructors with their declared spellings.
+#[test]
+fn lawful_generated_word_roles_reach_the_real_proc_host() {
+    assert_eq!(
+        macroonz_capture_observer::generated_word!("pub"),
+        "emitted:pub"
+    );
+    assert_eq!(
+        macroonz_capture_observer::generated_word!("fn"),
+        "emitted:fn"
+    );
+    assert_eq!(macroonz_capture_observer::generated_word!("_"), "emitted:_");
+    assert_eq!(macroonz_capture_observer::generated_word!("é"), "emitted:é");
+    assert_eq!(
+        macroonz_capture_observer::generated_word!("变量"),
+        "emitted:变量"
+    );
+    assert_eq!(
+        macroonz_capture_observer::generated_raw_identifier!("type"),
+        "emitted:r#type"
+    );
+    assert_eq!(
+        macroonz_capture_observer::generated_raw_identifier!("é"),
+        "emitted:r#é"
+    );
+}

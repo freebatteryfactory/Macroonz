@@ -138,6 +138,11 @@ impl ContentAddress {
 }
 
 impl<'body, Refusal: Copy> BodyReader<'body, Refusal> {
+    /// Read one schema-owned discriminant byte.
+    pub(crate) fn byte(&mut self) -> Result<u8, Refusal> {
+        self.fixed::<1>().map(|[byte]| byte)
+    }
+
     /// Open at the first body byte under the calling home's refusal vocabulary.
     pub(crate) const fn over(
         body: &'body [u8],
@@ -167,6 +172,32 @@ impl<'body, Refusal: Copy> BodyReader<'body, Refusal> {
         let declared = self.u64()?;
         usize::try_from(declared)
             .map_err(|_beyond_platform| (self.length_outside_platform)(declared))
+    }
+
+    /// Read a population count under the caller's independent ceiling.
+    pub(crate) fn bounded_count(
+        &mut self,
+        limit: usize,
+        oversized: Refusal,
+    ) -> Result<usize, Refusal> {
+        let count = self.count()?;
+        if count > limit {
+            return Err(oversized);
+        }
+        Ok(count)
+    }
+
+    /// Read a framed member under the caller's independent byte ceiling.
+    pub(crate) fn bounded_bytes(
+        &mut self,
+        limit: usize,
+        oversized: Refusal,
+    ) -> Result<&'body [u8], Refusal> {
+        let bytes = self.bytes()?;
+        if bytes.len() > limit {
+            return Err(oversized);
+        }
+        Ok(bytes)
     }
 
     /// Read one length-prefixed byte string.

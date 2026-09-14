@@ -1,86 +1,118 @@
-//! Safe process execution for one stable rustc coverage observation.
+//! Coverage case execution through the caller's selected process executor.
 
 use super::{
-    CoverageCorpus, CoverageObservation, FuzzExecution, ReadyPreflight, RustcProfileRefusal,
-    RustcProfileResult, read_lcov,
+    CoverageCaseCleanup, CoverageCommand, CoverageCorpus, CoverageHostFailure, CoverageInvocation,
+    CoverageObservation, CoverageReply, FuzzExecution, ReadyPreflight, RustcProfileRefusal,
+    RustcProfileResult, read_lcov_mapped,
 };
 use std::ffi::OsString;
 use std::fs::{self, File};
 use std::io::Read;
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Command, Output, Stdio};
 
-/// Run one candidate through an already-instrumented target and read its coverage profile.
-///
-/// The candidate is written to target standard input.
-///
-/// The exact bytes are materialized before target start and the resulting file is opened as standard input, so supervision begins without pipe-writer backpressure.
-///
-/// Informed readiness supplies the exact target, matching tools, source root, and scratch storage.
-///
-/// The supervisor owns waiting, any deadline or resource policy, and the resulting [`FuzzExecution`] classification.
-///
-/// This operation accepts that classification only after the child has ended and terminates and reaps the child on every post-spawn refusal path.
+/// Runs one candidate with caller-supervised target execution and the default LLVM process road.
 ///
 /// # Errors
-///
-/// Refuses an empty candidate, an existing deterministic case directory, process or filesystem failures, a missing successful profile, tool failures, or malformed coverage output.
+/// Refuses invalid candidate standing, case storage, incomplete target supervision or coverage extraction.
 pub fn observe_rustc_profile(
     ready: &ReadyPreflight,
     corpus: &mut CoverageCorpus,
     candidate: &[u8],
     supervise: impl FnOnce(&mut Child) -> Result<FuzzExecution, String>,
 ) -> Result<RustcProfileResult, RustcProfileRefusal> {
+    let mut supervise = Some(supervise);
+    observe_rustc_profile_with(ready, corpus, candidate, |invocation| {
+        legacy_invocation(invocation, &mut supervise)
+    })
+    .map_err(legacy_failure)
+}
+
+/// Joins one candidate to target and LLVM observations from a declared executor.
+///
+/// # Errors
+/// Retains executor failure separately, with case cleanup that must wait for any unfinished child.
+pub fn observe_rustc_profile_with<E>(
+    ready: &ReadyPreflight,
+    corpus: &mut CoverageCorpus,
+    candidate: &[u8],
+    mut execute: impl FnMut(CoverageInvocation) -> Result<CoverageReply, E>,
+) -> Result<RustcProfileResult, CoverageHostFailure<E, RustcProfileRefusal>> {
     if candidate.is_empty() {
-        return Err(RustcProfileRefusal::EmptyCandidate);
+        return Err(RustcProfileRefusal::EmptyCandidate.into());
     }
     let case = corpus.reserve_execution(ready, candidate.len())?;
     fs::create_dir_all(ready.scratch())
         .map_err(|error| RustcProfileRefusal::CreateCase(error.to_string()))?;
-    let case_directory = ready.scratch().join(format!("case-{case:020}"));
-    match fs::create_dir(&case_directory) {
+    let directory = ready.scratch().join(format!("case-{case:020}"));
+    match fs::create_dir(&directory) {
         Ok(()) => {}
         Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-            return Err(RustcProfileRefusal::CaseAlreadyExists(case_directory));
+            return Err(RustcProfileRefusal::CaseAlreadyExists(directory).into());
         }
-        Err(error) => return Err(RustcProfileRefusal::CreateCase(error.to_string())),
+        Err(error) => return Err(RustcProfileRefusal::CreateCase(error.to_string()).into()),
     }
-    let result = observe_case(ready, candidate, case, &case_directory, supervise);
-    match fs::remove_dir_all(&case_directory) {
-        Ok(()) => result,
+    let result = observe_case(ready, candidate, case, &directory, &mut execute);
+    let completed = match result {
+        Ok(result) => Ok(result),
+        Err(CoverageHostFailure::Refused(refusal)) => Err(refusal),
+        Err(CoverageHostFailure::Executor {
+            operation, error, ..
+        }) => {
+            return Err(CoverageHostFailure::Executor {
+                operation,
+                error,
+                cleanup: Some(CoverageCaseCleanup::retained(directory)),
+            });
+        }
+    };
+    match fs::remove_dir_all(&directory) {
+        Ok(()) => completed.map_err(CoverageHostFailure::Refused),
         Err(error) => Err(RustcProfileRefusal::CleanupCase {
-            after: result.err().map(Box::new),
+            after: completed.err().map(Box::new),
             cleanup: error.to_string(),
-        }),
+        }
+        .into()),
     }
 }
 
-fn observe_case(
+fn observe_case<E>(
     ready: &ReadyPreflight,
     candidate: &[u8],
     case: u32,
-    case_directory: &std::path::Path,
-    supervise: impl FnOnce(&mut Child) -> Result<FuzzExecution, String>,
-) -> Result<RustcProfileResult, RustcProfileRefusal> {
-    let raw = case_directory.join("coverage.profraw");
-    let merged = case_directory.join("coverage.profdata");
-    let input_path = case_directory.join("candidate.bin");
+    directory: &std::path::Path,
+    execute: &mut impl FnMut(CoverageInvocation) -> Result<CoverageReply, E>,
+) -> Result<RustcProfileResult, CoverageHostFailure<E, RustcProfileRefusal>> {
+    let raw = directory.join("coverage.profraw");
+    let merged = directory.join("coverage.profdata");
+    let input_path = directory.join("candidate.bin");
     fs::write(&input_path, candidate)
         .map_err(|error| RustcProfileRefusal::WriteCandidate(error.to_string()))?;
-    let execution = run_target(ready, &input_path, &raw, supervise)?;
-    if !raw.is_file() {
-        if matches!(execution, FuzzExecution::Success) {
-            return Err(RustcProfileRefusal::MissingProfile);
-        }
-        return Ok(RustcProfileResult::established(
-            case,
-            candidate.to_vec(),
-            execution,
-            CoverageObservation::empty(),
-            ready.standing().clone(),
-        ));
-    }
-    merge_profile(ready, &raw, &merged)?;
-    let observation = export_coverage(ready, &merged)?;
+    let input = File::open(input_path)
+        .map_err(|error| RustcProfileRefusal::OpenCandidate(error.to_string()))?;
+    let mut command = Command::new(ready.target().executable());
+    command
+        .args(ready.target().arguments())
+        .env("LLVM_PROFILE_FILE", &raw);
+    let reply = call(
+        CoverageInvocation {
+            operation: CoverageCommand::Target,
+            command,
+            input: Some(input),
+            output_bound: None,
+        },
+        execute,
+    )?;
+    let CoverageReply::Target(execution) = reply else {
+        return Err(RustcProfileRefusal::UnexpectedExecutorReply.into());
+    };
+    let observation = if raw.is_file() {
+        merge_profile(ready, &raw, &merged, execute)?;
+        export_coverage(ready, &merged, execute)?
+    } else if execution == FuzzExecution::Success {
+        return Err(RustcProfileRefusal::MissingProfile.into());
+    } else {
+        CoverageObservation::empty()
+    };
     Ok(RustcProfileResult::established(
         case,
         candidate.to_vec(),
@@ -90,70 +122,166 @@ fn observe_case(
     ))
 }
 
-fn run_target(
-    ready: &ReadyPreflight,
-    input_path: &std::path::Path,
-    raw: &std::path::Path,
-    supervise: impl FnOnce(&mut Child) -> Result<FuzzExecution, String>,
-) -> Result<FuzzExecution, RustcProfileRefusal> {
-    let input = File::open(input_path)
-        .map_err(|error| RustcProfileRefusal::OpenCandidate(error.to_string()))?;
-    let child = Command::new(ready.target().executable())
-        .args(ready.target().arguments())
-        .env("LLVM_PROFILE_FILE", raw)
-        .stdin(Stdio::from(input))
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|error| RustcProfileRefusal::StartTarget(error.to_string()))?;
-    let mut process = TargetProcess::running(child);
-    let execution = match supervise(process.child_mut()) {
-        Ok(execution) => execution,
-        Err(error) => {
-            return process.refuse(RustcProfileRefusal::SuperviseTarget(error));
-        }
-    };
-    process.finish(execution)
-}
-
-fn merge_profile(
+fn merge_profile<E>(
     ready: &ReadyPreflight,
     raw: &std::path::Path,
     merged: &std::path::Path,
-) -> Result<(), RustcProfileRefusal> {
-    let status = Command::new(ready.tools().profdata())
-        .arg("merge")
-        .arg("-sparse")
+    execute: &mut impl FnMut(CoverageInvocation) -> Result<CoverageReply, E>,
+) -> Result<(), CoverageHostFailure<E, RustcProfileRefusal>> {
+    let mut command = Command::new(ready.tools().profdata());
+    command
+        .args(["merge", "-sparse"])
         .arg(raw)
         .arg("-o")
-        .arg(merged)
-        .status()
-        .map_err(|error| RustcProfileRefusal::StartProfdata(error.to_string()))?;
-    if status.success() {
+        .arg(merged);
+    let reply = call(
+        CoverageInvocation {
+            operation: CoverageCommand::Merge,
+            command,
+            input: None,
+            output_bound: None,
+        },
+        execute,
+    )?;
+    let CoverageReply::Output(output) = reply else {
+        return Err(RustcProfileRefusal::UnexpectedExecutorReply.into());
+    };
+    if output.status.success() {
         Ok(())
     } else {
-        Err(RustcProfileRefusal::ProfdataFailed(status.code()))
+        Err(RustcProfileRefusal::ProfdataFailed(output.status.code()).into())
     }
 }
 
-fn export_coverage(
+fn export_coverage<E>(
     ready: &ReadyPreflight,
     merged: &std::path::Path,
-) -> Result<CoverageObservation, RustcProfileRefusal> {
+    execute: &mut impl FnMut(CoverageInvocation) -> Result<CoverageReply, E>,
+) -> Result<CoverageObservation, CoverageHostFailure<E, RustcProfileRefusal>> {
     let mut profile_argument = OsString::from("-instr-profile=");
     profile_argument.push(merged.as_os_str());
-    let child = Command::new(ready.tools().cov())
-        .arg("export")
-        .arg("-format=lcov")
+    let mut command = Command::new(ready.tools().cov());
+    command
+        .args(["export", "-format=lcov"])
         .arg(profile_argument)
-        .arg(ready.target().executable())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|error| RustcProfileRefusal::StartCov(error.to_string()))?;
-    let output = CovProcess::running(child)
-        .bounded_output(ready.standing().campaign().budgets().export_bytes())?;
-    read_lcov(ready.source_root(), &output).map_err(RustcProfileRefusal::Coverage)
+        .arg(ready.target().executable());
+    let bound = ready.standing().campaign().budgets().export_bytes();
+    let reply = call(
+        CoverageInvocation {
+            operation: CoverageCommand::Export,
+            command,
+            input: None,
+            output_bound: Some(bound),
+        },
+        execute,
+    )?;
+    let CoverageReply::Output(output) = reply else {
+        return Err(RustcProfileRefusal::UnexpectedExecutorReply.into());
+    };
+    let observed_at_least = u64::try_from(output.stdout.len()).unwrap_or(u64::MAX);
+    if observed_at_least > bound {
+        return Err(RustcProfileRefusal::CovOutputBudgetExhausted {
+            bound,
+            observed_at_least,
+        }
+        .into());
+    }
+    if !output.status.success() {
+        return Err(RustcProfileRefusal::CovFailed(output.status.code()).into());
+    }
+    read_lcov_mapped(ready.source_roots(), &output.stdout)
+        .map_err(|error| RustcProfileRefusal::Coverage(error).into())
+}
+
+fn call<E>(
+    invocation: CoverageInvocation,
+    execute: &mut impl FnMut(CoverageInvocation) -> Result<CoverageReply, E>,
+) -> Result<CoverageReply, CoverageHostFailure<E, RustcProfileRefusal>> {
+    let operation = invocation.operation;
+    execute(invocation).map_err(|error| CoverageHostFailure::Executor {
+        operation,
+        error,
+        cleanup: None,
+    })
+}
+
+fn legacy_failure(
+    failure: CoverageHostFailure<RustcProfileRefusal, RustcProfileRefusal>,
+) -> RustcProfileRefusal {
+    match failure {
+        CoverageHostFailure::Refused(refusal) => refusal,
+        CoverageHostFailure::Executor { error, cleanup, .. } => {
+            if let Some(cleanup) = cleanup
+                && let Err((_retained, cleanup_error)) = cleanup.remove()
+            {
+                return RustcProfileRefusal::CleanupCase {
+                    after: Some(Box::new(error)),
+                    cleanup: cleanup_error.to_string(),
+                };
+            }
+            error
+        }
+    }
+}
+
+fn legacy_invocation<F: FnOnce(&mut Child) -> Result<FuzzExecution, String>>(
+    mut invocation: CoverageInvocation,
+    supervise: &mut Option<F>,
+) -> Result<CoverageReply, RustcProfileRefusal> {
+    match invocation.operation {
+        CoverageCommand::Target => {
+            let input = invocation.input.ok_or_else(|| {
+                RustcProfileRefusal::OpenCandidate("target input missing".to_owned())
+            })?;
+            let child = invocation
+                .command
+                .stdin(Stdio::from(input))
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|error| RustcProfileRefusal::StartTarget(error.to_string()))?;
+            let mut process = TargetProcess::running(child);
+            let Some(supervise) = supervise.take() else {
+                return process
+                    .refuse(RustcProfileRefusal::UnexpectedExecutorReply)
+                    .map(CoverageReply::Target);
+            };
+            let execution = match supervise(process.child_mut()) {
+                Ok(execution) => execution,
+                Err(error) => {
+                    return process
+                        .refuse(RustcProfileRefusal::SuperviseTarget(error))
+                        .map(CoverageReply::Target);
+                }
+            };
+            process.finish(execution).map(CoverageReply::Target)
+        }
+        CoverageCommand::Merge => invocation
+            .command
+            .status()
+            .map(|status| {
+                CoverageReply::Output(Output {
+                    status,
+                    stdout: Vec::new(),
+                    stderr: Vec::new(),
+                })
+            })
+            .map_err(|error| RustcProfileRefusal::StartProfdata(error.to_string())),
+        CoverageCommand::Export => {
+            let child = invocation
+                .command
+                .stdout(Stdio::piped())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|error| RustcProfileRefusal::StartCov(error.to_string()))?;
+            CovProcess::running(child)
+                .bounded_output(invocation.output_bound.unwrap_or(0))
+                .map(CoverageReply::Output)
+        }
+        CoverageCommand::Rustc(_) | CoverageCommand::Version(_) => {
+            Err(RustcProfileRefusal::UnexpectedExecutorReply)
+        }
+    }
 }
 
 /// One started target that remains responsible for termination and reaping until it proves otherwise.
@@ -245,7 +373,7 @@ impl CovProcess {
         }
     }
 
-    fn bounded_output(mut self, bound: u64) -> Result<Vec<u8>, RustcProfileRefusal> {
+    fn bounded_output(mut self, bound: u64) -> Result<Output, RustcProfileRefusal> {
         let Some(stdout) = self.child.stdout.take() else {
             return self.refuse(RustcProfileRefusal::ReadCov(
                 "coverage export stdout was not piped".to_owned(),
@@ -271,13 +399,17 @@ impl CovProcess {
         };
         self.custody = ProcessCustody::Reaped;
         if status.success() {
-            Ok(output)
+            Ok(Output {
+                status,
+                stdout: output,
+                stderr: Vec::new(),
+            })
         } else {
             Err(RustcProfileRefusal::CovFailed(status.code()))
         }
     }
 
-    fn refuse(mut self, refusal: RustcProfileRefusal) -> Result<Vec<u8>, RustcProfileRefusal> {
+    fn refuse(mut self, refusal: RustcProfileRefusal) -> Result<Output, RustcProfileRefusal> {
         match self.terminate_and_reap() {
             Ok(()) => Err(refusal),
             Err(cleanup) => Err(RustcProfileRefusal::CleanupCov {

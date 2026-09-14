@@ -3,6 +3,14 @@
 use core::sync::atomic::{AtomicUsize, Ordering};
 use macroonz as bakery;
 
+#[path = "recipe_surface/catalogue.rs"]
+mod catalogue;
+
+#[path = "recipe_surface/consuming.rs"]
+mod consuming;
+#[path = "recipe_surface/consuming_borrowed.rs"]
+mod consuming_borrowed;
+
 static OPENED: AtomicUsize = AtomicUsize::new(0);
 
 fn record_open() {

@@ -3,12 +3,20 @@
 //! Declared inside `types.rs` as its own child, which is what keeps the private seats private.
 //! A run's hosting facts are stated once, at the call that declares them.
 
-use super::{FailedTrial, Invocation, SeatFailure, SeatRefusal, Selection, SelectionPlan};
+use super::{
+    FailedTrial, Invocation, ReplayedTrial, SeatFailure, SeatRefusal, Selection, SelectionPlan,
+};
 use crate::clock::HarnessClock;
 use crate::descriptor::TrialTableRefusal;
+use crate::identity::ContentAddress;
+use crate::input::BoundInput;
+use crate::input::InputEnvelope;
+use crate::report::TrialReport;
+use crate::report::archive::ArchivedCapsule;
+use crate::report::replay::{ReplayJoinRefusal, ReplayReading, compare};
 use crate::report::{
-    EmptySelectionReason, InvocationProfile, SelectionExpectation, TargetBinding, TrialId,
-    TrialSite,
+    EmptySelectionReason, ExecutionInput, InvocationProfile, SelectionExpectation, SkipReason,
+    TargetBinding, TrialId, TrialSite,
 };
 
 impl Invocation {
@@ -25,6 +33,90 @@ impl Invocation {
             target,
             site,
             clock,
+            input: (),
+            input_standing: None,
+            input_bytes: 0,
+        }
+    }
+
+    /// The declared run facts joined to a decoder-admitted typed specimen.
+    #[must_use]
+    pub fn with_input<Input>(self, input: BoundInput<Input>) -> Invocation<BoundInput<Input>> {
+        Invocation {
+            profile: self.profile,
+            target: self.target,
+            site: self.site,
+            clock: self.clock,
+            input_standing: Some(ExecutionInput::of(&input)),
+            input_bytes: input.envelope().payload().len(),
+            input,
+        }
+    }
+}
+
+impl ReplayedTrial {
+    /// The earned current report and admitted witness joined to their historical source.
+    pub(in crate::runner) fn earned(
+        historical: &ArchivedCapsule,
+        report: TrialReport,
+        witness: InputEnvelope,
+    ) -> Self {
+        Self {
+            historical: historical.address(),
+            comparison: compare(historical, &report, &witness),
+            witness,
+            report,
+        }
+    }
+
+    /// The historical envelope this execution read.
+    #[must_use]
+    pub const fn historical(&self) -> ContentAddress {
+        self.historical
+    }
+
+    /// The exact witness under its independently supplied current convention.
+    #[must_use]
+    pub const fn witness(&self) -> &InputEnvelope {
+        &self.witness
+    }
+
+    /// The complete report earned by current execution.
+    #[must_use]
+    pub const fn report(&self) -> &TrialReport {
+        &self.report
+    }
+
+    /// The report owner's comparison over the actual admitted witness.
+    pub const fn comparison(&self) -> &Result<ReplayReading, ReplayJoinRefusal> {
+        &self.comparison
+    }
+}
+
+impl<Input> Invocation<Input> {
+    /// The admitted input owned by this invocation, or its explicit unit value.
+    #[must_use]
+    pub const fn input(&self) -> &Input {
+        &self.input
+    }
+
+    /// The input standing derived when the admitted specimen entered this invocation.
+    #[must_use]
+    pub const fn input_standing(&self) -> Option<ExecutionInput> {
+        self.input_standing
+    }
+
+    /// Whether the one admitted specimen exceeds a declared execution budget.
+    #[must_use]
+    pub fn input_budget_refusal(&self) -> Option<SkipReason> {
+        self.input_standing?;
+        let bytes = u64::try_from(self.input_bytes).ok();
+        if self.profile.cases().cases() == 0
+            || bytes.is_none_or(|count| count > self.profile.bytes().bytes())
+        {
+            Some(SkipReason::BudgetExhausted)
+        } else {
+            None
         }
     }
 
@@ -135,5 +227,46 @@ impl SeatRefusal {
 impl From<TrialTableRefusal> for SeatRefusal {
     fn from(refusal: TrialTableRefusal) -> Self {
         Self::TableNotBuilt(refusal)
+    }
+}
+
+impl super::LegacyReplayedTrial {
+    pub(in crate::runner) fn earned(
+        historical: &crate::report::legacy::LegacyRecord,
+        report: TrialReport,
+        witness: InputEnvelope,
+    ) -> Self {
+        Self {
+            historical: historical.source_address(),
+            comparison: crate::report::replay::compare_legacy(historical, &report, &witness),
+            report,
+            witness,
+        }
+    }
+
+    /// The address of the exact sparse historical source.
+    #[must_use]
+    pub const fn historical(&self) -> ContentAddress {
+        self.historical
+    }
+
+    /// The independently admitted current witness.
+    #[must_use]
+    pub const fn witness(&self) -> &InputEnvelope {
+        &self.witness
+    }
+
+    /// The complete report earned by the existing runner.
+    #[must_use]
+    pub const fn report(&self) -> &TrialReport {
+        &self.report
+    }
+
+    /// The report owner's sparse-claim comparison, without complete reproduction standing.
+    pub const fn comparison(
+        &self,
+    ) -> &Result<crate::report::replay::LegacyReading, crate::report::replay::LegacyJoinRefusal>
+    {
+        &self.comparison
     }
 }

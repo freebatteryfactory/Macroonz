@@ -2,7 +2,8 @@
 
 This private child owns the facts an authored benchmark row states and the identity derived from those facts.
 
-A row names its workload, correctness preflight, planted-worse control, complexity claim, input-size axis, exact budgets, contention posture, optional formula bytes, and table identity.
+A row names its workload, correctness preflight, planted-worse control, complexity claim, input-size axis, exact budgets, contention posture, and optional formula bytes.
+The parent table and report carry table identity independently of the row.
 It cannot carry a callable, a clock, a judgment, or a report.
 
 `BenchRowKey` is derived once from the complete declaration under `BENCH_ROW_KEY_TAG`.

@@ -14,9 +14,9 @@ mod support_assembly;
 use macroonz_compiler::{
     BindError, Bounded, Capping, Closure, ClosureError, ClosureIssue, CrateBinding, Destination,
     Door, Expansion, GeneratedToken, GeneratedTree, InvalidationTrigger, Kind, LineBody,
-    Membership, NoQuestions, Observed, Overflow, OwnerIdentity, PartitionCargo, Phase, Plan,
-    PlanDecisions, Producer, RefusalClass, Refused, RenderedProjection, RenderedUnit, Request,
-    Role, TextCapture, UNIVERSAL_QUESTION_COUNT,
+    Membership, NoQuestions, Observed, OwnerIdentity, PartitionCargo, Phase, Plan, PlanDecisions,
+    Producer, RefusalClass, Refused, RenderedProjection, RenderedUnit, Request, Role, TextCapture,
+    UNIVERSAL_QUESTION_COUNT,
 };
 use std::collections::BTreeSet;
 
@@ -77,7 +77,7 @@ const DECLARATION: &str = "struct Greeting { line: Line }";
 const OTHER_DECLARATION: &str = "struct Farewell { line: Line }";
 
 /// One generated tree spelling one word.
-fn spelled(word: &str) -> Result<GeneratedTree, Overflow> {
+fn spelled(word: &str) -> Result<GeneratedTree, macroonz_compiler::token::GeneratedTreeRefusal> {
     GeneratedTree::assembled(vec![GeneratedToken::word(word)])
 }
 
@@ -526,7 +526,7 @@ fn three_separately_produced_values_bind_only_where_they_name_one_another() -> R
 
     let other_proof = Closure::proved(
         first.plan(),
-        rendered(first.plan(), "another head", "another tail").ok_or(())?,
+        rendered(first.plan(), "another_head", "another_tail").ok_or(())?,
     )
     .map_err(|_| ())?;
     assert_ne!(other_proof.identity(), first.closure().identity());

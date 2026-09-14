@@ -8,8 +8,8 @@
 
 use super::{
     Diagnostic, DiagnosticName, DiagnosticNameRefusal, DiagnosticProjection, DiagnosticSeats,
-    Family, IntrinsicRefused, Observed, Phase, Placement, Refused, RelatedIdentity, RelatedSet,
-    Repair, Route, Site, SiteCoordinate,
+    Family, IntrinsicRefused, LineBody, Observed, Phase, Placement, RefusalClass, Refused,
+    RelatedIdentity, RelatedSet, Repair, Route, Site, SiteCoordinate,
 };
 use crate::bounded::{Bounded, Capping};
 use crate::diagnostic::project::{diagnostic, intrinsic_site, placement_site};
@@ -263,6 +263,24 @@ impl Route {
 }
 
 impl Diagnostic {
+    /// The refusing type's declared issue family.
+    #[must_use]
+    pub fn family(&self) -> Family {
+        self.carried.family
+    }
+
+    /// The typed class used to compose this diagnostic's summary.
+    #[must_use]
+    pub fn class(&self) -> RefusalClass {
+        self.carried.class
+    }
+
+    /// The established body summarized by this diagnostic.
+    #[must_use]
+    pub fn body(&self) -> LineBody {
+        self.carried.body
+    }
+
     /// Project one caller-placed refused step into the diagnostic its door hands back.
     ///
     /// Every seat that could be written two ways is written once on this road: the line through [`composed`](crate::diagnostic::composed), the expected contract and the reproduction route off the door, and the site through the placement the caller states.
@@ -334,6 +352,9 @@ fn assemble_diagnostic(projection: DiagnosticProjection) -> Diagnostic {
         site: projection.site,
         observed: projection.observed,
         carried: Box::new(DiagnosticSeats {
+            family: projection.family,
+            class: projection.class,
+            body: projection.body,
             summary: projection.summary,
             expected: projection.expected,
             related: projection.related,

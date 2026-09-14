@@ -1,14 +1,18 @@
 //! Evaluation pairs, no-mutation parity, interpreted trust, and admitted active evidence.
 
 use crate::descriptor::{CheckRef, ClaimRef, NameRefusal, RevisionBinding};
+use crate::muterprater::{CompiledMutationObservation, SpecimenObservationRefusal};
 use crate::muterprater::{
-    CompiledProjectionPressure, CompiledSuitePressure, DudPlant, EvaluationCallRefusal,
-    EvaluationDirective, EvaluationFamilyRef, EvaluationSurface, EvaluationSurfaceId,
-    MutationReport, SelectionRefusal,
+    CompiledProjectionPressure, CompiledSpecimenContext, CompiledSuitePressure, DudPlant,
+    EvaluationCallRefusal, EvaluationDirective, EvaluationFamilyRef, EvaluationSurface,
+    EvaluationSurfaceId, MutationReport, SelectionRefusal,
 };
+use crate::properties::Agreement;
 use crate::properties::{Equivalence, SharedSubstrate, SubstrateRefusal};
+use crate::report::TrialFinding;
 use crate::report::{TrialConclusion, TrialReport};
 use crate::runner::{ReportRecordingRefusal, TrialBinding};
+use core::num::NonZeroU32;
 #[path = "type_guard.rs"]
 mod guard;
 
@@ -49,6 +53,128 @@ pub struct EvaluationObservation<Meaning> {
     firings: u32,
 }
 
+/// The reached production and evaluation results for one admitted mutation selection.
+pub struct MutationObservation<'scope, Input, Meaning> {
+    surface: &'scope EvaluationSurface,
+    pair: &'scope EvaluationPair<Input, Meaning>,
+    input: &'scope Input,
+    selection: crate::muterprater::ActiveSelection,
+    point: &'scope crate::muterprater::MutationPoint,
+    alternative: &'scope crate::muterprater::AdmittedAlternative,
+    context: CompiledSpecimenContext,
+    production: Meaning,
+    baseline: Result<EvaluationObservation<Meaning>, EvaluationCallRefusal>,
+    selected: Result<EvaluationObservation<Meaning>, EvaluationCallRefusal>,
+}
+
+/// Why an execution selection was refused before observing caller code.
+#[must_use]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MutationObservationRefusal {
+    /// The evaluation pair belongs to another surface.
+    Surface {
+        /// The requested surface.
+        expected: EvaluationSurfaceId,
+        /// The pair's surface.
+        found: EvaluationSurfaceId,
+    },
+    /// The selection does not resolve on the requested surface.
+    Selection(SelectionRefusal),
+}
+
+/// Observed correspondence and positive activation for one exact selected execution.
+pub struct QualifiedMutation<'scope, Input, Meaning> {
+    compiled: &'scope CompiledMutationObservation<'scope, Input, Meaning>,
+    baseline: &'scope Meaning,
+    selected: &'scope Meaning,
+    compiled_baseline: &'scope Meaning,
+    compiled_selected: &'scope Meaning,
+    firings: NonZeroU32,
+    substrate: SharedSubstrate,
+    difference: Agreement,
+}
+
+/// Why retained mutation observations did not establish scoped execution correspondence.
+#[must_use]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MutationQualificationRefusal {
+    /// The unchanged evaluation did not return a meaning.
+    BaselineEvaluation(EvaluationCallRefusal),
+    /// The selected evaluation did not return a meaning.
+    SelectedEvaluation(EvaluationCallRefusal),
+    /// The unchanged evaluation reported activation.
+    BaselineActivated {
+        /// The reported firing count.
+        firings: u32,
+    },
+    /// The selected evaluation reported no positive activation.
+    NotActivated,
+    /// The unchanged compiled execution did not return a usable meaning.
+    CompiledBaseline(SpecimenObservationRefusal),
+    /// The selected compiled execution did not return a usable meaning.
+    CompiledSelected(SpecimenObservationRefusal),
+    /// Production disagreed with the unchanged evaluation.
+    BaselineDisagreement(TrialFinding),
+    /// Production disagreed with the unchanged compiled execution.
+    CompiledBaselineDisagreement(TrialFinding),
+    /// The two selected execution roads disagreed.
+    SelectedDisagreement(TrialFinding),
+}
+
+/// One witness's actual judgments over the retained results of a qualified execution.
+pub struct MutationWitnessReading<'scope, Input, Meaning> {
+    qualification: &'scope QualifiedMutation<'scope, Input, Meaning>,
+    witness: MutationWitness<Meaning>,
+    production: TrialReport,
+    baseline: TrialReport,
+    compiled_baseline: TrialReport,
+    compiled_selected: TrialReport,
+    selected: TrialReport,
+}
+
+/// Why a witness could not be joined to an observed execution before judgment.
+#[must_use]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MutationWitnessObservationRefusal {
+    /// The invocation profile or target differs from the observed execution.
+    Context,
+    /// The witness serves another claim.
+    Claim {
+        /// The selected point's claim.
+        expected: ClaimRef,
+        /// The witness's claim.
+        found: ClaimRef,
+    },
+    /// A reached judgment could not join its trial binding.
+    Report(ReportRecordingRefusal),
+}
+
+/// Why one witness's retained judgments did not qualify a mutation outcome.
+#[must_use]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MutationWitnessQualificationRefusal {
+    /// The witness did not pass ordinary production.
+    ProductionDidNotPass,
+    /// The witness did not pass unchanged evaluation.
+    BaselineDidNotPass,
+    /// The witness did not pass compiled unchanged production.
+    CompiledBaselineDidNotPass,
+    /// The witness gave the two selected execution results different conclusions.
+    SelectedReportsDisagreed,
+}
+
+/// A rejected witness qualification retaining all of its reached judgments.
+pub struct RejectedMutationWitness<'scope, Input, Meaning> {
+    reading: Box<MutationWitnessReading<'scope, Input, Meaning>>,
+    cause: MutationWitnessQualificationRefusal,
+}
+
+/// A mutation outcome qualified from scoped execution correspondence and actual witness judgments.
+pub struct MutationAssessment<'scope, Input, Meaning> {
+    reading: MutationWitnessReading<'scope, Input, Meaning>,
+    mutation: MutationReport,
+}
+
 /// The production callable and revision an owner declares for one evaluation family.
 pub struct ProductionBinding<Input, Meaning> {
     family: EvaluationFamilyRef,
@@ -66,7 +192,7 @@ pub struct EvaluationBinding<Input, Meaning> {
 
 /// One production and evaluation binding under a shared owner declaration and equivalence.
 ///
-/// Matching family references prove the declared relationship and not behavioral agreement; only an executed no-mutation parity reading establishes that, for its exact input.
+/// Matching family references establish the declared relationship; behavioral agreement requires executed comparison on the stated input.
 pub struct EvaluationPair<Input, Meaning> {
     production: ProductionBinding<Input, Meaning>,
     evaluation: EvaluationBinding<Input, Meaning>,
@@ -240,14 +366,14 @@ pub enum MissingTrustEvidence {
     ProjectionPressureForAnotherSurface,
 }
 
-/// The generic suite bite and exact selection pressure that open interpreted execution for one surface.
+/// The generic suite bite and exact selection pressure of the strict compiled-rejection composition.
 pub struct InterpretedTrust<'surface, 'suite, 'projection, 'parity, 'pair, 'input, Input, Meaning> {
     surface: &'surface EvaluationSurface,
     suite: &'suite CompiledSuitePressure,
     projection: &'projection CompiledProjectionPressure<'parity, 'pair, 'input, Input, Meaning>,
 }
 
-/// The availability of interpreted evidence for one evaluation surface.
+/// The availability of the strict compiled-rejection composition for one evaluation surface.
 ///
 /// A surface alone earns no trust: availability takes a generic compiled suite bite plus exact projection pressure whose qualification, pair standing, and selection all belong to this surface.
 pub enum InterpreterAvailability<
@@ -273,7 +399,7 @@ pub enum InterpreterAvailability<
     },
 }
 
-/// The admitted interpreted result of the one active selection an opened trust boundary retains.
+/// The active judgment retained beside strict compiled-rejection pressure without selected-road comparison.
 pub struct InterpretedMutationEvidence<
     'surface,
     'suite,

@@ -10,6 +10,17 @@ pub(super) fn derive_row_key(
     references: BenchReferences,
     measurement: &BenchMeasurement,
 ) -> Result<BenchRowKey, EncodeRefusal> {
+    Ok(BenchRowKey::derived(ContentAddress::derived(
+        BENCH_ROW_KEY_TAG,
+        &row_preimage(references, measurement)?,
+    )))
+}
+
+/// Encode the declared row facts without deriving another identity vocabulary.
+pub(super) fn row_preimage(
+    references: BenchReferences,
+    measurement: &BenchMeasurement,
+) -> Result<Vec<u8>, EncodeRefusal> {
     let mut preimage = Vec::new();
     references.workload().name().encode_into(&mut preimage);
 
@@ -40,8 +51,5 @@ pub(super) fn derive_row_key(
     }
 
     references.complexity().name().encode_into(&mut preimage);
-    Ok(BenchRowKey::derived(ContentAddress::derived(
-        BENCH_ROW_KEY_TAG,
-        &preimage,
-    )))
+    Ok(preimage)
 }

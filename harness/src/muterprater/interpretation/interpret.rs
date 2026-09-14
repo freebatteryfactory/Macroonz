@@ -1,4 +1,4 @@
-//! The compile-once mutation receiver: stable selection, exact no-mutation parity, and admitted interpreted execution.
+//! Scoped mutation observations, execution correspondence, witness assessments and strict rejection compositions.
 //!
 //! Production is an ordinary callable with no directive.
 //! The evaluation callable alone receives a surface-bound [`EvaluationDirective`], and its no-mutation answer must agree with production.
@@ -7,7 +7,8 @@
 //!
 //! Generic suite pressure, exact compiled projection pressure, and interpreted activation are three different evidence routes.
 //! [`availability`] requires the first two together, and the second already retains mandatory no-mutation parity and one surface-issued selection.
-//! The active road can execute only that selection, reuses the exact input and witness, and admits evidence only after the evaluation callback reports a positive firing count.
+//! That strict road executes only its retained selection and witness after positive reported activation; it does not compare active compiled meanings.
+//! [`observe_mutation`], [`qualify_execution`], [`observe_witness`] and [`qualify_witness`] supply the ordinary directly compared assessment road without a prior kill.
 //!
 //! The caller's production, evaluation, and check function pointers keep their ordinary Rust effect and unwind ceilings.
 //! This module records what they returned and delegates wall measurement to the clock owner; measurement posture never enters parity or mutation classification.
@@ -17,8 +18,8 @@ use super::types::{
     InterpreterAvailability, MUTERPRATER_NAMESPACE, MissingTrustEvidence, MutationWitness,
     NO_MUTATION_PAIRING, NoMutationObservationRefusal, NoMutationParityQualification,
     NoMutationParityReading, NoMutationParityStanding, NoMutationReports, NoMutationResults,
-    PARITY_DECLARATION_SUBSTRATE, PARITY_RENDERING_SUBSTRATE, ParityQualificationRefusal,
-    ParityRefusal, RejectedNoMutationParity,
+    PARITY_DECLARATION_SUBSTRATE, PARITY_RENDERING_SUBSTRATE, ParityRefusal,
+    RejectedNoMutationParity,
 };
 use crate::descriptor::NamespacedName;
 use crate::muterprater::{
@@ -34,6 +35,10 @@ use crate::runner::{
     Invocation, Selection, execution_key, lens_verdict, record_one, trial_identity,
 };
 use std::collections::BTreeSet;
+
+pub use super::correspond::qualify_execution;
+pub use super::judge::{observe_witness, qualify_witness};
+pub use super::observe::observe_mutation;
 
 /// The shared foundations the mandatory no-mutation comparison declares.
 fn no_mutation_substrate() -> Result<SharedSubstrate, ParityRefusal> {
@@ -119,10 +124,11 @@ pub fn observe_no_mutation<'pair, 'input, Input, Meaning>(
     let production_report = record_one(
         witness.binding(),
         invocation,
-        HostTrialRecord::recorded(
+        HostTrialRecord::recorded_with_attribution(
             trial,
             RunAttempt::Executed(production_conclusion),
             production_measurement.finish(),
+            invocation.clock().attribution(),
         ),
     )
     .map_err(NoMutationObservationRefusal::ProductionReport)?;
@@ -137,10 +143,11 @@ pub fn observe_no_mutation<'pair, 'input, Input, Meaning>(
     let evaluation_report = record_one(
         witness.binding(),
         invocation,
-        HostTrialRecord::recorded(
+        HostTrialRecord::recorded_with_attribution(
             trial,
             RunAttempt::Executed(evaluation_conclusion),
             evaluation_measurement.finish(),
+            invocation.clock().attribution(),
         ),
     )
     .map_err(NoMutationObservationRefusal::EvaluationReport)?;
@@ -165,19 +172,14 @@ pub fn observe_no_mutation<'pair, 'input, Input, Meaning>(
 pub fn qualify_no_mutation<'pair, 'input, Input, Meaning>(
     reading: NoMutationParityReading<'pair, 'input, Input, Meaning>,
 ) -> NoMutationParityStanding<'pair, 'input, Input, Meaning> {
-    let cause = if lens_verdict(reading.production_report()).is_err() {
-        Some(ParityQualificationRefusal::ProductionDidNotQualify)
-    } else if lens_verdict(reading.evaluation_report()).is_err() {
-        Some(ParityQualificationRefusal::EvaluationDidNotQualify)
-    } else if reading.evaluation_firings() != 0 {
-        Some(ParityQualificationRefusal::NoMutationActivated {
-            firings: reading.evaluation_firings(),
-        })
-    } else if matches!(reading.conclusion(), TrialConclusion::Refused(_)) {
-        Some(ParityQualificationRefusal::MeaningsDisagreed)
-    } else {
-        None
-    };
+    let cause = super::qualify::first_refusal(
+        lens_verdict(reading.production_report()).map_err(|_| ()),
+        lens_verdict(reading.evaluation_report()).map_err(|_| ()),
+        reading.evaluation_firings(),
+        matches!(reading.conclusion(), TrialConclusion::Passed)
+            .then_some(())
+            .ok_or(()),
+    );
     match cause {
         Some(refusal) => {
             NoMutationParityStanding::Rejected(RejectedNoMutationParity::rejected(refusal, reading))
@@ -188,7 +190,7 @@ pub fn qualify_no_mutation<'pair, 'input, Input, Meaning>(
     }
 }
 
-/// Read whether interpreted evidence is available for one exact surface and selected projection.
+/// Read availability of the strict compiled-rejection composition for one selected projection.
 ///
 /// Generic suite pressure establishes that the qualified external suite bites and carries no pair authority.
 /// Exact projection pressure retains mandatory no-mutation parity, one exact pair, and one surface-issued selection.
@@ -231,6 +233,7 @@ pub fn availability<'surface, 'suite, 'projection, 'parity, 'pair, 'input, Input
 ///
 /// The input and the evaluation callable are the exact ones the no-mutation qualification retains.
 /// A positive firing count becomes an activation observation bound to that selection and witness; zero returns a [`DudPlant`] and no evidence exists.
+/// This composition does not compare active compiled meanings; [`qualify_execution`] owns directly observed correspondence.
 ///
 /// # Errors
 ///
@@ -288,10 +291,11 @@ pub fn execute_active<'surface, 'suite, 'projection, 'parity, 'pair, 'input, Inp
     let report = record_one(
         witness.binding(),
         invocation,
-        HostTrialRecord::recorded(
+        HostTrialRecord::recorded_with_attribution(
             trial,
             RunAttempt::Executed(conclusion.clone()),
             measurement.finish(),
+            invocation.clock().attribution(),
         ),
     )
     .map_err(InterpretedExecutionRefusal::Report)?;

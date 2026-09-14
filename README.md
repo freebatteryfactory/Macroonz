@@ -79,7 +79,8 @@ A collision inside that declared universe refuses the request before partial out
 No ambient scan or cross-recipe registry is performed, and no ordinary generated item is sprayed into the crate root or reexported automatically.
 
 An evidence bake may carry an explicitly named support macro because Rust exports such macros at the declaring crate root.
-That caller-authored address is the exception rather than an automatic reexport: its cargo stays inert, and the external test or bench target must invoke it with both the declaring-crate path and the harness path before any judgment exists.
+That caller-authored address is the exception rather than an automatic reexport: its cargo stays inert until the external test or bench target invokes it with the declaring-crate path.
+The root `macroonz::support!` entrance selects the facade's harness gate; the [explicit carrier entrance](macros/compiler/src/support/README.md#invocation) also accepts a target-selected gate path.
 
 The compiler's [recipe home](https://github.com/freebatteryfactory/Macroonz/blob/main/macros/compiler/src/recipe/README.md#evidence-projections) owns the exact contract for `declaration_conformance;` and `compile_contract;`.
 Use a caller-authored harness property, oracle, or model comparison when judgment must be independent of the declaration.
@@ -141,7 +142,7 @@ dispatch {
 }; // exact caller-authored Rust; Macroonz supplies only the checked body
 ```
 
-Parentheses carry flat configuration names, while braces carry exact Rust material.
+Parentheses carry flat configuration names; braced seats carry the role's explicit bindings or exact Rust material.
 An exact dispatch signature remains caller-authored Rust, including additional parameters when `dispatch(state_binding, event_binding) { exact signature };` selects the two bindings consumed by the generated match.
 The compiler's [projection disclosure contract](macros/compiler/src/recipe/README.md#projection-disclosure) owns the exact-signature rules.
 The standard projector owns the complete row-accounted match; individual rows may carry exact behavior through `with(target) { exact Rust }`, while a custom whole-function body belongs on the custom-projector road.
@@ -220,14 +221,61 @@ Runnable examples cross distinct public roads:
 
 | Journey | Command | What it establishes |
 | --- | --- | --- |
-| First recipe | `cargo run --example recipe` | Conventional, configured, and exact projection levels through the root facade entrance. |
+| First recipe | `cargo run --example recipe --no-default-features` | [Generated lookups, codecs and dispatch](macros/compiler/src/recipe/README.md#runnable-structural-clauses) execute independent expected values and absent-case controls. |
+| Structural posture choices | `cargo run --example recipe_postures --no-default-features` | [Every relation posture](examples/recipe_postures/README.md) admits lawful rows and refuses contradictions through the callable facade. |
+| Declared codecs | `cargo run --example codec_workflow --no-default-features` | [Member shapes, direction choices and checked assembly](examples/codec_workflow/README.md) agree with independent bytes and refuse malformed input. |
+| Declared network and command orders | `cargo run --example schedule_workflow --no-default-features --features harness` | [Network faults and concurrency](examples/schedule_workflow/README.md) execute exact deliveries, expose and replay a caller-owned counterexample, and preserve sampled and exhaustive evidence. |
+| Ordinary and shadow synchronization | [Build and run the same adopter under both configurations](examples/shadow_workflow/README.md) | Generated imports connect caller-owned increments to ordinary execution and bounded Loom exploration, exposing a lost update and checking a separate repair. |
+| Consuming transitions | `cargo run --example consuming_workflow --no-default-features` | [Owned resources and checked restoration](macros/compiler/src/recipe/README.md#consuming-transitions) through caller-declared runtime validation and effects. |
+| Reusable admitted types | `cargo run --example admitted_types --no-default-features` | [Reusable patterns](src/pattern/README.md) render nominal wrappers with caller-owned admission, bounds, visibility and encoding choices. |
+| Declared typed trials | `cargo run --example trial_workflow --features harness` | [Co-located bindings and typed input](examples/trial_workflow/README.md) execute through table-derived selection and versioned mechanical defaults, displaying complete results and an independent disagreement in JSON, Markdown and HTML. |
+| Job declarations and independent checks | `cargo run --example job_workflow --no-default-features --features harness` | [Structural methods and unit-input trials](examples/job_workflow/README.md) share one recipe while caller-authored checks and text suite selection retain the complete denominator. |
+| Retained input and fresh replay | `cargo run --example retained_workflow --features native-tooling` with [explicit stdin actions](examples/retained_workflow/README.md) | An independent failure reduces to a reached witness, crosses bounded storage, and is replayed against separately selected current code. |
+| Job work-count replay | `cargo run --example job_retained --no-default-features --features native-tooling` with [explicit stdin actions](examples/job_retained/README.md) | The Job count law reduces to a retained witness and executes it in a fresh process without reduction, preserving a separate lawful control. |
 | Callable compiler | `cargo run -p macroonz-compiler --example callable_compiler` | One public compiler request plans, renders, closes, explains, binds, and emits a unit. |
 | Direct handwritten property | `cargo run -p macroonz-harness --example temporal_property` | Caller-owned state and transitions enter a temporal contract without a macro or subject trait. |
 | Exact compile contract | `cargo run --example compile_contract` | A caller-stated compiler observation is compared with an independently declared exact outcome. |
+| Real compiler and read-back | `cargo run --example compiler_workflow --features native-tooling` with [explicit stdin configuration](examples/compiler_workflow/README.md) | A selected rustc builds a binary whose actual read-back is compared with an independent expected count. |
+| Job compiler fixtures | `cargo run --example job_compiler --no-default-features --features native-tooling` with [explicit Cargo configuration](examples/job_compiler/README.md) | The Job declaration crosses a caller crate boundary, executes an independent lawful assertion and refuses a wrong state at an exact diagnostic anchor. |
+| Job reader coverage | `cargo run --example job_coverage --no-default-features --features native-tooling` with [explicit Cargo configuration](examples/job_coverage/README.md) | The record reader retains independently expected novel inputs, refuses exhausted budgets and attributes every reported point to the selected fixture. |
 | Stable coverage composition | `cargo run --example rustc_coverage` | Stable rustc instrumentation supplies source-region novelty to corpus, reduction, and replay composition. |
+| Bounded native coverage | `cargo run --example coverage_workflow --features native-tooling` with [explicit stdin configuration](examples/coverage_workflow/README.md) | Instrumented compilation, matching LLVM execution and corpus replay use bounded native processes. |
+| Retained native mutation | `cargo run --example mutation_workflow --features native-tooling` with [explicit stdin configuration](examples/mutation_workflow/README.md) | A selected backend executes, retains its original command/source manifest and compares historical source claims with current files. |
+| Independent mutation assessment | `cargo run --example mutation_assessment --features native-tooling` with [explicit stdin actions](examples/mutation_assessment/README.md) | Actual unchanged and mutated programs supply observations for independent weak and strong witnesses, followed by an unadmitted proposal, bounded historical retention and current-binding replay of the saved result. |
+| Generated structural mutations | [Generate a selected source, then execute compiler_workflow](examples/structural_mutation/README.md) | Codec, transition and effect alternatives compile and disagree with unchanged, independently authored checks. |
+| Declared enum mutation | [Run the library-and-consumer example](examples/enum_mutation/README.md) | Attribute and recipe carriers preserve generated order alternatives and withhold an unpermitted discovered point. |
+| Generated publication | `cargo run --example publication_workflow --features native-tooling` with [explicit stdin configuration](examples/publication_workflow/README.md) | One registered generator prepares, optionally formats, privately compiles, installs and checks its complete owned output. |
+| Shared definition publication | `cargo run --example job_publication --no-default-features --features native-tooling` with [explicit stdin configuration](examples/job_publication/README.md) | A shared macro and its sites retain complete destination checks while independent compiled assertions expose changed values. |
+| Retained benchmark | `cargo run --example benchmark_workflow --features native-tooling` | Real counted work and an executed worse control enter a complete benchmark report and bounded historical storage. |
 
 The compile-contract example is intentionally the pure comparison half.
-The caller that actually runs rustc or Cargo owns that effect, structured diagnostic extraction, and the provenance of the observation it supplies.
+The optional [native compiler host](src/native_compiler/README.md) executes explicitly configured rustc or Cargo fixtures, extracts structured diagnostics and connects compiled read-back to those same comparators.
+
+For a specific task, start at its owner:
+
+| Task | Start here |
+| --- | --- |
+| Write a recipe clause or configure a projection | [Recipe clause forms](macros/compiler/src/recipe/README.md#clause-forms) |
+| Generate consuming phase methods over caller-owned resources | [Consuming transitions](macros/compiler/src/recipe/README.md#consuming-transitions) |
+| Reuse checked newtype construction or typed fixture registration | [Source patterns](src/pattern/README.md) |
+| Replace a projection algorithm | [Callable projector](macros/compiler/README.md#raw-callable-road) |
+| Define a kind, role or complete disposition set | [Kind](macros/compiler/src/kind/README.md) |
+| Publish a shared macro definition and its adoption sites | [Runnable publication](macros/compiler/src/stamp/README.md#runnable-publication) |
+| Compose generated tokens or preserve exact authored Rust | [Token generation](macros/compiler/src/token/generation/README.md) |
+| Generate canonical encode and decode methods | [Codec](macros/compiler/src/codec/README.md) |
+| Declare trial, benchmark or mutation material | [Descriptor adapter](macros/compiler/src/descriptor/README.md) |
+| Invoke deferred test or benchmark cargo through `macroonz::support!` | [Support carrier](macros/compiler/src/support/README.md#invocation) |
+| Add an independent judgment | [Handwritten property](harness/README.md#direct-handwritten-property) or [Oracle](harness/src/oracle/README.md) |
+| Replay a retained witness against current code | [Saved-witness execution](harness/src/runner/README.md#saved-witness-replay) and [Historical comparison](harness/src/report/replay/README.md) |
+| Execute declared input, retain a complete run and replay saved witnesses | [Root workflow](src/workflow/README.md) |
+| Inspect or override versioned resource defaults | [Mechanical configuration](src/configuration/README.md) |
+| Display complete results and owner-specific failures as JSON, Markdown or HTML | [Presentation](src/presentation/README.md) and [Executable trial display](examples/trial_workflow/README.md) |
+| Run a benchmark and retain every reached outcome | [Benchmark workflow](src/workflow/benchmark/README.md) |
+| Execute compiler fixtures and compare exact diagnostics or compiled values | [Native compiler fixtures](src/native_compiler/README.md) |
+| Execute coverage campaigns with bounded native tools and declared source roots | [Native coverage](src/native_coverage/README.md) |
+| Execute mutations and retain source/version/command custody | [Native mutation](src/native_mutation/README.md) |
+| Generate, format, check or recover owned published files | [Publication commands](src/native_publication/command/README.md) |
+| Interpret a refusal and its location | [Diagnostic](macros/compiler/src/diagnostic/README.md) |
 
 The shipped [Macroonz agent skill](skills/macroonz/SKILL.md) is a one-page routing surface for agents authoring recipes from the packaged facade.
 
@@ -247,8 +295,13 @@ Cargo features are additive, so the lighter postures are selected by turning off
 | **diet** | `cargo add macroonz --no-default-features` | Recipe entrance, compiler, and proc declarations; harness-owned evidence bakes are typed unavailable. |
 
 The `preemption` feature always implies `harness`.
+The `harness` feature also supplies `macroonz::support!`, [root input execution](src/workflow/README.md#execute), composing the existing decoder and complete-table runner, and [record presentation](src/presentation/README.md).
 On a native target supported by the pinned Loom backend, enabling `preemption` installs that backend.
 On every other target, including Wasm, the same harness result plane remains available and reports typed backend unavailability instead of trying to compile Loom.
+
+The optional `native-tooling` feature adds the root [native clock source](src/native_clock/README.md), [bounded native storage](src/native_storage/README.md), [native process execution](src/native_process/README.md), [compiler fixtures](src/native_compiler/README.md), [native coverage](src/native_coverage/README.md), [native mutation](src/native_mutation/README.md) and [publication commands](src/native_publication/README.md), and implies `harness` without enabling preemption.
+It is independent of the default `full` posture.
+Pass `macroonz::native_clock::source()` to an existing harness runner or benchmark when native measurement is wanted; the harness retains its existing clock and measurement contracts.
 
 ---
 

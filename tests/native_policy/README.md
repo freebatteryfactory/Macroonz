@@ -1,0 +1,61 @@
+# Native-effect qualification
+
+This lane derives the permitted root Clippy profile from the repository's canonical strict configuration.
+The derivation removes exactly the declared Instant entry and preserves every other source byte.
+Unexpected policy shape refuses preparation.
+
+The explicitly selected wall checks compiler, proc and harness packages strictly, checks every ordinary root feature posture strictly, and checks the native root posture with the derived profile.
+All selections use the same source checkout.
+Nested Cargo commands use the parent test's target directory so a fresh compiler subject does not create a separate dependency cache.
+Each consumer question has a distinct source filename within its invocation, and its manifest selects that file for both host and Wasm checks.
+The source path participates in Cargo's compilation fingerprint, keeping distinct questions separate while dependencies share the ordinary target.
+Independent disposable compiler subjects distinguish clock permission from still-forbidden environment and SystemTime operations.
+The relaxed pass alone is insufficient.
+Switching the independent clock subject from strict to native and back leaves its source and target untouched, so the final refusal cannot depend on rewriting its source to force a rebuild.
+
+Independent consumer manifests require both native clock and storage entrances to be absent in diet, harness-only and ordinary full postures and present with only native-tooling selected.
+The opted-in consumer executes on the current host and compiles for Wasm; cross-compilation alone does not execute the unavailable-target branch.
+Normal dependency graphs independently cover diet, harness, full, native-only and full-plus-native consumer manifests on all targets and on Wasm.
+The storage dependency family must appear only in an opted-in native-target graph.
+The same independently resolved normal graphs require the compiler and proc owners, exclude harness/runtime dependencies in diet, and require the harness without Loom in harness-only and native-only postures.
+Full postures require Loom on the all-target graph, while every Wasm graph excludes its scheduler and generator.
+Repository-only trybuild must remain absent from every normal graph.
+Independently altered graph controls refuse leaked dependencies, missing owners and missing or misplaced preemption backends.
+
+The native dependency crossings exercise directory-relative reads and writes, traversal and pre-existing link escape refusal, exclusive creation, non-overwriting hard-link publication, bounded reading and exclusive file-lock custody.
+These observations qualify the selected filesystem primitives on the current host; they do not establish a complete storage transaction, crash recovery or power-loss durability.
+
+Public storage controls independently exercise whole-batch readback, aggregate bounds, collision refusal, unpublished recovery, unexpected-file preservation and directory-link escape refusal.
+A child process writes the first payload through the public transaction API, then the parent terminates it and requires explicit recovery before readback.
+The ignored child entry is invoked only by that control and is not a standalone campaign.
+These controls observe process interruption, not power-loss durability.
+Native mutation controls execute cargo-mutants against independently tested Cargo subjects, distinguish caught and inconclusive readings, and refuse failed baselines.
+Exact source selection excludes a nested file with the same basename.
+Version/query failures, pending cleanup, floods, deadlines, source bounds, link escapes, unreported source movement and historical/current comparisons cross the root API.
+The public mutation example executes and retains a separately authored subject through canonical storage.
+Publication inventory controls bind independently declared compiler units and stamp landings, refuse incomplete or crossed records and portable path collisions, and distinguish canonical token commitments from physical publication bytes.
+The [publication controls](publication/README.md) additionally observe actual formatter execution, complete prepared sets and private staged compilation through Cargo and rustc.
+Independent feature consumers refuse access to mutation tooling without the native feature and refuse rewriting its admitted requests, finished context and historical source comparison.
+An independent compiler consumer accepts the public constructors and one consuming commit, then refuses forged names, unadmitted batches and reuse after commit.
+
+Root workflow controls compare composition with explicit input/runner/archive calls while independently observing decoder, subject and reduction-probe counts.
+The public job example executes caller-authored completion and round-trip checks through its generated unit-input table, preserves the complete denominator under text suite selection and refuses an absent suite.
+The complete census, original input and earned reached witness survive one native batch; fresh child processes independently select defective and fixed implementations and execute the saved witness once.
+The Job retention caller preserves the independent work-count bound, nonfailing reduction refusal and reached witness across separate native processes.
+Its controls corrupt and truncate every retained member, and a second vocabulary changes only the expected population at the same caller admission boundary without executing anything.
+Corrupt records, valid but unrelated inputs/capsules, write failure and interrupted retention preserve their separate refusal planes.
+
+Benchmark controls execute the public example's actual counted work and repeated-scan control, with independent expected counts and hostile preflight, recorder and judgment cases.
+Complete report storage preserves refused rows, simultaneous judgment failures, and unavailable, zero or failed secondary readings.
+Loading does not call executable attachments, and bounded write refusal, collision, recovery and corruption remain independent of benchmark conclusions.
+The example's declaration and subject are shared caller material; expected stages, counts and damage controls are separately authored in the lane.
+
+Presentation controls independently read every JSON node and both escaped tables, retaining empty containers, unselected rows, failures, source bytes and historical standing.
+The public trial example executes selection, the complete table and a real disagreement in a fresh process; its emitted formats are read against independently stated outcomes.
+Independent consumer manifests check the presentation entrance, opaque value and native-only readers on the current target and Wasm.
+The publication example and renamed facade adopter display actual command outputs and failures while preserving process exit status, generated executable read-back and destination custody.
+
+This is repository qualification through an existing package test target.
+Derived configuration and compiler subjects remain disposable under target/qualification.
+The lane recreates them from repository source and requires no preserved campaign output after cargo clean.
+It defines no public library API or adopter service, and it is not a process-deadline enforcement mechanism.

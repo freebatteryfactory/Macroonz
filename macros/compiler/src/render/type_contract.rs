@@ -8,6 +8,7 @@ use crate::diagnostic::{
     Family, LineBody, Observed, Phase, RENDERING_FAMILY, REPAIR_LIMIT, RefusalClass, Refused,
     RenderedMagnitude, Repair,
 };
+use crate::token::GeneratedTreeRefusal;
 use core::fmt;
 
 impl RenderError {
@@ -22,6 +23,7 @@ impl RenderError {
             Self::BytesUnbounded { .. } => 3,
             Self::UnitsUnbounded { .. } => 4,
             Self::TokensUnbounded { .. } => 5,
+            Self::TokenInvalid { .. } => 6,
         }
     }
 }
@@ -53,11 +55,25 @@ impl fmt::Display for RenderError {
                 "a generated tree passed {}: {observed} offered where {bound} are declared",
                 RenderedMagnitude::GeneratedTokens.described()
             ),
+            Self::TokenInvalid { position, issue } => {
+                write!(into, "generated token {position} refused: {issue}")
+            }
         }
     }
 }
 
 impl core::error::Error for RenderError {}
+
+impl From<GeneratedTreeRefusal> for RenderError {
+    fn from(refusal: GeneratedTreeRefusal) -> Self {
+        match refusal {
+            GeneratedTreeRefusal::Unbounded(overflow) => overflow.into(),
+            GeneratedTreeRefusal::Token { position, issue } => {
+                Self::TokenInvalid { position, issue }
+            }
+        }
+    }
+}
 
 impl From<Overflow> for RenderError {
     /// The refusal a generated tree that outgrew its per-level magnitude makes.
@@ -77,7 +93,7 @@ impl Refused for RenderError {
 
     fn class(&self) -> RefusalClass {
         match self {
-            Self::NothingRendered | Self::SeatUnplanned { .. } => {
+            Self::NothingRendered | Self::SeatUnplanned { .. } | Self::TokenInvalid { .. } => {
                 RefusalClass::RenderingNotProduced
             }
             Self::BytesUnbounded { .. }
@@ -93,7 +109,9 @@ impl Refused for RenderError {
     fn observed(&self) -> Observed {
         match self {
             Self::NothingRendered => Observed::SeatAbsent,
-            Self::SeatUnplanned { .. } => Observed::ContractDisagreement,
+            Self::SeatUnplanned { .. } | Self::TokenInvalid { .. } => {
+                Observed::ContractDisagreement
+            }
             Self::BytesUnbounded { .. }
             | Self::UnitsUnbounded { .. }
             | Self::TokensUnbounded { .. } => Observed::BoundExceeded,

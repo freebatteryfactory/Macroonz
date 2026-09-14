@@ -1,45 +1,8 @@
 //! Reading one authored trial declaration out of a typed token tree.
 //!
-//! # The authored grammar
-//!
-//! ```text
-//! #[<helper>(
-//!     support = <exported name>,
-//!     module = <stamped module name>,
-//!     table = named("<namespace>", "<stem>"),
-//!
-//!     suite <seat> = named("<namespace>", "<stem>") {
-//!         <lens> {
-//!             claim = named("<namespace>", "<stem>"),
-//!             roles = [named("<namespace>", "<stem>"), ...],
-//!             tags = [named("<namespace>", "<stem>"), ...],
-//!             subject = named("<namespace>", "<stem>"),
-//!             check = named("<namespace>", "<stem>"),
-//!             population = named("<namespace>", "<stem>"),
-//!         },
-//!     },
-//! )]
-//! ```
-//!
-//! The helper's own spelling is the caller's, which is why `<helper>` stands where a word would: a door registers the attribute it wants and hands the same [`Grammar`] to this reading, so a refusal names the word an author actually wrote.
-//!
-//! `roles` and `tags` are rosters and may be left out; the other four row clauses are required.
-//! A row that classifies itself with nothing is a lawful row, and requiring an author to write `roles = []` would be requiring a sentence that says what silence already says.
-//!
-//! # What has no clause, and why
-//!
-//! The producer's own act — the door, the producer's name, and the projection that emitted the rows — is composed inside the rendering from the emitter the caller declares. An author who could state one would be signing an act these services performed.
-//!
-//! The consumption target's host facts — the two revision commitments, the callable that reaches a row's conclusion, the declared budgets, the target and toolchain, and the clock — arrive as expressions at the carrier's own invocation, inside the test target that owns them.
-//!
-//! Every one of those keys reaches [`CaptureCause::ClauseUndeclared`].
-//!
-//! # Order
-//!
-//! Clause order inside a body is free and is read by key.
-//! Order between ROSTER members is meaning and is preserved: the suites in the order they were written, the rows under each seat in the order they were written, and each row's roles and tags in the order they were written.
+//! The [authored grammar](super#authored-grammar) belongs to this home's public documentation.
 
-use super::{References, Row, SuiteGroup, TrialCaptureError, Trials};
+use super::{AttachmentExpressions, References, Row, SuiteGroup, TrialCaptureError, Trials};
 use crate::descriptor::clause::{
     Clause, assigned, assignment_clauses, declaration_clauses, identifier, named_reference,
     named_value,
@@ -81,12 +44,12 @@ const CHECK: &str = "check";
 const POPULATION: &str = "population";
 
 /// The clause keys this grammar declares at a declaration's own level.
-const DECLARABLE: [&str; 3] = [SUPPORT, MODULE, TABLE];
+const DECLARABLE: [&str; 4] = [SUPPORT, MODULE, TABLE, "input"];
 
 /// The clause keys one row admits.
 ///
 /// Its own roster rather than the declaration level's, because the two levels admit different keys and one roster standing for both would let a table's clause be written inside a row and read as lawful.
-const DECLARABLE_ROW: [&str; 6] = [CLAIM, ROLES, TAGS, SUBJECT, CHECK, POPULATION];
+const DECLARABLE_ROW: [&str; 7] = [CLAIM, ROLES, TAGS, SUBJECT, CHECK, POPULATION, "binding"];
 
 /// Read one trial payload out of the helper attribute's body.
 ///
@@ -111,8 +74,15 @@ pub fn captured(
             groups.push(suite_group(grammar, suite.seat, &suite.suite, &suite.rows)?);
         }
     }
-    Trials::declared(support, module, table, groups)
-        .map_err(|refusal| carried(grammar, refusal, at))
+    let trials = Trials::declared(support, module, table, groups)
+        .map_err(|refusal| carried(grammar, refusal, at))?;
+    if let Some((_, input_at)) = assigned(&clauses, "input") {
+        trials
+            .with_input(expression(grammar, &clauses, "input", input_at)?)
+            .map_err(|refusal| carried(grammar, refusal, input_at))
+    } else {
+        Ok(trials)
+    }
 }
 
 /// One established grammar refusal at one token.
@@ -289,5 +259,59 @@ fn row(
     };
     let roles = roster(grammar, &clauses, ROLES)?;
     let tags = roster(grammar, &clauses, TAGS)?;
-    Row::declared(lens, references, roles, tags).map_err(|refusal| carried(grammar, refusal, at))
+    let row = Row::declared(lens, references, roles, tags)
+        .map_err(|refusal| carried(grammar, refusal, at))?;
+    let Some((value, binding_at)) = assigned(&clauses, "binding") else {
+        return Ok(row);
+    };
+    Ok(row.with_attachment(attachment(grammar, value, binding_at)?))
+}
+
+fn attachment(
+    grammar: Grammar,
+    value: &[&CapturedTokenTree],
+    at: SpanHandle,
+) -> Result<AttachmentExpressions, TrialCaptureError> {
+    let [body] = value else {
+        return Err(refused(grammar, CaptureCause::GroupUnread, at));
+    };
+    let Some((CapturedDelimiter::Brace, inner)) = body.group() else {
+        return Err(refused(grammar, CaptureCause::GroupUnread, body.span()));
+    };
+    let trees = inner.iter().collect::<Vec<_>>();
+    let clauses = assignment_clauses(
+        grammar,
+        &trees,
+        &["subject_revision", "check_revision", "call"],
+        refused,
+    )?;
+    AttachmentExpressions::declared(
+        expression(grammar, &clauses, "subject_revision", at)?,
+        expression(grammar, &clauses, "check_revision", at)?,
+        expression(grammar, &clauses, "call", at)?,
+    )
+    .map_err(|error| carried(grammar, error, at))
+}
+
+fn expression<N>(
+    grammar: Grammar,
+    clauses: &[Clause<'_, N>],
+    key: &str,
+    at: SpanHandle,
+) -> Result<crate::token::GeneratedTree, TrialCaptureError> {
+    let (value, at) =
+        assigned(clauses, key).ok_or_else(|| refused(grammar, CaptureCause::ClauseAbsent, at))?;
+    let [body] = value else {
+        return Err(refused(grammar, CaptureCause::GroupUnread, at));
+    };
+    let fragment = body
+        .group_fragment(CapturedDelimiter::Brace)
+        .ok_or_else(|| refused(grammar, CaptureCause::GroupUnread, body.span()))?;
+    fragment.generated().map_err(|error| {
+        refused(
+            grammar,
+            CaptureCause::ClauseUnread,
+            error.token().unwrap_or(at),
+        )
+    })
 }

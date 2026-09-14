@@ -1,0 +1,5 @@
+error[E0616]: field `value` of struct `BoundInput` is private
+ --> tests/compile_refusals/compile-fail/input-value-cannot-be-replaced-after-admission.rs:4:11
+  |
+4 |     input.value = 9;
+  |           ^^^^^ private field

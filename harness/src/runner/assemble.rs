@@ -6,39 +6,47 @@
 use super::resolve::{execution_key, execution_revisions, row_revision, trial_identity};
 use super::select::admission;
 use super::types::{Admission, Invocation, SelectionPlan, TrialBinding, TrialTableView};
-use crate::clock::MeasurementReading;
+use crate::clock::{ClockAttribution, MeasurementReading};
 use crate::report::{
     RunAttempt, RunReport, SelectionDisposition, SelectionOutcome, TrialAccounting, TrialReport,
     TrialRunStanding, attachment_replay_posture,
 };
 
 /// Admit one attempt under the standing derived from its binding and invocation.
-pub(super) fn trial_report(
-    binding: &TrialBinding,
-    invocation: &Invocation,
+pub(super) fn trial_report<Input>(
+    binding: &TrialBinding<Input>,
+    invocation: &Invocation<Input>,
     attempt: RunAttempt,
     measurement: MeasurementReading,
+    clock_attribution: ClockAttribution,
 ) -> TrialReport {
     let attachment = binding.attachment();
-    let standing = TrialRunStanding::derived(
-        execution_key(binding, invocation),
-        attachment_replay_posture(
-            attachment.subject_revision().posture(),
-            attachment.check_revision().posture(),
-        ),
+    let mut replay = attachment_replay_posture(
+        attachment.subject_revision().posture(),
+        attachment.check_revision().posture(),
     );
-    TrialReport::recorded(standing, invocation.site(), attempt, measurement)
+    if let Some(input) = invocation.input_standing() {
+        replay = replay.meet_revision(input.posture());
+    }
+    let standing = TrialRunStanding::derived(execution_key(binding, invocation), replay);
+    TrialReport::recorded(
+        standing,
+        invocation.site(),
+        attempt,
+        measurement,
+        clock_attribution,
+    )
 }
 
 /// Assemble one complete report through the selected-row adapter its caller supplies.
 ///
 /// The walk is over every binding the view presents, always, so the census carries one entry per row of the world whether this invocation named it or not.
 /// The disposition is read before anything executes, so a row nobody ran can never appear as an attempt.
-pub(super) fn run_report<E>(
-    view: &TrialTableView<'_>,
+pub(super) fn run_report<Input, E>(
+    view: &TrialTableView<'_, Input>,
     selection: &SelectionPlan,
-    invocation: &Invocation,
-    mut selected_report: impl FnMut(&TrialBinding) -> Result<TrialReport, E>,
+    invocation: &Invocation<Input>,
+    mut selected_report: impl FnMut(&TrialBinding<Input>) -> Result<TrialReport, E>,
 ) -> Result<RunReport, E> {
     let mut census = Vec::new();
     let mut selected = 0usize;
@@ -65,5 +73,6 @@ pub(super) fn run_report<E>(
         SelectionOutcome::read(selection.expects(), selected),
         invocation.profile(),
         invocation.target().clone(),
+        invocation.input_standing(),
     ))
 }

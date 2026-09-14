@@ -91,6 +91,9 @@ impl RecipeIssue {
             Self::ProjectionSubjectRequired { role, expected } => {
                 write!(into, "projection `{}` requires {expected}", role.name())
             }
+            Self::ConsumingBinding { name, expected } => {
+                write!(into, "consuming binding `{name}` requires {expected}")
+            }
             Self::AllowedAbsenceNeedsFallback => into.write_str(
                 "dispatch with allowed absence requires an explicit caller-owned fallback",
             ),
@@ -127,6 +130,9 @@ impl RecipeIssue {
                 RecipeRepair::ProjectionSelection.absent()
             }
             Self::ProjectionSubjectRequired { .. } => RecipeRepair::ProjectionSubject.absent(),
+            Self::ConsumingBinding { .. } => {
+                RecipeRepair::ProjectionSubject.contract_disagreement()
+            }
             Self::Grammar(crate::token::CaptureReadIssue::SequenceUnbounded { .. }) => {
                 RecipeRepair::SequenceLimit.bound_exceeded()
             }

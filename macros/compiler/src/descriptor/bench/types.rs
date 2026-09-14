@@ -26,7 +26,7 @@ pub const WORK_FORMULA_LIMIT: usize = 256;
 
 /// Work-observation bindings one row may name.
 ///
-/// Each observation is one counted quantity the gate reads against the declared formula, and a row observing more than this has stopped measuring one workload.
+/// The target-owned judge reads these counted quantities with the optional formula bytes.
 pub const WORK_OBSERVATION_LIMIT: usize = 8;
 
 /// Rows one bench table may declare.
@@ -88,7 +88,7 @@ pub enum ContentionPosture {
 
 /// One declared work formula, as the declaration's own encoded bytes.
 ///
-/// Carried as BYTES rather than as a name, because two different formulas an owner happened to name alike would encode identically — and the gate reads work counts against the formula rather than against what it is called.
+/// The target-owned judge receives these bytes; the compiler does not interpret them.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct WorkFormula {
     encoded: Bounded<u8, WORK_FORMULA_LIMIT>,
@@ -135,7 +135,7 @@ pub struct Measurement {
     pub contention: ContentionPosture,
     /// The declared work formula, where the operation states one.
     ///
-    /// Optional because only some operations declare one, and the absence is a STATED fact: where a formula is declared the gate reads work counts against it, and where none is declared there is no work count to read.
+    /// Absence leaves the target-owned work observations and judge in place.
     pub work_formula: Option<WorkFormula>,
 }
 

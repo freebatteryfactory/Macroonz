@@ -1,61 +1,118 @@
 //! The shipped skill's first complete recipe executes unchanged against an independent four-pair policy expectation.
 
-use crate::scratch::command_refusal;
+use crate::scratch::{
+    cargo, command_refusal, lock_from_repository, manifest_path, repository_root,
+};
 use std::path::Path;
-use std::process::Command;
 
-pub(super) fn prepare(root: &Path) -> Result<(), String> {
+pub(super) fn prepare(root: &Path, destination: &Path) -> Result<(), String> {
     let skill = std::fs::read_to_string(root.join("skills/macroonz/SKILL.md"))
         .map_err(|error| error.to_string())?;
     let recipe = first_recipe(&skill)?;
-    let consumer = format!(
+    std::fs::write(destination, consumer(recipe)).map_err(|error| error.to_string())
+}
+
+fn consumer(recipe: &str) -> String {
+    with_policy(recipe, "matches!(capability, access::Capability::Read)")
+}
+
+fn with_policy(recipe: &str, expected: &str) -> String {
+    format!(
         r"//! The packaged skill's recipe and a caller-owned policy expectation.
 {recipe}
 fn main() {{
     for stage in [access::Stage::Draft, access::Stage::Published] {{
         for capability in [access::Capability::Read, access::Capability::Write] {{
-            let expected = matches!(capability, access::Capability::Read);
+            let expected = {expected};
             assert_eq!(access::baked::policy::contains(&stage, &capability), expected);
         }}
     }}
 }}
 "
-    );
-    std::fs::write(root.join("archive_skill.rs"), consumer).map_err(|error| error.to_string())
+    )
 }
 
-pub(super) fn execute(root: &Path, target: &Path) -> Result<(), String> {
-    let executable = target.join(format!("archive-skill{}", std::env::consts::EXE_SUFFIX));
-    let compiled = Command::new("rustc")
-        .args(["+1.98.1", "--edition=2024", "-Dwarnings", "-Funsafe_code"])
-        .arg(root.join("archive_skill.rs"))
-        .arg("--extern")
-        .arg(format!(
-            "macroonz={}",
-            target.join("debug/libmacroonz.rlib").display()
-        ))
-        .arg("-L")
-        .arg(format!(
-            "dependency={}",
-            target.join("debug/deps").display()
-        ))
-        .arg("-o")
-        .arg(&executable)
-        .output()
+pub(super) fn observe_adoption(scratch: &Path) -> Result<(), String> {
+    let root = repository_root()?;
+    let skill = std::fs::read_to_string(root.join("skills/macroonz/SKILL.md"))
         .map_err(|error| error.to_string())?;
-    if !compiled.status.success() {
-        return Err(command_refusal("packaged skill compilation", &compiled));
+    let recipe = first_recipe(&skill)?;
+    assert_eq!(recipe.matches("(Draft, Read);").count(), 1usize);
+    assert_eq!(recipe.matches("typestate(Stage);").count(), 1usize);
+    let source = consumer(recipe);
+    let manifest = format!(
+        r#"[package]
+name = "documented-policy-adopter"
+version = "0.0.0"
+edition = "2024"
+publish = false
+build = false
+
+[[bin]]
+name = "documented-policy-adopter"
+path = "main.rs"
+
+[dependencies]
+macroonz = {{ path = "{}", default-features = false }}
+
+[lints.rust]
+warnings = "deny"
+unsafe_code = "forbid"
+
+[workspace]
+"#,
+        manifest_path(root)?,
+    );
+    std::fs::write(scratch.join("Cargo.toml"), manifest).map_err(|error| error.to_string())?;
+    std::fs::write(scratch.join("main.rs"), &source).map_err(|error| error.to_string())?;
+    let locked = lock_from_repository(scratch)?;
+    if !locked.status.success() {
+        return Err(command_refusal("documented adopter lock", &locked));
     }
-    let executed = Command::new(executable)
-        .output()
-        .map_err(|error| error.to_string())?;
-    if !executed.status.success() {
+    let first = cargo(scratch, &["run", "--locked", "--offline"])?;
+    if !first.status.success() {
+        return Err(command_refusal("documented adopter execution", &first));
+    }
+    let wrong = consumer(&recipe.replace("(Draft, Read);", "(Draft, Write);"));
+    std::fs::write(scratch.join("main.rs"), wrong).map_err(|error| error.to_string())?;
+    let disagreed = cargo(scratch, &["run", "--locked", "--offline"])?;
+    if disagreed.status.success()
+        || !String::from_utf8_lossy(&disagreed.stderr).contains("assertion `left == right` failed")
+    {
         return Err(command_refusal(
-            "packaged skill policy expectation",
-            &executed,
+            "independent policy disagreement",
+            &disagreed,
         ));
     }
+    let missing = consumer(&recipe.replace("typestate(Stage);", "typestate(Missing);"));
+    std::fs::write(scratch.join("main.rs"), missing).map_err(|error| error.to_string())?;
+    let refused = cargo(scratch, &["check", "--locked", "--offline"])?;
+    if refused.status.success()
+        || !String::from_utf8_lossy(&refused.stderr).contains("names no authored enum `Missing`")
+    {
+        return Err(command_refusal("documented selection refusal", &refused));
+    }
+    std::fs::write(scratch.join("main.rs"), source).map_err(|error| error.to_string())?;
+    let repaired = cargo(scratch, &["run", "--locked", "--offline"])?;
+    if !repaired.status.success() {
+        return Err(command_refusal("documented adopter repair", &repaired));
+    }
     Ok(())
+}
+
+pub(super) fn extension(root: &Path) -> Result<[String; 2], String> {
+    let skill = std::fs::read_to_string(root.join("skills/macroonz/SKILL.md"))
+        .map_err(|error| error.to_string())?;
+    let recipe = first_recipe(&skill)?;
+    assert_eq!(recipe.matches("(Draft, Read);").count(), 1usize);
+    let changed = recipe.replace("(Draft, Read);", "(Draft, Write);");
+    Ok([
+        consumer(&changed),
+        with_policy(
+            &changed,
+            "matches!((&stage, &capability), (access::Stage::Draft, access::Capability::Write) | (access::Stage::Published, access::Capability::Read))",
+        ),
+    ])
 }
 
 pub(super) fn first_recipe(skill: &str) -> Result<&str, String> {

@@ -48,6 +48,12 @@ pub(super) fn typestate(recipe: &Recipe) -> Result<GeneratedTree, ProjectionErro
     ));
     items.extend(stage_inherent()?);
     items.extend(stage_default()?);
+    if let Some(configuration) = recipe
+        .effective(RecipeRole::Typestate)
+        .and_then(EffectiveProjection::consuming)
+    {
+        items.extend(super::consuming::items(recipe, subject, configuration)?);
+    }
     let projected = decorated(
         vec![documentation(
             "Type-level stages derived from the caller-authored state vocabulary.",
@@ -55,7 +61,7 @@ pub(super) fn typestate(recipe: &Recipe) -> Result<GeneratedTree, ProjectionErro
         public(),
         inline_module(GeneratedToken::word("typestate"), items)?,
     );
-    GeneratedTree::assembled(projected).map_err(ProjectionError::Tokens)
+    GeneratedTree::assembled(projected).map_err(ProjectionError::from)
 }
 
 fn stage_trait() -> Result<Vec<GeneratedToken>, ProjectionError> {

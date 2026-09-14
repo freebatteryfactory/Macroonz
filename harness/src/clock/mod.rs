@@ -5,6 +5,6 @@ mod read;
 mod types;
 
 pub use types::{
-    ClockFailure, ClockReadRefusal, HarnessClock, MeasurementReading, MeasurementStart,
-    MeasurementTick, RecordedDuration,
+    ClockAttribution, ClockFailure, ClockReadRefusal, HarnessClock, MeasurementReading,
+    MeasurementStart, MeasurementTick, RecordedDuration,
 };

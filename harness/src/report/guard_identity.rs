@@ -3,10 +3,11 @@
 use crate::descriptor::{CanonicalRowBytes, RevisionBinding, TrialKey};
 use crate::identity::ContentAddress;
 use crate::report::{
-    ByteBudget, CaseBudget, CheckRevisionId, EXECUTION_KEY_TAG, ExecutionKey, ExecutionRevisions,
-    InvocationProfile, ProfiledTrial, ROW_REVISION_TAG, RowRevisionId, SubjectRevisionId,
-    TRIAL_IDENTITY_TAG, TargetBinding, TargetTriple, TimeBudget, ToolchainIdentity, TrialId,
-    TrialProfile, TrialSite, execution_key_preimage, trial_preimage,
+    ByteBudget, CaseBudget, CheckRevisionId, EXECUTION_KEY_TAG, ExecutionInput, ExecutionKey,
+    ExecutionRevisions, INPUT_EXECUTION_KEY_TAG, InvocationProfile, ProfiledTrial,
+    ROW_REVISION_TAG, RowRevisionId, SubjectRevisionId, TRIAL_IDENTITY_TAG, TargetBinding,
+    TargetTriple, TimeBudget, ToolchainIdentity, TrialId, TrialProfile, TrialSite,
+    execution_key_preimage, input_execution_key_preimage, trial_preimage,
 };
 
 impl ProfiledTrial {
@@ -296,7 +297,20 @@ impl ExecutionKey {
             revisions: ExecutionRevisions::bound(subject, check),
             invocation,
             target,
+            input: None,
         }
+    }
+
+    /// Join the specimen standing supplied by the runner's invocation.
+    pub(crate) fn with_input(mut self, input: Option<ExecutionInput>) -> Self {
+        self.input = input;
+        self
+    }
+
+    /// The admitted specimen standing, or the explicit unit-input road.
+    #[must_use]
+    pub const fn input(&self) -> Option<ExecutionInput> {
+        self.input
     }
 
     /// The trial this key executes.
@@ -338,6 +352,12 @@ impl ExecutionKey {
     /// The key's address, derived from its parts.
     #[must_use]
     pub fn address(&self) -> ContentAddress {
+        if let Some(input) = self.input {
+            return ContentAddress::derived(
+                INPUT_EXECUTION_KEY_TAG,
+                &input_execution_key_preimage(self, input),
+            );
+        }
         ContentAddress::derived(
             EXECUTION_KEY_TAG,
             &execution_key_preimage(

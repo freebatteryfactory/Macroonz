@@ -9,7 +9,8 @@ use crate::kind::{Kind, Role};
 use crate::origin::OriginTrail;
 use crate::plan::{MEMBERSHIP_LIMIT, Plan};
 use crate::token::{
-    CAPTURED_TOKEN_LIMIT, GeneratedTree, TEXT_SOURCE_BYTE_LIMIT, TOKEN_PATH_DEPTH_LIMIT,
+    CAPTURED_TOKEN_LIMIT, GeneratedTokenIssue, GeneratedTree, TEXT_SOURCE_BYTE_LIMIT,
+    TOKEN_PATH_DEPTH_LIMIT,
 };
 
 #[path = "type_guard.rs"]
@@ -68,8 +69,7 @@ pub struct Output<'plan, K: Kind> {
 /// How rendering says no.
 ///
 /// One refusal, at the first thing that goes wrong: a unit that cannot be materialized is not a unit, and the units after it were never written.
-/// Three rows name a declared magnitude and the two counts that passed it; the other two say a rendering and a plan's seats do not line up at all.
-#[must_use = "a rendering refusal names the seat or the magnitude the renderer would have passed"]
+#[must_use = "a rendering refusal names the seat, token or magnitude that prevented materialization"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RenderError {
     /// The renderer wrote no unit at all.
@@ -105,5 +105,12 @@ pub enum RenderError {
         bound: usize,
         /// The observed count.
         observed: usize,
+    },
+    /// An offered generated token has no spelling in its stated lexical role.
+    TokenInvalid {
+        /// The zero-based position in the generated tree's pre-order.
+        position: usize,
+        /// The lexical role that refused.
+        issue: GeneratedTokenIssue,
     },
 }

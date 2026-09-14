@@ -22,9 +22,7 @@ use macroonz_harness::runner::{Invocation, TrialBinding};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 mod facade_harness {
-    pub(crate) mod descriptor {
-        pub(crate) use macroonz_harness::descriptor::GeneratedSupportSchemaId;
-    }
+    pub(super) use macroonz_harness::generated_support;
 }
 
 const OWNER: &str = "harness.bench.consumer";
@@ -275,10 +273,27 @@ pub(super) fn preflight_with(
     call: fn(&Invocation) -> TrialConclusion,
     preflight_target: TargetBinding,
 ) -> Result<PreflightTrial, BenchStampRefusal> {
+    preflight_with_clock(
+        reference,
+        call,
+        preflight_target,
+        HarnessClock::unavailable(),
+    )
+}
+
+pub(super) fn preflight_with_clock(
+    reference: PreflightRef,
+    call: fn(&Invocation) -> TrialConclusion,
+    preflight_target: TargetBinding,
+    clock: HarnessClock,
+) -> Result<PreflightTrial, BenchStampRefusal> {
+    let base = preflight_invocation(preflight_target);
+    let invocation =
+        Invocation::declared(base.profile(), base.target().clone(), base.site(), clock);
     Ok(PreflightTrial::bound(
         reference,
         trial_binding(call)?,
-        preflight_invocation(preflight_target),
+        invocation,
     ))
 }
 
@@ -304,24 +319,28 @@ pub(super) fn lawful_binding() -> Result<BenchBinding, BenchStampRefusal> {
     binding(measured, planted_worse, lawful_judge, preflight_passes)
 }
 
-macroonz_harness::generated_support! {
-    expected: [
-        185, 251, 251, 45, 168, 146, 85, 42, 248, 177, 196, 48, 117, 229, 207, 5,
-        84, 120, 104, 25, 150, 41, 202, 2, 243, 73, 31, 148, 241, 22, 122, 34,
-    ],
-    harness: self::facade_harness,
-    benches: {
-        pub(super) fn lawful_table named("harness.bench.consumer", "neutral-benchmark-table") {
-            provenance: Provenance::Unproduced,
-            bindings: [lawful_binding()],
+macro_rules! staged_benchmark {
+    (@benches { $harness:ident } { $stamp:path } {}) => {
+        $stamp! {
+            pub(super) fn lawful_table named("harness.bench.consumer", "neutral-benchmark-table") {
+                provenance: Provenance::Unproduced,
+                bindings: [lawful_binding()],
+            }
         }
-    },
-    reporter: {
-        pub(super) fn render(report: &macroonz_harness::bench::BenchReport) {
+        pub(super) fn render(report: &$harness::bench::BenchReport) {
             std::hint::black_box((report.table(), report.provenance(), report.denominator()));
             for reading in report.readings() {
                 std::hint::black_box((reading.row().key(), reading.outcome().stage()));
             }
         }
-    },
+    };
+}
+
+facade_harness::generated_support! {
+    expected: [
+        185, 251, 251, 45, 168, 146, 85, 42, 248, 177, 196, 48, 117, 229, 207, 5,
+        84, 120, 104, 25, 150, 41, 202, 2, 243, 73, 31, 148, 241, 22, 122, 34,
+    ],
+    benches: staged_benchmark,
+    with: {},
 }

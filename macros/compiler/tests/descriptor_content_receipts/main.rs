@@ -16,6 +16,7 @@ use macroonz_compiler::{
 #[path = "../support/attribute_specimens.rs"]
 mod attribute_specimens;
 mod provider_roster;
+mod trial_bindings;
 
 use attribute_specimens::{BENCH_BODY, MUTATION_BODY, MUTATION_ITEM, TRIAL_BODY};
 

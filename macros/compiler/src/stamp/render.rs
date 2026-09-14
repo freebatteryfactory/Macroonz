@@ -214,6 +214,7 @@ fn refusing_arm(pattern: &Pattern) -> Result<Vec<GeneratedToken>, StampError> {
         GeneratedDelimiter::Parenthesis,
         vec![GeneratedToken::text(OPAQUE_REACH_REFUSAL)],
     )?);
+    expansion.push(GeneratedToken::alone(';'));
     rule(matcher, expansion)
 }
 

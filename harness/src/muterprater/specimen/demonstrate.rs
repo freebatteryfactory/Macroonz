@@ -7,12 +7,13 @@
 //! Generic pressure from a wrapped backend is a separate evidence book.
 //! It shows that a qualified external suite bit somewhere under its adapter profile, and it carries no pair or selection authority, so it cannot substitute for this road.
 
+use super::observe::observe_specimen;
 use super::types::{
-    ArtifactContent, CompiledProjectionPressure, CompiledProjectionRefusal, CompiledSpecimenHost,
-    CompiledSpecimenHostRefusal, CompiledSpecimenObservationMismatch, CompiledSpecimenRequest,
-    CompiledSpecimenRole, CompiledSpecimenStanding, SpecimenMaterializerBinding,
+    ArtifactContent, CompiledProjectionPressure, CompiledProjectionRefusal,
+    CompiledSpecimenContext, CompiledSpecimenHost, CompiledSpecimenHostRefusal,
+    CompiledSpecimenObservationMismatch, CompiledSpecimenRole, CompiledSpecimenStanding,
+    SpecimenMaterializerBinding, SpecimenObservationRefusal,
 };
-use crate::descriptor::CheckRef;
 use crate::muterprater::{
     ActiveSelection, AdmittedAlternative, EvaluationDirective, EvaluationPairStanding,
     EvaluationSurface, FamilyAttribution, MappingPosture, MutationIdentity, MutationPoint,
@@ -22,12 +23,6 @@ use crate::report::{ExecutionKey, HostTrialRecord, RunAttempt, TrialReport};
 use crate::runner::{
     Invocation, ReportRecordingRefusal, execution_key, lens_verdict, record_one, trial_identity,
 };
-
-/// The two immutable source artifacts, rendered before any host effect.
-struct MaterializedSpecimens {
-    baseline: ArtifactContent,
-    selected: ArtifactContent,
-}
 
 /// Why one host observation did not become a report.
 enum ObservationRefusal {
@@ -39,8 +34,7 @@ enum ObservationRefusal {
 /// The already-validated execution facts the baseline and selected observations share.
 struct ObservationSeat<'standing, 'input, Input, Meaning> {
     input: &'input Input,
-    execution: &'standing ExecutionKey,
-    check: CheckRef,
+    context: &'standing CompiledSpecimenContext,
     witness: &'standing MutationWitness<Meaning>,
     invocation: &'standing Invocation,
     host: CompiledSpecimenHost<Input, Meaning>,
@@ -55,35 +49,26 @@ impl<Input, Meaning> ObservationSeat<'_, '_, Input, Meaning> {
         operation: &'content [u8],
     ) -> Result<TrialReport, ObservationRefusal> {
         let measurement = self.invocation.clock().begin();
-        let request = CompiledSpecimenRequest::requested(
+        let meaning = observe_specimen(
             content,
             role,
             operation,
             self.input,
-            self.execution,
-            self.check,
-        );
-        let expected_content = request.content().identity();
-        let expected_role = request.role();
-        let expected_execution = request.execution().clone();
-        let expected_check = request.check();
-        let observation = (self.host)(request).map_err(ObservationRefusal::Host)?;
-        if let Some(mismatch) = observation.mismatch(
-            expected_content,
-            expected_role,
-            &expected_execution,
-            expected_check,
-        ) {
-            return Err(ObservationRefusal::Foreign(mismatch));
-        }
-        let meaning = observation.into_meaning();
+            self.context,
+            self.host,
+        )
+        .map_err(|cause| match cause {
+            SpecimenObservationRefusal::Host(cause) => ObservationRefusal::Host(cause),
+            SpecimenObservationRefusal::Foreign(cause) => ObservationRefusal::Foreign(cause),
+        })?;
         record_one(
             self.witness.binding(),
             self.invocation,
-            HostTrialRecord::recorded(
+            HostTrialRecord::recorded_with_attribution(
                 trial_identity(self.witness.binding().row()),
                 RunAttempt::Executed(self.witness.conclude(&meaning)),
                 measurement.finish(),
+                self.invocation.clock().attribution(),
             ),
         )
         .map_err(ObservationRefusal::Report)
@@ -91,12 +76,12 @@ impl<Input, Meaning> ObservationSeat<'_, '_, Input, Meaning> {
 }
 
 /// Render both artifact roles before any host effect, and require different exact bytes.
-fn materialize_specimens(
+pub(super) fn materialize_specimens(
     materializer: &SpecimenMaterializerBinding,
     selection: ActiveSelection,
     point: &MutationPoint,
     alternative: &AdmittedAlternative,
-) -> Result<MaterializedSpecimens, CompiledProjectionRefusal> {
+) -> Result<(ArtifactContent, ArtifactContent), CompiledProjectionRefusal> {
     let render = materializer.call();
     let baseline = ArtifactContent::recorded(
         render(EvaluationDirective::no_mutation())
@@ -111,7 +96,7 @@ fn materialize_specimens(
             baseline.identity(),
         ));
     }
-    Ok(MaterializedSpecimens { baseline, selected })
+    Ok((baseline, selected))
 }
 
 /// What the structural joins established, before any caller callback runs.
@@ -196,11 +181,12 @@ pub fn demonstrate_compiled_projection<'parity, 'pair, 'input, Input, Meaning>(
     let witness = parity.reading().witness();
     let check = witness.check_ref();
 
-    let specimens = materialize_specimens(materializer, selection, point, alternative)?;
+    let (baseline_content, selected_content) =
+        materialize_specimens(materializer, selection, point, alternative)?;
+    let context = CompiledSpecimenContext::recorded(pair, invocation);
     let observer = ObservationSeat {
         input: parity.reading().input(),
-        execution: &execution,
-        check,
+        context: &context,
         witness,
         invocation,
         host,
@@ -208,7 +194,7 @@ pub fn demonstrate_compiled_projection<'parity, 'pair, 'input, Input, Meaning>(
 
     let baseline_report = observer
         .observe(
-            &specimens.baseline,
+            &baseline_content,
             CompiledSpecimenRole::Baseline,
             point.original_operation(),
         )
@@ -225,7 +211,7 @@ pub fn demonstrate_compiled_projection<'parity, 'pair, 'input, Input, Meaning>(
 
     let selected_report = observer
         .observe(
-            &specimens.selected,
+            &selected_content,
             CompiledSpecimenRole::Selected(selection),
             alternative.operation(),
         )
@@ -250,7 +236,7 @@ pub fn demonstrate_compiled_projection<'parity, 'pair, 'input, Input, Meaning>(
         return Err(CompiledProjectionRefusal::ProjectionDidNotReject);
     };
     let standing = CompiledSpecimenStanding::recorded(
-        specimens.selected.identity(),
+        selected_content.identity(),
         pair,
         selection,
         execution,
@@ -258,7 +244,8 @@ pub fn demonstrate_compiled_projection<'parity, 'pair, 'input, Input, Meaning>(
     );
     Ok(CompiledProjectionPressure::demonstrated(
         parity,
-        specimens.baseline.identity(),
+        baseline_content,
+        selected_content,
         standing,
         baseline_report,
         selected_report,

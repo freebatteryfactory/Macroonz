@@ -186,10 +186,49 @@ fn encode_lowering(lowering: &super::EffectiveProjection, into: &mut Vec<u8>) {
             }
         }
     }
+    if let Some(consuming) = lowering.consuming() {
+        encode_consuming(consuming, into);
+    }
     let Some(exact) = lowering.exact_rust() else {
         return;
     };
     encode_bytes(&exact.canonical_bytes(), into);
+}
+
+fn encode_consuming(value: &super::ConsumingProjection, into: &mut Vec<u8>) {
+    encode_bytes(b"consuming-typestate/v1", into);
+    encode_bytes(value.wrapper().as_bytes(), into);
+    for rows in [
+        value.parameters().collect::<Vec<_>>(),
+        value.arguments().collect(),
+        value.predicates().collect(),
+    ] {
+        encode_length(rows.len(), into);
+        for row in rows {
+            encode_bytes(&row.canonical_bytes(), into);
+        }
+    }
+    encode_parameter(value.resource(), into);
+    encode_parameter(value.runtime(), into);
+    encode_bytes(&value.refusal().canonical_bytes(), into);
+    encode_bytes(&value.validator().canonical_bytes(), into);
+    encode_length(value.methods().count(), into);
+    for method in value.methods() {
+        encode_bytes(method.event().as_bytes(), into);
+        encode_bytes(method.name().as_bytes(), into);
+        match method.payload() {
+            None => into.push(0),
+            Some(payload) => {
+                into.push(1);
+                encode_parameter(payload, into);
+            }
+        }
+    }
+}
+
+fn encode_parameter(value: &super::ConsumingParameter, into: &mut Vec<u8>) {
+    encode_bytes(value.name().as_bytes(), into);
+    encode_bytes(&value.kind().canonical_bytes(), into);
 }
 
 fn encode_evidence(evidence: Option<&super::RecipeEvidence>, into: &mut Vec<u8>) {

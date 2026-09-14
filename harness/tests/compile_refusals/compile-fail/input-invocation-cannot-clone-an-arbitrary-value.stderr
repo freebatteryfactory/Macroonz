@@ -1,0 +1,19 @@
+error[E0599]: the method `clone` exists for struct `Invocation<BoundInput<u8>>`, but its trait bounds were not satisfied
+ --> tests/compile_refusals/compile-fail/input-invocation-cannot-clone-an-arbitrary-value.rs:7:29
+  |
+7 |     let _other = invocation.clone();
+  |                             ^^^^^ method cannot be called on `Invocation<BoundInput<u8>>` due to unsatisfied trait bounds
+  |
+ ::: src/runner/types.rs
+  |
+  | pub struct Invocation<Input = ()> {
+  | --------------------------------- doesn't satisfy `Invocation<BoundInput<u8>>: Clone`
+  |
+ ::: src/input/types.rs
+  |
+  | pub struct BoundInput<Input> {
+  | ---------------------------- doesn't satisfy `BoundInput<u8>: Clone`
+  |
+  = note: the following trait bounds were not satisfied:
+          `BoundInput<u8>: Clone`
+          which is required by `Invocation<BoundInput<u8>>: Clone`

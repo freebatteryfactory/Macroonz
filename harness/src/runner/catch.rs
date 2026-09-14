@@ -16,7 +16,7 @@
 //!
 //! [`AssertUnwindSafe`] is asserted over the call, and it is narrow.
 //! The closure environment holds shared references to the attachment and the invocation, and the subject is a function pointer with no captured state, so this boundary mutates no captured value across the catch.
-//! It claims nothing about state the subject reaches on its own: a subject that mutates a global leaves it exactly as its panic left it, and this boundary neither inspects nor repairs it.
+//! It claims nothing about state the subject reaches, including interior mutability in its typed input or a global: this boundary neither inspects nor repairs that state after a panic.
 //!
 //! # What is not caught
 //!
@@ -49,9 +49,9 @@ thread_local! {
 }
 
 /// The conclusion one attachment reaches, with a subject panic caught here and returned as a refusal.
-pub(super) fn caught_conclusion(
-    attachment: &ExecutableAttachment<Invocation, TrialConclusion>,
-    invocation: &Invocation,
+pub(super) fn caught_conclusion<Input>(
+    attachment: &ExecutableAttachment<Invocation<Input>, TrialConclusion>,
+    invocation: &Invocation<Input>,
 ) -> TrialConclusion {
     install_capture_hook();
     store_origin(None);

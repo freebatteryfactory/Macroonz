@@ -2,8 +2,8 @@
 
 use macroonz_harness::clock::HarnessClock;
 use macroonz_harness::corpus::{
-    SEED_PACK_FORMAT_VERSION, SEED_PACK_TAG, SeedInput, SeedInputRefusal, SeedPackRefusal, pack,
-    read, warm_start,
+    SEED_PACK_FORMAT_VERSION, SEED_PACK_TAG, SeedInput, SeedInputRefusal, SeedPackLimits,
+    SeedPackRefusal, pack, read, warm_start,
 };
 use macroonz_harness::descriptor::{
     AuthoredTableName, Binding, CheckRef, ClaimRef, Classification, ExecutableAttachment,
@@ -21,12 +21,22 @@ use macroonz_harness::properties::{
     ContractRefusal, Holding, TemporalClaim, TemporalDemand, TemporalDriveStanding,
     TransitionContract, holds_over_drive,
 };
+use macroonz_harness::report::archive::ArchiveLimits;
 use macroonz_harness::report::{
     ByteBudget, CaseBudget, FailureClass, FindingCause, Fingerprint, GenerationProfile,
     InvocationProfile, RunAttempt, SelectionOutcome, TargetBinding, TargetTriple, TimeBudget,
     ToolchainIdentity, TrialConclusion, TrialSite,
 };
 use macroonz_harness::runner::{Invocation, Selection, SelectionPlan, TrialTable, run_all};
+
+mod bounds;
+
+#[path = "../support/archive_process.rs"]
+mod archive_process;
+mod process;
+
+const READ_LIMITS: SeedPackLimits =
+    SeedPackLimits::declared(ArchiveLimits::declared(16_384, 1_024), 128);
 
 const CONSUMER: &str = "harness.corpus.consumer";
 const PROPERTY_CAUSE: FindingCause = FindingCause::named(CONSUMER, "value-at-most-two");
@@ -171,7 +181,7 @@ fn plan(
 fn pack_conclusion() -> Result<TrialConclusion, CorpusRoadFailure> {
     let expected_population = population("warm-start-values")?;
     let written = pack(expected_population, seeds()?)?;
-    let admitted = read(expected_population, written.encoded())?;
+    let admitted = read(expected_population, written.encoded(), READ_LIMITS)?;
     let contract = contract()?;
     let mut conclusions = Vec::new();
     for (origin, seed) in warm_start(&admitted).zip(admitted.seeds()) {
@@ -314,7 +324,7 @@ fn pack_read_warm_start_and_report_retain_their_authority_boundaries()
 -> Result<(), CorpusRoadFailure> {
     let expected_population = population("warm-start-values")?;
     let written = pack(expected_population, seeds()?)?;
-    let admitted = read(expected_population, written.encoded())?;
+    let admitted = read(expected_population, written.encoded(), READ_LIMITS)?;
     assert_eq!(admitted.population(), expected_population);
     assert_eq!(admitted.address(), written.address());
     assert_eq!(admitted.encoded(), written.encoded());
@@ -403,7 +413,7 @@ fn canonical_body_vector_and_address_preimage_stay_exact() -> Result<(), CorpusR
         ContentAddress::derived(SEED_PACK_TAG, &expected_body)
     );
     assert_eq!(
-        read(expected_population, written.encoded())?.encoded(),
+        read(expected_population, written.encoded(), READ_LIMITS)?.encoded(),
         written.encoded()
     );
     Ok(())
@@ -450,7 +460,7 @@ fn address_claims_are_settled_before_body_members() -> Result<(), CorpusRoadFail
         };
         *byte ^= 1u8;
         assert_eq!(
-            read(expected_population, &corrupted_claim),
+            read(expected_population, &corrupted_claim, READ_LIMITS),
             Err(SeedPackRefusal::AddressMismatch {
                 derived: written.address(),
             })
@@ -465,7 +475,7 @@ fn address_claims_are_settled_before_body_members() -> Result<(), CorpusRoadFail
     };
     *format_byte ^= 1u8;
     assert!(matches!(
-        read(expected_population, &corrupted_body),
+        read(expected_population, &corrupted_body, READ_LIMITS),
         Err(SeedPackRefusal::AddressMismatch { .. })
     ));
     Ok(())
@@ -478,7 +488,7 @@ fn foreign_member_rosters_refuse_duplicates_empty_members_and_trailing_bytes()
 
     let duplicate = foreign_envelope(expected_population, &[&[7u8], &[7u8]], &[]);
     assert_eq!(
-        read(expected_population, &duplicate),
+        read(expected_population, &duplicate, READ_LIMITS),
         Err(SeedPackRefusal::DuplicateSeed {
             first: 0usize,
             duplicate: 1usize,
@@ -499,12 +509,12 @@ fn foreign_member_rosters_refuse_duplicates_empty_members_and_trailing_bytes()
     );
     let trailing = foreign_envelope(expected_population, &[&[1u8]], &[9u8]);
     assert_eq!(
-        read(expected_population, &trailing),
+        read(expected_population, &trailing, READ_LIMITS),
         Err(SeedPackRefusal::TrailingBytes { count: 1usize })
     );
     let empty = foreign_envelope(expected_population, &[&[]], &[]);
     assert_eq!(
-        read(expected_population, &empty),
+        read(expected_population, &empty, READ_LIMITS),
         Err(SeedPackRefusal::EmptySeed { at: 0usize })
     );
     assert_eq!(
@@ -520,14 +530,14 @@ fn foreign_format_population_counts_and_lengths_refuse_without_partial_admission
     let expected_population = population("warm-start-values")?;
     let written = pack(expected_population, seeds()?)?;
     assert_eq!(
-        read(expected_population, &[]),
+        read(expected_population, &[], READ_LIMITS),
         Err(SeedPackRefusal::Truncated)
     );
     for end in 0..written.encoded().len() {
         let Some(prefix) = written.encoded().get(..end) else {
             return Err(CorpusRoadFailure::MissingEvidence);
         };
-        assert!(read(expected_population, prefix).is_err());
+        assert!(read(expected_population, prefix, READ_LIMITS).is_err());
     }
 
     let mut unsupported_body = foreign_body_prefix(
@@ -537,7 +547,11 @@ fn foreign_format_population_counts_and_lengths_refuse_without_partial_admission
     encode_length(1usize, &mut unsupported_body);
     encode_bytes(&[1u8], &mut unsupported_body);
     assert_eq!(
-        read(expected_population, &envelope_for_body(&unsupported_body)),
+        read(
+            expected_population,
+            &envelope_for_body(&unsupported_body),
+            READ_LIMITS
+        ),
         Err(SeedPackRefusal::UnsupportedFormat {
             found: SEED_PACK_FORMAT_VERSION.saturating_add(1u32),
         })
@@ -545,7 +559,7 @@ fn foreign_format_population_counts_and_lengths_refuse_without_partial_admission
 
     let other = pack(population("other-values")?, seeds()?)?;
     assert_eq!(
-        read(expected_population, other.encoded()),
+        read(expected_population, other.encoded(), READ_LIMITS),
         Err(SeedPackRefusal::PopulationMismatch)
     );
     assert_eq!(
@@ -556,6 +570,7 @@ fn foreign_format_population_counts_and_lengths_refuse_without_partial_admission
         read(
             expected_population,
             &foreign_envelope(expected_population, &[], &[]),
+            READ_LIMITS,
         ),
         Err(SeedPackRefusal::NoSeed)
     );
@@ -563,10 +578,14 @@ fn foreign_format_population_counts_and_lengths_refuse_without_partial_admission
     let mut hostile_count = foreign_body_prefix(SEED_PACK_FORMAT_VERSION, expected_population);
     hostile_count.extend_from_slice(&u64::MAX.to_be_bytes());
     assert!(matches!(
-        read(expected_population, &envelope_for_body(&hostile_count)),
+        read(
+            expected_population,
+            &envelope_for_body(&hostile_count),
+            READ_LIMITS
+        ),
         Err(
             SeedPackRefusal::LengthOutsidePlatform { declared: u64::MAX }
-                | SeedPackRefusal::Truncated
+                | SeedPackRefusal::TooManySeeds
         )
     ));
 
@@ -574,7 +593,11 @@ fn foreign_format_population_counts_and_lengths_refuse_without_partial_admission
     hostile_length.extend_from_slice(&1u64.to_be_bytes());
     hostile_length.extend_from_slice(&u64::MAX.to_be_bytes());
     assert!(matches!(
-        read(expected_population, &envelope_for_body(&hostile_length)),
+        read(
+            expected_population,
+            &envelope_for_body(&hostile_length),
+            READ_LIMITS
+        ),
         Err(
             SeedPackRefusal::LengthOutsidePlatform { declared: u64::MAX }
                 | SeedPackRefusal::Truncated

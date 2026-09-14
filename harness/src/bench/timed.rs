@@ -39,5 +39,10 @@ pub(super) fn timed_pass(
     }
     let timed = WorkCurve::recorded(points);
     let judgment = judge(row, attachment, &timed, planted_worse);
-    SecondaryObservation::recorded(timed, judgment, measurements)
+    SecondaryObservation::recorded(
+        timed,
+        judgment,
+        measurements,
+        invocation.clock().attribution(),
+    )
 }

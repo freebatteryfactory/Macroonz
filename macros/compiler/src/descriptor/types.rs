@@ -139,6 +139,8 @@ crate::roster! {
         Alternative = "alternative",
         /// One declared provider of descriptor material.
         Provider = "provider",
+        /// One nonempty Rust fragment carried inert into a consuming target.
+        TargetFragment = "target-fragment",
     }
 }
 

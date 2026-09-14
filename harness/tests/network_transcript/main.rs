@@ -7,3 +7,11 @@ mod identity;
 mod refusals;
 mod source_posture;
 mod support;
+
+mod bounds;
+mod framing;
+mod process;
+mod vector;
+
+#[path = "../support/archive_process.rs"]
+mod archive_process;
