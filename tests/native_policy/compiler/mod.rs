@@ -3,6 +3,7 @@
 pub(crate) mod configure;
 mod dependencies;
 mod enum_example;
+pub(crate) mod job_example;
 mod presentation;
 mod relocation;
 mod shadow_example;

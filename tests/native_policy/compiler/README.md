@@ -6,3 +6,4 @@ Disposable fixtures use the existing native-policy scratch owner and ordinary Ca
 The separately compiled environment helper supplies selected explicit host configuration to the test; it is not a product discovery API or a build prerequisite retained in target.
 The registry crossing prepares its explicitly versioned dependency with bounded Cargo lockfile and fetch invocations before the compiler host performs a locked, offline build.
 Registry availability is a prerequisite when those package inputs are not cached.
+The Job compiler example selects the tracked Job declaration directly as its consumer library and checks exact refusal, accepted-twin disagreement and failed lawful execution through the public native entrance.

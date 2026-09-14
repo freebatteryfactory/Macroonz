@@ -50,6 +50,8 @@ mod stage_cache;
 #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
 mod example;
 #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+mod job_example;
+#[cfg(any(windows, target_os = "linux", target_os = "macos"))]
 mod adopter;
 #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
 mod visibility_fixture;

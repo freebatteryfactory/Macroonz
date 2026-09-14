@@ -18,6 +18,9 @@ The Cargo manifest must be below the original root; relocation supplies no sourc
 `CompilerRequest::instrumented` explicitly selects Rust source coverage without changing diagnostic or artifact interpretation.
 For Cargo it supplies `CARGO_ENCODED_RUSTFLAGS` for the target and its Rust dependencies, refusing caller `RUSTFLAGS` or `CARGO_ENCODED_RUSTFLAGS` entries in any letter case instead of silently replacing them.
 This encoded selection takes precedence over Cargo-configured Rust flags; project configuration and compiler wrappers remain caller trust inputs.
+`CompilerRequest::instrumented_target` instead uses Cargo's selected final rustc invocation for the coverage flag and supplies an empty encoded Rust flag selection to its dependencies.
+It preserves the same package, target, artifact and diagnostic selection; direct rustc requests use the ordinary single-target instrumentation.
+Both Cargo choices refuse repeated or conflicting Rust flag authority rather than combining instrumentation scopes.
 
 The process working directory is the declared physical root for relative diagnostic paths.
 For Cargo it must match the workspace root used as rustc's path basis, even when the selected manifest is below that root.

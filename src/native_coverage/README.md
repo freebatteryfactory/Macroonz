@@ -27,6 +27,7 @@ Its display names the failed phase and cleanup state without dumping captured ou
 
 The [native coverage example](../../examples/coverage_workflow/README.md) compiles an instrumented Rust subject and crosses declared candidates into retained corpus and fresh target-process replay.
 `CompilerRequest::instrumented` in the [compiler owner](../native_compiler/README.md) also selects Cargo instrumentation for the target's Rust dependencies.
+`CompilerRequest::instrumented_target` selects only the final Cargo target when dependency coverage is outside the caller's question.
 Declare every physical source root that LLVM may export, including dependency sources, and give the complete export an explicit budget.
 Zero-count source records still owe an unambiguous mapping.
 

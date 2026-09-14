@@ -11,7 +11,7 @@ use std::time::Duration;
 fn public_retained_example_reduces_loads_and_replays_without_reducing_again() -> Result<(), String>
 {
     let run = root()?;
-    let selected = executable(&run)?;
+    let selected = executable(&run, "retained_workflow")?;
     let retained = success(&invoke(&selected, &run, &configuration(&run, "retain")?)?)?;
     assert_eq!(field(&retained, "/kind")?, "input-run");
     assert_eq!(field(&retained, "/record/input/payload")?, "070109");
@@ -92,7 +92,7 @@ fn hostile(selected: &ProcessTool, run: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn executable(run: &Path) -> Result<ProcessTool, String> {
+pub(super) fn executable(run: &Path, name: &str) -> Result<ProcessTool, String> {
     let host = host(run)?;
     let limits = crate::process::limits(
         Duration::from_secs(180),
@@ -110,7 +110,7 @@ fn executable(run: &Path) -> Result<ProcessTool, String> {
     let mut arguments = [
         "build",
         "--example",
-        "retained_workflow",
+        name,
         "--no-default-features",
         "--features",
         "native-tooling",
@@ -130,7 +130,7 @@ fn executable(run: &Path) -> Result<ProcessTool, String> {
     }
     let executable = output_root
         .join("debug/examples")
-        .join(format!("retained_workflow{}", std::env::consts::EXE_SUFFIX));
+        .join(format!("{name}{}", std::env::consts::EXE_SUFFIX));
     ProcessTool::informed(
         executable,
         run.to_path_buf(),

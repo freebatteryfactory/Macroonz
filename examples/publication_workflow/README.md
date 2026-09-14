@@ -3,6 +3,7 @@
 This executable prepares, inspects, checks, generates and recovers a caller-owned Rust constant through `macroonz::native_publication::bake`.
 The example owns its kind, renderer, value, logical address and compilation fixture.
 The root library owns the [command composition](../../src/native_publication/command/README.md); an adopter supplies its own generation operation without copying formatting, staging, installation or process supervision.
+The [shared example adapter](../support/publication_configuration/README.md) also serves the [definition-and-sites example](../job_publication/README.md), while each caller keeps its own fixture and publication allowance.
 
 Run `cargo run --example publication_workflow --features native-tooling` with a JSON object on stdin.
 `{"action":"prepare","value":42}` returns the sealed inventory without native effects.

@@ -84,10 +84,11 @@ fn build(source: &Path, host: &Host) -> Result<PathBuf, String> {
     let bridge = source.join("bridge");
     let example = consumer.join("examples/publication_workflow");
     let input = consumer.join("examples/support/native_input");
-    for directory in [&bridge, &example, &input] {
+    let configuration = consumer.join("examples/support/publication_configuration");
+    for directory in [&bridge, &example, &input, &configuration] {
         std::fs::create_dir_all(directory).map_err(|error| error.to_string())?;
     }
-    material(&example, &input)?;
+    material(&example, &input, &configuration)?;
     let suffix = source
         .file_name()
         .and_then(|name| name.to_str())
@@ -123,7 +124,7 @@ fn build(source: &Path, host: &Host) -> Result<PathBuf, String> {
         .join(format!("{name}{}", std::env::consts::EXE_SUFFIX)))
 }
 
-fn material(example: &Path, input: &Path) -> Result<(), String> {
+fn material(example: &Path, input: &Path, configuration: &Path) -> Result<(), String> {
     for (name, source) in [
         (
             "main.rs",
@@ -148,6 +149,30 @@ fn material(example: &Path, input: &Path) -> Result<(), String> {
     ] {
         std::fs::write(
             example.join(name),
+            source.replace("macroonz::", "facade_bridge::"),
+        )
+        .map_err(|error| error.to_string())?;
+    }
+    for (name, source) in [
+        (
+            "mod.rs",
+            include_str!("../../../examples/support/publication_configuration/mod.rs"),
+        ),
+        (
+            "command.rs",
+            include_str!("../../../examples/support/publication_configuration/command.rs"),
+        ),
+        (
+            "prepare.rs",
+            include_str!("../../../examples/support/publication_configuration/prepare.rs"),
+        ),
+        (
+            "generate.rs",
+            include_str!("../../../examples/support/publication_configuration/generate.rs"),
+        ),
+    ] {
+        std::fs::write(
+            configuration.join(name),
             source.replace("macroonz::", "facade_bridge::"),
         )
         .map_err(|error| error.to_string())?;

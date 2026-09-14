@@ -4,6 +4,7 @@ This example runs an explicitly selected mutation backend against a supplied Car
 The project owns its behavior and independently authored tests.
 
 Run `cargo run --example mutation_workflow --features native-tooling` with a JSON object on stdin.
+Omitting `action` selects `run`; explicitly selecting `"action":"run"` does the same.
 Supply absolute `backend`, `cargo` and `rustc` executable paths, the absolute project `directory`, an array of relative literal `sources`, the selected target triple as `target`, an absolute disposable `target_directory`, and an absolute new `output` directory whose parent already exists.
 The backend is cargo-mutants 27.0.0 and rustc is the supported 1.98.1 compiler.
 The example passes the backend's leading `mutants` argument itself.
@@ -23,3 +24,13 @@ This is an execution/retention demonstration, not an all-mutants-caught gate: a 
 Missed mutants do not establish semantic survivors because this backend's console does not observe activation.
 Version, baseline, capture, source, storage and current-comparison failures return an error.
 An unfinished cleanup remains a reported failure rather than a completed cleanup claim.
+
+## Compare retained evidence with current source
+
+Invoke the same command in a fresh process with only `action: "compare"`, the existing absolute project `directory`, existing absolute `storage` and retained `batch`.
+This action needs no backend, compiler, environment, output or build-cache settings, and launches no tool.
+It loads the complete bounded historical manifest and delegates current-file comparison to [the native custody owner](../../src/native_mutation/README.md#observation-and-retention).
+Matching source prints the number of historical source claims that match, followed by `no backend executed`.
+Changing a recorded source file returns a failing command with the moved-file cause; corrupting the stored manifest refuses before source comparison.
+Both operations are read-only and preserve the archived record and caller source.
+Successful comparison establishes current equality with the manifest's declared source roster, not a fresh mutation run, activation or human admission.

@@ -11,7 +11,7 @@ use std::time::Duration;
 fn executable_publication_example_generates_and_checks_in_fresh_processes() -> Result<(), String> {
     let source = root()?;
     let host = host(&source)?;
-    let executable = build(&source, &host)?;
+    let executable = build(&source, &host, "publication_workflow")?;
     let work = root()?;
     let destination = root()?;
     std::fs::write(
@@ -169,7 +169,7 @@ pub(super) fn run(
     )
 }
 
-fn build(source: &Path, host: &Host) -> Result<PathBuf, String> {
+pub(super) fn build(source: &Path, host: &Host, name: &str) -> Result<PathBuf, String> {
     let limits = ProcessLimits::informed(
         Duration::from_secs(180),
         Duration::from_secs(5),
@@ -186,7 +186,7 @@ fn build(source: &Path, host: &Host) -> Result<PathBuf, String> {
     let mut arguments = [
         "build",
         "--example",
-        "publication_workflow",
+        name,
         "--features",
         "native-tooling",
         "--locked",
@@ -209,8 +209,7 @@ fn build(source: &Path, host: &Host) -> Result<PathBuf, String> {
         source.display(),
         String::from_utf8_lossy(output.stderr().bytes())
     );
-    Ok(target()?.join("debug/examples").join(format!(
-        "publication_workflow{}",
-        std::env::consts::EXE_SUFFIX
-    )))
+    Ok(target()?
+        .join("debug/examples")
+        .join(format!("{name}{}", std::env::consts::EXE_SUFFIX)))
 }

@@ -8,6 +8,12 @@ use macroonz::native_storage::{
 };
 use std::path::Path;
 
+const PAYLOAD: &str = "manifest";
+const STORAGE: StorageLimits = StorageLimits {
+    artifacts: 1,
+    bytes: 4_194_304,
+};
+
 pub(super) const fn limits() -> BackendArchiveLimits {
     BackendArchiveLimits::declared(
         MutationRunArchiveLimits::declared(ArchiveLimits::declared(4_194_304, 1_048_576), 1024),
@@ -23,16 +29,13 @@ pub(super) fn round_trip(
     archive: &ArchivedBackendManifest,
 ) -> Result<ArchivedBackendManifest, String> {
     let root = StorageRoot::open(directory).map_err(|error| format!("{error:?}"))?;
-    let payload = StorageName::informed("manifest").map_err(|error| format!("{error:?}"))?;
+    let payload = StorageName::informed(PAYLOAD).map_err(|error| format!("{error:?}"))?;
     let artifacts = [StorageArtifact {
         name: &payload,
         bytes: archive.encoded(),
     }];
-    let bounds = StorageLimits {
-        artifacts: 1,
-        bytes: 4_194_304,
-    };
-    let batch = StorageBatch::informed(&artifacts, bounds).map_err(|error| format!("{error:?}"))?;
+    let batch =
+        StorageBatch::informed(&artifacts, STORAGE).map_err(|error| format!("{error:?}"))?;
     let mut transaction =
         StorageTransaction::begin(&root, name, batch).map_err(|error| format!("{error:?}"))?;
     while transaction
@@ -41,8 +44,21 @@ pub(super) fn round_trip(
         .is_some()
     {}
     transaction.commit().map_err(|error| format!("{error:?}"))?;
+    load_from(&root, name)
+}
+
+pub(super) fn load(
+    directory: &Path,
+    name: &StorageName,
+) -> Result<ArchivedBackendManifest, String> {
+    let root = StorageRoot::open(directory).map_err(|error| format!("{error:?}"))?;
+    load_from(&root, name)
+}
+
+fn load_from(root: &StorageRoot, name: &StorageName) -> Result<ArchivedBackendManifest, String> {
+    let payload = StorageName::informed(PAYLOAD).map_err(|error| format!("{error:?}"))?;
     let loaded = root
-        .load(name, bounds)
+        .load(name, STORAGE)
         .map_err(|error| format!("{error:?}"))?;
     let [found] = loaded.as_slice() else {
         return Err("stored manifest roster differs".to_owned());

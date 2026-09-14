@@ -39,7 +39,10 @@ Independent feature consumers refuse access to mutation tooling without the nati
 An independent compiler consumer accepts the public constructors and one consuming commit, then refuses forged names, unadmitted batches and reuse after commit.
 
 Root workflow controls compare composition with explicit input/runner/archive calls while independently observing decoder, subject and reduction-probe counts.
+The public job example executes caller-authored completion and round-trip checks through its generated unit-input table, preserves the complete denominator under text suite selection and refuses an absent suite.
 The complete census, original input and earned reached witness survive one native batch; fresh child processes independently select defective and fixed implementations and execute the saved witness once.
+The Job retention caller preserves the independent work-count bound, nonfailing reduction refusal and reached witness across separate native processes.
+Its controls corrupt and truncate every retained member, and a second vocabulary changes only the expected population at the same caller admission boundary without executing anything.
 Corrupt records, valid but unrelated inputs/capsules, write failure and interrupted retention preserve their separate refusal planes.
 
 Benchmark controls execute the public example's actual counted work and repeated-scan control, with independent expected counts and hostile preflight, recorder and judgment cases.

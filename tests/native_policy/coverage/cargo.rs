@@ -159,7 +159,48 @@ fn cargo_instrumentation_refuses_conflicting_flag_authority_before_execution() -
         .map_err(debug)?;
         let request = CompilerRequest::cargo(&selected, fixture, locus()?).map_err(debug)?;
         assert!(matches!(
-            request.instrumented(),
+            request.clone().instrumented(),
+            Err(native_compiler::CompilerError::Configuration(_))
+        ));
+        assert!(matches!(
+            request.instrumented_target(),
+            Err(native_compiler::CompilerError::Configuration(_))
+        ));
+    }
+    Ok(())
+}
+
+#[test]
+fn cargo_instrumentation_scopes_cannot_be_combined_or_repeated() -> Result<(), String> {
+    let run = root()?;
+    let selected = macroonz::native_process::ProcessTool::informed(
+        run.join("unexecuted-cargo"),
+        run.clone(),
+        Vec::new(),
+        bounds()?,
+        &[],
+    )
+    .map_err(debug)?;
+    let fixture = CargoFixture::informed(
+        run.join("unread-manifest"),
+        target()?,
+        "fixture".to_owned(),
+        CargoTarget::Binary("subject".to_owned()),
+        "x86_64-pc-windows-msvc".to_owned(),
+    )
+    .map_err(debug)?;
+    let request = CompilerRequest::cargo(&selected, fixture, locus()?).map_err(debug)?;
+    for informed in [
+        request.clone().instrumented(),
+        request.instrumented_target(),
+    ] {
+        let informed = informed.map_err(debug)?;
+        assert!(matches!(
+            informed.clone().instrumented(),
+            Err(native_compiler::CompilerError::Configuration(_))
+        ));
+        assert!(matches!(
+            informed.instrumented_target(),
             Err(native_compiler::CompilerError::Configuration(_))
         ));
     }

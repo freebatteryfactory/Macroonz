@@ -98,6 +98,11 @@ path = "examples/trial_workflow/main.rs"
 required-features = ["harness"]
 
 [[example]]
+name = "job_workflow"
+path = "examples/job_workflow/main.rs"
+required-features = ["harness"]
+
+[[example]]
 name = "benchmark_workflow"
 path = "examples/benchmark_workflow/main.rs"
 required-features = ["native-tooling"]
@@ -108,8 +113,23 @@ path = "examples/retained_workflow/main.rs"
 required-features = ["native-tooling"]
 
 [[example]]
+name = "job_retained"
+path = "examples/job_retained/main.rs"
+required-features = ["native-tooling"]
+
+[[example]]
 name = "compiler_workflow"
 path = "examples/compiler_workflow/main.rs"
+required-features = ["native-tooling"]
+
+[[example]]
+name = "job_compiler"
+path = "examples/job_compiler/main.rs"
+required-features = ["native-tooling"]
+
+[[example]]
+name = "job_coverage"
+path = "examples/job_coverage/main.rs"
 required-features = ["native-tooling"]
 
 [[example]]
@@ -153,6 +173,11 @@ required-features = ["native-tooling"]
 [[example]]
 name = "publication_workflow"
 path = "examples/publication_workflow/main.rs"
+required-features = ["native-tooling"]
+
+[[example]]
+name = "job_publication"
+path = "examples/job_publication/main.rs"
 required-features = ["native-tooling"]
 
 [lints]

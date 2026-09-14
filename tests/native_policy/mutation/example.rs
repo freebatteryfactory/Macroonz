@@ -1,7 +1,7 @@
 use super::configure::{archives, backend};
 use crate::compiler::configure::{host, root, spelling, target, tool};
 use macroonz::harness::muterprater::backend_archive::read_backend;
-use macroonz::native_process::{self, ProcessLimits};
+use macroonz::native_process::{self, ProcessLimits, ProcessOutput, ProcessRequest};
 use macroonz::native_storage::{StorageLimits, StorageName, StorageRoot};
 use std::path::Path;
 use std::time::Duration;
@@ -68,13 +68,7 @@ fn public_example_executes_retains_and_compares_an_independent_subject() -> Resu
     let request = selected
         .invocation(arguments)
         .map_err(|error| error.to_string())?;
-    let output = crate::process::completed(
-        native_process::run(
-            &request,
-            Some(std::fs::File::open(input).map_err(|error| error.to_string())?),
-        )
-        .map_err(|error| error.to_string())?,
-    )?;
+    let output = invoke(&request, &input)?;
     assert!(
         output.status().success(),
         "{}",
@@ -85,7 +79,96 @@ fn public_example_executes_retains_and_compares_an_independent_subject() -> Resu
         text.contains("0 inconclusive; 1 historical source claims match current files"),
         "{text}"
     );
-    retained(&storage)
+    retained(&storage)?;
+    fresh_comparison(&request, &input, &root, &storage)
+}
+
+fn fresh_comparison(
+    request: &ProcessRequest,
+    input: &Path,
+    root: &Path,
+    storage: &Path,
+) -> Result<(), String> {
+    let configuration = serde_json::json!({
+        "action": "compare", "directory": spelling(root)?,
+        "storage": spelling(storage)?, "batch": "current",
+    });
+    std::fs::write(
+        input,
+        serde_json::to_vec(&configuration).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())?;
+    matches_current(&invoke(request, input)?);
+    let subject = root.join("fixture.rs");
+    let manifest = storage.join("item-current/item-manifest");
+    let original = std::fs::read(&subject).map_err(|error| error.to_string())?;
+    let archived = std::fs::read(&manifest).map_err(|error| error.to_string())?;
+    let changed = b"pub fn double(value: u32) -> u32 { value * 3 }\n";
+    std::fs::write(&subject, changed).map_err(|error| error.to_string())?;
+    let moved = invoke(request, input)?;
+    assert!(!moved.status().success());
+    assert!(moved.stdout().bytes().is_empty());
+    let detail = String::from_utf8_lossy(moved.stderr().bytes());
+    assert!(
+        detail.contains("current source comparison refused"),
+        "{detail}"
+    );
+    assert!(
+        detail.contains("Moved") && detail.contains("fixture.rs"),
+        "{detail}"
+    );
+    assert_eq!(
+        std::fs::read(&subject).map_err(|error| error.to_string())?,
+        changed
+    );
+    assert_eq!(
+        std::fs::read(&manifest).map_err(|error| error.to_string())?,
+        archived
+    );
+    std::fs::write(&subject, &original).map_err(|error| error.to_string())?;
+    matches_current(&invoke(request, input)?);
+    std::fs::write(&manifest, b"not a backend archive").map_err(|error| error.to_string())?;
+    let damaged = invoke(request, input)?;
+    assert!(!damaged.status().success());
+    assert!(damaged.stdout().bytes().is_empty());
+    let damaged_detail = String::from_utf8_lossy(damaged.stderr().bytes());
+    assert!(
+        damaged_detail.contains("historical manifest load refused"),
+        "{damaged_detail}"
+    );
+    assert_eq!(
+        std::fs::read(&manifest).map_err(|error| error.to_string())?,
+        b"not a backend archive"
+    );
+    assert_eq!(
+        std::fs::read(&subject).map_err(|error| error.to_string())?,
+        original
+    );
+    std::fs::write(&manifest, &archived).map_err(|error| error.to_string())?;
+    matches_current(&invoke(request, input)?);
+    retained(storage)
+}
+
+fn matches_current(output: &ProcessOutput) {
+    assert!(
+        output.status().success(),
+        "{}",
+        String::from_utf8_lossy(output.stderr().bytes())
+    );
+    assert_eq!(
+        output.stdout().bytes(),
+        b"1 historical source claims match current files; no backend executed\n"
+    );
+}
+
+fn invoke(request: &ProcessRequest, input: &Path) -> Result<ProcessOutput, String> {
+    crate::process::completed(
+        native_process::run(
+            request,
+            Some(std::fs::File::open(input).map_err(|error| error.to_string())?),
+        )
+        .map_err(|error| error.to_string())?,
+    )
 }
 
 fn retained(storage: &Path) -> Result<(), String> {

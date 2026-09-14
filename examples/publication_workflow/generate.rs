@@ -22,6 +22,11 @@ const ADDRESS: OwnerIdentity = OwnerIdentity {
     bytes: [1; 32],
 };
 
+pub(super) const LIMITS: PublicationLimits = PublicationLimits {
+    files: 1,
+    bytes: 65_536,
+};
+
 pub(super) fn publication(value: u64) -> Result<Publication<PublishedValue>, String> {
     let capture =
         TextCapture::read(&format!("value({value})")).map_err(|error| error.to_string())?;
@@ -49,10 +54,7 @@ pub(super) fn publication(value: u64) -> Result<Publication<PublishedValue>, Str
             address: ADDRESS,
             path: PublicationPath::informed("value.rs").map_err(|error| error.to_string())?,
         }],
-        PublicationLimits {
-            files: 1,
-            bytes: 65_536,
-        },
+        LIMITS,
     )
     .map_err(|error| error.to_string())
 }

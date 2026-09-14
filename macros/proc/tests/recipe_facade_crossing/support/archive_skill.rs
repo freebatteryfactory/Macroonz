@@ -4,24 +4,26 @@ use crate::scratch::{
     cargo, command_refusal, lock_from_repository, manifest_path, repository_root,
 };
 use std::path::Path;
-use std::process::Command;
 
-pub(super) fn prepare(root: &Path) -> Result<(), String> {
+pub(super) fn prepare(root: &Path, destination: &Path) -> Result<(), String> {
     let skill = std::fs::read_to_string(root.join("skills/macroonz/SKILL.md"))
         .map_err(|error| error.to_string())?;
     let recipe = first_recipe(&skill)?;
-    std::fs::write(root.join("archive_skill.rs"), consumer(recipe))
-        .map_err(|error| error.to_string())
+    std::fs::write(destination, consumer(recipe)).map_err(|error| error.to_string())
 }
 
 fn consumer(recipe: &str) -> String {
+    with_policy(recipe, "matches!(capability, access::Capability::Read)")
+}
+
+fn with_policy(recipe: &str, expected: &str) -> String {
     format!(
         r"//! The packaged skill's recipe and a caller-owned policy expectation.
 {recipe}
 fn main() {{
     for stage in [access::Stage::Draft, access::Stage::Published] {{
         for capability in [access::Capability::Read, access::Capability::Write] {{
-            let expected = matches!(capability, access::Capability::Read);
+            let expected = {expected};
             assert_eq!(access::baked::policy::contains(&stage, &capability), expected);
         }}
     }}
@@ -98,38 +100,19 @@ unsafe_code = "forbid"
     Ok(())
 }
 
-pub(super) fn execute(root: &Path, target: &Path) -> Result<(), String> {
-    let executable = target.join(format!("archive-skill{}", std::env::consts::EXE_SUFFIX));
-    let compiled = Command::new("rustc")
-        .args(["+1.98.1", "--edition=2024", "-Dwarnings", "-Funsafe_code"])
-        .arg(root.join("archive_skill.rs"))
-        .arg("--extern")
-        .arg(format!(
-            "macroonz={}",
-            target.join("debug/libmacroonz.rlib").display()
-        ))
-        .arg("-L")
-        .arg(format!(
-            "dependency={}",
-            target.join("debug/deps").display()
-        ))
-        .arg("-o")
-        .arg(&executable)
-        .output()
+pub(super) fn extension(root: &Path) -> Result<[String; 2], String> {
+    let skill = std::fs::read_to_string(root.join("skills/macroonz/SKILL.md"))
         .map_err(|error| error.to_string())?;
-    if !compiled.status.success() {
-        return Err(command_refusal("packaged skill compilation", &compiled));
-    }
-    let executed = Command::new(executable)
-        .output()
-        .map_err(|error| error.to_string())?;
-    if !executed.status.success() {
-        return Err(command_refusal(
-            "packaged skill policy expectation",
-            &executed,
-        ));
-    }
-    Ok(())
+    let recipe = first_recipe(&skill)?;
+    assert_eq!(recipe.matches("(Draft, Read);").count(), 1usize);
+    let changed = recipe.replace("(Draft, Read);", "(Draft, Write);");
+    Ok([
+        consumer(&changed),
+        with_policy(
+            &changed,
+            "matches!((&stage, &capability), (access::Stage::Draft, access::Capability::Write) | (access::Stage::Published, access::Capability::Read))",
+        ),
+    ])
 }
 
 pub(super) fn first_recipe(skill: &str) -> Result<&str, String> {

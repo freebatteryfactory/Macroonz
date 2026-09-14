@@ -15,9 +15,9 @@ Each native lane also executes the extracted-archive delivery claim in the exist
 Cargo assembles the packages, and only their extracted source supplies the compiler, proc carrier, harness, and facade to that observation.
 The normalized facade manifest gains an aggregate workspace and patches pointing only to its extracted siblings; the committed lockfile is copied unchanged and checked again after execution.
 The resolved package graph must name those extracted locations, never checkout or registry substitutes for a first-party package.
-Every delivered target compiles, the facade recipe and no-harness controls execute, all shipped examples run, and the extracted workspace crosses the all-feature Wasm check.
+Every delivered target compiles, the facade recipe and no-harness controls execute, selected public examples run, and the extracted workspace crosses the all-feature Wasm check.
 The skill's first complete recipe is read from the archive and executed unchanged against an independently authored full-domain policy expectation in one standalone Rust consumer.
-That consumer names only the extracted facade's compiled library and dependency directory, denies warnings, and forbids unsafe code; it does not inherit the facade's maintainer-only documentation lints.
+That consumer declares the extracted facade through Cargo, denies warnings, and forbids unsafe code; it does not inherit the facade's maintainer-only documentation lints.
 Missing or incomplete recipe material refuses rather than skipping that consumer.
 This establishes package composition before first publication, not registry availability or execution of every packaged test.
 

@@ -28,4 +28,6 @@ Command controls compose the registered generator, formatting, checking, actual 
 They require aggregate process admission before effects, reject a workspace inside its destination including link aliases, retain workspace exclusion during pending cleanup, and recover historical intent without invoking generation.
 Cached staging controls preserve exact identical inputs and refuse damaged, incomplete, extra or linked material without repairing it.
 The executable example runs each selected action in a fresh process, checks the independently expected compiled value, and returns failure for missing, stale or tampered output while preserving authored neighbors.
+The shared-definition example binds its complete stamp landings, reports stale second-site output and both tampered and stale first-site output, and compiles the actual installed files against independent literal value assertions.
+It preserves authored fixtures and refuses regeneration over damaged owned files.
 Independent consumers exercise the command and cached-stage entrances and refuse access to private command error and cleanup custody.

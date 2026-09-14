@@ -2,6 +2,7 @@
 
 mod fixture;
 mod codec_example;
+mod job_example;
 mod schedule_example;
 mod execute;
 mod configuration;
@@ -22,3 +23,5 @@ mod recovery;
 mod process;
 #[cfg(all(feature = "native-tooling", any(unix, windows)))]
 mod example;
+#[cfg(all(feature = "native-tooling", any(unix, windows)))]
+mod job_retained;

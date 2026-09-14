@@ -6,6 +6,8 @@ mod type_contract;
 mod types;
 #[path = "../support/native_input/mod.rs"]
 mod input;
+#[path = "../support/publication_configuration/mod.rs"]
+mod publication_configuration;
 
 use macroonz::native_publication::{BakeOutput, bake};
 use macroonz::presentation::{Presentation, bake_error, bake_output};

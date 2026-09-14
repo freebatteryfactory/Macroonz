@@ -161,20 +161,38 @@ impl CompilerRequest {
                 }
             }
             Protocol::Cargo(_) => {
-                if environment.iter().any(|(key, _)| {
-                    key.eq_ignore_ascii_case("RUSTFLAGS")
-                        || key.eq_ignore_ascii_case("CARGO_ENCODED_RUSTFLAGS")
-                }) {
-                    return Err(CompilerError::Configuration(
-                        "coverage instrumentation owns the explicit Rust flag selection".to_owned(),
-                    ));
-                }
-                environment.push((
-                    "CARGO_ENCODED_RUSTFLAGS".to_owned(),
-                    "-Cinstrument-coverage".to_owned(),
-                ));
+                environment = cargo_coverage_environment(&self.process, "-Cinstrument-coverage")?;
             }
         }
+        self.process = ProcessRequest::informed(
+            self.process.executable().to_path_buf(),
+            self.process.directory().to_path_buf(),
+            arguments,
+            environment,
+            self.process.limits(),
+            &[],
+        )
+        .map_err(CompilerError::Process)?;
+        Ok(self)
+    }
+
+    /// Selects Rust source coverage for the chosen target without adding instrumentation to its dependencies.
+    ///
+    /// Cargo receives the coverage flag on its final rustc invocation and an empty encoded flag selection for dependencies.
+    ///
+    /// # Errors
+    /// Refuses conflicting caller Rust flags, repeated Cargo instrumentation or an unrepresentable process request.
+    pub fn instrumented_target(mut self) -> Result<Self, CompilerError> {
+        if matches!(self.protocol, Protocol::Rustc { .. }) {
+            return self.instrumented();
+        }
+        let environment = cargo_coverage_environment(&self.process, "")?;
+        let mut arguments = self.process.arguments().to_vec();
+        let command = arguments
+            .first_mut()
+            .ok_or_else(|| CompilerError::Configuration("Cargo command absent".to_owned()))?;
+        "rustc".clone_into(command);
+        arguments.extend(["--".to_owned(), "-Cinstrument-coverage".to_owned()]);
         self.process = ProcessRequest::informed(
             self.process.executable().to_path_buf(),
             self.process.directory().to_path_buf(),
@@ -448,6 +466,22 @@ fn selector(value: &str) -> Result<(), CompilerError> {
     } else {
         Ok(())
     }
+}
+
+fn cargo_coverage_environment(
+    process: &ProcessRequest,
+    flags: &str,
+) -> Result<Vec<(String, String)>, CompilerError> {
+    let mut environment = process.environment().to_vec();
+    if environment.iter().any(|(key, _)| {
+        key.eq_ignore_ascii_case("RUSTFLAGS") || key.eq_ignore_ascii_case("CARGO_ENCODED_RUSTFLAGS")
+    }) {
+        return Err(CompilerError::Configuration(
+            "coverage instrumentation owns the explicit Rust flag selection".to_owned(),
+        ));
+    }
+    environment.push(("CARGO_ENCODED_RUSTFLAGS".to_owned(), flags.to_owned()));
+    Ok(environment)
 }
 
 fn spelling(path: &Path) -> Result<&str, CompilerError> {

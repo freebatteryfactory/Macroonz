@@ -94,7 +94,8 @@
 ///
 /// # What is stamped
 ///
-/// One module, containing a private `row` module with one function per declared row; a `table` function building the authored world through the public constructors; an `INVOCATION` constant and a `CLOCK` constant; a `target` function; one ordinary `#[test]` per suite group; and one `#[test] #[ignore = "lens"]` per row.
+/// One module, containing a `row` module with one binding factory per declared row; a `table` function building the authored world through the public constructors; an `INVOCATION` constant and a `CLOCK` constant; a `target` function; one ordinary `#[test]` per suite group; and one `#[test] #[ignore = "lens"]` per row.
+/// The `row` module has the declaration's visibility, so a caller can compose `module::row::lens()` into another receiver without repeating its metadata or executing its check during construction.
 /// Each seat and each lens builds its own invocation, so a report carries the site of the seat that produced it rather than one site the whole table shared.
 ///
 /// # Authority
@@ -257,10 +258,8 @@ macro_rules! trial_table {
         $(#[$note])*
         /// One stamped trial table: the authored world its rows declare, one aggregate seat per declared execution suite, and one ignored lens per row.
         $vis mod $module {
-            /// One function per declared row, so each declared expression is written exactly once
-            /// and both spellings read that one: the table collects these functions, and each named
-            /// lens calls its own.
-            mod row {
+            /// Named binding factories shared by the complete table, lenses and consuming receivers.
+            $vis mod row {
                 $(
                     $(
                         /// One declared row's binding.
@@ -268,7 +267,7 @@ macro_rules! trial_table {
                         /// # Errors
                         ///
                         /// Refuses whatever the declaration's own constructions refuse, each carried into the stamp's one family by the discharge that family declares for it.
-                        pub(super) fn $row() -> ::core::result::Result<
+                        pub fn $row() -> ::core::result::Result<
                             $crate::runner::TrialBinding<$crate::trial_table!(@input_type $input)>,
                             $crate::descriptor::TrialTableRefusal,
                         > {
