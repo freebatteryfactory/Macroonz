@@ -59,10 +59,12 @@ pub(super) fn destination(path: &Path) -> Result<PublicationDestination, String>
 pub(super) fn finish(mut installation: PublicationInstallation<'_>) -> Result<(), String> {
     while installation
         .write_next()
-        .map_err(|error| error.to_string())?
+        .map_err(|error| format!("installation write: {error}"))?
         .is_some()
     {}
-    installation.commit().map_err(|error| error.to_string())
+    installation
+        .commit()
+        .map_err(|error| format!("installation commit: {error}"))
 }
 
 pub(super) fn installed(

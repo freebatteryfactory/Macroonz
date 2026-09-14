@@ -6,6 +6,8 @@ A caller says what its value is made of — the members, in the order they are w
 Nothing here decides any of that.
 A generator that chose a member's wire shape would be inventing how somebody else's value is written down and then encoding it that way.
 
+The [public codec example](../../../../examples/codec_workflow/README.md) runs the member shapes, cardinalities, direction choices and checked assembly through the root recipe entrance with independent byte and refusal controls.
+
 ---
 
 ## The decode road is the validator

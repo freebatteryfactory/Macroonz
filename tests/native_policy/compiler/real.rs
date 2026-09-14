@@ -231,6 +231,7 @@ pub(crate) fn read_count(
             .read_back(&request, None)
             .map_err(|error| error.to_string())?,
     )?;
+    observed_count(&read)?;
     let expected = [DeclaredReadBack {
         name: "count",
         value: ObservedValue::Count(42),
@@ -303,4 +304,30 @@ fn decode_count(bytes: &[u8]) -> Result<Vec<ObservedMember>, String> {
         name: "count".to_owned(),
         value: ObservedValue::Count(value),
     }])
+}
+
+fn observed_count(read: &macroonz::native_process::ProcessOutput) -> Result<(), String> {
+    let calls = std::cell::Cell::new(0u32);
+    let prefix = String::from("observed ");
+    let value = native_compiler::observed_read_back(read, |bytes| {
+        calls.set(calls.get().saturating_add(1));
+        let mut value = prefix;
+        value.push_str(std::str::from_utf8(bytes).map_err(|error| error.to_string())?);
+        Ok(value)
+    })
+    .map_err(|error| format!("{error:?}"))?;
+    assert_eq!(value, "observed 42\n");
+    assert_eq!(calls.get(), 1);
+    let refused: Result<u64, _> = native_compiler::observed_read_back(read, |_bytes| {
+        calls.set(calls.get().saturating_add(1));
+        Err("caller decoder refusal".to_owned())
+    });
+    assert_eq!(
+        refused,
+        Err(native_compiler::ReadBackError::Decode(
+            "caller decoder refusal".to_owned()
+        ))
+    );
+    assert_eq!(calls.get(), 2);
+    Ok(())
 }

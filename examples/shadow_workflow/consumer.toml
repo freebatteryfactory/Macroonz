@@ -1,0 +1,21 @@
+[package]
+name = "shadow-workflow"
+version = "0.0.0"
+edition = "2024"
+publish = false
+build = false
+
+[[bin]]
+name = "shadow-workflow"
+path = "consumer.rs"
+
+[dependencies]
+macroonz = { path = "/absolute/path/to/Macroonz", default-features = false, features = ["preemption"] }
+loom = { version = "=0.7.2", default-features = false, features = ["futures"] }
+
+[lints.rust]
+warnings = "deny"
+unsafe_code = "forbid"
+unexpected_cfgs = { level = "deny", check-cfg = ["cfg(loom)"] }
+
+[workspace]

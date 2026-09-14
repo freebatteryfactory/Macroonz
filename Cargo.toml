@@ -103,9 +103,28 @@ path = "examples/benchmark_workflow/main.rs"
 required-features = ["native-tooling"]
 
 [[example]]
+name = "retained_workflow"
+path = "examples/retained_workflow/main.rs"
+required-features = ["native-tooling"]
+
+[[example]]
 name = "compiler_workflow"
 path = "examples/compiler_workflow/main.rs"
 required-features = ["native-tooling"]
+
+[[example]]
+name = "codec_workflow"
+path = "examples/codec_workflow/main.rs"
+
+[[example]]
+name = "schedule_workflow"
+path = "examples/schedule_workflow/main.rs"
+required-features = ["harness"]
+
+[[example]]
+name = "structural_mutation"
+path = "examples/structural_mutation/main.rs"
+required-features = ["harness"]
 
 [[test]]
 name = "native_clock"
@@ -124,6 +143,11 @@ path = "tests/native_policy/main.rs"
 [[example]]
 name = "mutation_workflow"
 path = "examples/mutation_workflow/main.rs"
+required-features = ["native-tooling"]
+
+[[example]]
+name = "mutation_assessment"
+path = "examples/mutation_assessment/main.rs"
 required-features = ["native-tooling"]
 
 [[example]]

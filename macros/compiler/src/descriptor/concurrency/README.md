@@ -1,6 +1,7 @@
 # concurrency
 
 This home projects declared interleaving explorations into ordinary Rust at the declaration site.
+The [runnable facade example](../../../../../examples/schedule_workflow/README.md) supplies a caller-owned temporal demand, replays a counterexample and distinguishes exhaustive from sampled standing.
 
 An adopter names a physical harness path and a set of explorations whose budgets and generation lineage are fixed by the declaration.
 Those authored facts become canonical compiler content in authored order, so changing the destination or an exploration's declared meaning changes the projection the compiler is asked to produce.

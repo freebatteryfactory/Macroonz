@@ -1,6 +1,8 @@
 //! Root execution, canonical retention and fresh witness execution through public owners.
 
 mod fixture;
+mod codec_example;
+mod schedule_example;
 mod execute;
 mod configuration;
 mod presentation;
@@ -18,3 +20,5 @@ mod retention_fixture;
 mod recovery;
 #[cfg(all(feature = "native-tooling", any(unix, windows)))]
 mod process;
+#[cfg(all(feature = "native-tooling", any(unix, windows)))]
+mod example;

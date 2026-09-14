@@ -1,6 +1,7 @@
 # network
 
 A direct network declaration becomes the harness builders its declaration site compiles.
+The [runnable facade example](../../../../../examples/schedule_workflow/README.md) exercises declared faults and carries actual deliveries into caller-owned command-order checks.
 
 ## Boundary
 

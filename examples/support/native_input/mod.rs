@@ -1,3 +1,5 @@
+mod environment;
 mod read;
 
-pub(crate) use read::{environment, read, text};
+pub(crate) use environment::environment;
+pub(crate) use read::{read, text};

@@ -15,6 +15,12 @@ use std::ffi::OsStr;
 use std::path::Path;
 
 #[test]
+fn a_fresh_cargo_adopter_uses_documented_syntax_and_repairs_an_actionable_refusal()
+-> Result<(), String> {
+    observed_in_scratch_for("documented_adoption", skill::observe_adoption)
+}
+
+#[test]
 #[ignore = "long extracted-archive delivery campaign; run explicitly"]
 fn the_four_archives_resolve_and_execute_without_checkout_fallback() -> Result<(), String> {
     observed_in_scratch_for("archive_delivery", delivery::observe)

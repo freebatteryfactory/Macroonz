@@ -107,6 +107,7 @@ fn changed_ownership_or_completed_output_prevents_commit_and_retains_intent() ->
             "generated/other.rs",
             ".macroonz-publication/current",
             ".macroonz-publication/replacement",
+            ".macroonz-publication/incoming",
             ".macroonz-publication/item-pending/item-intent",
             ".macroonz-publication/item-pending/.committed",
             ".macroonz-publication/item-pending/.prepared",

@@ -9,6 +9,8 @@ Loaded records preserve their historical authority ceiling and cannot become cur
 
 ## Scoped observation and assessment
 
+The [public mutation assessment example](../../../../examples/mutation_assessment/README.md) composes this road with actual compilation, independently authored weak and strong checks, historical storage, and an unadmitted proposal whose saved result reaches current-binding replay.
+
 `interpret::observe_mutation` resolves the pair and exact selected membership before calling production or evaluation.
 It retains production and both evaluation outcomes, including call refusals.
 The specimen observer consumes that reading and retains exact source and both compiled outcomes without consulting a witness.

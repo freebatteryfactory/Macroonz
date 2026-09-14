@@ -82,6 +82,7 @@ A carrier that requires no declaring-crate items asks only for `harness`; use th
 Recipe compile-contract and declaration-conformance cargo, and the declared-order mutation carrier, need no further target clauses.
 
 The [trial](../descriptor/trial/README.md#carrier-arguments) and [benchmark](../descriptor/bench/README.md#carrier-arguments) owners specify the additional target expressions and their order.
+The [enum carrier example](../../../../examples/enum_mutation/README.md) is a runnable library-and-consumer crossing through the root facade.
 
 The [renamed facade specimen](../../../proc/tests/recipe_facade_crossing/support/renamed_facade.rs) contains complete declarations and consuming invocations for these forms.
 Its [executable crossing](../../../proc/tests/recipe_facade_crossing/renamed_facade.rs) compiles the generated targets and executes their checks.

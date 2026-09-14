@@ -364,7 +364,7 @@ fn read_back_failures_do_not_invoke_the_semantic_decoder() -> Result<(), String>
             },
             &DeclaredBehavior::RefusedByCompiler,
         );
-        assert_eq!(compared, Err(expected));
+        assert_eq!(compared, Err(expected.clone()));
         let failure = compared.as_ref().err().ok_or("missing read-back failure")?;
         let shown = super::presentation::parsed(&macroonz::presentation::read_back_error(failure))?;
         assert_eq!(
@@ -372,6 +372,12 @@ fn read_back_failures_do_not_invoke_the_semantic_decoder() -> Result<(), String>
             "read-back"
         );
         assert!(shown.pointer("/record/verdict").is_none());
+        assert!(!called.get());
+        let observed = native_compiler::observed_read_back(&output, |_bytes| {
+            called.set(true);
+            Ok(42u64)
+        });
+        assert_eq!(observed, Err(expected));
         assert!(!called.get());
     }
     Ok(())

@@ -25,3 +25,4 @@ The example explicitly supplies invocation budgets, unavailable measurement and 
 
 This example owns the declaration-to-execution-and-display journey.
 The [root workflow](../../src/workflow/README.md#retain-and-load) owns optional retention and fresh-witness replay using the returned `InputRun` and separately supplied native storage.
+The [retained-input example](../retained_workflow/README.md) demonstrates those operations, actual reduction and fresh-process replay with an independent byte-count oracle.

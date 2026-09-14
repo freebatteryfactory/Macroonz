@@ -13,6 +13,7 @@ Read the ordinary `RunReport` for conclusions, budgets, measurements and every u
 This home invents no verdict, revision, semantic configuration or clock policy.
 The [versioned configuration entrance](../configuration/README.md) supplies inspectable mechanical ceilings to this same operation.
 The [typed trial example](../../examples/trial_workflow/README.md) connects a co-located declaration and consuming-target checks to text selection and execution.
+The [retained-input example](../../examples/retained_workflow/README.md) continues through reduction, bounded storage and separately invoked witness replay with expected results and refusal cases.
 
 ## Select by text
 

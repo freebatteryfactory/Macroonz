@@ -71,6 +71,7 @@ fn redirected_journal_payload_or_temporary_entry_refuses_before_the_next_output_
         ".macroonz-publication/item-pending/item-intent",
         ".macroonz-publication/item-pending/.committed",
         ".macroonz-publication/replacement",
+        ".macroonz-publication/incoming",
     ] {
         let output = root()?;
         let destination = destination(&output)?;

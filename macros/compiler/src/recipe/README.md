@@ -14,7 +14,7 @@ Clause families occur in that order when present because the reader settles refe
 
 Vocabulary members are read from the authored enums themselves.
 The caller does not restate a roster, and Macroonz does not reconstruct an enum as a parallel Rust model.
-The current vocabulary ceiling is one unit-variant enum, and its generated declared-order companion uses Rust's own `_VARIANTS` vocabulary.
+Each vocabulary names one unit-variant enum, and its generated declared-order companion uses Rust's own `_VARIANTS` vocabulary.
 Record-shaped or field-bearing types remain ordinary authored structs and enter the existing codec owner when canonical bytes are requested.
 
 A relation names its left and right vocabularies and contains zero or more caller-authored endpoint rows.
@@ -81,6 +81,18 @@ It carries no body or target argument and does not establish execution.
 
 The [first recipe](../../../../examples/recipe.rs) is the runnable starting point for structural clauses; the [renamed facade consumer](../../../proc/tests/recipe_facade_crossing.rs) observes the composed recipe and evidence crossings.
 
+## Runnable structural clauses
+
+Run `cargo run --example recipe --no-default-features` from the repository root.
+Successful execution is silent: the example checks same-roster and cross-roster lookups, conventional and configured membership tables, exact path and Rust payloads, declared companion order, implicit and selected typestate, fixed codec bytes and malformed input, and conventional, configured and exact dispatch.
+The exact dispatcher accepts additional mutable caller context through explicit state/event bindings; its admitted row changes the context once, and its absent row returns `TransitionRefusal::Absent` without running that effect.
+Expected lookup results, bytes and effect counts are authored independently of generated companions.
+
+Run `cargo run --example recipe_postures --no-default-features` for the [posture controls](../../../../examples/recipe_postures/README.md).
+They exercise every lawful answer spelling through callable admission and require inconsistent declarations to refuse.
+The [ordinary Rust and independent dispatch control](../../../../tests/recipe_surface.rs), [effect forms](../../../proc/tests/recipe_facade_crossing/support/effect_execution.rs), and [projection refusals](../../../compiler/tests/recipe_vertical_slice/dispatch_contract.rs) provide further executable examples of the same owners.
+The callable controls observe structural admission and diagnostics; the generated-program controls establish their separate execution claims.
+
 ## Capability catalog
 
 The catalog preserves complete caller-authored modules, visibility, attributes, documentation, imports, reexports, constants, aliases, data items, traits, implementations and functions as ordinary Rust.
@@ -110,6 +122,7 @@ The exact signature preserves caller-authored attributes, visibility, qualifiers
 Where that signature carries only state and event, their two simple bindings are read directly; where it carries additional parameters, `dispatch(state_binding, event_binding) { exact signature };` names the two bindings the row-accounted match consumes.
 The standard projector generates only the body accounted from the informed transition rows.
 A caller-authored function body is refused at that seat because an arbitrary body belongs to the caller-owned projector road.
+The standard dispatcher requires transition `absence(refused)`; `absence(allowed)` remains available to declarations that do not request that dispatcher.
 
 A `relation_tables` projection selects one or more caller-named relations inside a single role-owned block.
 An unlabeled row set accepts `relation;` for the borrowed `contains` preset or `relation(function_name);` for the same typed membership body under a configured name.

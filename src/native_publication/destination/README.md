@@ -43,8 +43,11 @@ These retained claims enable recovery and cannot reconstruct a fresh compiler ob
 
 `write_next` applies one lexically ordered replacement or removal and advances only after success.
 Each step first checks that the committed journal still contains this installation's complete intent.
-A replacement is written and synchronized in the reserved control directory, then renamed over an owned destination or linked into an absent destination without overwriting an intervening creation.
-A leftover temporary link is removed before a new temporary file is exclusively created; its inode is never truncated for reuse.
+A replacement is exclusively created and synchronized at `.macroonz-publication/incoming`, then atomically renamed over `.macroonz-publication/replacement` before publication.
+That complete temporary file is renamed over an owned destination or linked into an absent destination without overwriting an intervening creation.
+Link publication retains the temporary name; the next prepared replacement atomically replaces that alias without truncating or separately unlinking its installed inode.
+The retained alias may remain after successful installation and carries no authority beyond the installed ownership record.
+An interrupted incoming file is removed before exclusive recreation, while a symbolic link or incompatible kind at either temporary name refuses.
 Current files must still match their old or intended new bytes, and a removal applies only to the explicitly retired owned path.
 There is no recursive output deletion or whole-directory ownership inference.
 

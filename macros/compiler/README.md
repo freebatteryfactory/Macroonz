@@ -43,6 +43,8 @@ The projector reads `RecipeView` and `ProjectionRequest`, offers one `GeneratedT
 
 The package ships that exact journey at `examples/custom_recipe_projector.rs`; run `cargo run -p macroonz-compiler --example custom_recipe_projector` from the workspace root.
 The example replaces one standard seat with a domain-neutral structural-dimensions projection and depends on no facade, proc host, harness, plugin registry, or ambient discovery.
+Successful execution is silent: it checks emitted dimensions `(2, 3, 2)` and the declared effect path, then refuses replacement of an unselected role and duplicate replacement of one role.
+Replace a role selected by the recipe and supply at most one projector for that role to repair those refusals.
 
 The paved `macroonz::recipe!` host can configure projectors that ship with Macroonz, but it cannot execute arbitrary Rust code declared later in an adopter crate.
 Such algorithms run through this callable road or through a caller-owned proc-macro crate using the same compiler contract.
@@ -92,6 +94,8 @@ pub fn greet(input: TokenStream) -> TokenStream {
 `Greeting`, `GREET_DOOR`, and `impl_tokens` in this proc-host sketch are adopter-owned placeholders.
 The package ships a complete one-unit callable compiler at `examples/callable_compiler.rs` using their minimal equivalents; run `cargo run -p macroonz-compiler --example callable_compiler` from the workspace root.
 That example executes `Request::over(...).render(...)`, not `host::expand` or a proc-macro host crossing.
+Successful execution is silent: `world` emits `GREETING` with value `42`, another word emits `0`, and omitting the planned output refuses the request.
+Supply every planned unit to repair that refusal; an empty renderer cannot deliver a smaller expansion.
 
 For a kind whose output is an addressed source artifact, follow the stamp home's [runnable publication](src/stamp/README.md#runnable-publication).
 Its `published_kind` example carries the actual definition through the sealed expansion and keeps the publication actor's remaining work explicit.

@@ -150,9 +150,14 @@ fn leftover_temporary_hard_link_cannot_rewrite_an_already_installed_file() -> Re
         .spelling()
         .to_owned();
     let before = std::fs::read(output.join(&first)).map_err(|error| error.to_string())?;
-    std::fs::hard_link(
-        output.join(&first),
-        output.join(".macroonz-publication/replacement"),
+    assert_eq!(
+        std::fs::read(output.join(".macroonz-publication/replacement"))
+            .map_err(|error| error.to_string())?,
+        before
+    );
+    std::fs::write(
+        output.join(".macroonz-publication/incoming"),
+        b"partial incoming bytes",
     )
     .map_err(|error| error.to_string())?;
     drop(installation);

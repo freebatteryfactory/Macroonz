@@ -180,5 +180,38 @@ fn main() -> Result<(), String> {
     assert!(emitted.contains("( 2 , 3 , 2 )"));
     assert!(emitted.contains("STRUCTURAL_EFFECTS"));
     assert!(emitted.contains("crate :: observe"));
+    let companions = ProjectorReplacement::for_role(RecipeRole::Companions, &StructuralDimensions);
+    for (replacements, expected) in [
+        (
+            vec![ProjectorReplacement::for_role(
+                RecipeRole::Dispatch,
+                &StructuralDimensions,
+            )],
+            "unselected role `dispatch`",
+        ),
+        (
+            vec![companions, companions],
+            "caller-owned projector role `companions` is replaced more than once",
+        ),
+    ] {
+        let refusal = macroonz_compiler::recipe::bake_with(
+            captured.input(),
+            HarnessPosture::Available,
+            &RECIPE_DOOR,
+            &replacements,
+        )
+        .err()
+        .ok_or("an invalid projector replacement was admitted")?;
+        assert!(
+            refusal.summary().contains(expected),
+            "{}",
+            refusal.summary()
+        );
+    }
     Ok(())
+}
+
+#[test]
+fn documented_projector_executes_with_its_refusal_controls() -> Result<(), String> {
+    main()
 }

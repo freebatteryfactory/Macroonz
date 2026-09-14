@@ -20,7 +20,7 @@ The formatted-staging journey also installs its actually compiled physical set a
 Destination controls independently construct historical ownership records and snapshot directories around read-only checks and refused changes.
 Installation controls use actually compiled publications, preserve authored neighbors, regenerate twice, replace and retire owned output, repair missing files and reopen a relocated destination.
 Recovery controls interrupt at each public file step, terminate a real installer process, restore journal-retirement boundaries and refuse damaged metadata, changed output and unexpected journal entries.
-A retained temporary hard link cannot rewrite its already installed output when installation resumes.
+A retained temporary hard link and a partial incoming file cannot rewrite already installed output when installation resumes.
 Directory/file links and changed filesystem kinds refuse without touching their external targets, and interrupted regeneration recovers every mixture of previous, new and retired owned paths.
 Feature-isolated consumers observe private installation custody and consuming commit from outside the root crate.
 

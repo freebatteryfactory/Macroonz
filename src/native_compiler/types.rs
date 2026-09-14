@@ -97,7 +97,7 @@ pub struct PendingCompilation {
     pub(super) process: Box<PendingProcess>,
 }
 
-/// Why a native read-back did not supply values to the existing comparator.
+/// Why a native read-back did not supply decoded values.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ReadBackError {
     /// Supervision stopped the reader before ordinary exit.

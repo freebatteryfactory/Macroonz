@@ -44,7 +44,9 @@ The selected executable and project configuration are caller trust inputs; these
 
 For a successful binary, `CompilerOutput::read_back` accepts only that build's reported executable and runs it under a separately explicit process request.
 Arguments, stdin, environment, output bounds and deadlines for the reader remain caller inputs.
-After native cleanup finishes, `compared_read_back` decodes the actual successful reader's stdout through a caller-owned function and delegates the resulting `ObservedMember` roster to the existing comparator.
+After native cleanup finishes, `observed_read_back` admits ordinary successful exit and calls the supplied decoder once over the actual stdout, returning its caller-owned value for later judgment.
+It does not select a witness or infer a semantic verdict from successful execution or decoding.
+`compared_read_back` composes that same operation with a caller-decoded `ObservedMember` roster and the existing comparator.
 The caller owns value encoding and independent expectations; no downstream type or universal read-back wire format is invented here.
 Duplicate observed members remain visible to the comparator.
 A nonzero reader exit, incomplete output or decoder refusal produces no semantic verdict.

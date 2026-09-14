@@ -3,6 +3,8 @@
 One declaration in; one module out, delivered as deferred cargo the consumer's test target invokes.
 
 The module carries three things: the policy the surface is lowered under, the site whose alternatives a selection chooses between, and the dispatch that answers an evaluation.
+The [public structural example](../../../../../examples/structural_mutation/README.md) pairs source generation with the existing native compiler caller and independently authored behavior checks.
+The [enum carrier example](../../../../../examples/enum_mutation/README.md) invokes attribute and recipe declarations across a real crate boundary, observing permitted alternatives and a withheld discovery.
 
 ## Every fact here is the declaration's
 

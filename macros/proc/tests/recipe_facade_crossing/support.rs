@@ -192,6 +192,59 @@ pub(super) fn observe_crossing(scratch: &Path) -> Result<(), String> {
     Ok(())
 }
 
+pub(super) fn observe_bench_formula(scratch: &Path) -> Result<(), String> {
+    let insertion = "ratio_denominator = 1,";
+    let absent = "const EXPECTED_FORMULA: Option<&[u8]> = None;";
+    assert_eq!(PRODUCER.matches(insertion).count(), 1usize);
+    assert_eq!(CONSUMER.matches(absent).count(), 1usize);
+    let producer = PRODUCER.replace(
+        insertion,
+        "ratio_denominator = 1, formula = \"visits(n) = n\",",
+    );
+    let consumer = CONSUMER.replace(
+        absent,
+        "const EXPECTED_FORMULA: Option<&[u8]> = Some(b\"visits(n) = n\");",
+    );
+    write_specimen(scratch, ", features = [\"harness\"]", &producer, &consumer)?;
+    let locked = lock_from_repository(scratch)?;
+    if !locked.status.success() {
+        return Err(command_refusal(
+            "benchmark formula lock generation",
+            &locked,
+        ));
+    }
+    let tested = cargo(scratch, &["test", "--locked", "--offline"])?;
+    if !tested.status.success() {
+        return Err(command_refusal("benchmark formula execution", &tested));
+    }
+    for (label, value, expected) in [
+        ("empty formula", "\"\"".to_owned(), "work-formula-byte"),
+        (
+            "oversized formula",
+            format!("\"{}\"", "n".repeat(257usize)),
+            "work-formula-byte",
+        ),
+        (
+            "non-text formula",
+            "17".to_owned(),
+            "a clause is not one key and one value",
+        ),
+    ] {
+        let refused_producer = PRODUCER.replace(
+            insertion,
+            &format!("ratio_denominator = 1, formula = {value},"),
+        );
+        std::fs::write(scratch.join("src/lib.rs"), refused_producer)
+            .map_err(|error| error.to_string())?;
+        let checked = cargo(scratch, &["check", "--lib", "--locked", "--offline"])?;
+        if checked.status.success() || !String::from_utf8_lossy(&checked.stderr).contains(expected)
+        {
+            return Err(command_refusal(label, &checked));
+        }
+    }
+    Ok(())
+}
+
 pub(super) fn observe_subject_journeys(scratch: &Path) -> Result<(), String> {
     write_specimen(
         scratch,

@@ -5,6 +5,7 @@ use cap_std::fs::{Dir, OpenOptions};
 use std::io::{ErrorKind, Write};
 
 const TEMPORARY: &str = ".macroonz-publication/replacement";
+const INCOMING: &str = ".macroonz-publication/incoming";
 
 pub(super) fn compatible(
     root: &Dir,
@@ -120,29 +121,35 @@ pub(super) fn file(root: &Dir, path: &str, bytes: &[u8]) -> Result<(), Destinati
         Err(error) => return Err(DestinationError::Filesystem(error)),
     };
     match root.symlink_metadata(TEMPORARY) {
-        Ok(metadata) if metadata.is_file() => {
-            root.remove_file(TEMPORARY)
-                .map_err(DestinationError::Filesystem)?;
-        }
+        Ok(metadata) if metadata.is_file() => {}
         Ok(_metadata) => return Err(DestinationError::Entry(TEMPORARY.to_owned())),
         Err(error) if error.kind() == ErrorKind::NotFound => {}
         Err(error) => return Err(DestinationError::Filesystem(error)),
     }
+    match root.symlink_metadata(INCOMING) {
+        Ok(metadata) if metadata.is_file() => {
+            root.remove_file(INCOMING)
+                .map_err(DestinationError::Filesystem)?;
+        }
+        Ok(_metadata) => return Err(DestinationError::Entry(INCOMING.to_owned())),
+        Err(error) if error.kind() == ErrorKind::NotFound => {}
+        Err(error) => return Err(DestinationError::Filesystem(error)),
+    }
     let mut output = root
-        .open_with(TEMPORARY, OpenOptions::new().write(true).create_new(true))
+        .open_with(INCOMING, OpenOptions::new().write(true).create_new(true))
         .map_err(DestinationError::Filesystem)?;
     output
         .write_all(bytes)
         .map_err(DestinationError::Filesystem)?;
     output.sync_all().map_err(DestinationError::Filesystem)?;
     drop(output);
+    root.rename(INCOMING, root, TEMPORARY)
+        .map_err(DestinationError::Filesystem)?;
     if existing {
         root.rename(TEMPORARY, root, path)
             .map_err(DestinationError::Filesystem)
     } else {
         root.hard_link(TEMPORARY, root, path)
-            .map_err(DestinationError::Filesystem)?;
-        root.remove_file(TEMPORARY)
             .map_err(DestinationError::Filesystem)
     }
 }

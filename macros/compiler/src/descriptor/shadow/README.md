@@ -17,6 +17,7 @@ The roster is the adapter's bounded backend knowledge: each row joins one public
 
 The production crate imports through the module where its declaration stands, while the harness explores models through its separate preemption owner.
 This home supplies the two-faced vocabulary that lets those roads meet without importing harness types or scheduler policy into the compiler.
+The [paired public caller](../../../../../examples/shadow_workflow/README.md) executes both faces with one independently authored check.
 
 ## Trust ceiling
 

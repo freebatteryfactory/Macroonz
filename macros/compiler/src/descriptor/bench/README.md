@@ -93,3 +93,17 @@ reporter: report_reader_expression,
 
 Repeat the four `<lens>` clauses for every benchmark row in declaration order.
 The work, judge, preflight and report-reader contracts belong to the [harness benchmark owner](../../../../../harness/src/bench/README.md).
+
+## Executable recipe crossing
+
+The [renamed-facade specimen](../../../../proc/tests/recipe_facade_crossing/support/renamed_facade.rs) declares a benchmark inside a recipe, binds its measured work, worse control, judge and preflight in the consumer, and executes the generated table and report reader.
+The [crossing control](../../../../proc/tests/recipe_facade_crossing/support.rs) also inserts `formula = "visits(n) = n",` and requires the consumer's judge to receive exactly those bytes.
+The omitted form requires `None` at the same judge while preserving its work-count checks.
+
+```sh
+cargo +1.98.1 test -p macroonz-macros --test recipe_facade_crossing renamed_facade --locked
+```
+
+The checks pass silently apart from Cargo's test report.
+Empty, oversized and non-text formula values must refuse during compilation; omit the clause for absence, or supply nonempty text within [`WORK_FORMULA_LIMIT`].
+These controls establish declared-byte custody and execution of the caller's judge, not automatic interpretation of a formula or a performance claim about the generated dispatcher.

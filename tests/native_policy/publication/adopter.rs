@@ -161,6 +161,10 @@ fn material(example: &Path, input: &Path) -> Result<(), String> {
             "read.rs",
             include_str!("../../../examples/support/native_input/read.rs"),
         ),
+        (
+            "environment.rs",
+            include_str!("../../../examples/support/native_input/environment.rs"),
+        ),
     ] {
         std::fs::write(input.join(name), source).map_err(|error| error.to_string())?;
     }
