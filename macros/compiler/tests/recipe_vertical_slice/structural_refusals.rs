@@ -13,6 +13,9 @@ fn every_direct_type_namespace_collision_refuses_before_projection() -> Result<(
         "trait baked {}",
         "type baked = ();",
         "extern crate baked;",
+        "extern crate dependency as baked;",
+        "extern crate dependency as r#baked;",
+        "extern crate r#dependency as baked;",
         "struct r#baked;",
     ] {
         let source = format!(
@@ -74,6 +77,25 @@ pub mod door {{
             bake(source.as_str()).is_ok(),
             "unexpected cross-namespace refusal for `{declaration}`: {:?}",
             refusal_summary(source.as_str())
+        );
+    }
+}
+
+#[test]
+fn external_crates_aliased_away_from_the_generated_name_remain_admitted() {
+    for declaration in [
+        "extern crate baked as dependency;",
+        "extern crate r#baked as dependency;",
+        "extern crate baked as r#dependency;",
+        "extern crate baked as _;",
+    ] {
+        let source = format!(
+            "mod subject {{ {declaration} pub enum Stage {{ Draft }} bake! {{ vocabularies {{ Stage; }}; projections {{ companions; }}; }} }}"
+        );
+        assert!(
+            bake(&source).is_ok(),
+            "unexpected alias refusal for `{declaration}`: {:?}",
+            refusal_summary(&source)
         );
     }
 }

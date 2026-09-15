@@ -324,6 +324,15 @@ fn generated_child_collision_precedes_unread_bake_grammar() -> Result<(), ()> {
 }
 
 #[test]
+fn an_external_crate_alias_collision_points_at_the_binding_before_bake_grammar() -> Result<(), ()> {
+    let source = "mod subject { extern crate dependency as baked; bake! { not_a_clause; } }";
+    let refused = refusal(source)?;
+    assert!(refused.summary().contains("generated recipe name `baked`"));
+    assert_at_handle(&refused, word_handle(source, "baked", Occurrence::First)?);
+    Ok(())
+}
+
+#[test]
 fn requested_admission_precedes_deferred_signatures() -> Result<(), ()> {
     let source = "mod subject { bake! { projections { dispatch { not_a_signature }; companions; companions; }; } }";
     let refused = refusal(source)?;

@@ -9,3 +9,4 @@ Clause readers produce parts, and the read door composes the declarations' priva
 Every structural question those parts raise is answered by that nucleus, and every refusal a reader can name lives in the issue home.
 Deferred exact signatures and consuming configuration are interpreted only when account selection reaches their role, and each relation table's subject is admitted before its signature is read.
 The namespace and record lenses report authored syntax without owning generated-name or codec-owner policy.
+An `extern crate` item's observed spelling and span come from its `as` binding when present, or its crate name otherwise.

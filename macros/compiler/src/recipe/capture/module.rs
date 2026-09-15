@@ -74,18 +74,30 @@ pub(super) fn type_names(
             None
         }
     });
-    let external = authored.windows(3).filter_map(|triple| {
-        let [external, crate_word, name] = triple else {
-            return None;
-        };
-        if external.word() == Some("extern") && crate_word.word() == Some("crate") {
-            name.word()
-                .or_else(|| name.raw_identifier())
-                .map(|spelling| (spelling, name.span()))
-        } else {
-            None
-        }
-    });
+    let external = authored
+        .windows(3)
+        .enumerate()
+        .filter_map(|(position, triple)| {
+            let [external, crate_word, name] = triple else {
+                return None;
+            };
+            if external.word() == Some("extern") && crate_word.word() == Some("crate") {
+                let name = if authored
+                    .get(position.saturating_add(3))
+                    .and_then(CapturedTokenTree::word)
+                    == Some("as")
+                {
+                    authored.get(position.saturating_add(4))?
+                } else {
+                    name
+                };
+                name.word()
+                    .or_else(|| name.raw_identifier())
+                    .map(|spelling| (spelling, name.span()))
+            } else {
+                None
+            }
+        });
     direct.chain(external)
 }
 
