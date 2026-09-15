@@ -1,7 +1,10 @@
-//! The authored module boundary, bake suffix, generated-name firewall, and enum-member lenses.
+//! The authored module boundary, bake suffix, and namespace, record and enum-member lenses.
 
-use super::{BAKE, RecipeError, RecipeIssue, RecipeMember, identifier_token};
+use super::{RecipeError, RecipeIssue, RecipeMember, identifier_token};
 use crate::token::{CapturedDelimiter, CapturedFragment, CapturedTokenTree};
+
+/// The private suffix that declares one recipe inside its authored module.
+const BAKE: &str = "bake";
 
 /// Split the required final `bake! { ... }` suffix from the authored module body.
 pub(super) fn bake_suffix(
@@ -52,47 +55,50 @@ pub(super) fn bake_suffix(
     Ok((suffix.0, declaration))
 }
 
-/// Refuse a direct authored type-namespace occupant of the generated child name before any projector runs.
-pub(super) fn collision_free(authored: &[CapturedTokenTree]) -> Result<(), RecipeError> {
-    for pair in authored.windows(2) {
+/// Read direct type-namespace names in the authored module without assigning generated-name policy.
+pub(super) fn type_names(
+    authored: &[CapturedTokenTree],
+) -> impl Iterator<Item = (&str, crate::token::SpanHandle)> {
+    let direct = authored.windows(2).filter_map(|pair| {
         let [kind, name] = pair else {
-            continue;
+            return None;
         };
         if matches!(
             kind.word(),
             Some("mod" | "struct" | "enum" | "union" | "trait" | "type")
-        ) && name
-            .word()
-            .or_else(|| name.raw_identifier())
-            .is_some_and(|spelling| spelling == "baked")
-        {
-            return Err(generated_name_collision(name));
-        }
-    }
-    for triple in authored.windows(3) {
-        let [external, crate_word, name] = triple else {
-            continue;
-        };
-        if external.word() == Some("extern")
-            && crate_word.word() == Some("crate")
-            && name
-                .word()
+        ) {
+            name.word()
                 .or_else(|| name.raw_identifier())
-                .is_some_and(|spelling| spelling == "baked")
-        {
-            return Err(generated_name_collision(name));
+                .map(|spelling| (spelling, name.span()))
+        } else {
+            None
         }
-    }
-    Ok(())
-}
-
-fn generated_name_collision(name: &CapturedTokenTree) -> RecipeError {
-    RecipeError::at(
-        RecipeIssue::GeneratedNameCollision {
-            name: "baked".to_owned(),
-        },
-        Some(name.span()),
-    )
+    });
+    let external = authored
+        .windows(3)
+        .enumerate()
+        .filter_map(|(position, triple)| {
+            let [external, crate_word, name] = triple else {
+                return None;
+            };
+            if external.word() == Some("extern") && crate_word.word() == Some("crate") {
+                let name = if authored
+                    .get(position.saturating_add(3))
+                    .and_then(CapturedTokenTree::word)
+                    == Some("as")
+                {
+                    authored.get(position.saturating_add(4))?
+                } else {
+                    name
+                };
+                name.word()
+                    .or_else(|| name.raw_identifier())
+                    .map(|spelling| (spelling, name.span()))
+            } else {
+                None
+            }
+        });
+    direct.chain(external)
 }
 
 /// Read one named authored enum and its unit-variant roster.
@@ -144,12 +150,11 @@ pub(super) fn enum_members(
     unit_variants(body, sought)
 }
 
-/// Establish that one codec owner names an authored record-shaped structure.
-pub(super) fn authored_record(
-    authored: &[CapturedTokenTree],
-    codec: &str,
+/// Read the name token of one record-shaped authored structure.
+pub(super) fn record_shape<'a>(
+    authored: &'a [CapturedTokenTree],
     sought: &str,
-) -> Result<(), RecipeError> {
+) -> Option<&'a CapturedTokenTree> {
     let found = authored.windows(2).position(|pair| {
         matches!(pair, [kind, name]
             if kind.word() == Some("struct")
@@ -158,37 +163,23 @@ pub(super) fn authored_record(
                     .or_else(|| name.raw_identifier())
                     .is_some_and(|spelling| spelling == sought))
     });
-    let Some(position) = found else {
-        return Err(codec_owner_refusal(authored, codec, sought));
-    };
-    let Some(after_name) = authored.get(position.saturating_add(2)..) else {
-        return Err(codec_owner_refusal(authored, codec, sought));
-    };
+    let position = found?;
+    let after_name = authored.get(position.saturating_add(2)..)?;
     let mut generic_depth = 0usize;
     for token in after_name {
         match token.punct() {
             Some('<') => generic_depth = generic_depth.saturating_add(1),
             Some('>') => generic_depth = generic_depth.saturating_sub(1),
             Some(';') => {
-                return Err(codec_owner_refusal(authored, codec, sought));
+                return None;
             }
             Some(_) | None => {}
         }
         if generic_depth == 0 && token.group_fragment(CapturedDelimiter::Brace).is_some() {
-            return Ok(());
+            return authored.get(position.saturating_add(1));
         }
     }
-    Err(codec_owner_refusal(authored, codec, sought))
-}
-
-fn codec_owner_refusal(authored: &[CapturedTokenTree], codec: &str, owner: &str) -> RecipeError {
-    RecipeError::at(
-        RecipeIssue::CodecOwnerNotRecord {
-            codec: codec.to_owned(),
-            owner: owner.to_owned(),
-        },
-        authored.first().map(CapturedTokenTree::span),
-    )
+    None
 }
 
 fn unit_variants(

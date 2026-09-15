@@ -10,5 +10,5 @@ mod shadow_example;
 mod structural_example;
 pub(crate) mod real;
 pub(crate) mod registry;
-pub(crate) mod refusal;
+mod refusal;
 pub(crate) mod types;

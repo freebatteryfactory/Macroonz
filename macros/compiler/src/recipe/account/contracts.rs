@@ -202,3 +202,33 @@ fn ensure_dispatch_projection(
     }
     Ok(())
 }
+
+impl RecipeCodec {
+    /// Admit the selected codec owner against a caller-supplied authored-record lens.
+    pub(in crate::recipe) fn against_authored_record(
+        self,
+        module_at: Option<crate::token::SpanHandle>,
+        authored_at: Option<crate::token::SpanHandle>,
+        record: impl FnOnce(&str) -> bool,
+    ) -> Result<Self, RecipeError> {
+        let Some(owner) = self.content().shape.owner().segments().last() else {
+            return Err(RecipeError::at(
+                RecipeIssue::CodecOwnerNotRecord {
+                    codec: self.name().to_owned(),
+                    owner: "<missing>".to_owned(),
+                },
+                module_at,
+            ));
+        };
+        if !record(owner) {
+            return Err(RecipeError::at(
+                RecipeIssue::CodecOwnerNotRecord {
+                    codec: self.name().to_owned(),
+                    owner: owner.to_owned(),
+                },
+                authored_at,
+            ));
+        }
+        Ok(self)
+    }
+}

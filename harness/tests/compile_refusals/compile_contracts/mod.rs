@@ -252,7 +252,27 @@ fn observe(
         .map_err(|failure| format!("{} was not runnable: {failure:?}", subject.stem))?;
     let locus = RelativeSourcePath::informed(&format!("src/bin/{}", subject.file_name))
         .map_err(|refusal| format!("{} locus was refused: {refusal:?}", subject.stem))?;
-    diagnostic::observed_compilation(&output, scratch.root(), &locus)
+    let observed = diagnostic::observed_compilation(&output, scratch.root(), &locus)?;
+    let mut unreadable = output.clone();
+    unreadable.stdout = b"not-json".to_vec();
+    if let Some(anchor) = observed.refusal() {
+        let result = diagnostic::require_compilation(
+            &unreadable,
+            scratch.root(),
+            &locus,
+            &DeclaredCompilation::refuses(anchor.clone()),
+        );
+        let Err(failure) = result else {
+            return Err("unreadable evidence satisfied an expected refusal".to_owned());
+        };
+        assert!(failure.contains("CaptureFailed"), "{failure}");
+    } else {
+        assert_eq!(
+            diagnostic::observed_compilation(&unreadable, scratch.root(), &locus)?,
+            ObservedCompilation::compiled()
+        );
+    }
+    Ok(observed)
 }
 
 fn anchor(
@@ -302,6 +322,8 @@ fn admit(cases: &[AdmissionCase], host: &scratch::HostFacts) -> Result<(), Strin
     let check_material = [
         include_bytes!("mod.rs").as_slice(),
         include_bytes!("../swap_pairs/diagnostic.rs").as_slice(),
+        include_bytes!("../swap_pairs/diagnostic_json.rs").as_slice(),
+        include_bytes!("../swap_pairs/diagnostic_protocol.rs").as_slice(),
         include_bytes!("../swap_pairs/scratch.rs").as_slice(),
     ]
     .concat();

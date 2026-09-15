@@ -2,7 +2,7 @@ use super::types::Host;
 use macroonz::harness::oracle::{
     DiagnosticAnchor, PrimarySourceSpan, RelativeSourcePath, RustcErrorCode, SourcePosition,
 };
-use macroonz::native_compiler::{CompilerOutput, CompilerRun};
+use macroonz::native_compiler::{self, CompilerOutput, CompilerRequest, CompilerRun};
 use macroonz::native_process::{ProcessLimits, ProcessTool};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -168,4 +168,33 @@ pub(crate) fn target() -> Result<PathBuf, String> {
         .parent()
         .map(Path::to_path_buf)
         .ok_or_else(|| "missing Cargo target parent".to_owned())
+}
+
+pub(crate) fn standin(
+    root: &Path,
+    host: &Host,
+    name: &str,
+    source: &str,
+) -> Result<PathBuf, String> {
+    let filename = format!("{name}.rs");
+    std::fs::write(root.join(&filename), source).map_err(|error| error.to_string())?;
+    let executable = root.join(format!("{name}{}", std::env::consts::EXE_SUFFIX));
+    let source_path =
+        RelativeSourcePath::informed(&filename).map_err(|error| format!("{error:?}"))?;
+    let request = CompilerRequest::rustc(
+        &tool(host, &host.rustc, root, bounds()?)?,
+        source_path,
+        executable.clone(),
+        &host.triple,
+    )
+    .map_err(|error| error.to_string())?;
+    let output = finish(native_compiler::compile(&request).map_err(|error| error.to_string())?)?;
+    if output.observed().is_err()
+        || output
+            .observed()
+            .is_ok_and(|value| value.refusal().is_some())
+    {
+        return Err(format!("stand-in failed to compile: {output:?}"));
+    }
+    Ok(executable)
 }

@@ -1,7 +1,7 @@
 //! The read from one authored module and its final bake declaration into an informed recipe.
 
 use super::bake::read_bake;
-use super::module::{authored_record, bake_suffix, collision_free, enum_members};
+use super::module::{bake_suffix, enum_members, record_shape, type_names};
 use super::{
     AuthoredItemKind, CapturedDelimiter, CapturedInput, CapturedTokenTree, HarnessPosture, Recipe,
     RecipeError, RecipeIssue, RecipeParts, RecipeRelationParts, RecipeVocabularyParts,
@@ -41,23 +41,22 @@ impl Recipe {
             ));
         };
         let (authored, declaration) = bake_suffix(body)?;
-        collision_free(authored)?;
+        Recipe::ensure_authored_names(type_names(authored))?;
         let authored_declaration = declaration
             .generated()
             .map_err(|refusal| fragment_refusal(refusal.token()))?;
         let read = read_bake(declaration, harness, input.issued())?;
-        for codec in &read.codecs {
-            let Some(owner) = codec.content().shape.owner().segments().last() else {
-                return Err(RecipeError::at(
-                    RecipeIssue::CodecOwnerNotRecord {
-                        codec: codec.name().to_owned(),
-                        owner: "<missing>".to_owned(),
-                    },
+        let codecs = read
+            .codecs
+            .into_iter()
+            .map(|codec| {
+                codec.against_authored_record(
                     body.enclosing_span(),
-                ));
-            };
-            authored_record(authored, codec.name(), owner)?;
-        }
+                    authored.first().map(CapturedTokenTree::span),
+                    |owner| record_shape(authored, owner).is_some(),
+                )
+            })
+            .collect::<Result<Vec<_>, RecipeError>>()?;
         let vocabularies = read
             .vocabularies
             .into_iter()
@@ -111,7 +110,7 @@ impl Recipe {
             vocabularies,
             relations,
             transition_relation: read.transition_relation,
-            codecs: read.codecs,
+            codecs,
             projections: read.projections,
             evidence: read.evidence,
             support: read.support,

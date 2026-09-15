@@ -15,8 +15,9 @@ use crate::descriptor::vocabulary::{self, HarnessName};
 use crate::descriptor::{Name, TypeName};
 use crate::stamp::{Visibility, declared_reach_tokens};
 use crate::token::{
-    GeneratedDelimiter, GeneratedToken, and_all, bound_local, call, comma_many, constant, equality,
-    function, group, method_call, method_chain, result_type, roster, text_pair,
+    GeneratedDelimiter, GeneratedToken, and_all, attribute, bound_local, bound_path, call,
+    comma_many, constant, equality, function, group, inline_module, method_call, method_chain,
+    result_type, roster, text_pair, tuple_variant,
 };
 
 /// The refusal arm a refused namespaced reference reaches.
@@ -94,9 +95,10 @@ pub fn generated_module(surface: &Surface) -> Result<Vec<GeneratedToken>, Overfl
     body.extend(production(site)?);
     body.extend(evaluation(site)?);
     let mut tokens = declared_reach_tokens(Visibility::Crate)?;
-    tokens.push(GeneratedToken::word("mod"));
-    tokens.push(GeneratedToken::word(surface.address().module.spelling()));
-    tokens.push(group(GeneratedDelimiter::Brace, body)?);
+    tokens.extend(inline_module(
+        GeneratedToken::word(surface.address().module.spelling()),
+        body,
+    )?);
     Ok(tokens)
 }
 
@@ -127,29 +129,19 @@ fn refusal_type(refusal: &TypeName) -> Result<Vec<GeneratedToken>, Overflow> {
     ];
     let mut arms: Vec<GeneratedToken> = Vec::new();
     for (arm, module, kind) in carried {
-        arms.push(GeneratedToken::word(arm));
-        arms.push(group(
-            GeneratedDelimiter::Parenthesis,
-            vocabulary::path(&[module, kind]),
+        arms.extend(tuple_variant(
+            GeneratedToken::word(arm),
+            vec![vocabulary::path(&[module, kind])],
         )?);
         arms.push(GeneratedToken::alone(','));
     }
     arms.push(GeneratedToken::word(UNRESOLVED_ARM));
     arms.push(GeneratedToken::alone(','));
 
-    let mut tokens = vec![
-        GeneratedToken::alone('#'),
-        group(
-            GeneratedDelimiter::Bracket,
-            vec![
-                GeneratedToken::word("derive"),
-                group(
-                    GeneratedDelimiter::Parenthesis,
-                    vec![GeneratedToken::word("Debug")],
-                )?,
-            ],
-        )?,
-    ];
+    let mut tokens = attribute(call(
+        vec![GeneratedToken::word("derive")],
+        vec![GeneratedToken::word("Debug")],
+    )?)?;
     tokens.extend(declared_reach_tokens(Visibility::Crate)?);
     tokens.push(GeneratedToken::word("enum"));
     tokens.push(GeneratedToken::word(refusal.spelling()));
@@ -221,12 +213,7 @@ fn or_refused(
 
 /// One arm of the rendered refusal type, as a path.
 fn arm_path(refusal: &TypeName, arm: &str) -> Vec<GeneratedToken> {
-    vec![
-        GeneratedToken::word(refusal.spelling()),
-        GeneratedToken::joint(':'),
-        GeneratedToken::alone(':'),
-        GeneratedToken::word(arm),
-    ]
+    bound_path(refusal.spelling(), &[arm])
 }
 
 /// One namespaced name as the two text literals its parser takes.

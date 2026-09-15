@@ -1,11 +1,7 @@
-//! Descriptor-native evidence clauses, support address posture, and evidence standings.
+//! Descriptor-native evidence clauses and authored support addresses.
 
-use super::super::types::{RecipeRoleEntrance, RecipeRolePlacement};
-use super::{
-    EVIDENCE_LIMIT, EffectiveProjection, HarnessPosture, LoweringSource, PROJECTION_LIMIT,
-    ProjectionStanding, RecipeError, RecipeEvidence, RecipeIssue, RecipeRole, RequestedEvidence,
-    grammar,
-};
+use super::super::types::RecipeRoleEntrance;
+use super::{EVIDENCE_LIMIT, RecipeError, RecipeIssue, RecipeRole, RequestedEvidence, grammar};
 use crate::support::SupportName;
 use crate::token::{
     CaptureCursor, CaptureReadRefusal, CapturedDelimiter, CapturedInput, CapturedSpacing,
@@ -111,67 +107,4 @@ pub(super) fn read_support(
         .punctuation(';', CapturedSpacing::Alone)
         .map_err(grammar)?;
     Ok(Some(declared))
-}
-
-pub(super) fn support_matches_projections(
-    projections: &[ProjectionStanding; PROJECTION_LIMIT],
-    support: Option<&SupportName>,
-    at: Option<crate::token::SpanHandle>,
-) -> Result<(), RecipeError> {
-    let evidence = RecipeRole::ALL.iter().copied().any(|role| {
-        role.profile().output.placement == RecipeRolePlacement::SupportCarrier
-            && generated(projections, role)
-    });
-    match (evidence, support.is_some()) {
-        (true, false) => Err(RecipeError::at(RecipeIssue::SupportAddressRequired, at)),
-        (false, true) => Err(RecipeError::at(RecipeIssue::SupportAddressUnneeded, at)),
-        (true, true) | (false, false) => Ok(()),
-    }
-}
-
-pub(super) fn evidence_standing(
-    requested: &[RequestedEvidence],
-    role: RecipeRole,
-    harness: HarnessPosture,
-) -> ProjectionStanding {
-    if harness == HarnessPosture::Unavailable {
-        return ProjectionStanding::FeatureUnavailable;
-    }
-    requested
-        .iter()
-        .find(|row| row.role == role)
-        .map_or(ProjectionStanding::NotRequested, |row| {
-            if row.body.is_some() {
-                ProjectionStanding::Generated(Box::new(EffectiveProjection::effective(
-                    role,
-                    None,
-                    None,
-                    LoweringSource::Configuration,
-                    row.at,
-                )))
-            } else {
-                ProjectionStanding::TargetUnavailable
-            }
-        })
-}
-
-pub(super) fn evidence(
-    requested: &[RequestedEvidence],
-) -> [Option<RecipeEvidence>; EVIDENCE_LIMIT] {
-    core::array::from_fn(|position| {
-        let role = RecipeRole::evidence_roles()
-            .find(|role| role.profile().evidence_position == Some(position))?;
-        let row = requested.iter().find(|candidate| candidate.role == role)?;
-        let body = row.body.clone()?;
-        Some(RecipeEvidence::captured(
-            row.role,
-            row.target.clone().map(super::EvidenceTarget::named),
-            body,
-            row.at,
-        ))
-    })
-}
-
-fn generated(projections: &[ProjectionStanding; PROJECTION_LIMIT], role: RecipeRole) -> bool {
-    matches!(role.standing(projections), ProjectionStanding::Generated(_))
 }

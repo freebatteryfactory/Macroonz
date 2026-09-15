@@ -15,6 +15,7 @@ use macroonz_compiler::stamp::{
 use macroonz_compiler::{
     CrateBinding, Destination, Door, GeneratedDelimiter, GeneratedToken, GeneratedTree, Kind,
     NoQuestions, OwnerIdentity, Producer, Request, Role, TextCapture, group, metavariable,
+    twin_path,
 };
 
 /// The one publication seat the specimen plans.
@@ -65,14 +66,6 @@ const ADDRESS: OwnerIdentity = OwnerIdentity {
     bytes: [7; 32],
 };
 
-fn punctuated_path(root: Vec<GeneratedToken>, tail: &str) -> Vec<GeneratedToken> {
-    let mut tokens = root;
-    tokens.push(GeneratedToken::joint(':'));
-    tokens.push(GeneratedToken::alone(':'));
-    tokens.push(GeneratedToken::word(tail));
-    tokens
-}
-
 fn pattern_body() -> Result<GeneratedTree, String> {
     let mut constant = metavariable(TRANSPORTED_REACH);
     constant.extend([
@@ -90,7 +83,7 @@ fn pattern_body() -> Result<GeneratedTree, String> {
     tokens.push(group(GeneratedDelimiter::Brace, constant).map_err(|refusal| refusal.to_string())?);
     tokens.extend(metavariable(DECLARED_REACH));
     tokens.push(GeneratedToken::word("use"));
-    tokens.extend(punctuated_path(metavariable("name"), "VALUE"));
+    tokens.extend(twin_path("name", &["VALUE"]));
     tokens.push(GeneratedToken::alone(';'));
     GeneratedTree::assembled(tokens).map_err(|refusal| refusal.to_string())
 }

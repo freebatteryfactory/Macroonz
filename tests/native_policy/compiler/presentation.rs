@@ -1,7 +1,6 @@
 //! Independent presentation observations over the existing real compiler controls.
 
-use super::configure::{anchor, bounds, host, root, tool};
-use super::refusal::standin;
+use super::configure::{anchor, bounds, host, root, standin, tool};
 use crate::presentation_formats::field;
 pub(super) use crate::presentation_formats::parsed;
 use macroonz::harness::oracle::{

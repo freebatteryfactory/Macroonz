@@ -1,8 +1,5 @@
 use super::configure::{finish, request};
-use crate::compiler::{
-    configure::{bounds, host, root},
-    refusal::standin,
-};
+use crate::compiler::configure::{bounds, host, root, standin};
 use macroonz::native_mutation::{self, MutationError, MutationObservationError, MutationPhase};
 use macroonz::native_process::{ProcessLimits, ProcessStop};
 use std::time::Duration;
