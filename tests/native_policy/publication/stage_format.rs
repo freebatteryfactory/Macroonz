@@ -2,8 +2,7 @@ use super::configure::{configuration, publication, standin as body};
 use super::fixture::LIMITS;
 use super::prepared::outputs;
 use super::stage_fixture::{DRIVER, authored, request};
-use crate::compiler::configure::{bounds, host, root, tool};
-use crate::compiler::refusal::standin;
+use crate::compiler::configure::{bounds, host, root, standin, tool};
 use macroonz::native_publication::{
     Formatter, PreparedPublication, StagingObservationError, StagingPlan, StagingRun,
 };

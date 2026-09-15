@@ -1,6 +1,5 @@
 use super::configure::configuration;
-use crate::compiler::configure::{bounds, host, root, tool};
-use crate::compiler::refusal::standin;
+use crate::compiler::configure::{bounds, host, root, standin, tool};
 use macroonz::native_process::{ProcessError, ProcessLimits, ProcessRun, ProcessStop};
 use macroonz::native_publication::{FormatError, Formatter};
 use std::time::Duration;

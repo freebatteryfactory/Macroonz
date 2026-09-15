@@ -1,6 +1,5 @@
 use super::configure::{configuration, finish, publication, scratch, standin as body};
-use crate::compiler::configure::{bounds, host, root, tool};
-use crate::compiler::refusal::standin;
+use crate::compiler::configure::{bounds, host, root, standin, tool};
 use crate::presentation_formats::{field, parsed};
 use macroonz::native_process::{ProcessLimits, ProcessRun, ProcessStop};
 use macroonz::native_publication::{FormatError, FormatObservationError, FormatRun, Formatter};

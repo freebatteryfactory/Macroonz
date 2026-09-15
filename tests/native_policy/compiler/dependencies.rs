@@ -1,6 +1,5 @@
-use super::configure::{bounds, finish, host, locus, root, spelling, target, tool};
+use super::configure::{bounds, finish, host, locus, root, spelling, standin, target, tool};
 use super::real::package;
-use super::refusal::standin;
 use macroonz::native_compiler::{
     self, CargoFixture, CargoTarget, CompilerRequest, DependencyError, DependencyLimits,
 };

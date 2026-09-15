@@ -1,12 +1,11 @@
-use super::configure::{anchor, bounds, finish, host, locus, root, tool};
-use super::types::Host;
-use macroonz::harness::oracle::{DeclaredBehavior, DeclaredCompilation, RelativeSourcePath};
+use super::configure::{anchor, bounds, finish, host, locus, root, standin, tool};
+use macroonz::harness::oracle::{DeclaredBehavior, DeclaredCompilation};
 use macroonz::native_compiler::{
     self, CargoFixture, CargoTarget, CompilerError, CompilerObservationError, CompilerRequest,
     ReadBackError,
 };
 use macroonz::native_process::{ProcessError, ProcessLimits, ProcessStop};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::Duration;
 
 const DIAGNOSTIC: &str = r#"{"$message_type":"diagnostic","level":"error","code":{"code":"E0308"},"spans":[{"file_name":"fixture.rs","line_start":2,"line_end":2,"column_start":21,"column_end":28,"is_primary":true}]}"#;
@@ -387,33 +386,4 @@ fn writer(payload: &str, stream: &str, code: u8) -> String {
     format!(
         "use std::io::Write;\nfn main() -> std::process::ExitCode {{\n    if std::io::{stream}().write_all({payload:?}.as_bytes()).is_err() {{ return std::process::ExitCode::from(99u8); }}\n    std::process::ExitCode::from({code}u8)\n}}\n"
     )
-}
-
-pub(crate) fn standin(
-    root: &Path,
-    host: &Host,
-    name: &str,
-    source: &str,
-) -> Result<PathBuf, String> {
-    let filename = format!("{name}.rs");
-    std::fs::write(root.join(&filename), source).map_err(|error| error.to_string())?;
-    let executable = root.join(format!("{name}{}", std::env::consts::EXE_SUFFIX));
-    let source_path =
-        RelativeSourcePath::informed(&filename).map_err(|error| format!("{error:?}"))?;
-    let request = CompilerRequest::rustc(
-        &tool(host, &host.rustc, root, bounds()?)?,
-        source_path,
-        executable.clone(),
-        &host.triple,
-    )
-    .map_err(|error| error.to_string())?;
-    let output = finish(native_compiler::compile(&request).map_err(|error| error.to_string())?)?;
-    if output.observed().is_err()
-        || output
-            .observed()
-            .is_ok_and(|value| value.refusal().is_some())
-    {
-        return Err(format!("stand-in failed to compile: {output:?}"));
-    }
-    Ok(executable)
 }

@@ -1,8 +1,7 @@
 use super::configure::publication;
 use super::fixture::LIMITS;
 use super::stage_fixture::{DEPENDENCIES, DRIVER, authored, plan, request, staged};
-use crate::compiler::configure::{bounds, host, locus, root, tool};
-use crate::compiler::refusal::standin;
+use crate::compiler::configure::{bounds, host, locus, root, standin, tool};
 use macroonz::harness::oracle::RelativeSourcePath;
 use macroonz::native_compiler::{CargoFixture, CargoTarget, CompilerRequest};
 use macroonz::native_publication::{

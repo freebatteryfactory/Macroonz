@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 fn fixture(run: &Path, host: &Host) -> Result<PathBuf, String> {
-    let executable = crate::compiler::refusal::standin(
+    let executable = crate::compiler::configure::standin(
         run,
         host,
         "coverage-tool",

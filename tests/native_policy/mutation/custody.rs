@@ -1,9 +1,6 @@
 use super::configure::{archives, finish, request};
 use super::refusal::subject;
-use crate::compiler::{
-    configure::{bounds, host, root},
-    refusal::standin,
-};
+use crate::compiler::configure::{bounds, host, root, standin};
 use macroonz::harness::muterprater::{
     MutationSourceRevision, backend_archive::BackendSourceRefusal,
 };

@@ -1,8 +1,7 @@
 use super::configure::{configuration, finish, publication, scratch, standin as body};
 use super::fixture;
 use super::types::Example;
-use crate::compiler::configure::{bounds, host, root, tool};
-use crate::compiler::refusal::standin;
+use crate::compiler::configure::{bounds, host, root, standin, tool};
 use macroonz::native_publication::{
     FormatOutput, Formatter, PreparationError, PreparedPublication, Publication,
 };
