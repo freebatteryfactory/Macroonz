@@ -5,32 +5,11 @@ This home informs generic rows that reference one or two caller-owned keyed rost
 The rosters, members, keys, row payloads, and semantic meaning remain caller-owned.
 This home owns only reference safety, authored and canonical row readings, duplicate-pair promotion, and the structural questions that relations earn.
 
-```mermaid
-flowchart LR
-    accTitle: Checked relation construction
-    accDescr: Caller-owned rosters and row payloads become foreign-free ordered rows, may be promoted to a duplicate-free relation, and expose independently selected structural questions.
+![Checked relation construction][diagram-macros-compiler-relation]
 
-    left[[Left keyed roster]]
-    right[[Right keyed roster]]
-    rows[[Caller-owned row payloads]]
-    informed[Foreign-free rows]
-    relation[Duplicate-free relation]
-    questions[Structural answers]
-    refusal[[Typed refusal]]
+Diagram source: `assets/diagrams/macros-compiler-relation.mmd` in this crate's source package.
 
-    left --> informed
-    right --> informed
-    rows --> informed
-    informed -->|foreign endpoint| refusal
-    informed --> relation
-    informed --> questions
-    relation -->|repeated pair| refusal
-
-    classDef value fill:#d9f3ff,stroke:#087e8b,color:#102a43
-    classDef refused fill:#ffe0e0,stroke:#b42318,color:#4a1010
-    class left,right,rows,informed,relation,questions value
-    class refusal refused
-```
+[diagram-macros-compiler-relation]: ../../assets/diagrams/macros-compiler-relation.svg
 
 ## Rows and promotion
 

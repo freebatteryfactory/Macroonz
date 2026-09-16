@@ -14,34 +14,11 @@ Its `BenchRowKey` changes whenever one of those facts changes, so readings from 
 The executable attachment supplies the measured callable, the planted-worse callable, the owner-written judge, and the work observations those callables may record.
 `BenchBinding` joins the declaration to that target-owned execution material only when their semantic names agree.
 
-```mermaid
-flowchart LR
-    accTitle: Benchmark qualification road
-    accDescr: A declared benchmark must pass target, toolchain, correctness, planted-control, measured-work, and post-measurement qualification before it yields a qualified reading.
+![Benchmark qualification road][diagram-harness-bench]
 
-    declared["Declared row<br/>identity + budgets"] --> admitted{"Target and toolchain<br/>agree?"}
-    admitted -- no --> no_run["No caller code runs"]
-    admitted -- yes --> preflight{"Correctness<br/>preflight passes?"}
-    preflight -- no --> refused_preflight["Preflight-refused reading"]
-    preflight -- yes --> primary["Count measured and<br/>planted-worse work"]
-    primary --> control{"Control refused and<br/>gap distinguished?"}
-    control -- no --> refused_control["Undistinguished-control reading"]
-    control -- yes --> measured{"Measured curve satisfies<br/>the owner's claim?"}
-    measured -- no --> refused_primary["Primary-work-refused reading"]
-    measured -- yes --> timed["Warmups, then timed samples"]
-    timed --> stable{"Timed work still<br/>qualifies?"}
-    stable -- no --> no_report["No partial report"]
-    stable -- yes --> qualified["Qualified reading<br/>with secondary time"]
+Diagram source: `assets/diagrams/harness-bench.mmd` in this crate's source package.
 
-    classDef declaration fill:#e8f1ff,stroke:#315a8a,color:#17324d,stroke-width:2px
-    classDef gate fill:#fff4cc,stroke:#9a6b00,color:#513700,stroke-width:2px
-    classDef refusal fill:#ffe8e8,stroke:#a43d3d,color:#5a1f1f,stroke-width:2px
-    classDef evidence fill:#e8f8ed,stroke:#2f7d4a,color:#174329,stroke-width:2px
-    class declared,primary,timed declaration
-    class admitted,preflight,control,measured,stable gate
-    class no_run,refused_preflight,refused_control,refused_primary,no_report refusal
-    class qualified evidence
-```
+[diagram-harness-bench]: ../../assets/diagrams/harness-bench.svg
 
 The complete execution order and the exact row-identity preimage are caller contracts on the public operations that establish them.
 Independent external observations rederive the identity and reverse every qualifying gate.

@@ -1,0 +1,104 @@
+[
+  {
+    "id": "facade-1",
+    "readme": "README.md",
+    "package": ".",
+    "rustdoc": false
+  },
+  {
+    "id": "facade-2",
+    "readme": "README.md",
+    "package": ".",
+    "rustdoc": false
+  },
+  {
+    "id": "harness",
+    "readme": "harness/README.md",
+    "package": "harness",
+    "rustdoc": false
+  },
+  {
+    "id": "harness-bench",
+    "readme": "harness/src/bench/README.md",
+    "package": "harness",
+    "rustdoc": true
+  },
+  {
+    "id": "harness-fuzz",
+    "readme": "harness/src/fuzz/README.md",
+    "package": "harness",
+    "rustdoc": true
+  },
+  {
+    "id": "harness-generate",
+    "readme": "harness/src/generate/README.md",
+    "package": "harness",
+    "rustdoc": true
+  },
+  {
+    "id": "harness-interleave",
+    "readme": "harness/src/interleave/README.md",
+    "package": "harness",
+    "rustdoc": true
+  },
+  {
+    "id": "harness-preemption",
+    "readme": "harness/src/preemption/README.md",
+    "package": "harness",
+    "rustdoc": true
+  },
+  {
+    "id": "harness-properties",
+    "readme": "harness/src/properties/README.md",
+    "package": "harness",
+    "rustdoc": true
+  },
+  {
+    "id": "harness-runner-1",
+    "readme": "harness/src/runner/README.md",
+    "package": "harness",
+    "rustdoc": true
+  },
+  {
+    "id": "harness-runner-2",
+    "readme": "harness/src/runner/README.md",
+    "package": "harness",
+    "rustdoc": true
+  },
+  {
+    "id": "macros-compiler",
+    "readme": "macros/compiler/README.md",
+    "package": "macros/compiler",
+    "rustdoc": false
+  },
+  {
+    "id": "macros-compiler-bounded",
+    "readme": "macros/compiler/src/bounded/README.md",
+    "package": "macros/compiler",
+    "rustdoc": true
+  },
+  {
+    "id": "macros-compiler-expansion",
+    "readme": "macros/compiler/src/expansion/README.md",
+    "package": "macros/compiler",
+    "rustdoc": true
+  },
+  {
+    "id": "macros-compiler-kind",
+    "readme": "macros/compiler/src/kind/README.md",
+    "package": "macros/compiler",
+    "rustdoc": true
+  },
+  {
+    "id": "macros-compiler-relation",
+    "readme": "macros/compiler/src/relation/README.md",
+    "package": "macros/compiler",
+    "rustdoc": true
+  },
+  {
+    "id": "macros-compiler-stamp",
+    "readme": "macros/compiler/src/stamp/README.md",
+    "package": "macros/compiler",
+    "rustdoc": true
+  }
+]

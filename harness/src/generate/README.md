@@ -4,50 +4,11 @@ The generation road turns a declared search into deterministic inputs and an hon
 The reduction road turns one recorded failure into a smaller reproducer without leaving that failure's fingerprint.
 This parent composes those owners and preserves their established public roads without becoming a third semantic machine.
 
-```mermaid
-flowchart LR
-    accTitle: Generation and reduction composition
-    accDescr: Declared search material becomes a complete generation census, while a separately recorded failure enters fingerprint-preserving reduction and may earn a bounded replay capsule.
+![Generation and reduction composition][diagram-harness-generate]
 
-    plan[/Declared search/]
-    source[(Seekable byte stream)]
+Diagram source: `assets/diagrams/harness-generate.mmd` in this crate's source package.
 
-    subgraph generation[Generation]
-        direction TB
-        draw[Draw bounded cases]
-        decode[Decode structured inputs]
-        account[(Complete case census)]
-    end
-
-    admitted[[Admitted sequences]]
-    failure{{Recorded failure}}
-
-    subgraph reduction[Reduction]
-        direction TB
-        propose[Offer smaller candidates]
-        preserve{Same fingerprint?}
-        evidence[(Reduction evidence)]
-    end
-
-    replay[[Bounded replay capsule]]
-
-    plan --> source --> draw --> decode
-    decode --> admitted
-    decode --> account
-    admitted -. executed and judged elsewhere .-> failure
-    failure --> propose --> preserve
-    preserve -->|yes| evidence --> replay
-    preserve -->|no| propose
-
-    classDef authority fill:#1f2937,color:#f9fafb,stroke:#111827,stroke-width:2px;
-    classDef operation fill:#dbeafe,color:#1e3a8a,stroke:#3b82f6,stroke-width:2px;
-    classDef evidence fill:#dcfce7,color:#14532d,stroke:#22c55e,stroke-width:2px;
-    classDef decision fill:#fef3c7,color:#78350f,stroke:#f59e0b,stroke-width:2px;
-    class plan,source authority;
-    class draw,decode,propose operation;
-    class account,admitted,evidence,replay evidence;
-    class failure,preserve decision;
-```
+[diagram-harness-generate]: ../../assets/diagrams/harness-generate.svg
 
 ## Deterministic search
 

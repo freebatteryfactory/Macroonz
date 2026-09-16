@@ -35,7 +35,8 @@ macroonz-macros   ┈┈▶ macroonz-harness  tests only
 macroonz-harness  ┈┈▶ macroonz-compiler tests only
 ```
 
-Every other edge is forbidden, and the diagram is the whole claim: an arrow a manifest carries that no line here draws is a defect in one of these packages.
+This diagram governs dependencies among the first-party Macroonz packages, including test-only edges.
+Every other first-party edge is forbidden; third-party dependencies remain governed by the manifests, lockfile and dependency policy.
 
 ---
 
@@ -46,7 +47,8 @@ A semantic fact has one owner; weaker seats cite the owner and never restate it.
 A false sentence anywhere in the tree is a broken build, and code rises to the docs — never the reverse.
 
 Git owns history.
-No migration story, origin story, status line, or population count lives in the tree.
+Evergreen owner documentation carries no migration story, origin story, campaign status line, or population count.
+The exceptional historical receipts permitted by the evidence rules below retain dated external observations and their indispensable evidence, not campaign narration.
 
 A structural invariant lives in the type and the smart constructor that make its violation unwritable.
 A lane in `tests/` observes what no type can state: behavior, composition across crates, encodings, diagnostics, and the compile refusal that shows a violation really is unwritable from outside.
@@ -96,7 +98,7 @@ Further sections are earned by the item's actual contract — construction, boun
 > If deleting the item would leave it true, it belongs once in the home's README, under an anchor the item cites.
 
 Remove on sight: restatements of the signature, restatements of a linked owner's contract, history, counts, procedure, and the defect that caused the type to exist.
-Doc lines are never a larger body than the code they document.
+Judge prose by the contract a reader needs, not its length relative to the implementation.
 A README has no yaml blocks, no ledgers, no status tables.
 
 ---
@@ -104,7 +106,8 @@ A README has no yaml blocks, no ledgers, no status tables.
 ## 6 · Hard rules
 
 - **Safe Rust only, no hatches.** The lint wall is declared once in the root `Cargo.toml` and inherited by every member. `#[allow]` and `#[expect]` are both forbidden: a complaint the wall raises is repaired in the design until the complaint is impossible, never quieted at the site. The tree carries zero of either, and a change that needs one is a change whose design is not finished.
-- **No Python.** Ever. Tooling is Rust.
+- **No Python.** Ever. Tooling is Rust except the bounded documentation renderer and its orchestration in `assets/diagrams/`, with its Git-hook and CI entrypoints.
+That exception supplies no product compilation step, package dependency, ambient product input, or relaxation of the Rust wall.
 - **Declared input only.** Expansion and judgment are functions of what they were handed: no network, no filesystem scan, no environment, no clock, no entropy. The harness may read the host facts it needs to run; they never enter an identity or a verdict.
 - **The proc host carries.** Token conversion, span custody, one compiler call, diagnostic placement, emission. It owns no grammar.
 - **Bounded native clock access.** The root package's opt-in `native-tooling` may use `std::time::Instant` for an explicitly selected measurement source and separately owned process deadlines; compiler, proc and harness packages and ordinary root postures retain the canonical strict policy, with every selection required by [the local wall](CONTRIBUTING.md#local-wall).
@@ -127,3 +130,14 @@ No required build or test depends on a previous qualification directory, and qua
 - **Agents commit accepted work:** an agent may stage and commit qualified files within the authorized task after its required checks pass, using a truthful message and never folding unrelated dirty work into the commit.
 - **Task boundaries control:** an active task-specific no-commit instruction overrides autonomous commit authority until that boundary is lifted.
 - **Humans authorize Git publication and surgery:** pushes, merges, branch rewrites, ref movement, and recovery operations require explicit human authorization, and an agent performs only the bounded operation authorized.
+
+## 7 · Start at the owner
+
+Read the [product and task map](README.md#find-the-owner), then the affected home's complete README, types, invariant constructor and operations, and the independent checks named by that owner.
+Package dependencies describe allowed imports; execution routes describe composition order; semantic ownership identifies who decides a fact.
+Following one relationship does not establish either of the others.
+Use the map to select required reading, not to replace the contracts it links.
+Live Git state and dated execution evidence establish what was checked; the map carries no current acceptance status.
+
+The packaged [adopter skill](skills/macroonz/SKILL.md) guides agents using Macroonz in their own libraries.
+It does not replace this maintainer law or impose this repository's development procedure on adopters.

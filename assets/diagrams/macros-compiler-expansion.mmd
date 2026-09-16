@@ -1,0 +1,27 @@
+flowchart LR
+    accTitle: Expansion binding and delivery
+    accDescr: A plan, closure, and explanation bind only when their parent identities agree, after which the sealed expansion exposes proved build deliveries and addressed publication units.
+
+    P["Plan<br/>what will exist"]
+    C["Closure<br/>what the rendering proved"]
+    E["Explanation<br/>what the decisions mean"]
+    B{{"Bind<br/>parent identities agree"}}
+    X["Sealed expansion"]
+    D["Build deliveries"]
+    A["Publication units<br/>each keeps its address"]
+
+    P -->|"supplies the planned identity"| B
+    C -->|"names the plan it proved"| B
+    E -->|"names the plan and closure"| B
+    B -->|"derives one identity"| X
+    X -->|"borrows proved partitions"| D
+    X -->|"reads the proved rendering"| A
+
+    classDef authority fill:#e9f5ff,stroke:#1769aa,color:#102a43,stroke-width:2px
+    classDef operation fill:#fff3cd,stroke:#9a6700,color:#3d2b00,stroke-width:2px
+    classDef result fill:#e8f8ef,stroke:#1f7a45,color:#123524,stroke-width:3px
+    classDef evidence fill:#f2e9ff,stroke:#6f42c1,color:#2f1b52,stroke-width:2px
+    class P,C,E authority
+    class B operation
+    class X result
+    class D,A evidence

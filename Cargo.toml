@@ -8,7 +8,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-include = ["/src/**", "/tests/**", "/examples/**", "/skills/**", "/assets/**", "/AGENTS.md", "/CONTRIBUTING.md", "/SECURITY.md", "/Cargo.toml", "/README.md", "/LICENSE-*"]
+include = ["/src/**", "/tests/**", "/examples/**", "/skills/**", "/assets/logo.webp", "/assets/favicon.ico", "/assets/diagrams/facade-*.svg", "/assets/diagrams/facade-*.mmd", "/assets/diagrams/OFL.txt", "/assets/diagrams/README.md", "/AGENTS.md", "/CONTRIBUTING.md", "/SECURITY.md", "/Cargo.toml", "/README.md", "/LICENSE-*"]
 
 [package.metadata.docs.rs]
 all-features = true

@@ -1,7 +1,11 @@
 # Hosted qualification
 
-This home observes the repository wall on declared cloud hosts.
+The manual hosted pulse observes the repository wall on declared cloud hosts.
 It reports another evidence plane and never replaces the local enforcement surface or the human acceptance decision.
+
+The separate [documentation job](documentation.yml) checks the [diagram owner's](../../assets/diagrams/README.md) generated presentation on Windows for relevant push and pull-request changes.
+It reports on unrelated changes without installing the renderer, and supplies no product qualification, publication or required-branch-check policy.
+The host roles and campaigns below describe the manual pulse.
 
 ## Host roles
 

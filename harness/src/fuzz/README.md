@@ -63,18 +63,11 @@ Explicit rustc branch-coverage modes remain outside the stable denominator.
 [`compose_reduce_replay`] hands coverage-earned bytes to an already-qualified [`crate::generate::ReductionProbeBinding`].
 Coverage guides search, while the existing failure fingerprint remains the authority for reduction and replay.
 
-```mermaid
-flowchart LR
-    accTitle: Stable rustc coverage feedback
-    accDescr: A declared campaign joins candidate bytes to one qualified execution, then retains only candidates that add canonical coverage before handing failures to existing reduction and replay owners.
+![Stable rustc coverage feedback][diagram-harness-fuzz]
 
-    CAMPAIGN["declared campaign"] --> READY["qualified target + toolchain"]
-    READY --> READING["candidate + execution + coverage"]
-    READING --> NOVEL{"adds a point?"}
-    NOVEL -->|no| KNOWN["known"]
-    NOVEL -->|yes| SEED["interesting bytes"]
-    SEED --> OWNERS["corpus + reduction + replay"]
-```
+Diagram source: `assets/diagrams/harness-fuzz.mmd` in this crate's source package.
+
+[diagram-harness-fuzz]: ../../assets/diagrams/harness-fuzz.svg
 
 ## Runnable road
 

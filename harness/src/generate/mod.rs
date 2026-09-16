@@ -1,4 +1,4 @@
-#![doc = include_str!("README.md")]
+#![doc = concat!(include_str!("diagrams.md"), include_str!("README.md"))]
 //!
 //! [`driver`] preserves the shared sequence-driver road, and [`reduce`][mod@reduce] preserves the reduction-operation road.
 

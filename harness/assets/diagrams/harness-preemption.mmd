@@ -1,0 +1,17 @@
+flowchart LR
+    accTitle: Preemption backend result road
+    accDescr: A typed model and declared bounds enter target-qualified scheduling, which reports unavailable or incomplete infrastructure separately from completed held or model-broke verdicts.
+
+    classDef input fill:#fff4d6,stroke:#9a6700,color:#3d2b00
+    classDef backend fill:#e8f1ff,stroke:#3465a4,color:#102a43
+    classDef held fill:#e6f4ea,stroke:#26864a,color:#123d22
+    classDef refused fill:#ffe8e6,stroke:#c03d32,color:#5c1712
+    classDef ceiling fill:#f1e9ff,stroke:#7d4ab0,color:#32184f
+
+    MODEL["typed model"]:::input --> BOUNDS["declared bounds"]:::input
+    BOUNDS --> READY{"backend qualified<br/>for this target?"}:::backend
+    READY -->|no| UNAVAILABLE["incomplete<br/>unavailable"]:::ceiling
+    READY -->|yes| WALK["pinned scheduler<br/>walks the bounded space"]:::backend
+    WALK -->|all scheduled checks held| HELD["completed<br/>all held"]:::held
+    WALK -->|typed model refusal| BROKE["completed<br/>model broke"]:::refused
+    WALK -->|backend could not establish a verdict| INCOMPLETE["incomplete<br/>infrastructure rail"]:::ceiling

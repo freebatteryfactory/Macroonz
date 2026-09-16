@@ -1,4 +1,4 @@
-#![doc = include_str!("README.md")]
+#![doc = concat!(include_str!("diagrams.md"), include_str!("README.md"))]
 
 mod encode;
 mod type_contract;

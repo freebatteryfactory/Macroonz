@@ -77,19 +77,11 @@ The harness stores your names, hashes your names, and never reads inside them.
 
 ## What it does with it
 
-```mermaid
-flowchart LR
-    accTitle: Harness evidence composition
-    accDescr: Descriptor, generation, and scheduled adversity enter the runner, whose report can feed mutation, oracle, and benchmark evidence roads.
+![Harness evidence composition][diagram-harness]
 
-    D["descriptor<br/>a row says what it claims"] --> S["runner<br/>select · bind · execute"]
-    G["generate<br/>inputs from a seed"] --> S
-    F["fault · clock<br/>adversity on schedule"] --> S
-    S --> R["report<br/>verdict + evidence · replay minted by reduction"]
-    R --> M["muterprater<br/>mutants of the subject"]
-    R --> O["oracle<br/>an independent second opinion"]
-    R --> B["bench<br/>work under a pinned profile"]
-```
+[Diagram source](assets/diagrams/harness.mmd)
+
+[diagram-harness]: assets/diagrams/harness.svg
 
 | Home | What it does |
 | --- | --- |

@@ -30,7 +30,7 @@ The existing runner retains every unselected row in the report denominator.
 
 Pass an explicit native storage root, batch name, bounds and any earned replay capsules to `InputRun::retain`.
 Capsules must match selected failing rows by complete execution key and failure fingerprint, with at most one capsule per row.
-No capsule is inferred for a failure that has not earned one through the reduction owner.
+No capsule is inferred for a failure that has not earned one through the [reduction owner](../../harness/src/generate/reduction/README.md).
 The complete input envelope, complete-run archive and supplied capsule archives are published in one storage transaction.
 The bytes remain the existing format owners' canonical encodings.
 

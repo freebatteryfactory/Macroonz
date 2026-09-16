@@ -126,14 +126,11 @@ You cannot get tokens out of anything but an expansion, and you cannot get an ex
 
 ## The road
 
-```mermaid
-flowchart LR
-    accTitle: Compiler request road
-    accDescr: A compiler request proceeds from account through intent, context, plan, render, close, explain, and bind in that order.
+![Compiler request road][diagram-macros-compiler]
 
-    A["account"] --> I["intent"] --> X["context"] --> P["plan"]
-    P --> R["render"] --> C["close"] --> E["explain"] --> B["bind"]
-```
+[Diagram source](assets/diagrams/macros-compiler.mmd)
+
+[diagram-macros-compiler]: assets/diagrams/macros-compiler.svg
 
 | Step | What it settles | Home |
 | --- | --- | --- |

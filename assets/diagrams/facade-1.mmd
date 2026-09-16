@@ -1,0 +1,9 @@
+flowchart LR
+    accTitle: Macroonz package dependencies
+    accDescr: The macroonz facade depends on the compiler and procedural macro crates, the procedural macro crate also depends on the compiler, and the optional harness feature adds the harness crate.
+
+    YOU["your crate"] --> F["macroonz"]
+    F --> C["macroonz-compiler"]
+    F --> PROC["macroonz-macros"]
+    PROC --> C
+    F -. harness feature .-> H["macroonz-harness"]

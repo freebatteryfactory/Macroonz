@@ -10,35 +10,11 @@ Sharing a kind does not prove that they describe the same request, the same rend
 Binding compares the parent identities carried by all three values and refuses the first disagreement without electing either side.
 Only after they agree does the home derive the identity of the whole expansion.
 
-```mermaid
-flowchart LR
-    accTitle: Expansion binding and delivery
-    accDescr: A plan, closure, and explanation bind only when their parent identities agree, after which the sealed expansion exposes proved build deliveries and addressed publication units.
+![Expansion binding and delivery][diagram-macros-compiler-expansion]
 
-    P["Plan<br/>what will exist"]
-    C["Closure<br/>what the rendering proved"]
-    E["Explanation<br/>what the decisions mean"]
-    B{{"Bind<br/>parent identities agree"}}
-    X["Sealed expansion"]
-    D["Build deliveries"]
-    A["Publication units<br/>each keeps its address"]
+Diagram source: `assets/diagrams/macros-compiler-expansion.mmd` in this crate's source package.
 
-    P -->|"supplies the planned identity"| B
-    C -->|"names the plan it proved"| B
-    E -->|"names the plan and closure"| B
-    B -->|"derives one identity"| X
-    X -->|"borrows proved partitions"| D
-    X -->|"reads the proved rendering"| A
-
-    classDef authority fill:#e9f5ff,stroke:#1769aa,color:#102a43,stroke-width:2px
-    classDef operation fill:#fff3cd,stroke:#9a6700,color:#3d2b00,stroke-width:2px
-    classDef result fill:#e8f8ef,stroke:#1f7a45,color:#123524,stroke-width:3px
-    classDef evidence fill:#f2e9ff,stroke:#6f42c1,color:#2f1b52,stroke-width:2px
-    class P,C,E authority
-    class B operation
-    class X result
-    class D,A evidence
-```
+[diagram-macros-compiler-expansion]: ../../assets/diagrams/macros-compiler-expansion.svg
 
 The plan states the complete output set.
 The closure proves the rendered set against that plan and carries the resulting delivery partitions.

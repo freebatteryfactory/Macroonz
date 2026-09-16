@@ -8,25 +8,11 @@ The [`interleave`](crate::interleave) home explores orders between whole command
 It wraps a pinned external scheduler as a declared backend rather than rebuilding scheduler semantics inside Macroonz.
 The model remains the adopter's Rust, written against the backend's shadow vocabulary, and the model reports its own check as a typed return value.
 
-```mermaid
-flowchart LR
-    accTitle: Preemption backend result road
-    accDescr: A typed model and declared bounds enter target-qualified scheduling, which reports unavailable or incomplete infrastructure separately from completed held or model-broke verdicts.
+![Preemption backend result road][diagram-harness-preemption]
 
-    classDef input fill:#fff4d6,stroke:#9a6700,color:#3d2b00
-    classDef backend fill:#e8f1ff,stroke:#3465a4,color:#102a43
-    classDef held fill:#e6f4ea,stroke:#26864a,color:#123d22
-    classDef refused fill:#ffe8e6,stroke:#c03d32,color:#5c1712
-    classDef ceiling fill:#f1e9ff,stroke:#7d4ab0,color:#32184f
+Diagram source: `assets/diagrams/harness-preemption.mmd` in this crate's source package.
 
-    MODEL["typed model"]:::input --> BOUNDS["declared bounds"]:::input
-    BOUNDS --> READY{"backend qualified<br/>for this target?"}:::backend
-    READY -->|no| UNAVAILABLE["incomplete<br/>unavailable"]:::ceiling
-    READY -->|yes| WALK["pinned scheduler<br/>walks the bounded space"]:::backend
-    WALK -->|all scheduled checks held| HELD["completed<br/>all held"]:::held
-    WALK -->|typed model refusal| BROKE["completed<br/>model broke"]:::refused
-    WALK -->|backend could not establish a verdict| INCOMPLETE["incomplete<br/>infrastructure rail"]:::ceiling
-```
+[diagram-harness-preemption]: ../../assets/diagrams/harness-preemption.svg
 
 ## Result plane
 

@@ -1,0 +1,67 @@
+name: Documentation diagrams
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  diagrams:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Select documentation changes
+        id: changes
+        shell: pwsh
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          $base = if ($env:GITHUB_EVENT_NAME -eq 'pull_request') { $env:PR_BASE } else { $env:PUSH_BEFORE }
+          $needed = $true
+          if ($base -and $base -ne ('0' * 40)) {
+            if ($base -notmatch '^[0-9a-f]{40}$') { throw 'Invalid comparison revision' }
+            $files = git diff --name-only $base HEAD
+            if ($LASTEXITCODE -ne 0) { throw 'Cannot determine changed files' }
+            $needed = @($files | Where-Object { $_ -match '(^|/)(assets/diagrams/|diagrams\.md$|README\.md$|mod\.rs$)|^\.githooks/|^\.github/workflows/documentation\.yml$' }).Count -gt 0
+          }
+          "needed=$($needed.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        if: steps.changes.outputs.needed == 'true'
+        with:
+          node-version: '24.18.0'
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        if: steps.changes.outputs.needed == 'true'
+        with:
+          bun-version: '1.4.2'
+      - name: Install the locked documentation tools
+        if: steps.changes.outputs.needed == 'true'
+        working-directory: assets/diagrams
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Provision the pinned browser and check
+        if: steps.changes.outputs.needed == 'true'
+        shell: pwsh
+        run: |
+          $env:PUPPETEER_CACHE_DIR = Join-Path $pwd 'target/qualification/documentation-navigation/browser'
+          node assets/diagrams/node_modules/puppeteer/lib/puppeteer/node/cli.js browsers install chrome-headless-shell
+          if ($LASTEXITCODE -ne 0) { throw 'Browser installation failed' }
+          node assets/diagrams/run.mjs check
+          if ($LASTEXITCODE -ne 0) { throw 'Diagram freshness failed' }
+          node --test assets/diagrams/controls.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Diagram controls failed' }
+          git diff --exit-code
+          if ($LASTEXITCODE -ne 0) { throw 'Check modified tracked source' }
+      - name: Remove disposable documentation dependencies
+        if: always()
+        shell: pwsh
+        run: |
+          $root = (Resolve-Path -LiteralPath '.').Path
+          $modules = [IO.Path]::GetFullPath((Join-Path $root 'assets/diagrams/node_modules'))
+          if (!$modules.StartsWith($root + [IO.Path]::DirectorySeparatorChar)) { throw 'Unconfined cleanup' }
+          if (Test-Path -LiteralPath $modules) { Remove-Item -LiteralPath $modules -Recurse -Force }

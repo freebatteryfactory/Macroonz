@@ -1,0 +1,15 @@
+{
+  "browser": "153.0.8010.36",
+  "viewport": { "width": 1600, "height": 1000, "deviceScaleFactor": 1 },
+  "mermaid": {
+    "theme": "default",
+    "themeCSS": ".edgeLabel rect { opacity: 1 !important; fill: white !important; }",
+    "fontFamily": "Noto Sans",
+    "deterministicIds": true,
+    "handDrawnSeed": 1,
+    "deterministicIDSeed": "macroonz-documentation",
+    "securityLevel": "strict",
+    "htmlLabels": false,
+    "flowchart": { "htmlLabels": false }
+  }
+}

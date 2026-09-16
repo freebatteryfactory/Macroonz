@@ -1,0 +1,24 @@
+flowchart LR
+    accTitle: Checked relation construction
+    accDescr: Caller-owned rosters and row payloads become foreign-free ordered rows, may be promoted to a duplicate-free relation, and expose independently selected structural questions.
+
+    left[[Left keyed roster]]
+    right[[Right keyed roster]]
+    rows[[Caller-owned row payloads]]
+    informed[Foreign-free rows]
+    relation[Duplicate-free relation]
+    questions[Structural answers]
+    refusal[[Typed refusal]]
+
+    left --> informed
+    right --> informed
+    rows --> informed
+    informed -->|foreign endpoint| refusal
+    informed --> relation
+    informed --> questions
+    relation -->|repeated pair| refusal
+
+    classDef value fill:#d9f3ff,stroke:#087e8b,color:#102a43
+    classDef refused fill:#ffe0e0,stroke:#b42318,color:#4a1010
+    class left,right,rows,informed,relation,questions value
+    class refusal refused

@@ -1,6 +1,6 @@
 ---
 name: macroonz
-description: Author or extend Macroonz 0.2 Rust recipes, choose built-in versus caller-owned projections, and keep generated behavior separate from independent harness judgment.
+description: Author or extend Rust recipes using the installed Macroonz package, choose built-in versus caller-owned projections, and keep generated behavior separate from independent harness judgment.
 ---
 
 # Macroonz recipes
@@ -111,11 +111,24 @@ Do not try to name downstream executable projector code inside `macroonz::recipe
 ## Judge independently
 
 Generated Rust is not its own oracle.
-Read the compiler [recipe home's evidence contract](https://github.com/freebatteryfactory/Macroonz/blob/main/macros/compiler/src/recipe/README.md#evidence-projections) before requesting `declaration_conformance;` or `compile_contract;`.
+Read the resolved `macroonz-compiler` package's `src/recipe/README.md`, under `Evidence projections`, before requesting `declaration_conformance;` or `compile_contract;`.
 Exercise it from an external test and compare it with a handwritten model, a direct `macroonz::harness` property or oracle, or an explicitly invoked generated evidence carrier.
 The packaged `macroonz-harness` example `temporal_property.rs` is the direct judgment reference.
 An uninvoked carrier is inert material, not evidence.
 The [trial example](../../examples/trial_workflow/README.md) composes declared input, independent checks and all public [presentation formats](../../src/presentation/README.md) through the root facade.
+
+## Retain and replay
+
+For bounded native execution and storage, select the optional `native-tooling` feature and follow the packaged [retention and fresh replay example](../../examples/retained_workflow/README.md).
+Current bindings and independent checks still choose what a saved witness establishes.
+The [workflow owner](../../src/workflow/README.md) routes execution and retention to their existing owners.
+
+## Use matching documentation
+
+The relative links in this skill describe the installed facade's shipped files.
+Use `cargo metadata --format-version 1 --locked` from the adopter to locate the resolved compiler and harness packages; their `manifest_path` entries identify the matching package directories.
+Read those packages' owner READMEs and examples when a contract lives outside the facade archive.
+GitHub's moving `main` describes development source and is not the installed version's contract.
 
 ## Respect package posture
 

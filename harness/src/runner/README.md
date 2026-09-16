@@ -3,45 +3,11 @@
 The runner is the harness's execution engine.
 It receives the complete authored world, a declared selection over that world, and one invocation, then returns a report without discovering, scanning, printing, exiting, or retaining run state.
 
-```mermaid
-flowchart LR
-    accTitle: Runner assembly roads
-    accDescr: The authored world and selection admit either in-process execution or a host observation, and both roads join invocation facts in one shared complete report assembler.
+![Runner assembly roads][diagram-harness-runner-1]
 
-    world[(Complete authored world)]
-    selection{{Declared selection}}
-    invocation[/Invocation facts/]
+Diagram source: `assets/diagrams/harness-runner-1.mmd` in this crate's source package.
 
-    subgraph runner[runner]
-        direction TB
-        admission{Selected?}
-        execute[In-process execution]
-        record[Host observation admission]
-        assemble[Shared report assembler]
-    end
-
-    report[(Complete run report)]
-
-    world --> admission
-    selection --> admission
-    invocation --> execute
-    invocation --> record
-    admission -->|yes| execute
-    admission -->|host ran it| record
-    admission -->|no, keep reason| assemble
-    execute --> assemble
-    record --> assemble
-    assemble --> report
-
-    classDef authority fill:#1f2937,color:#f9fafb,stroke:#111827,stroke-width:2px;
-    classDef choice fill:#fef3c7,color:#78350f,stroke:#f59e0b,stroke-width:2px;
-    classDef operation fill:#dbeafe,color:#1e3a8a,stroke:#3b82f6,stroke-width:2px;
-    classDef evidence fill:#dcfce7,color:#14532d,stroke:#22c55e,stroke-width:2px;
-    class world,invocation authority;
-    class selection,admission choice;
-    class execute,record,assemble operation;
-    class report evidence;
-```
+[diagram-harness-runner-1]: ../../assets/diagrams/harness-runner-1.svg
 
 ## One meaning, two admission roads
 
@@ -100,21 +66,11 @@ Matching source claims do not supply the missing historical preimages or earn a 
 A selection chooses from the authored world and never shrinks it.
 Every report accounts for every row, recording either a selected attempt or the reason that row was passed over.
 
-```mermaid
-flowchart TD
-    accTitle: Complete table accounting
-    accDescr: Every authored row occupies one census seat containing either its selected attempt or the declared reason it was not selected.
+![Complete table accounting][diagram-harness-runner-2]
 
-    row[One authored row]
-    selected{Selection admits it?}
-    attempt[Record one run attempt]
-    passed[Record why it was not selected]
-    census[(One census seat)]
+Diagram source: `assets/diagrams/harness-runner-2.mmd` in this crate's source package.
 
-    row --> selected
-    selected -->|yes| attempt --> census
-    selected -->|no| passed --> census
-```
+[diagram-harness-runner-2]: ../../assets/diagrams/harness-runner-2.svg
 
 The selection disposition is established before execution, so a row nobody ran cannot become an attempt that failed.
 A row remains data; its capture-free callable rides beside it in the binding, and no hidden registry maps rows to functions.

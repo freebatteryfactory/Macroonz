@@ -42,21 +42,60 @@ One storefront opens onto the oven, the hand that loads it, and the taste tester
 | **`macroonz-macros`** | `macros/proc/` | The grammar-free procedural host carrying the recipe entrance and built-in declarations through compiler-owned doors with token conversion, span custody, diagnostic placement, and emission. |
 | **`macroonz-harness`** | `harness/` | The judge. Descriptors, generation, properties, oracles, faults, corpus, fuzz composition, mutation, benches, reports, replay. The default storefront includes it; the diet posture removes it from a shipping graph. |
 
-```mermaid
-flowchart LR
-    accTitle: Macroonz package dependencies
-    accDescr: The macroonz facade depends on the compiler and procedural macro crates, the procedural macro crate also depends on the compiler, and the optional harness feature adds the harness crate.
+![Macroonz package dependencies][diagram-facade-1]
 
-    YOU["your crate"] --> F["macroonz"]
-    F --> C["macroonz-compiler"]
-    F --> PROC["macroonz-macros"]
-    PROC --> C
-    F -. harness feature .-> H["macroonz-harness"]
-```
+[Diagram source](assets/diagrams/facade-1.mmd)
+
+[diagram-facade-1]: assets/diagrams/facade-1.svg
 
 Arrows point at dependencies.
 The compiler depends on nothing in this workspace.
 The proc crate reaches the harness only from its tests, and the harness reaches the compiler only from its tests.
+
+---
+
+## Find the owner
+
+The crate diagram above describes dependencies; [the road](#the-road) describes execution order; this table routes questions to their semantic owners.
+The compiler's descriptor adapter emits harness-facing vocabulary without importing the harness as a compiler dependency.
+Follow the owner's complete contract before changing a decision, and read its collaborators where the change crosses their boundary.
+
+| Task | Start here |
+| --- | --- |
+| Write a recipe clause or configure a projection | [Recipe clause forms](macros/compiler/src/recipe/README.md#clause-forms) |
+| Generate consuming phase methods over caller-owned resources | [Consuming transitions](macros/compiler/src/recipe/README.md#consuming-transitions) |
+| Reuse checked newtype construction or typed fixture registration | [Source patterns](src/pattern/README.md) |
+| Replace a projection algorithm | [Callable projector](macros/compiler/README.md#raw-callable-road) |
+| Define a kind, role or complete disposition set | [Kind](macros/compiler/src/kind/README.md) |
+| Publish a shared macro definition and its adoption sites | [Runnable publication](macros/compiler/src/stamp/README.md#runnable-publication) |
+| Compose generated tokens or preserve exact authored Rust | [Token generation](macros/compiler/src/token/generation/README.md) |
+| Generate canonical encode and decode methods | [Codec](macros/compiler/src/codec/README.md) |
+| Declare trial, benchmark or mutation material | [Descriptor adapter](macros/compiler/src/descriptor/README.md) |
+| Invoke deferred test or benchmark cargo through `macroonz::support!` | [Support carrier](macros/compiler/src/support/README.md#invocation) |
+| Add an independent judgment | [Handwritten property](harness/README.md#direct-handwritten-property) or [Oracle](harness/src/oracle/README.md) |
+| Replay a retained witness against current code | [Saved-witness execution](harness/src/runner/README.md#saved-witness-replay) and [Historical comparison](harness/src/report/replay/README.md) |
+| Execute declared input, retain a complete run and replay saved witnesses | [Root workflow](src/workflow/README.md) |
+| Inspect or override versioned resource defaults | [Mechanical configuration](src/configuration/README.md) |
+| Display complete results and owner-specific failures as JSON, Markdown or HTML | [Presentation](src/presentation/README.md) and [Executable trial display](examples/trial_workflow/README.md) |
+| Run a benchmark and retain every reached outcome | [Benchmark workflow](src/workflow/benchmark/README.md) |
+| Measure native elapsed time without changing semantic judgment | [Native clock](src/native_clock/README.md) and [declared harness measurement](harness/src/clock/README.md) |
+| Execute compiler fixtures and compare exact diagnostics or compiled values | [Native compiler fixtures](src/native_compiler/README.md) |
+| Execute coverage campaigns with bounded native tools and declared source roots | [Native coverage](src/native_coverage/README.md) |
+| Execute mutations and retain source/version/command custody | [Native mutation](src/native_mutation/README.md) |
+| Generate, format, check or recover owned published files | [Publication commands](src/native_publication/command/README.md) |
+| Interpret a refusal and its location | [Diagnostic](macros/compiler/src/diagnostic/README.md) |
+
+Independent observations live outside the library implementation:
+
+| Change question | Evidence entrance |
+| --- | --- |
+| Does a documented recipe work through the actual facade and refuse the wrong request? | [Facade crossings and skill adoption](macros/proc/tests/recipe_facade_crossing.rs) |
+| Does clock failure stay separate from the subject's conclusion? | [Clock measurements](harness/tests/clock_measurements/main.rs) and [native feature-policy controls](tests/native_policy/README.md) |
+| Does retained evidence preserve historical meaning while replay selects current code? | [Report archive observations](harness/tests/report_records/main.rs) and [native retention controls](tests/native_policy/README.md) |
+| Does published source preserve visibility through an actual compiler crossing? | [Published-stamp controls](macros/compiler/tests/published_stamps/main.rs) |
+
+These are reading entrances, not replacements for each lane's exact assertions or for the [required qualification](CONTRIBUTING.md#local-wall).
+The shipped [Macroonz agent skill](skills/macroonz/SKILL.md) routes agents authoring recipes from the packaged facade; [AGENTS.md](AGENTS.md) governs maintaining this repository.
 
 ---
 
@@ -161,14 +200,11 @@ Its `Kind` and `Request` vocabulary exposes the same plan, render, closure, expl
 Every request walks the same eight steps, whatever the kind.
 Each step hands the next a value it cannot forge.
 
-```mermaid
-flowchart LR
-    accTitle: Compiler request road
-    accDescr: Every request proceeds from account through intent, context, plan, render, close, explain, and bind in that order.
+![Compiler request road][diagram-facade-2]
 
-    A["1 · account"] --> I["2 · intent"] --> X["3 · context"] --> P["4 · plan"]
-    P --> R["5 · render"] --> CL["6 · close"] --> E["7 · explain"] --> B["8 · bind"]
-```
+[Diagram source](assets/diagrams/facade-2.mmd)
+
+[diagram-facade-2]: assets/diagrams/facade-2.svg
 
 1. **Account.** The kind-specific content bound to its exact captured declaration and owner-qualified kind, plus every independent captured dependency it declares.
 2. **Intent.** What it means: an identity over the owner-qualified kind and content commitment. Two callers who meant the same thing derive the same intent.
@@ -250,34 +286,6 @@ Runnable examples cross distinct public roads:
 
 The compile-contract example is intentionally the pure comparison half.
 The optional [native compiler host](src/native_compiler/README.md) executes explicitly configured rustc or Cargo fixtures, extracts structured diagnostics and connects compiled read-back to those same comparators.
-
-For a specific task, start at its owner:
-
-| Task | Start here |
-| --- | --- |
-| Write a recipe clause or configure a projection | [Recipe clause forms](macros/compiler/src/recipe/README.md#clause-forms) |
-| Generate consuming phase methods over caller-owned resources | [Consuming transitions](macros/compiler/src/recipe/README.md#consuming-transitions) |
-| Reuse checked newtype construction or typed fixture registration | [Source patterns](src/pattern/README.md) |
-| Replace a projection algorithm | [Callable projector](macros/compiler/README.md#raw-callable-road) |
-| Define a kind, role or complete disposition set | [Kind](macros/compiler/src/kind/README.md) |
-| Publish a shared macro definition and its adoption sites | [Runnable publication](macros/compiler/src/stamp/README.md#runnable-publication) |
-| Compose generated tokens or preserve exact authored Rust | [Token generation](macros/compiler/src/token/generation/README.md) |
-| Generate canonical encode and decode methods | [Codec](macros/compiler/src/codec/README.md) |
-| Declare trial, benchmark or mutation material | [Descriptor adapter](macros/compiler/src/descriptor/README.md) |
-| Invoke deferred test or benchmark cargo through `macroonz::support!` | [Support carrier](macros/compiler/src/support/README.md#invocation) |
-| Add an independent judgment | [Handwritten property](harness/README.md#direct-handwritten-property) or [Oracle](harness/src/oracle/README.md) |
-| Replay a retained witness against current code | [Saved-witness execution](harness/src/runner/README.md#saved-witness-replay) and [Historical comparison](harness/src/report/replay/README.md) |
-| Execute declared input, retain a complete run and replay saved witnesses | [Root workflow](src/workflow/README.md) |
-| Inspect or override versioned resource defaults | [Mechanical configuration](src/configuration/README.md) |
-| Display complete results and owner-specific failures as JSON, Markdown or HTML | [Presentation](src/presentation/README.md) and [Executable trial display](examples/trial_workflow/README.md) |
-| Run a benchmark and retain every reached outcome | [Benchmark workflow](src/workflow/benchmark/README.md) |
-| Execute compiler fixtures and compare exact diagnostics or compiled values | [Native compiler fixtures](src/native_compiler/README.md) |
-| Execute coverage campaigns with bounded native tools and declared source roots | [Native coverage](src/native_coverage/README.md) |
-| Execute mutations and retain source/version/command custody | [Native mutation](src/native_mutation/README.md) |
-| Generate, format, check or recover owned published files | [Publication commands](src/native_publication/command/README.md) |
-| Interpret a refusal and its location | [Diagnostic](macros/compiler/src/diagnostic/README.md) |
-
-The shipped [Macroonz agent skill](skills/macroonz/SKILL.md) is a one-page routing surface for agents authoring recipes from the packaged facade.
 
 Contribution procedure lives in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 Security reporting lives in [`SECURITY.md`](SECURITY.md).

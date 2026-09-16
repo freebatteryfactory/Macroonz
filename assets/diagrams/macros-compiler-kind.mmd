@@ -1,0 +1,28 @@
+flowchart LR
+    accTitle: Kind vocabulary and complete accounting
+    accDescr: A kind supplies canonical content, roles, and questions, while a kind set and caller disposition record must form a complete witness before an expansion can be accounted.
+
+    K["Kind<br/>what one request produces"]
+    C["Canonical content<br/>what the renderer may read"]
+    R["Role<br/>which seat a unit fills"]
+    Q["Question → Answer<br/>what the explanation owes"]
+    S["Kind set<br/>the declared alternatives"]
+    D["Disposition record<br/>the caller's answers"]
+    W{{"Complete disposition set<br/>one answer per declared kind"}}
+    A["Accounted expansion"]
+
+    K --> C
+    K --> R
+    K --> Q
+    S --> D -->|"every seat checked"| W
+    K --> A
+    W --> A
+
+    classDef owner fill:#e9f5ff,stroke:#1769aa,color:#102a43,stroke-width:2px
+    classDef input fill:#fff3cd,stroke:#a66a00,color:#3d2b00,stroke-width:2px
+    classDef witness fill:#e8f8ef,stroke:#1f7a45,color:#123524,stroke-width:3px
+    classDef result fill:#f2e9ff,stroke:#6f42c1,color:#2f1b52,stroke-width:2px
+    class K,C,R,Q,S owner
+    class D input
+    class W witness
+    class A result

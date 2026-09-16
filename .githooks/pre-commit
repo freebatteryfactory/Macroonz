@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+# Run the staged hook driver so an unstaged repair cannot certify a different commit.
+driver=$(git rev-parse --git-path macroonz-staged-diagrams.mjs)
+trap 'rm -f "$driver"' EXIT HUP INT TERM
+git show :assets/diagrams/staged.mjs > "$driver"
+MACROONZ_DIAGRAM_TOOLS="$(pwd)/assets/diagrams" node "$driver"

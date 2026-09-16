@@ -7,42 +7,11 @@ This home supplies the law shapes and the one conclusion algebra they share.
 The subject, sameness, ordering, transition meaning, and refusal reading remain caller-owned function pointers over otherwise unbounded types.
 No subject trait or product vocabulary enters here.
 
-```mermaid
-flowchart LR
-    accTitle: Property evidence flow
-    accDescr: Caller-owned semantics enter a law perspective, each perspective reaches the shared typed conclusion road, and the result composes into ordinary report evidence.
+![Property evidence flow][diagram-harness-properties]
 
-    O([Caller-owned semantics])
+Diagram source: `assets/diagrams/harness-properties.mmd` in this crate's source package.
 
-    subgraph P[Law perspectives]
-        direction TB
-        A[Declared algebra]
-        M[Related runs]
-        Y[Two roads]
-        C[Composed roads]
-        T[Whole histories]
-        R[Refusal and lawful twin]
-    end
-
-    O --> A
-    O --> M
-    O --> Y
-    O --> C
-    O --> T
-    O --> R
-
-    A --> D{Demand holds?}
-    M --> D
-    Y --> D
-    C --> D
-    T --> D
-    R --> D
-
-    D -->|yes| H[Typed pass]
-    D -->|no| F[Typed finding]
-    H --> E([Ordinary report evidence])
-    F --> E
-```
+[diagram-harness-properties]: ../../assets/diagrams/harness-properties.svg
 
 Declared-algebra laws compare a subject with the algebra its owner stated.
 Metamorphic laws relate runs without requiring a known right answer.

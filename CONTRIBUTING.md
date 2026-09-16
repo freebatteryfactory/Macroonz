@@ -5,19 +5,24 @@ It is the working law for every person, model, and agent who edits this reposito
 
 ## Scope
 
-Change one semantic home at a time.
-Read that home's entire owner packet before editing it.
+Make one coherent responsibility change at a time, including every affected home when its contracts or wiring must change together.
+Read each affected home's entire owner packet before editing it.
 
 ## Local wall
 
 Develop and run affected checks in the current checkout using its ordinary Cargo target directory.
 Nested Cargo consumers reuse that target unless an independent observation requires cache isolation.
-Read the affected owners, implement a coherent change, run focused behavior and compile-refusal controls, then run the complete wall before acceptance.
+Read the affected owners, implement a coherent change, and run focused controls before the applicable acceptance checks below.
 Do not run the full wall after every intermediate edit or recreate a workspace merely to run ordinary checks.
 Product source and required tests must survive cargo clean; test subjects and generated configuration are recreated from tracked source or explicitly supplied inputs.
 No retained campaign folder is a prerequisite for the local wall.
 
-Run the complete wall from the repository root before you ask for acceptance.
+Changes to product behavior, Rust source, dependency graphs, compiler policy or executable examples require the complete wall from the repository root before acceptance.
+Select documentation and maintenance checks by their effects, not their file extensions.
+Presentation and navigation changes require link and rendering checks; changed normative prose also requires source-informed contract review; package selection requires file-list and extracted-archive checks; a changed skill requires its executable adoption controls.
+Documentation-tooling changes require their own behavior controls, staged-input checks and delivery checks, and changes included in rustdoc require warning-denying workspace documentation and doctests.
+Run all applicable categories for a combined change; an unexecuted hosted check remains unverified and no documentation exemption excuses a failing applicable check.
+The [diagram owner](assets/diagrams/README.md) owns the documentation commands and their supported rendering environment.
 On Windows with the MSVC target, use an x64 Visual Studio Developer PowerShell or Native Tools command prompt with the C++ build tools and Windows SDK available.
 The linker and SDK environment are prerequisites of the declared target; no private campaign initialization script is required.
 Every Cargo operation is locked to the declared dependency graph, and every compilation operation uses the pinned stable Rust 1.98 toolchain.

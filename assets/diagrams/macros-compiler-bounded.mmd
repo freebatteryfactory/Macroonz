@@ -1,0 +1,39 @@
+flowchart LR
+    accTitle: Bounded collection construction
+    accDescr: Complete offerings become optional, required, caller-keyed unique, or exactly assigned bounded collections or receive typed refusals, while prefix capping retains what fits and records any omission.
+
+    offered[[Offered items]]
+    bounded{"May empty be lawful?"}
+    required{"Must one item exist?"}
+    keyed{"Must caller-declared keys be unique?"}
+    assigned{"Must every denominator member receive one uniquely seated payload?"}
+    retained[[Retained prefix]]
+    overflow[[Overflow refusal]]
+    empty[[Empty or overflow refusal]]
+    keys[[Magnitude or duplicate-key refusal]]
+    assignment[[Assignment refusal]]
+
+    offered --> bounded
+    offered --> required
+    offered --> keyed
+    offered --> assigned
+    offered --> retained
+    bounded -->|"yes, within N"| B["Bounded&lt;T, N&gt;"]
+    bounded -->|"more than N"| overflow
+    required -->|"one through N"| NE["NonEmpty&lt;T, N&gt;"]
+    required -->|"zero or more than N"| empty
+    keyed -->|"one through N, unique"| KR["KeyedRoster&lt;T, K, N&gt;"]
+    keyed -->|"zero, more than N, or duplicated"| keys
+    assigned -->|"exact, uniquely seated"| KA["KeyedRosterAssignment"]
+    assigned -->|"absent, foreign, doubled, reused, or missing"| assignment
+    retained --> C["Capped&lt;T, N&gt;"]
+    C --> posture{"What happened?"}
+    posture --> complete[Complete]
+    posture --> truncated["Truncated { omitted }"]
+
+    classDef value fill:#d9f3ff,stroke:#087e8b,color:#102a43
+    classDef decision fill:#fff2cc,stroke:#c27c0e,color:#3d2b00
+    classDef refused fill:#ffe0e0,stroke:#b42318,color:#4a1010
+    class B,NE,KR,KA,C,offered,retained value
+    class bounded,required,keyed,assigned,posture decision
+    class overflow,empty,keys,assignment refused

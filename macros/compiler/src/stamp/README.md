@@ -25,24 +25,11 @@ Where a pattern declares a reach coordinate, the definition carries one front ar
 An opaque `vis` fragment cannot be transported at all — a wrapper that captured a whole visibility and forwarded it has handed over something no arm can place.
 The last arm says so with the compiler's own refusal rather than guessing a scope, because a guessed reach publishes somebody's private item and nothing downstream reports it.
 
-```mermaid
-flowchart LR
-    accTitle: Visibility transport across a seated module
-    accDescr: Explicit visibility spellings map to their equivalent reach one module deeper, while an opaque forwarded visibility fragment receives a compile-time refusal.
+![Visibility transport across a seated module][diagram-macros-compiler-stamp]
 
-    site["site coordinate"] -->|"private or pub(self)"| enclosing["pub(super) in the seated module"]
-    site -->|"pub(super)"| ancestor["pub(in super::super) in the seated module"]
-    site -->|"pub(crate)"| crateVis["pub(crate), unchanged"]
-    site -->|"pub"| public["pub, unchanged"]
-    opaque["forwarded $vis fragment"] --> refusal["compile-time refusal"]
+Diagram source: `assets/diagrams/macros-compiler-stamp.mmd` in this crate's source package.
 
-    classDef coordinate fill:#eef6ff,stroke:#2563eb,color:#172554
-    classDef admitted fill:#ecfdf5,stroke:#059669,color:#064e3b
-    classDef refused fill:#fff1f2,stroke:#e11d48,color:#881337
-    class site coordinate
-    class enclosing,ancestor,crateVis,public admitted
-    class opaque,refusal refused
-```
+[diagram-macros-compiler-stamp]: ../../assets/diagrams/macros-compiler-stamp.svg
 
 ## What it claims
 
